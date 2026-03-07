@@ -24,10 +24,16 @@ export interface CanvasSlice {
 	setPersistenceState: (state: PersistenceState) => void;
 }
 
+const INITIAL_APP_STATE: Partial<AppState> = {
+	selectedElementIds: {},
+	scrollX: 0,
+	scrollY: 0,
+};
+
 export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (set) => ({
 	excalidrawApi: null,
 	elements: [],
-	appState: {},
+	appState: INITIAL_APP_STATE,
 	files: {},
 
 	isSaving: false,

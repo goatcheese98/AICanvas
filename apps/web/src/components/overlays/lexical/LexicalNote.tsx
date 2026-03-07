@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { NewLexCommentThread, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
@@ -49,6 +49,12 @@ export function LexicalNote({
 	const [draftComment, setDraftComment] = useState('');
 	const [comments, setComments] = useState<NewLexCommentThread[]>(element.customData.comments ?? []);
 	const [commentsPanelOpen, setCommentsPanelOpen] = useState(Boolean(element.customData.commentsPanelOpen));
+	const onEditingChangeRef = useRef(onEditingChange);
+	const lastReportedEditingRef = useRef<boolean | null>(null);
+
+	useEffect(() => {
+		onEditingChangeRef.current = onEditingChange;
+	}, [onEditingChange]);
 
 	useEffect(() => {
 		setComments(element.customData.comments ?? []);
@@ -62,10 +68,23 @@ export function LexicalNote({
 		if (!isSelected) setIsEditing(false);
 	}, [isSelected]);
 
+	const isActivelyEditing = isEditing || commentsPanelOpen;
+
 	useEffect(() => {
-		onEditingChange?.(isEditing || commentsPanelOpen);
-		return () => onEditingChange?.(false);
-	}, [commentsPanelOpen, isEditing, onEditingChange]);
+		if (lastReportedEditingRef.current === isActivelyEditing) return;
+		lastReportedEditingRef.current = isActivelyEditing;
+		onEditingChangeRef.current?.(isActivelyEditing);
+	}, [isActivelyEditing]);
+
+	useEffect(
+		() => () => {
+			if (lastReportedEditingRef.current) {
+				onEditingChangeRef.current?.(false);
+				lastReportedEditingRef.current = false;
+			}
+		},
+		[],
+	);
 
 	const openThreadCount = useMemo(
 		() => comments.filter((thread) => !thread.commentDeleted && !thread.resolved).length,

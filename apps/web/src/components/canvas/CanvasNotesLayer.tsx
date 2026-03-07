@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useMemo, type CSSProperties, type ReactNode } from 'react';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
@@ -15,14 +15,21 @@ import {
 	type TypedOverlayCanvasElement,
 } from './overlay-definitions';
 
-function getNormalizedAppState(appState: Partial<AppState>) {
+const EMPTY_SELECTED_ELEMENT_IDS: NonNullable<AppState['selectedElementIds']> = {};
+
+function getNormalizedAppState(appState: {
+	scrollX?: number;
+	scrollY?: number;
+	zoomValue?: number;
+	selectedElementIds?: AppState['selectedElementIds'];
+}) {
 	return {
 		scrollX: appState.scrollX ?? 0,
 		scrollY: appState.scrollY ?? 0,
 		zoom: {
-			value: appState.zoom?.value ?? 1,
+			value: appState.zoomValue ?? 1,
 		},
-		selectedElementIds: appState.selectedElementIds ?? {},
+		selectedElementIds: appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
 	};
 }
 
@@ -52,19 +59,31 @@ interface CanvasNotesLayerProps {
 
 export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps) {
 	const elements = useAppStore((s) => s.elements);
-	const appState = useAppStore((s) => s.appState);
-	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
-	const setElements = useAppStore((s) => s.setElements);
-	const [editingElementId, setEditingElementId] = useState<string | null>(null);
+	const scrollX = useAppStore((s) => s.appState.scrollX ?? 0);
+	const scrollY = useAppStore((s) => s.appState.scrollY ?? 0);
+	const zoomValue = useAppStore((s) => s.appState.zoom?.value ?? 1);
+	const selectedElementIds = useAppStore(
+		(s) => s.appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
+	);
 
 	const overlayElements = useMemo(() => collectOverlayElements(elements), [elements]);
-	const normalizedAppState = useMemo(() => getNormalizedAppState(appState), [appState]);
+	const normalizedAppState = useMemo(
+		() =>
+			getNormalizedAppState({
+				scrollX,
+				scrollY,
+				zoomValue,
+				selectedElementIds,
+			}),
+		[scrollX, scrollY, selectedElementIds, zoomValue],
+	);
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
+			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
-			const nextElements = elements.map((candidate) => {
+			const nextElements = currentElements.map((candidate) => {
 				if (candidate.id !== elementId) return candidate;
 				return applyOverlayUpdateByType(
 					type,
@@ -77,7 +96,7 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 			setElements(nextElements as ExcalidrawElement[]);
 			onOverlaySceneChange?.(nextElements as ExcalidrawElement[]);
 		},
-		[elements, excalidrawApi, onOverlaySceneChange, setElements],
+		[onOverlaySceneChange],
 	);
 
 	const renderOverlay = useCallback(
@@ -88,10 +107,10 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 			const containerStyle = getOverlayContainerStyle(
 				normalizedElement,
 				normalizedAppState,
-				getOverlayZIndex(isSelected, editingElementId === normalizedElement.id, stackIndex),
+				getOverlayZIndex(isSelected, false, stackIndex),
 			);
 
-			const interactionEnabled = isSelected || editingElementId === normalizedElement.id;
+			const interactionEnabled = isSelected;
 			const definition = getOverlayDefinition(type);
 			const content: ReactNode = definition.render({
 				element: normalizedElement as never,
@@ -102,8 +121,6 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 						type,
 						payload as OverlayUpdatePayloadMap[typeof type],
 					),
-				onEditingChange: (isEditing) =>
-					setEditingElementId(isEditing ? normalizedElement.id : null),
 			});
 
 			return (
@@ -121,7 +138,7 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 				</div>
 			);
 		},
-		[editingElementId, normalizedAppState, updateOverlayElement],
+		[normalizedAppState, updateOverlayElement],
 	);
 
 	return (

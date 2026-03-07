@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
@@ -17,6 +17,7 @@ interface MarkdownRendererProps {
 }
 
 const RENDERER_SURFACE = 'rounded-[10px] border border-stone-200';
+const failedImageSrcCache = new Set<string>();
 
 function getCheckboxLineIndex(node: { position?: { start?: { line?: number | null } | null } | null }): number {
 	const lineNumber = node.position?.start?.line;
@@ -24,7 +25,7 @@ function getCheckboxLineIndex(node: { position?: { start?: { line?: number | nul
 	return Math.max(0, lineNumber - 1);
 }
 
-function normalizeDisplayMath(content: string) {
+export function normalizeDisplayMath(content: string) {
 	const lines = content.split('\n');
 	const normalized: string[] = [];
 	let insideBlock = false;
@@ -68,6 +69,52 @@ function normalizeDisplayMath(content: string) {
 	return normalized.join('\n');
 }
 
+interface MarkdownImageProps {
+	src: string;
+	alt?: string;
+	width?: number | string;
+	height?: number | string;
+	inlineSized: boolean;
+	props?: Record<string, unknown>;
+}
+
+function MarkdownImage({ src, alt, width, height, inlineSized, props }: MarkdownImageProps) {
+	const [failed, setFailed] = useState(() => failedImageSrcCache.has(src));
+
+	useEffect(() => {
+		setFailed(failedImageSrcCache.has(src));
+	}, [src]);
+
+	if (failed) {
+		return (
+			<span
+				className={`inline-flex items-center rounded-[8px] border border-amber-200 bg-amber-50 px-2 py-1 text-[0.92em] text-amber-800 ${
+					inlineSized ? 'my-0 inline-flex align-middle' : 'my-3'
+				}`}
+				title={src}
+			>
+				{alt || 'Image failed to load'}
+			</span>
+		);
+	}
+
+	return (
+		<img
+			src={src}
+			alt={alt || 'Embedded image'}
+			loading="lazy"
+			width={width}
+			height={height}
+			className={inlineSized ? 'my-0 inline-block shrink-0 align-middle' : `my-3 block max-w-full ${RENDERER_SURFACE}`}
+			onError={() => {
+				failedImageSrcCache.add(src);
+				setFailed(true);
+			}}
+			{...(props ?? {})}
+		/>
+	);
+}
+
 export function MarkdownRenderer({
 	content,
 	images,
@@ -88,21 +135,32 @@ export function MarkdownRenderer({
 	const components = useMemo(() => {
 		return {
 			pre: ({ children }: any) => (
-				<pre className={`mb-4 overflow-x-auto ${RENDERER_SURFACE} bg-stone-950 px-4 py-3 text-[0.9em] text-stone-100`}>
+				<pre
+					className={`mb-4 overflow-x-auto ${RENDERER_SURFACE} bg-stone-100/90 px-4 py-3 text-[0.9em] text-stone-800`}
+				>
 					{children}
 				</pre>
 			),
-			code: ({ inline, children, ...props }: any) =>
-				inline ? (
+			code: ({ inline, className, children, ...props }: any) => {
+				const isInline = inline === true || (!className && typeof inline !== 'boolean');
+				return isInline ? (
 					<code
-						className="rounded-[6px] bg-stone-900/10 px-1.5 py-0.5 text-[0.92em] text-stone-800"
+						className="rounded-[6px] border px-1.5 py-0.5 text-[0.92em] font-medium"
+						style={{
+							color: settings.inlineCodeColor,
+							backgroundColor: 'rgba(148, 163, 184, 0.16)',
+							borderColor: 'rgba(148, 163, 184, 0.3)',
+						}}
 						{...props}
 					>
 						{children}
 					</code>
 				) : (
-					<code {...props}>{children}</code>
-				),
+					<code className={`font-medium text-stone-800 ${className ?? ''}`.trim()} {...props}>
+						{children}
+					</code>
+				);
+			},
 			blockquote: ({ children }: any) => (
 				<blockquote className="my-4 border-l-4 border-indigo-300 pl-4 italic text-stone-600">
 					{children}
@@ -136,14 +194,13 @@ export function MarkdownRenderer({
 				if (!resolvedSrc) return null;
 				const inlineSized = width || height;
 				return (
-					<img
+					<MarkdownImage
 						src={resolvedSrc}
-						alt={alt || 'Embedded image'}
-						loading="lazy"
+						alt={alt}
 						width={width}
 						height={height}
-						className={inlineSized ? 'my-0 inline-block shrink-0 align-middle' : `my-3 block max-w-full ${RENDERER_SURFACE}`}
-						{...props}
+						inlineSized={Boolean(inlineSized)}
+						props={props}
 					/>
 				);
 			},
@@ -194,7 +251,7 @@ export function MarkdownRenderer({
 			),
 			hr: () => <hr className="my-5 border-stone-200" />,
 		};
-	}, [images, onCheckboxToggle]);
+	}, [images, onCheckboxToggle, settings.inlineCodeColor]);
 
 	return (
 		<div className={className} style={typographyStyle}>

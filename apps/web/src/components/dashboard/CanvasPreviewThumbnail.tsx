@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
-import { exportToSvg } from '@excalidraw/excalidraw';
 import type { CanvasAppState, CanvasElement, CanvasFiles } from '@ai-canvas/shared/types';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 
@@ -10,12 +8,20 @@ interface CanvasPreviewThumbnailProps {
 	title: string;
 }
 
+let exportToSvgLoader: Promise<typeof import('@excalidraw/excalidraw')['exportToSvg']> | null = null;
+
+async function getExportToSvg() {
+	if (!exportToSvgLoader) {
+		exportToSvgLoader = import('@excalidraw/excalidraw').then((module) => module.exportToSvg);
+	}
+	return exportToSvgLoader;
+}
+
 export function CanvasPreviewThumbnail({ canvasId, title }: CanvasPreviewThumbnailProps) {
 	const { getToken } = useAuth();
-	const [svgUrl, setSvgUrl] = useState<string | null>(null);
 
 	const previewQuery = useQuery({
-		queryKey: ['canvas-preview', canvasId],
+		queryKey: ['canvas-preview', canvasId, 'svg'],
 		queryFn: async () => {
 			const headers = await getRequiredAuthHeaders(getToken);
 			const response = await api.api.canvas[':id'].$get({ param: { id: canvasId } }, { headers });
@@ -24,31 +30,22 @@ export function CanvasPreviewThumbnail({ canvasId, title }: CanvasPreviewThumbna
 			}
 
 			const result = await response.json();
-			return result.data as
+			const data = result.data as
 				| {
 						elements?: CanvasElement[];
 						appState?: CanvasAppState;
 						files?: CanvasFiles | null;
 				  }
 				| null;
-		},
-		staleTime: 1000 * 60 * 5,
-	});
-
-	useEffect(() => {
-		let revokedUrl: string | null = null;
-
-		const renderPreview = async () => {
-			const data = previewQuery.data;
 			const elements = (data?.elements ?? []).filter(
 				(element) => (element as Record<string, unknown>).isDeleted !== true,
 			);
 
 			if (elements.length === 0) {
-				setSvgUrl(null);
-				return;
+				return null;
 			}
 
+			const exportToSvg = await getExportToSvg();
 			const svg = await exportToSvg({
 				elements: elements as never,
 				appState: {
@@ -65,27 +62,18 @@ export function CanvasPreviewThumbnail({ canvasId, title }: CanvasPreviewThumbna
 			svg.setAttribute('height', '100%');
 			svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
 
-			const objectUrl = URL.createObjectURL(
-				new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }),
-			);
-			revokedUrl = objectUrl;
-			setSvgUrl(objectUrl);
-		};
-
-		void renderPreview();
-
-		return () => {
-			if (revokedUrl) {
-				URL.revokeObjectURL(revokedUrl);
-			}
-		};
-	}, [previewQuery.data]);
+			return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+				new XMLSerializer().serializeToString(svg),
+			)}`;
+		},
+		staleTime: 1000 * 60 * 5,
+	});
 
 	if (previewQuery.isLoading) {
 		return <div className="h-full w-full animate-pulse bg-stone-100" />;
 	}
 
-	if (!svgUrl) {
+	if (!previewQuery.data) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#f5efe0_0%,#e9f3ff_55%,#f8d9c7_100%)]">
 				<div className="rounded-full bg-white/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600">
@@ -95,5 +83,11 @@ export function CanvasPreviewThumbnail({ canvasId, title }: CanvasPreviewThumbna
 		);
 	}
 
-	return <img src={svgUrl} alt={`${title} preview`} className="h-full w-full object-cover" />;
+	return (
+		<img
+			src={previewQuery.data}
+			alt={`${title} preview`}
+			className="h-full w-full object-cover"
+		/>
+	);
 }

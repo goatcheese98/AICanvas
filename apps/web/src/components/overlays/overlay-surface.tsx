@@ -15,7 +15,7 @@ interface OverlaySurfaceProps extends PropsWithChildren {
 
 export function OverlaySurface({
 	element,
-	isSelected,
+	isSelected: _isSelected,
 	className,
 	style,
 	backgroundColor,
@@ -34,9 +34,7 @@ export function OverlaySurface({
 				position: 'relative',
 				borderRadius: `${borderRadius}px`,
 				overflow: 'hidden',
-				boxShadow: isSelected
-					? '0 0 0 2px rgba(99, 102, 241, 0.9), 0 0 0 5px rgba(99, 102, 241, 0.16), 0 16px 28px -20px rgba(15, 23, 42, 0.34)'
-					: '0 2px 8px -6px rgba(15, 23, 42, 0.18)',
+				boxShadow: '0 2px 8px -6px rgba(15, 23, 42, 0.18)',
 				...getExcalidrawSurfaceStyle({
 					backgroundColor: backgroundColor ?? element.backgroundColor,
 					strokeColor: element.strokeColor,

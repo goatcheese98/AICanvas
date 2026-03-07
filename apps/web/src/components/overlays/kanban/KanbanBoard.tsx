@@ -43,15 +43,32 @@ export function KanbanBoard({
 	const [pendingDeleteColumnId, setPendingDeleteColumnId] = useState<string | null>(null);
 	const undoStackRef = useRef<KanbanOverlayCustomData[]>([]);
 	const redoStackRef = useRef<KanbanOverlayCustomData[]>([]);
+	const onEditingChangeRef = useRef(onEditingChange);
+	const lastReportedEditingRef = useRef<boolean | null>(null);
+
+	useEffect(() => {
+		onEditingChangeRef.current = onEditingChange;
+	}, [onEditingChange]);
 
 	useEffect(() => {
 		setBoard(normalizeKanbanBoard(element.customData));
 	}, [element.customData]);
 
 	useEffect(() => {
-		onEditingChange?.(isSelected);
-		return () => onEditingChange?.(false);
-	}, [isSelected, onEditingChange]);
+		if (lastReportedEditingRef.current === isSelected) return;
+		lastReportedEditingRef.current = isSelected;
+		onEditingChangeRef.current?.(isSelected);
+	}, [isSelected]);
+
+	useEffect(
+		() => () => {
+			if (lastReportedEditingRef.current) {
+				onEditingChangeRef.current?.(false);
+				lastReportedEditingRef.current = false;
+			}
+		},
+		[],
+	);
 
 	useEffect(() => {
 		if (!isSelected) {

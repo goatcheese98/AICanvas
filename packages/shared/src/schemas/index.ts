@@ -8,6 +8,7 @@ export {
 export {
 	overlaySchemas,
 	DEFAULT_MARKDOWN_NOTE_SETTINGS,
+	MARKDOWN_SYSTEM_FONT_STACK,
 	normalizeMarkdownSettings,
 	normalizeMarkdownOverlay,
 	normalizeNewLexOverlay,

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DEFAULT_MARKDOWN_NOTE_SETTINGS, normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
+import {
+	DEFAULT_MARKDOWN_NOTE_SETTINGS,
+	MARKDOWN_SYSTEM_FONT_STACK,
+	normalizeMarkdownOverlay,
+} from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
@@ -45,29 +49,101 @@ const FONT_OPTIONS = EXCALIDRAW_FONT_OPTIONS.map((option) => ({
 	font: getExcalidrawFontFamily(option.family) ?? DEFAULT_MARKDOWN_NOTE_SETTINGS.font,
 }));
 
+const EXTRA_MARKDOWN_FONT_OPTIONS = [
+	{
+		id: 'markdown-default',
+		label: 'System UI',
+		font: MARKDOWN_SYSTEM_FONT_STACK,
+	},
+	{
+		id: 'markdown-serif',
+		label: 'Serif',
+		font: 'Georgia, serif',
+	},
+	{
+		id: 'markdown-dm-sans',
+		label: 'DM Sans',
+		font: '"DM Sans", system-ui, sans-serif',
+	},
+	{
+		id: 'markdown-playfair',
+		label: 'Playfair',
+		font: '"Playfair Display", Georgia, serif',
+	},
+	{
+		id: 'markdown-mono',
+		label: 'Mono',
+		font: '"SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+	},
+	{
+		id: 'markdown-anonymous-pro',
+		label: 'Anonymous Pro',
+		font: '"Anonymous Pro", "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, monospace',
+	},
+] as const;
+
+const FONT_OPTIONS_WITH_MARKDOWN_EXTRAS = [...FONT_OPTIONS, ...EXTRA_MARKDOWN_FONT_OPTIONS];
+
 const MODE_OPTIONS = [
 	{ mode: 'raw', label: 'Raw', icon: 'raw' },
 	{ mode: 'hybrid', label: 'Hybrid', icon: 'hybrid' },
 	{ mode: 'preview', label: 'Preview', icon: 'preview' },
 ] as const;
 
+const MARKDOWN_HEADER_HIDDEN_BREAKPOINT = 320;
+const MARKDOWN_HEADER_FULL_BREAKPOINT = 570;
 const NOTE_SEGMENTED_SHELL =
-	'inline-flex items-center rounded-[8px] border border-stone-200 bg-stone-50 p-[2px]';
+	'inline-flex items-center rounded-[8px] border border-stone-300/70 bg-white/42 p-[2px] shadow-sm backdrop-blur-md';
 const NOTE_SEGMENTED_BUTTON =
 	'h-7 rounded-[6px] px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors';
-const NOTE_SEGMENTED_ACTIVE = 'bg-[var(--color-accent-bg)] text-[var(--color-accent-text)] shadow-sm';
+const NOTE_SEGMENTED_ACTIVE =
+	'border border-white/35 bg-[color-mix(in_srgb,var(--color-accent-bg)_58%,transparent)] text-[var(--color-accent-text)] shadow-[0_1px_3px_rgba(15,23,42,0.12)] backdrop-blur-sm';
 const NOTE_SEGMENTED_IDLE =
-	'text-stone-600 hover:bg-[var(--color-accent-hover)] hover:text-[var(--color-accent-text)]';
+	'text-stone-600 hover:bg-white/24 hover:text-[var(--color-accent-text)]';
 const NOTE_TOOL_BUTTON =
-	'inline-flex h-7 items-center gap-1.5 rounded-[8px] border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors';
+	'inline-flex h-7 items-center gap-1.5 rounded-[8px] border px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors backdrop-blur-md';
 const NOTE_TOOL_IDLE =
-	'border-stone-300 bg-white text-stone-700 hover:border-[var(--color-accent-border)] hover:bg-[var(--color-accent-hover)] hover:text-[var(--color-accent-text)]';
+	'border-stone-300/70 bg-white/42 text-stone-700 hover:border-[var(--color-accent-border)] hover:bg-white/24 hover:text-[var(--color-accent-text)]';
 const NOTE_PANEL =
 	'absolute right-0 top-[calc(100%+0.5rem)] z-20 rounded-[12px] border border-stone-200 bg-white p-3 shadow-xl';
 const NOTE_RESET_BUTTON =
 	'rounded-[8px] border border-stone-300 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-600 transition-colors hover:border-[var(--color-accent-border)] hover:bg-[var(--color-accent-hover)] hover:text-[var(--color-accent-text)]';
 const MAX_MARKDOWN_TITLE_LENGTH = 8;
 const TITLE_COMPACT_BREAKPOINT = 220;
+
+function serializeImages(images: Record<string, string> | undefined) {
+	return JSON.stringify(images ?? {});
+}
+
+function serializeSettings(settings: MarkdownOverlayCustomData['settings']) {
+	return JSON.stringify(settings);
+}
+
+function serializeNoteState(input: {
+	content: string;
+	images: Record<string, string> | undefined;
+	title: string;
+	settings: MarkdownOverlayCustomData['settings'];
+	editorMode: MarkdownOverlayCustomData['editorMode'];
+}) {
+	return JSON.stringify({
+		content: input.content,
+		images: input.images ?? {},
+		title: input.title,
+		settings: input.settings,
+		editorMode: input.editorMode,
+	});
+}
+
+function serializeOverlayState(input: ReturnType<typeof normalizeMarkdownOverlay>) {
+	return serializeNoteState({
+		content: input.content,
+		images: input.images ?? {},
+		title: input.title ?? 'Markdown',
+		settings: input.settings,
+		editorMode: input.editorMode ?? 'raw',
+	});
+}
 
 function abbreviateMarkdownTitle(title: string) {
 	const compact = title.replace(/\s+/g, '');
@@ -109,6 +185,10 @@ export function MarkdownNote({
 	onEditingChange,
 }: MarkdownNoteProps) {
 	const normalizedElement = useMemo(() => normalizeMarkdownOverlay(element.customData), [element.customData]);
+	const normalizedElementSignature = useMemo(
+		() => serializeOverlayState(normalizedElement),
+		[normalizedElement],
+	);
 	const [title, setTitle] = useState(normalizedElement.title);
 	const [content, setContent] = useState(normalizedElement.content);
 	const [images, setImages] = useState<Record<string, string>>(normalizedElement.images ?? {});
@@ -123,33 +203,38 @@ export function MarkdownNote({
 	const utilityPanelRef = useRef<HTMLDivElement | null>(null);
 	const headerRef = useRef<HTMLDivElement | null>(null);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
+	const onChangeRef = useRef(onChange);
+	const onEditingChangeRef = useRef(onEditingChange);
+	const lastReportedEditingRef = useRef<boolean | null>(null);
+	const externalSignatureRef = useRef(normalizedElementSignature);
+	const lastCommittedSignatureRef = useRef(externalSignatureRef.current);
 
 	useEffect(() => {
-		setTitle(normalizedElement.title);
-	}, [normalizedElement.title]);
+		onChangeRef.current = onChange;
+	}, [onChange]);
 
 	useEffect(() => {
-		setContent(normalizedElement.content);
-	}, [normalizedElement.content]);
+		onEditingChangeRef.current = onEditingChange;
+	}, [onEditingChange]);
 
 	useEffect(() => {
-		setImages(normalizedElement.images ?? {});
-	}, [normalizedElement.images]);
-
-	useEffect(() => {
-		setSettings(normalizedElement.settings);
-	}, [normalizedElement.settings]);
-
-	useEffect(() => {
-		const nextBackground = element.backgroundColor ?? DEFAULT_MARKDOWN_NOTE_SETTINGS.background;
+		if (normalizedElementSignature === externalSignatureRef.current) return;
+		externalSignatureRef.current = normalizedElementSignature;
+		lastCommittedSignatureRef.current = normalizedElementSignature;
+		const nextImages = normalizedElement.images ?? {};
+		setTitle((current) => (current === normalizedElement.title ? current : normalizedElement.title));
+		setContent((current) => (current === normalizedElement.content ? current : normalizedElement.content));
+		setImages((current) => (serializeImages(current) === serializeImages(nextImages) ? current : nextImages));
 		setSettings((current) =>
-			current.background === nextBackground ? current : { ...current, background: nextBackground },
+			serializeSettings(current) === serializeSettings(normalizedElement.settings)
+				? current
+				: normalizedElement.settings,
 		);
-	}, [element.backgroundColor]);
-
-	useEffect(() => {
-		setEditorMode(normalizedElement.editorMode ?? 'raw');
-	}, [normalizedElement.editorMode]);
+		setEditorMode((current) => {
+			const nextMode = normalizedElement.editorMode ?? 'raw';
+			return current === nextMode ? current : nextMode;
+		});
+	}, [normalizedElement, normalizedElementSignature]);
 
 	useEffect(() => {
 		if (!isSelected) {
@@ -200,38 +285,63 @@ export function MarkdownNote({
 		if (Object.keys(images).length > 0) prewarmImageCache(images);
 	}, [images]);
 
-	useEffect(() => {
-		onEditingChange?.(isSelected && (!isPreview || activeUtilityPanel !== 'none'));
-		return () => onEditingChange?.(false);
-	}, [activeUtilityPanel, isPreview, isSelected, onEditingChange]);
+	const isEditing = isSelected && (!isPreview || activeUtilityPanel !== 'none');
 
 	useEffect(() => {
-		try {
-			window.localStorage.setItem('md-note-defaults', JSON.stringify(settings));
-		} catch {
-			// ignore local storage failures
-		}
-	}, [settings]);
+		if (lastReportedEditingRef.current === isEditing) return;
+		lastReportedEditingRef.current = isEditing;
+		onEditingChangeRef.current?.(isEditing);
+	}, [isEditing]);
+
+	useEffect(
+		() => () => {
+			if (lastReportedEditingRef.current) {
+				onEditingChangeRef.current?.(false);
+				lastReportedEditingRef.current = false;
+			}
+		},
+		[],
+	);
 
 	useEffect(() => {
 		if (isPreview && activeUtilityPanel === 'none') return;
+		const nextSignature = serializeNoteState({
+			content,
+			images,
+			title,
+			settings,
+			editorMode,
+		});
+		if (
+			nextSignature === externalSignatureRef.current ||
+			nextSignature === lastCommittedSignatureRef.current
+		) {
+			return;
+		}
 		const timeout = window.setTimeout(() => {
-			onChange(element.id, content, images, title, settings, editorMode);
+			lastCommittedSignatureRef.current = nextSignature;
+			onChangeRef.current(element.id, content, images, title, settings, editorMode);
 		}, 180);
 		return () => window.clearTimeout(timeout);
-	}, [activeUtilityPanel, content, editorMode, element.id, images, isPreview, onChange, settings, title]);
+	}, [activeUtilityPanel, content, editorMode, element.id, images, isPreview, settings, title]);
 
 	const hasLocalEdits =
-		title !== normalizedElement.title ||
-		content !== normalizedElement.content ||
-		JSON.stringify(images) !== JSON.stringify(normalizedElement.images ?? {}) ||
-		JSON.stringify(settings) !== JSON.stringify(normalizedElement.settings) ||
-		editorMode !== (normalizedElement.editorMode ?? 'raw');
+		serializeNoteState({
+			content,
+			images,
+			title,
+			settings,
+			editorMode,
+		}) !== externalSignatureRef.current;
 
 	const showHeader = isSelected || !settings.autoHideToolbar;
 	const effectiveHeaderWidth = showHeader && headerWidth > 0 ? headerWidth : element.width;
 	const controlsLayout: ControlsLayout =
-		effectiveHeaderWidth < 320 ? 'hidden' : effectiveHeaderWidth < 760 ? 'icon' : 'full';
+		effectiveHeaderWidth < MARKDOWN_HEADER_HIDDEN_BREAKPOINT
+			? 'hidden'
+			: effectiveHeaderWidth < MARKDOWN_HEADER_FULL_BREAKPOINT
+				? 'icon'
+				: 'full';
 	const compactTitle = effectiveHeaderWidth < TITLE_COMPACT_BREAKPOINT;
 	const activeMode: MarkdownViewMode = isPreview ? 'preview' : editorMode;
 	const surfaceBackground = element.backgroundColor ?? settings.background;
@@ -245,7 +355,15 @@ export function MarkdownNote({
 	}, [controlsLayout]);
 
 	const handleCommit = () => {
-		onChange(element.id, content, images, title, settings, editorMode);
+		const nextSignature = serializeNoteState({
+			content,
+			images,
+			title,
+			settings,
+			editorMode,
+		});
+		lastCommittedSignatureRef.current = nextSignature;
+		onChangeRef.current(element.id, content, images, title, settings, editorMode);
 	};
 
 	const showTitleLimitNotice = () => {
@@ -349,7 +467,7 @@ export function MarkdownNote({
 								}
 								className="w-full rounded-[8px] border border-stone-300 bg-white px-2.5 py-1.5 text-[13px] text-stone-700"
 							>
-								{FONT_OPTIONS.map((option) => (
+								{FONT_OPTIONS_WITH_MARKDOWN_EXTRAS.map((option) => (
 									<option key={option.id} value={option.font}>
 										{option.label}
 									</option>
@@ -392,6 +510,37 @@ export function MarkdownNote({
 								}
 								className="w-full"
 							/>
+						</label>
+						<label className="col-span-2 space-y-1.5">
+							<span className="block font-semibold uppercase tracking-[0.18em] text-stone-500">
+								Inline Color
+							</span>
+							<div className="flex items-center gap-3 rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2">
+								<input
+									type="color"
+									value={settings.inlineCodeColor}
+									onChange={(event) =>
+										setSettings((current) => ({
+											...current,
+											inlineCodeColor: event.target.value,
+										}))
+									}
+									className="h-9 w-11 cursor-pointer rounded-[8px] border border-stone-300 bg-white p-1"
+								/>
+								<div className="min-w-0 flex-1">
+									<div
+										className="inline-flex max-w-full items-center rounded-[6px] border px-2 py-1 text-[12px] font-medium"
+										style={{
+											color: settings.inlineCodeColor,
+											backgroundColor: `${settings.inlineCodeColor}24`,
+											borderColor: `${settings.inlineCodeColor}38`,
+										}}
+									>
+										inline-preview
+									</div>
+									<div className="mt-1 text-[11px] text-stone-500">{settings.inlineCodeColor}</div>
+								</div>
+							</div>
 						</label>
 						<button
 							type="button"
@@ -562,9 +711,7 @@ export function MarkdownNote({
 			{showHeader ? (
 				<div
 					ref={headerRef}
-					className={`relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 bg-stone-100/80 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500 ${
-						isSelected ? 'border-b border-stone-200' : ''
-					}`}
+					className="relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500"
 				>
 					<div className="flex min-w-0 items-center gap-2">
 						{isSelected && !compactTitle ? (
@@ -621,7 +768,7 @@ export function MarkdownNote({
 					</div>
 					{showCompactControls ? (
 						<div
-							className="absolute inset-y-0 left-[5.25rem] right-3 z-20 flex items-center justify-between bg-stone-100/95"
+							className="absolute inset-y-0 left-[5.25rem] right-3 z-20 flex items-center justify-between"
 							onMouseEnter={() => setIsCompactControlsVisible(true)}
 							onMouseLeave={() => {
 								if (activeUtilityPanel === 'none') setIsCompactControlsVisible(false);
@@ -682,7 +829,15 @@ export function MarkdownNote({
 							onCheckboxToggle={(lineIndex) => {
 								const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
 								setContent(nextContent);
-								onChange(element.id, nextContent, images, title, settings, editorMode);
+								const nextSignature = serializeNoteState({
+									content: nextContent,
+									images,
+									title,
+									settings,
+									editorMode,
+								});
+								lastCommittedSignatureRef.current = nextSignature;
+								onChangeRef.current(element.id, nextContent, images, title, settings, editorMode);
 							}}
 						/>
 					</div>

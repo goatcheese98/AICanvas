@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -37,6 +37,12 @@ export function WebEmbed({
 		height: typeof window === 'undefined' ? 900 : window.innerHeight,
 	});
 	const [pipPosition, setPipPosition] = useState(() => getDefaultPipPosition(viewport));
+	const onEditingChangeRef = useRef(onEditingChange);
+	const lastReportedEditingRef = useRef<boolean | null>(null);
+
+	useEffect(() => {
+		onEditingChangeRef.current = onEditingChange;
+	}, [onEditingChange]);
 
 	useEffect(() => {
 		setUrlInput(element.customData.url);
@@ -49,10 +55,23 @@ export function WebEmbed({
 		}
 	}, [isSelected, viewMode]);
 
+	const isActivelyEditing = isEditing || viewMode !== 'inline';
+
 	useEffect(() => {
-		onEditingChange?.(isEditing || viewMode !== 'inline');
-		return () => onEditingChange?.(false);
-	}, [isEditing, onEditingChange, viewMode]);
+		if (lastReportedEditingRef.current === isActivelyEditing) return;
+		lastReportedEditingRef.current = isActivelyEditing;
+		onEditingChangeRef.current?.(isActivelyEditing);
+	}, [isActivelyEditing]);
+
+	useEffect(
+		() => () => {
+			if (lastReportedEditingRef.current) {
+				onEditingChangeRef.current?.(false);
+				lastReportedEditingRef.current = false;
+			}
+		},
+		[],
+	);
 
 	useEffect(() => {
 		const onResize = () => {

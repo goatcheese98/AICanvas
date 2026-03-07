@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
 import type { AssistantArtifact, AssistantMessage, GenerationMode } from '@ai-canvas/shared/types';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
@@ -24,6 +23,19 @@ const PANEL_BUTTON =
 const PANEL_BUTTON_IDLE =
 	'border-stone-300 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 const PANEL_BUTTON_ACTIVE = 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]';
+
+let convertToExcalidrawElementsLoader: Promise<
+	typeof import('@excalidraw/excalidraw')['convertToExcalidrawElements']
+> | null = null;
+
+async function getConvertToExcalidrawElements() {
+	if (!convertToExcalidrawElementsLoader) {
+		convertToExcalidrawElementsLoader = import('@excalidraw/excalidraw').then(
+			(module) => module.convertToExcalidrawElements,
+		);
+	}
+	return convertToExcalidrawElementsLoader;
+}
 
 function ArtifactCard({
 	artifact,
@@ -132,12 +144,13 @@ export function AIChatPanel() {
 
 	const disabled = useMemo(() => !input.trim() || isChatLoading, [input, isChatLoading]);
 
-	const insertArtifactOnCanvas = (artifact: AssistantArtifact) => {
+	const insertArtifactOnCanvas = async (artifact: AssistantArtifact) => {
 		if (!excalidrawApi) {
 			setChatError('Canvas is not ready yet.');
 			return;
 		}
 
+		const convertToExcalidrawElements = await getConvertToExcalidrawElements();
 		const sceneCenter = getViewportSceneCenter(excalidrawApi.getAppState());
 		const currentElements = excalidrawApi.getSceneElements();
 

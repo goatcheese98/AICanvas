@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -45,17 +45,24 @@ export function MarkdownHybridEditor({
 	const blocks = useMemo(() => parseMarkdownBlocks(content), [content]);
 	const [localBlocks, setLocalBlocks] = useState<MarkdownBlock[]>(blocks);
 	const [editingBlockId, setEditingBlockId] = useState<string | null>(null);
+	const [editingDraft, setEditingDraft] = useState('');
 	const [selectedBlockIds, setSelectedBlockIds] = useState<Set<string>>(new Set());
 	const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null);
 	const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
+	const localBlocksRef = useRef(localBlocks);
+
+	useEffect(() => {
+		localBlocksRef.current = localBlocks;
+	}, [localBlocks]);
 
 	useEffect(() => {
 		const currentEditingBlock = editingBlockId
-			? localBlocks.find((block) => block.id === editingBlockId) ?? null
+			? localBlocksRef.current.find((block) => block.id === editingBlockId) ?? null
 			: null;
 		const nextEditingBlock = currentEditingBlock
 			? blocks.find((block) => block.startLine === currentEditingBlock.startLine) ?? null
 			: null;
+		localBlocksRef.current = blocks;
 		setLocalBlocks(blocks);
 		if (currentEditingBlock && nextEditingBlock && nextEditingBlock.id !== editingBlockId) {
 			setEditingBlockId(nextEditingBlock.id);
@@ -71,12 +78,29 @@ export function MarkdownHybridEditor({
 		[editingBlockId, localBlocks, settings.showEmptyLines],
 	);
 
+	const applyBlocksChange = (nextBlocks: MarkdownBlock[]) => {
+		localBlocksRef.current = nextBlocks;
+		setLocalBlocks(nextBlocks);
+		onChange(reconstructMarkdown(nextBlocks));
+	};
+
 	const commitBlockChange = (blockId: string, nextContent: string) => {
-		setLocalBlocks((current) => {
-			const updated = updateMarkdownBlock(current, blockId, nextContent);
-			onChange(reconstructMarkdown(updated));
-			return updated;
-		});
+		applyBlocksChange(updateMarkdownBlock(localBlocksRef.current, blockId, nextContent));
+	};
+
+	const beginEditingBlock = (block: MarkdownBlock) => {
+		setSelectedBlockIds(new Set());
+		setEditingBlockId(block.id);
+		setEditingDraft(block.rawContent);
+	};
+
+	const finishEditingBlock = (blockId: string, nextContent: string) => {
+		const existing = localBlocksRef.current.find((block) => block.id === blockId)?.rawContent ?? '';
+		if (nextContent !== existing) {
+			commitBlockChange(blockId, nextContent);
+		}
+		setEditingBlockId(null);
+		setEditingDraft('');
 	};
 
 	const copyBlock = async (block: MarkdownBlock) => {
@@ -84,12 +108,9 @@ export function MarkdownHybridEditor({
 	};
 
 	const deleteBlock = (blockId: string) => {
-		setLocalBlocks((current) => {
-			const updated = removeMarkdownBlock(current, blockId);
-			onChange(reconstructMarkdown(updated));
-			return updated;
-		});
+		applyBlocksChange(removeMarkdownBlock(localBlocksRef.current, blockId));
 		setEditingBlockId((current) => (current === blockId ? null : current));
+		setEditingDraft((current) => (editingBlockId === blockId ? '' : current));
 		setSelectedBlockIds((current) => {
 			if (!current.has(blockId)) return current;
 			const next = new Set(current);
@@ -106,54 +127,25 @@ export function MarkdownHybridEditor({
 			return;
 		}
 
-		setLocalBlocks((current) => {
-			const updated = moveMarkdownBlock(current, draggedBlockId, targetBlockId);
-			onChange(reconstructMarkdown(updated));
-			return updated;
-		});
+		applyBlocksChange(moveMarkdownBlock(localBlocksRef.current, draggedBlockId, targetBlockId));
 		setDraggedBlockId(null);
 	};
 
 	const insertEmptyBlock = (targetBlockId: string, position: 'before' | 'after') => {
-		const result = insertMarkdownBlock(localBlocks, targetBlockId, position, {
+		const result = insertMarkdownBlock(localBlocksRef.current, targetBlockId, position, {
 			type: 'empty',
 			rawContent: '',
 		});
-		setLocalBlocks(result.blocks);
+		applyBlocksChange(result.blocks);
 		if (result.insertedBlockId) {
 			setEditingBlockId(result.insertedBlockId);
+			setEditingDraft('');
 			setSelectedBlockIds(new Set());
 		}
-		onChange(reconstructMarkdown(result.blocks));
 	};
 
 	return (
 		<div className="h-full overflow-auto px-4 py-4">
-			{selectedBlocks.length > 1 ? (
-				<div className={`sticky top-2 z-20 mb-4 flex w-fit items-center gap-2 px-3 py-2 ${HYBRID_TOOLBAR}`}>
-					<span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-						{selectedBlocks.length} selected
-					</span>
-					<button
-						type="button"
-						onClick={async () => {
-							await navigator.clipboard.writeText(selectedBlocks.map((block) => block.rawContent).join('\n\n'));
-							setSelectedBlockIds(new Set());
-						}}
-						className={`${HYBRID_BUTTON} border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]`}
-					>
-						Copy combined
-					</button>
-					<button
-						type="button"
-						onClick={() => setSelectedBlockIds(new Set())}
-						className={`${HYBRID_BUTTON} ${HYBRID_BUTTON_IDLE}`}
-					>
-						Cancel
-					</button>
-				</div>
-			) : null}
-
 			<div className="space-y-3">
 				{visibleBlocks.map((block) => {
 					const isEditing = editingBlockId === block.id;
@@ -259,16 +251,23 @@ export function MarkdownHybridEditor({
 								) : (
 									<textarea
 										autoFocus
-										value={block.rawContent}
-										onChange={(event) => commitBlockChange(block.id, event.target.value)}
-										onBlur={() => setEditingBlockId(null)}
+										value={editingDraft}
+										onChange={(event) => setEditingDraft(event.target.value)}
+										onBlur={() => finishEditingBlock(block.id, editingDraft)}
 										onPaste={(event) => {
 											void handleImagePasteAsMarkdown({
 												event,
-												value: block.rawContent,
-												onChange: (nextValue) => commitBlockChange(block.id, nextValue),
+												value: editingDraft,
+												onChange: setEditingDraft,
 												onImageAdd,
 											});
+										}}
+										onKeyDown={(event) => {
+											if (event.key === 'Escape') {
+												event.preventDefault();
+												setEditingBlockId(null);
+												setEditingDraft('');
+											}
 										}}
 										className="min-h-28 w-full resize-none border-0 bg-transparent p-4 text-stone-900 outline-none"
 										style={{
@@ -293,8 +292,7 @@ export function MarkdownHybridEditor({
 											return;
 										}
 
-										setSelectedBlockIds(new Set());
-										setEditingBlockId(block.id);
+										beginEditingBlock(block);
 									}}
 									className="block w-full text-left"
 								>
@@ -327,6 +325,32 @@ export function MarkdownHybridEditor({
 					);
 				})}
 			</div>
+			{selectedBlocks.length > 1 ? (
+				<div className="pointer-events-none sticky bottom-4 z-20 mt-4 flex justify-center">
+					<div className={`pointer-events-auto flex items-center gap-2 px-3 py-2 ${HYBRID_TOOLBAR}`}>
+						<span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+							{selectedBlocks.length} selected
+						</span>
+						<button
+							type="button"
+							onClick={async () => {
+								await navigator.clipboard.writeText(selectedBlocks.map((block) => block.rawContent).join('\n\n'));
+								setSelectedBlockIds(new Set());
+							}}
+							className={`${HYBRID_BUTTON} border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]`}
+						>
+							Copy combined
+						</button>
+						<button
+							type="button"
+							onClick={() => setSelectedBlockIds(new Set())}
+							className={`${HYBRID_BUTTON} ${HYBRID_BUTTON_IDLE}`}
+						>
+							Cancel
+						</button>
+					</div>
+				</div>
+			) : null}
 		</div>
 	);
 }

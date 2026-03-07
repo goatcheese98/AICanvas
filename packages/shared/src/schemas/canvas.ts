@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { isOverlayCustomData, normalizeOverlayCustomData } from './overlay';
 
 export function normalizeCanvasTitle(title: string): string {

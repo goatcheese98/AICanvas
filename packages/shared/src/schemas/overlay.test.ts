@@ -17,6 +17,7 @@ describe('overlay schemas', () => {
 				fontSize: 999,
 				background: '#fff',
 				lineHeight: 0.5,
+				inlineCodeColor: '#ff0000',
 				showEmptyLines: false,
 				autoHideToolbar: true,
 			}),
@@ -25,6 +26,7 @@ describe('overlay schemas', () => {
 			fontSize: 28,
 			background: '#fff',
 			lineHeight: 1.2,
+			inlineCodeColor: '#ff0000',
 			showEmptyLines: false,
 			autoHideToolbar: true,
 		});
@@ -43,6 +45,33 @@ describe('overlay schemas', () => {
 			images: { one: 'data:image/png;base64,abc' },
 			settings: DEFAULT_MARKDOWN_NOTE_SETTINGS,
 			editorMode: 'raw',
+		});
+	});
+
+	it('normalizes markdown title length and markdown settings defaults together', () => {
+		expect(
+			normalizeMarkdownOverlay({
+				title: '  Strategy  ',
+				content: 'Hello',
+				settings: {
+					font: 'Nunito, sans-serif',
+					fontSize: 16,
+					background: '#fff',
+					lineHeight: 1.5,
+					inlineCodeColor: '#2563eb',
+					showEmptyLines: false,
+					autoHideToolbar: true,
+				},
+			}),
+		).toMatchObject({
+			type: 'markdown',
+			title: 'Strategy',
+			content: 'Hello',
+			editorMode: 'raw',
+			settings: {
+				showEmptyLines: false,
+				autoHideToolbar: true,
+			},
 		});
 	});
 

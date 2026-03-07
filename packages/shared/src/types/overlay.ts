@@ -7,6 +7,7 @@ export interface MarkdownNoteSettings {
 	fontSize: number;
 	background: string;
 	lineHeight: number;
+	inlineCodeColor: string;
 	showEmptyLines: boolean;
 	autoHideToolbar: boolean;
 }
