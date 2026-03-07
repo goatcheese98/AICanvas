@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface TableCell {
+	id: string;
 	content: string;
 	isHeader: boolean;
 }
 
 interface TableRow {
+	id: string;
 	cells: TableCell[];
 }
 
@@ -16,8 +18,14 @@ interface MarkdownTableEditorProps {
 
 const TABLE_ACTION_BUTTON =
 	'inline-flex h-8 items-center justify-center rounded-[8px] border border-stone-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 transition-colors hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
+const TABLE_ICON_BUTTON =
+	'inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-stone-400 transition-colors hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 
-function parseMarkdownTable(markdown: string): TableRow[] {
+function createTableId(prefix: string, index: number) {
+	return `${prefix}-${index}`;
+}
+
+export function parseMarkdownTable(markdown: string): TableRow[] {
 	const lines = markdown
 		.split('\n')
 		.map((line) => line.trim())
@@ -31,7 +39,14 @@ function parseMarkdownTable(markdown: string): TableRow[] {
 		.filter(Boolean);
 
 	const rows: TableRow[] = [
-		{ cells: headerCells.map((content) => ({ content, isHeader: true })) },
+		{
+			id: createTableId('row', 0),
+			cells: headerCells.map((content, index) => ({
+				id: createTableId('cell-0', index),
+				content,
+				isHeader: true,
+			})),
+		},
 	];
 
 	for (let index = 2; index < lines.length; index += 1) {
@@ -41,7 +56,9 @@ function parseMarkdownTable(markdown: string): TableRow[] {
 			.filter((cell, cellIndex, all) => !(cell === '' && (cellIndex === 0 || cellIndex === all.length - 1)));
 
 		rows.push({
+			id: createTableId('row', rows.length),
 			cells: Array.from({ length: rows[0]?.cells.length ?? dataCells.length }, (_, cellIndex) => ({
+				id: createTableId(`cell-${rows.length}`, cellIndex),
 				content: dataCells[cellIndex] ?? '',
 				isHeader: false,
 			})),
@@ -51,7 +68,7 @@ function parseMarkdownTable(markdown: string): TableRow[] {
 	return rows;
 }
 
-function serializeMarkdownTable(rows: TableRow[]): string {
+export function serializeMarkdownTable(rows: TableRow[]): string {
 	if (rows.length === 0) return '';
 
 	const columnCount = rows[0]?.cells.length ?? 0;
@@ -72,13 +89,29 @@ function serializeMarkdownTable(rows: TableRow[]): string {
 	return [header, separator, ...data].join('\n');
 }
 
+function normalizeMarkdownTable(markdown: string): string {
+	return serializeMarkdownTable(parseMarkdownTable(markdown));
+}
+
+function createEmptyCell(rowIndex: number, cellIndex: number, isHeader: boolean): TableCell {
+	return {
+		id: createTableId(`cell-${rowIndex}`, cellIndex),
+		content: '',
+		isHeader,
+	};
+}
+
 export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorProps) {
 	const [rows, setRows] = useState<TableRow[]>(() => parseMarkdownTable(markdown));
-	const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
-	const [draftValue, setDraftValue] = useState('');
+	const lastCommittedMarkdownRef = useRef(normalizeMarkdownTable(markdown));
+	const serializedRows = useMemo(() => serializeMarkdownTable(rows), [rows]);
 
 	useEffect(() => {
-		setRows(parseMarkdownTable(markdown));
+		const normalizedIncoming = normalizeMarkdownTable(markdown);
+		if (normalizedIncoming !== lastCommittedMarkdownRef.current) {
+			setRows(parseMarkdownTable(markdown));
+			lastCommittedMarkdownRef.current = normalizedIncoming;
+		}
 	}, [markdown]);
 
 	const columnCount = useMemo(() => rows[0]?.cells.length ?? 0, [rows]);
@@ -88,14 +121,17 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 	}
 
 	const commitRows = (nextRows: TableRow[]) => {
+		const nextMarkdown = serializeMarkdownTable(nextRows);
+		lastCommittedMarkdownRef.current = nextMarkdown;
 		setRows(nextRows);
-		onChange(serializeMarkdownTable(nextRows));
+		onChange(nextMarkdown);
 	};
 
 	const addColumn = () => {
 		commitRows(
-			rows.map((row, index) => ({
-				cells: [...row.cells, { content: '', isHeader: index === 0 }],
+			rows.map((row, rowIndex) => ({
+				...row,
+				cells: [...row.cells, createEmptyCell(rowIndex, row.cells.length, rowIndex === 0)],
 			})),
 		);
 	};
@@ -104,9 +140,43 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 		commitRows([
 			...rows,
 			{
-				cells: Array.from({ length: columnCount }, () => ({ content: '', isHeader: false })),
+				id: createTableId('row', rows.length),
+				cells: Array.from({ length: columnCount }, (_, cellIndex) =>
+					createEmptyCell(rows.length, cellIndex, false),
+				),
 			},
 		]);
+	};
+
+	const updateCell = (rowIndex: number, colIndex: number, content: string) => {
+		commitRows(
+			rows.map((row, candidateRowIndex) =>
+				candidateRowIndex === rowIndex
+					? {
+							...row,
+							cells: row.cells.map((cell, candidateColIndex) =>
+								candidateColIndex === colIndex ? { ...cell, content } : cell,
+							),
+						}
+					: row,
+			),
+		);
+	};
+
+	const removeColumn = (columnIndex: number) => {
+		if (columnCount <= 1) return;
+
+		commitRows(
+			rows.map((row) => ({
+				...row,
+				cells: row.cells.filter((_, candidateColIndex) => candidateColIndex !== columnIndex),
+			})),
+		);
+	};
+
+	const removeRow = (rowIndex: number) => {
+		if (rowIndex === 0) return;
+		commitRows(rows.filter((_, candidateRowIndex) => candidateRowIndex !== rowIndex));
 	};
 
 	return (
@@ -132,60 +202,62 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 				<table className="min-w-full border-collapse overflow-hidden rounded-[10px] border border-stone-200 bg-white">
 					<tbody>
 						{rows.map((row, rowIndex) => (
-							<tr key={rowIndex}>
+							<tr key={row.id}>
 								{row.cells.map((cell, colIndex) => {
 									const Tag = cell.isHeader ? 'th' : 'td';
-									const isEditing = editingCell?.row === rowIndex && editingCell?.col === colIndex;
 									return (
 										<Tag
-											key={`${rowIndex}-${colIndex}`}
+											key={cell.id}
 											className={`border border-stone-200 px-3 py-2 text-left align-top ${
 												cell.isHeader ? 'bg-stone-100/80 font-semibold' : ''
 											}`}
 										>
-											{isEditing ? (
+											<div className="flex items-start gap-2">
 												<input
-													autoFocus
-													value={draftValue}
-													onChange={(event) => setDraftValue(event.target.value)}
-													onBlur={() => {
-														const nextRows = rows.map((candidateRow, candidateRowIndex) => ({
-															cells: candidateRow.cells.map((candidateCell, candidateCellIndex) =>
-																candidateRowIndex === rowIndex && candidateCellIndex === colIndex
-																	? { ...candidateCell, content: draftValue }
-																	: candidateCell,
-															),
-														}));
-														commitRows(nextRows);
-														setEditingCell(null);
-														setDraftValue('');
-													}}
-													onKeyDown={(event) => {
-														if (event.key === 'Enter') {
-															(event.currentTarget as HTMLInputElement).blur();
-														}
-														if (event.key === 'Escape') {
-															setEditingCell(null);
-															setDraftValue('');
-														}
-													}}
-													className="w-full min-w-20 rounded-[6px] border-0 bg-transparent outline-none"
+													value={cell.content}
+													onChange={(event) => updateCell(rowIndex, colIndex, event.target.value)}
+													className="w-full min-w-20 rounded-[6px] border-0 bg-transparent px-0 py-0 outline-none placeholder:text-stone-300"
+													placeholder={cell.isHeader ? 'Header' : 'Empty'}
 												/>
-											) : (
-												<button
-													type="button"
-													onClick={() => {
-														setEditingCell({ row: rowIndex, col: colIndex });
-														setDraftValue(cell.content);
-													}}
-													className="min-h-6 w-full text-left"
-												>
-													{cell.content || <span className="text-stone-300">Empty</span>}
-												</button>
-											)}
+												{cell.isHeader ? (
+													<button
+														type="button"
+														aria-label={`Remove column ${colIndex + 1}`}
+														title="Remove column"
+														onClick={() => removeColumn(colIndex)}
+														disabled={columnCount <= 1}
+														className={`${TABLE_ICON_BUTTON} ${columnCount <= 1 ? 'cursor-not-allowed opacity-30 hover:bg-transparent hover:text-stone-400' : ''}`}
+													>
+														<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+															<path d="M18 6 6 18" />
+															<path d="m6 6 12 12" />
+														</svg>
+													</button>
+												) : null}
+											</div>
 										</Tag>
 									);
 								})}
+								{rowIndex > 0 ? (
+									<td className="w-10 border border-stone-200 bg-stone-50/60 px-2 py-2 align-top">
+										<button
+											type="button"
+											aria-label={`Remove row ${rowIndex}`}
+											title="Remove row"
+											onClick={() => removeRow(rowIndex)}
+											className={TABLE_ICON_BUTTON}
+										>
+											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+												<path d="M18 6 6 18" />
+												<path d="m6 6 12 12" />
+											</svg>
+										</button>
+									</td>
+								) : (
+									<th className="w-10 border border-stone-200 bg-stone-100/80 px-2 py-2 text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+										Row
+									</th>
+								)}
 							</tr>
 						))}
 					</tbody>

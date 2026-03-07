@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isOverlayCustomData, normalizeOverlayCustomData } from './overlay';
 
 export function normalizeCanvasTitle(title: string): string {
 	return title.trim().replace(/\s+/g, ' ');
@@ -42,9 +43,19 @@ export const canvasListSchema = z.object({
 	search: z.string().trim().max(120).optional(),
 });
 
-// Loose schema for canvas blob data (elements/appState/files are opaque to the API)
+const canvasElementSchema = z.record(z.string(), z.unknown()).transform((element) => {
+	const customData = element.customData;
+	if (!isOverlayCustomData(customData)) return element;
+
+	return {
+		...element,
+		customData: normalizeOverlayCustomData(customData),
+	};
+});
+
+// Canvas blob data remains mostly opaque, but known overlay payloads are normalized.
 export const canvasDataSchema = z.object({
-	elements: z.array(z.record(z.string(), z.unknown())),
+	elements: z.array(canvasElementSchema),
 	appState: z.record(z.string(), z.unknown()),
 	files: z.record(z.string(), z.unknown()).nullable(),
 });

@@ -86,6 +86,9 @@ export function getExcalidrawSurfaceStyle({
 	const fillColor = applyColorOpacity(backgroundColor, alpha);
 	const borderColor = applyColorOpacity(strokeColor, alpha);
 	const normalizedStrokeWidth = Math.max(0, strokeWidth);
+	const patternedBaseColor = applyColorOpacity(backgroundColor, Math.max(alpha * 0.16, 0.08));
+	const hatchLineWidth = clamp(1 + normalizedStrokeWidth * 0.18, 1, 3);
+	const hatchGap = clamp(10 + normalizedStrokeWidth * 0.8, 8, 18);
 
 	const style: CSSProperties = {
 		backgroundColor: 'transparent',
@@ -99,16 +102,16 @@ export function getExcalidrawSurfaceStyle({
 	if (fillColor === 'transparent') return style;
 
 	if (fillStyle === 'hachure') {
-		style.backgroundColor = applyColorOpacity(backgroundColor, alpha * 0.18);
-		style.backgroundImage = `repeating-linear-gradient(45deg, ${fillColor} 0 2px, transparent 2px 10px)`;
+		style.backgroundColor = patternedBaseColor;
+		style.backgroundImage = `repeating-linear-gradient(45deg, ${fillColor} 0 ${hatchLineWidth}px, ${patternedBaseColor} ${hatchLineWidth}px ${hatchGap}px)`;
 		return style;
 	}
 
 	if (fillStyle === 'cross-hatch') {
-		style.backgroundColor = applyColorOpacity(backgroundColor, alpha * 0.16);
+		style.backgroundColor = patternedBaseColor;
 		style.backgroundImage = [
-			`repeating-linear-gradient(45deg, ${fillColor} 0 2px, transparent 2px 12px)`,
-			`repeating-linear-gradient(-45deg, ${fillColor} 0 2px, transparent 2px 12px)`,
+			`repeating-linear-gradient(45deg, ${fillColor} 0 ${hatchLineWidth}px, transparent ${hatchLineWidth}px ${hatchGap}px)`,
+			`repeating-linear-gradient(-45deg, ${fillColor} 0 ${hatchLineWidth}px, transparent ${hatchLineWidth}px ${hatchGap}px)`,
 		].join(', ');
 		return style;
 	}

@@ -1,12 +1,11 @@
 import type {
-	KanbanOverlayCustomData,
 	OverlayType,
 	OverlayCustomData,
 } from '@ai-canvas/shared/types';
-import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { normalizeSceneElement } from './scene-element-normalizer';
+import { getOverlayDefinition } from './overlay-definitions';
 
 interface CreateOverlayElementOptions {
 	type: OverlayType;
@@ -16,13 +15,6 @@ interface CreateOverlayElementOptions {
 	height?: number;
 	customData?: Record<string, unknown>;
 }
-
-const DEFAULTS: Record<OverlayType, { width: number; height: number }> = {
-	markdown: { width: 400, height: 300 },
-	newlex: { width: 500, height: 400 },
-	kanban: { width: 700, height: 500 },
-	'web-embed': { width: 640, height: 480 },
-};
 
 const DEFAULT_VIEWPORT_WIDTH = 800;
 const DEFAULT_VIEWPORT_HEIGHT = 600;
@@ -103,78 +95,11 @@ export function getViewportSceneCenter(appState: Partial<AppState>): SceneCenter
 export function createOverlayCustomData(
 	options: CreateOverlayElementOptions,
 ): OverlayCustomData {
-	switch (options.type) {
-		case 'markdown':
-			return normalizeMarkdownOverlay({
-				content:
-					typeof options.customData?.content === 'string'
-						? options.customData.content
-						: '# New Note\n\nStart writing...',
-				images:
-					typeof options.customData?.images === 'object'
-						? (options.customData.images as Record<string, string>)
-						: undefined,
-				settings:
-					typeof options.customData?.settings === 'object'
-						? (options.customData.settings as Record<string, unknown>)
-						: undefined,
-				editorMode:
-					options.customData?.editorMode === 'hybrid' ? 'hybrid' : undefined,
-			});
-		case 'newlex':
-			return {
-				type: 'newlex',
-				lexicalState:
-					typeof options.customData?.lexicalState === 'string'
-						? options.customData.lexicalState
-						: '',
-				comments: Array.isArray(options.customData?.comments)
-					? options.customData.comments
-					: [],
-				commentsPanelOpen:
-					typeof options.customData?.commentsPanelOpen === 'boolean'
-						? options.customData.commentsPanelOpen
-						: false,
-				version:
-					typeof options.customData?.version === 'number' ? options.customData.version : 1,
-			};
-		case 'kanban':
-			return {
-				type: 'kanban',
-				title:
-					typeof options.customData?.title === 'string'
-						? options.customData.title
-						: 'Kanban Board',
-				bgTheme:
-					typeof options.customData?.bgTheme === 'string'
-						? options.customData.bgTheme
-						: 'parchment',
-				fontId:
-					typeof options.customData?.fontId === 'string'
-						? options.customData.fontId
-						: 'excalifont',
-				fontSize:
-					typeof options.customData?.fontSize === 'number'
-						? options.customData.fontSize
-						: 13,
-				columns: Array.isArray(options.customData?.columns)
-					? (options.customData.columns as KanbanOverlayCustomData['columns'])
-					: [
-						{ id: crypto.randomUUID(), title: 'To Do', cards: [] },
-						{ id: crypto.randomUUID(), title: 'In Progress', cards: [] },
-						{ id: crypto.randomUUID(), title: 'Done', cards: [] },
-					],
-			};
-		case 'web-embed':
-			return {
-				type: 'web-embed',
-				url: typeof options.customData?.url === 'string' ? options.customData.url : '',
-			};
-	}
+	return getOverlayDefinition(options.type).createCustomData(options);
 }
 
 export function getOverlayDefaults(type: OverlayType) {
-	return DEFAULTS[type];
+	return getOverlayDefinition(type).defaultSize;
 }
 
 export function createOverlayElementDraft(

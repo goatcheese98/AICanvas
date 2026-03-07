@@ -47,6 +47,7 @@ describe('CanvasPersistenceCoordinator', () => {
 		expect(coordinator.loadFromStorage('canvas-a')).toEqual(sampleData);
 		expect(coordinator.loadFromStorage('canvas-b')?.elements).toEqual([{ id: 'b' }]);
 		expect(coordinator.loadFromStorage('canvas-c')).toBeNull();
+		expect(coordinator.loadSnapshotFromStorage('canvas-a')?.canvasData).toEqual(sampleData);
 	});
 
 	it('accepts legacy storage only when the canvas id matches', () => {

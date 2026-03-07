@@ -7,6 +7,8 @@ export interface MarkdownNoteSettings {
 	fontSize: number;
 	background: string;
 	lineHeight: number;
+	showEmptyLines: boolean;
+	autoHideToolbar: boolean;
 }
 
 export interface NewLexCommentReply {
@@ -54,6 +56,7 @@ export interface KanbanColumn {
 
 export interface MarkdownOverlayCustomData {
 	type: 'markdown';
+	title?: string;
 	content: string;
 	images?: Record<string, string>;
 	settings?: MarkdownNoteSettings;

@@ -17,6 +17,12 @@ interface SaveData {
 	canvasId: string | null;
 }
 
+export interface CanvasStorageSnapshot {
+	canvasData: CanvasData;
+	savedAt: number;
+	canvasId: string | null;
+}
+
 const STORAGE_KEY_PREFIX = 'excalidraw-canvas-data';
 const STORAGE_VERSION = 2;
 const SAVE_DEBOUNCE_MS = 1000;
@@ -52,7 +58,7 @@ export class CanvasPersistenceCoordinator {
 		return canvasId ? `${STORAGE_KEY_PREFIX}:${canvasId}` : STORAGE_KEY_PREFIX;
 	}
 
-	loadFromStorage(canvasId: string | null): CanvasData | null {
+	loadSnapshotFromStorage(canvasId: string | null): CanvasStorageSnapshot | null {
 		try {
 			const keyedSaved = localStorage.getItem(this.getStorageKey(canvasId));
 			const legacySaved = localStorage.getItem(STORAGE_KEY_PREFIX);
@@ -71,13 +77,21 @@ export class CanvasPersistenceCoordinator {
 			if (!data.canvasData) return null;
 			if (canvasId && data.canvasId && data.canvasId !== canvasId) return null;
 
-			return data.canvasData;
+			return {
+				canvasData: data.canvasData,
+				savedAt: data.savedAt,
+				canvasId: data.canvasId,
+			};
 		} catch (err) {
 			console.error('Failed to load canvas from localStorage:', err);
 			localStorage.removeItem(this.getStorageKey(canvasId));
 			localStorage.removeItem(STORAGE_KEY_PREFIX);
 			return null;
 		}
+	}
+
+	loadFromStorage(canvasId: string | null): CanvasData | null {
+		return this.loadSnapshotFromStorage(canvasId)?.canvasData ?? null;
 	}
 
 	scheduleSave(canvasData: CanvasData, canvasId: string | null): void {

@@ -251,6 +251,39 @@ export function removeMarkdownBlock(blocks: MarkdownBlock[], blockId: string): M
 	return withReindexedLines(nextBlocks);
 }
 
+export function insertMarkdownBlock(
+	blocks: MarkdownBlock[],
+	targetBlockId: string,
+	position: 'before' | 'after',
+	block: Pick<MarkdownBlock, 'type' | 'rawContent' | 'metadata'>,
+): { blocks: MarkdownBlock[]; insertedBlockId: string | null } {
+	const targetIndex = blocks.findIndex((candidate) => candidate.id === targetBlockId);
+	if (targetIndex === -1) {
+		return { blocks, insertedBlockId: null };
+	}
+
+	const insertIndex = position === 'before' ? targetIndex : targetIndex + 1;
+	const insertedBlock: MarkdownBlock = {
+		id: 'pending-insert',
+		type: block.type,
+		rawContent: block.rawContent,
+		startLine: 0,
+		endLine: 0,
+		metadata: block.metadata,
+	};
+
+	const nextBlocks = withReindexedLines([
+		...blocks.slice(0, insertIndex),
+		insertedBlock,
+		...blocks.slice(insertIndex),
+	]);
+
+	return {
+		blocks: nextBlocks,
+		insertedBlockId: nextBlocks[insertIndex]?.id ?? null,
+	};
+}
+
 export function moveMarkdownBlock(
 	blocks: MarkdownBlock[],
 	draggedBlockId: string,

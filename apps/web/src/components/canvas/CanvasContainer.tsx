@@ -147,7 +147,15 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 		if (isInitializedRef.current || !excalidrawApi) return;
 		if (shouldWaitForCanvasHydration(status, fetchStatus)) return;
 
-		if (status === 'success' && canvasQueryData?.data) {
+		const localSnapshot = coordinatorRef.current?.loadSnapshotFromStorage(canvasId) ?? null;
+		const localSavedAt = localSnapshot?.savedAt ?? 0;
+		const remoteUpdatedAt =
+			status === 'success' && canvasQueryData?.canvas?.updatedAt
+				? new Date(canvasQueryData.canvas.updatedAt).getTime()
+				: 0;
+		const shouldUseLocalSnapshot = Boolean(localSnapshot && localSavedAt > remoteUpdatedAt);
+
+		if (status === 'success' && canvasQueryData?.data && !shouldUseLocalSnapshot) {
 			const { elements, appState, files } = canvasQueryData.data as any;
 			const remoteData = buildPersistedCanvasData(
 				normalizeSceneElements((elements ?? []) as ExcalidrawElement[]),
@@ -162,24 +170,20 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				excalidrawApi.addFiles(Object.values(files) as any[]);
 			}
 			latestSceneRef.current = remoteData;
-		} else {
-			// API failed or returned no data — fall back to localStorage
-			const local = coordinatorRef.current?.loadFromStorage(canvasId);
-			if (local) {
-				const localData = buildPersistedCanvasData(
-					normalizeSceneElements((local.elements ?? []) as ExcalidrawElement[]),
-					local.appState ?? {},
-					local.files ?? null,
-				);
-				excalidrawApi.updateScene({
-					elements: localData.elements,
-					appState: localData.appState as any,
-				});
-				if (localData.files && Object.keys(localData.files).length > 0) {
-					excalidrawApi.addFiles(Object.values(localData.files) as any[]);
-				}
-				latestSceneRef.current = localData;
+		} else if (localSnapshot) {
+			const localData = buildPersistedCanvasData(
+				normalizeSceneElements((localSnapshot.canvasData.elements ?? []) as ExcalidrawElement[]),
+				localSnapshot.canvasData.appState ?? {},
+				localSnapshot.canvasData.files ?? null,
+			);
+			excalidrawApi.updateScene({
+				elements: localData.elements,
+				appState: localData.appState as any,
+			});
+			if (localData.files && Object.keys(localData.files).length > 0) {
+				excalidrawApi.addFiles(Object.values(localData.files) as any[]);
 			}
+			latestSceneRef.current = localData;
 		}
 
 		requestAnimationFrame(() => {

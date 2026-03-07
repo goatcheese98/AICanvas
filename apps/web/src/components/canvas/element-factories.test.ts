@@ -2,6 +2,32 @@ import { describe, expect, it, vi } from 'vitest';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { buildOverlayInsertionScene, createOverlayCustomData, getOverlayDefaults } from './element-factories';
 
+const DEFAULT_MARKDOWN_CONTENT = `# <img src="https://cdn.jsdelivr.net/gh/dcurtis/markdown-mark/svg/markdown-mark.svg" alt="Markdown icon" width="28" height="28" /> New Note
+
+Double-click to edit this note.
+
+## Bullet List
+- First list item
+- Second list item
+
+## Checklist
+- [ ] Draft the content
+- [x] Review the layout
+
+## Code Example
+\`\`\`javascript
+const example = "Hello World";
+console.log(example);
+\`\`\`
+
+## Links Table
+| Resource | Link |
+| -------- | ---- |
+| Markdown Guide | [CommonMark](https://commonmark.org/) |
+| GFM Spec | [GitHub Flavored Markdown](https://github.github.com/gfm/) |
+
+> Tip: switch between Raw, Hybrid, and Preview to explore the note.`;
+
 describe('element-factories', () => {
 	it('creates markdown defaults', () => {
 		const data = createOverlayCustomData({
@@ -12,7 +38,8 @@ describe('element-factories', () => {
 
 		expect(data).toMatchObject({
 			type: 'markdown',
-			content: '# New Note\n\nStart writing...',
+			title: 'Markdown',
+			content: DEFAULT_MARKDOWN_CONTENT,
 		});
 	});
 

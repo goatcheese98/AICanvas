@@ -127,6 +127,8 @@ describe('overlay-registry', () => {
 					fontSize: 15,
 					background: '#ffffff',
 					lineHeight: 1.6,
+					showEmptyLines: true,
+					autoHideToolbar: false,
 				},
 			},
 		} as any;
@@ -138,6 +140,8 @@ describe('overlay-registry', () => {
 				fontSize: 15,
 				background: '#fce8e6',
 				lineHeight: 1.6,
+				showEmptyLines: true,
+				autoHideToolbar: false,
 			},
 			elementStyle: {
 				backgroundColor: '#fce8e6',
@@ -184,7 +188,7 @@ describe('overlay-registry', () => {
 
 	it('calculates z-index with selection and editing promotion', () => {
 		expect(getOverlayZIndex(false, false, 2)).toBe(20);
-		expect(getOverlayZIndex(true, false, 2)).toBe(22);
-		expect(getOverlayZIndex(true, true, 2)).toBe(25);
+		expect(getOverlayZIndex(true, false, 2)).toBe(10020);
+		expect(getOverlayZIndex(true, true, 2)).toBe(20020);
 	});
 });

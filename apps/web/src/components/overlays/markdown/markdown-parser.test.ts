@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	insertMarkdownBlock,
 	moveMarkdownBlock,
 	parseMarkdownBlocks,
 	reconstructMarkdown,
@@ -41,5 +42,24 @@ describe('markdown-parser', () => {
 		const moved = moveMarkdownBlock(removed, removed[3]!.id, removed[0]!.id);
 		expect(reconstructMarkdown(moved)).toBe('- item\n# Title\nParagraph\n');
 		expect(moved[1]?.startLine).toBe(1);
+	});
+
+	it('inserts a new block before or after an existing block', () => {
+		const source = '# Title\n\nParagraph';
+		const blocks = parseMarkdownBlocks(source);
+		const insertedAfter = insertMarkdownBlock(blocks, blocks[0]!.id, 'after', {
+			type: 'empty',
+			rawContent: '',
+		});
+
+		expect(insertedAfter.insertedBlockId).toBeTruthy();
+		expect(reconstructMarkdown(insertedAfter.blocks)).toBe('# Title\n\n\nParagraph');
+
+		const insertedBefore = insertMarkdownBlock(blocks, blocks[2]!.id, 'before', {
+			type: 'paragraph',
+			rawContent: 'Inserted',
+		});
+
+		expect(reconstructMarkdown(insertedBefore.blocks)).toBe('# Title\n\nInserted\nParagraph');
 	});
 });

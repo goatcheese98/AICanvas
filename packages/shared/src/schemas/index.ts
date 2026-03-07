@@ -10,6 +10,11 @@ export {
 	DEFAULT_MARKDOWN_NOTE_SETTINGS,
 	normalizeMarkdownSettings,
 	normalizeMarkdownOverlay,
+	normalizeNewLexOverlay,
+	normalizeKanbanOverlay,
+	normalizeWebEmbedOverlay,
+	normalizeOverlayCustomData,
+	isOverlayCustomData,
 	type MarkdownNoteSettingsInput,
 	type MarkdownOverlayInput,
 } from './overlay';

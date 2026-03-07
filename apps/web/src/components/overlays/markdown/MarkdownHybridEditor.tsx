@@ -4,6 +4,7 @@ import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { MarkdownTableEditor } from './MarkdownTableEditor';
 import {
+	insertMarkdownBlock,
 	moveMarkdownBlock,
 	parseMarkdownBlocks,
 	removeMarkdownBlock,
@@ -30,6 +31,8 @@ const HYBRID_BUTTON_IDLE =
 	'border-stone-300 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 const HYBRID_ICON_BUTTON =
 	'inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-stone-500 transition-colors';
+const HYBRID_INSERT_BUTTON =
+	'absolute left-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-[999px] border border-stone-200 bg-white text-stone-500 opacity-0 shadow-sm transition group-hover:opacity-100 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 
 export function MarkdownHybridEditor({
 	content,
@@ -47,12 +50,25 @@ export function MarkdownHybridEditor({
 	const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
 
 	useEffect(() => {
+		const currentEditingBlock = editingBlockId
+			? localBlocks.find((block) => block.id === editingBlockId) ?? null
+			: null;
+		const nextEditingBlock = currentEditingBlock
+			? blocks.find((block) => block.startLine === currentEditingBlock.startLine) ?? null
+			: null;
 		setLocalBlocks(blocks);
+		if (currentEditingBlock && nextEditingBlock && nextEditingBlock.id !== editingBlockId) {
+			setEditingBlockId(nextEditingBlock.id);
+		}
 	}, [blocks]);
 
 	const selectedBlocks = useMemo(
 		() => localBlocks.filter((block) => selectedBlockIds.has(block.id)),
 		[localBlocks, selectedBlockIds],
+	);
+	const visibleBlocks = useMemo(
+		() => localBlocks.filter((block) => settings.showEmptyLines || block.type !== 'empty' || editingBlockId === block.id),
+		[editingBlockId, localBlocks, settings.showEmptyLines],
 	);
 
 	const commitBlockChange = (blockId: string, nextContent: string) => {
@@ -98,6 +114,19 @@ export function MarkdownHybridEditor({
 		setDraggedBlockId(null);
 	};
 
+	const insertEmptyBlock = (targetBlockId: string, position: 'before' | 'after') => {
+		const result = insertMarkdownBlock(localBlocks, targetBlockId, position, {
+			type: 'empty',
+			rawContent: '',
+		});
+		setLocalBlocks(result.blocks);
+		if (result.insertedBlockId) {
+			setEditingBlockId(result.insertedBlockId);
+			setSelectedBlockIds(new Set());
+		}
+		onChange(reconstructMarkdown(result.blocks));
+	};
+
 	return (
 		<div className="h-full overflow-auto px-4 py-4">
 			{selectedBlocks.length > 1 ? (
@@ -126,7 +155,7 @@ export function MarkdownHybridEditor({
 			) : null}
 
 			<div className="space-y-3">
-				{localBlocks.map((block) => {
+				{visibleBlocks.map((block) => {
 					const isEditing = editingBlockId === block.id;
 					const isSelected = selectedBlockIds.has(block.id);
 					return (
@@ -157,6 +186,18 @@ export function MarkdownHybridEditor({
 											: 'border-transparent bg-transparent hover:border-stone-200 hover:bg-white/70'
 								}`}
 							>
+								<button
+									type="button"
+									aria-label="Insert empty line above"
+									title="Insert empty line above"
+									onClick={() => insertEmptyBlock(block.id, 'before')}
+									className={`${HYBRID_INSERT_BUTTON} -top-3.5`}
+								>
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M12 5v14" />
+										<path d="M5 12h14" />
+									</svg>
+								</button>
 								{dropTargetBlockId === block.id ? (
 									<div className="pointer-events-none absolute inset-x-3 -top-1 z-20">
 										<div className="h-[3px] rounded-[999px] bg-[#4d55cc] shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
@@ -237,7 +278,7 @@ export function MarkdownHybridEditor({
 										}}
 									/>
 								)
-							) : (
+								) : (
 								<button
 									type="button"
 									onClick={(event) => {
@@ -269,7 +310,19 @@ export function MarkdownHybridEditor({
 										/>
 									)}
 								</button>
-							)}
+								)}
+								<button
+									type="button"
+									aria-label="Insert empty line below"
+									title="Insert empty line below"
+									onClick={() => insertEmptyBlock(block.id, 'after')}
+									className={`${HYBRID_INSERT_BUTTON} -bottom-3.5`}
+								>
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+										<path d="M12 5v14" />
+										<path d="M5 12h14" />
+									</svg>
+								</button>
 						</div>
 					);
 				})}

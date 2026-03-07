@@ -3,17 +3,17 @@ import type { AppState } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
-import { MarkdownNote } from '@/components/overlays/markdown';
-import { LexicalNote } from '@/components/overlays/lexical';
-import { KanbanBoard } from '@/components/overlays/kanban';
-import { WebEmbed } from '@/components/overlays/web-embed';
 import {
 	applyOverlayUpdateByType,
 	collectOverlayElements,
 	getOverlayZIndex,
-	type TypedOverlayCanvasElement,
-	type OverlayUpdatePayloadMap,
 } from './overlay-registry';
+import {
+	getOverlayDefinition,
+	normalizeOverlayElement,
+	type OverlayUpdatePayloadMap,
+	type TypedOverlayCanvasElement,
+} from './overlay-definitions';
 
 function getNormalizedAppState(appState: Partial<AppState>) {
 	return {
@@ -82,71 +82,33 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 
 	const renderOverlay = useCallback(
 		(element: TypedOverlayCanvasElement, stackIndex: number) => {
-			const isSelected = normalizedAppState.selectedElementIds[element.id] === true;
+			const type = element.customData.type;
+			const normalizedElement = normalizeOverlayElement(type, element);
+			const isSelected = normalizedAppState.selectedElementIds[normalizedElement.id] === true;
 			const containerStyle = getOverlayContainerStyle(
-				element,
+				normalizedElement,
 				normalizedAppState,
-				getOverlayZIndex(isSelected, editingElementId === element.id, stackIndex),
+				getOverlayZIndex(isSelected, editingElementId === normalizedElement.id, stackIndex),
 			);
 
-			const interactionEnabled = isSelected || editingElementId === element.id;
-
-			let content: ReactNode = null;
-
-			switch (element.customData.type) {
-				case 'markdown':
-					content = (
-						<MarkdownNote
-							element={element as any}
-							isSelected={isSelected}
-							onChange={(elementId, contentValue, images, settings, editorMode, elementStyle) =>
-								updateOverlayElement(elementId, 'markdown', {
-									content: contentValue,
-									images,
-									settings,
-									editorMode,
-									elementStyle,
-								})
-							}
-							onEditingChange={(isEditing) => setEditingElementId(isEditing ? element.id : null)}
-						/>
-					);
-					break;
-				case 'newlex':
-					content = (
-						<LexicalNote
-							element={element as any}
-							isSelected={isSelected}
-							onChange={(elementId, updates) => updateOverlayElement(elementId, 'newlex', updates)}
-							onEditingChange={(isEditing) => setEditingElementId(isEditing ? element.id : null)}
-						/>
-					);
-					break;
-				case 'kanban':
-					content = (
-						<KanbanBoard
-							element={element as any}
-							isSelected={isSelected}
-							onChange={(elementId, data) => updateOverlayElement(elementId, 'kanban', data)}
-							onEditingChange={(isEditing) => setEditingElementId(isEditing ? element.id : null)}
-						/>
-					);
-					break;
-				case 'web-embed':
-					content = (
-						<WebEmbed
-							element={element as any}
-							isSelected={isSelected}
-							onChange={(elementId, url) => updateOverlayElement(elementId, 'web-embed', { url })}
-							onEditingChange={(isEditing) => setEditingElementId(isEditing ? element.id : null)}
-						/>
-					);
-					break;
-			}
+			const interactionEnabled = isSelected || editingElementId === normalizedElement.id;
+			const definition = getOverlayDefinition(type);
+			const content: ReactNode = definition.render({
+				element: normalizedElement as never,
+				isSelected,
+				onChange: (payload) =>
+					updateOverlayElement(
+						normalizedElement.id,
+						type,
+						payload as OverlayUpdatePayloadMap[typeof type],
+					),
+				onEditingChange: (isEditing) =>
+					setEditingElementId(isEditing ? normalizedElement.id : null),
+			});
 
 			return (
 				<div
-					key={element.id}
+					key={normalizedElement.id}
 					className="absolute"
 					style={{
 						...containerStyle,
