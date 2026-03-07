@@ -1,0 +1,1 @@
+export { LexicalNote } from './LexicalNote';

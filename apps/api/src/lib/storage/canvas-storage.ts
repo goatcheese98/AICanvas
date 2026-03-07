@@ -1,0 +1,66 @@
+/// <reference types="@cloudflare/workers-types" />
+
+import type { CanvasSavePayload } from '@ai-canvas/shared/types';
+
+const CANVAS_PREFIX = 'canvases';
+
+function canvasKey(userId: string, canvasId: string): string {
+	return `${CANVAS_PREFIX}/${userId}/${canvasId}/canvas.json`;
+}
+
+function thumbnailKey(userId: string, canvasId: string): string {
+	return `${CANVAS_PREFIX}/${userId}/${canvasId}/thumbnail.png`;
+}
+
+export async function saveCanvasToR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+	payload: CanvasSavePayload,
+): Promise<string> {
+	const key = canvasKey(userId, canvasId);
+	const body = JSON.stringify(payload);
+
+	await r2.put(key, body, {
+		httpMetadata: { contentType: 'application/json' },
+	});
+
+	return key;
+}
+
+export async function loadCanvasFromR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+): Promise<CanvasSavePayload | null> {
+	const key = canvasKey(userId, canvasId);
+	const object = await r2.get(key);
+
+	if (!object) return null;
+
+	return object.json<CanvasSavePayload>();
+}
+
+export async function saveThumbnailToR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+	data: ArrayBuffer,
+): Promise<string> {
+	const key = thumbnailKey(userId, canvasId);
+
+	await r2.put(key, data, {
+		httpMetadata: { contentType: 'image/png', cacheControl: 'public, max-age=31536000' },
+	});
+
+	return key;
+}
+
+export async function deleteCanvasFromR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+): Promise<void> {
+	const keys = [canvasKey(userId, canvasId), thumbnailKey(userId, canvasId)];
+	await Promise.all(keys.map((key) => r2.delete(key)));
+}

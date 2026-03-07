@@ -1,0 +1,21 @@
+name = "ai-canvas-api"
+main = "src/index.ts"
+compatibility_date = "2024-12-18"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ENVIRONMENT = "development"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-canvas-db"
+database_id = "placeholder-replace-with-actual-id"
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "ai-canvas-storage"
+
+# [env.production]
+# [env.production.vars]
+# ENVIRONMENT = "production"

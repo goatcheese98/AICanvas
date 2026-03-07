@@ -1,0 +1,57 @@
+import { useCallback } from 'react';
+import { Excalidraw } from '@excalidraw/excalidraw';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useAppStore } from '@/stores/store';
+
+interface CanvasCoreProps {
+	canvasId: string;
+	onSaveNeeded?: (elements: readonly ExcalidrawElement[], appState: any, files: any) => void;
+	onSceneChange?: (elements: readonly ExcalidrawElement[], appState: any, files: any) => void;
+	onPointerUpdate?: (payload: {
+		pointer: { x: number; y: number };
+		button: 'down' | 'up';
+		pointersMap: Map<number, Readonly<{ x: number; y: number }>>;
+	}) => void;
+}
+
+export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpdate }: CanvasCoreProps) {
+	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
+	const setElements = useAppStore((s) => s.setElements);
+	const setAppState = useAppStore((s) => s.setAppState);
+	const setFiles = useAppStore((s) => s.setFiles);
+
+	const handleApiReady = useCallback(
+		(api: ExcalidrawImperativeAPI) => {
+			setExcalidrawApi(api);
+		},
+		[setExcalidrawApi],
+	);
+
+	const handleChange = useCallback(
+		(elements: readonly ExcalidrawElement[], appState: any, files: any) => {
+			setElements(elements);
+			setAppState(appState);
+			setFiles(files);
+			onSceneChange?.(elements, appState, files);
+			onSaveNeeded?.(elements, appState, files);
+		},
+		[setElements, setAppState, setFiles, onSaveNeeded, onSceneChange],
+	);
+
+	return (
+		<div className="h-full w-full">
+			<Excalidraw
+				excalidrawAPI={handleApiReady}
+				onChange={handleChange}
+				onPointerUpdate={onPointerUpdate}
+				UIOptions={{
+					canvasActions: {
+						loadScene: false,
+						export: false,
+					},
+				}}
+			/>
+		</div>
+	);
+}
