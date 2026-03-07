@@ -46,10 +46,15 @@ function getOverlayContainerStyle(
 	} satisfies CSSProperties;
 }
 
-export function CanvasNotesLayer() {
+interface CanvasNotesLayerProps {
+	onOverlaySceneChange?: (elements: readonly ExcalidrawElement[]) => void;
+}
+
+export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps) {
 	const elements = useAppStore((s) => s.elements);
 	const appState = useAppStore((s) => s.appState);
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
+	const setElements = useAppStore((s) => s.setElements);
 	const [editingElementId, setEditingElementId] = useState<string | null>(null);
 
 	const overlayElements = useMemo(() => collectOverlayElements(elements), [elements]);
@@ -69,8 +74,10 @@ export function CanvasNotesLayer() {
 			});
 
 			excalidrawApi.updateScene({ elements: nextElements as ExcalidrawElement[] });
+			setElements(nextElements as ExcalidrawElement[]);
+			onOverlaySceneChange?.(nextElements as ExcalidrawElement[]);
 		},
-		[elements, excalidrawApi],
+		[elements, excalidrawApi, onOverlaySceneChange, setElements],
 	);
 
 	const renderOverlay = useCallback(
@@ -92,11 +99,13 @@ export function CanvasNotesLayer() {
 						<MarkdownNote
 							element={element as any}
 							isSelected={isSelected}
-							onChange={(elementId, contentValue, images, settings) =>
+							onChange={(elementId, contentValue, images, settings, editorMode, elementStyle) =>
 								updateOverlayElement(elementId, 'markdown', {
 									content: contentValue,
 									images,
 									settings,
+									editorMode,
+									elementStyle,
 								})
 							}
 							onEditingChange={(isEditing) => setEditingElementId(isEditing ? element.id : null)}
@@ -156,7 +165,7 @@ export function CanvasNotesLayer() {
 	return (
 		<div
 			className="pointer-events-none absolute inset-0 overflow-hidden"
-			style={{ zIndex: 10 }}
+			style={{ zIndex: 2 }}
 		>
 			{overlayElements.map((element, stackIndex) => renderOverlay(element, stackIndex))}
 		</div>

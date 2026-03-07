@@ -11,11 +11,13 @@ import { decryptData, encryptData, exportKey, generateEncryptionKey, importKey }
 import {
 	buildRoomHash,
 	buildRoomLink,
+	getReconnectDelayMs,
 	getPartykitHost,
 	getPartykitWebSocketUrl,
 	getSelectedElementIds,
 	parseRoomHash,
 	readStoredUsername,
+	type CollaborationSessionStatus,
 } from './collaboration-utils';
 
 const SCENE_THROTTLE_MS = 100;
@@ -145,6 +147,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		typeof window === 'undefined' ? 'Anonymous' : readStoredUsername(window.localStorage),
 	);
 	const [collaborators, setCollaborators] = useState<Map<string, CollaboratorState>>(new Map());
+	const [sessionStatus, setSessionStatus] = useState<CollaborationSessionStatus>('idle');
+	const [sessionError, setSessionError] = useState<string | null>(null);
 
 	const apiRef = useRef(excalidrawApi);
 	apiRef.current = excalidrawApi;
@@ -394,6 +398,9 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 	const connect = useCallback(
 		(roomId: string, key: CryptoKey, keyBase64: string) => {
+			const isReconnect =
+				roomIdRef.current === roomId && keyBase64Ref.current === keyBase64 && reconnectAttemptRef.current > 0;
+
 			if (wsRef.current) {
 				wsRef.current.onclose = null;
 				wsRef.current.close();
@@ -406,9 +413,13 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			encKeyRef.current = key;
 			keyBase64Ref.current = keyBase64;
 			roomIdRef.current = roomId;
-			collaboratorsRef.current = new Map();
-			setCollaborators(new Map());
-			reconnectAttemptRef.current = 0;
+			if (!isReconnect) {
+				collaboratorsRef.current = new Map();
+				setCollaborators(new Map());
+				reconnectAttemptRef.current = 0;
+			}
+			setSessionError(null);
+			setSessionStatus(isReconnect ? 'reconnecting' : 'connecting');
 
 			const host = getPartykitHost();
 			const ws = new WebSocket(getPartykitWebSocketUrl(roomId, host));
@@ -418,6 +429,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 				reconnectAttemptRef.current = 0;
 				isCollaboratingRef.current = true;
 				setIsCollaborating(true);
+				setSessionStatus('connected');
+				setSessionError(null);
 				const baseUrl =
 					typeof window !== 'undefined'
 						? `${window.location.origin}${window.location.pathname}${window.location.search}`
@@ -429,10 +442,17 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 				void handleMessage(event);
 			};
 
+			ws.onerror = () => {
+				setSessionError('Could not reach the collaboration server.');
+			};
+
 			ws.onclose = () => {
 				if (!encKeyRef.current) return;
-				const attempt = reconnectAttemptRef.current++;
-				const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
+				const nextAttempt = reconnectAttemptRef.current + 1;
+				reconnectAttemptRef.current = nextAttempt;
+				const delay = getReconnectDelayMs(nextAttempt, RECONNECT_BASE_MS, RECONNECT_MAX_MS);
+				setSessionStatus('reconnecting');
+				setSessionError('Connection dropped. Trying to restore the room.');
 				reconnectTimerRef.current = setTimeout(() => {
 					if (encKeyRef.current && roomIdRef.current && keyBase64Ref.current) {
 						connect(roomIdRef.current, encKeyRef.current, keyBase64Ref.current);
@@ -444,6 +464,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	);
 
 	const startSession = useCallback(async () => {
+		setSessionStatus('connecting');
+		setSessionError(null);
 		const roomId = createId();
 		const key = await generateEncryptionKey();
 		const keyBase64 = await exportKey(key);
@@ -462,6 +484,7 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		keyBase64Ref.current = null;
 		roomIdRef.current = null;
 		isCollaboratingRef.current = false;
+		reconnectAttemptRef.current = 0;
 
 		if (reconnectTimerRef.current) {
 			clearTimeout(reconnectTimerRef.current);
@@ -476,6 +499,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		applyCollaborators(new Map());
 		setRoomLink(null);
 		setIsCollaborating(false);
+		setSessionStatus('idle');
+		setSessionError(null);
 
 		if (typeof window !== 'undefined') {
 			window.history.pushState(null, '', `${window.location.pathname}${window.location.search}`);
@@ -522,18 +547,42 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		}
 	}, [applyRemoteScene, excalidrawApi]);
 
-	useEffect(() => {
-		const parsed = typeof window !== 'undefined' ? parseRoomHash(window.location.hash) : null;
-		if (!parsed) return;
+	const syncWithLocationHash = useCallback(() => {
+		if (typeof window === 'undefined') return;
+		const parsed = parseRoomHash(window.location.hash);
+
+		if (!parsed) {
+			if (roomIdRef.current || keyBase64Ref.current) {
+				stopSession();
+			}
+			return;
+		}
+
+		if (parsed.roomId === roomIdRef.current && parsed.keyBase64 === keyBase64Ref.current) {
+			return;
+		}
+
+		setSessionStatus('connecting');
+		setSessionError(null);
 		importKey(parsed.keyBase64)
 			.then((key) => connect(parsed.roomId, key, parsed.keyBase64))
 			.catch(() => {
-				onErrorRef.current?.('Could not join collaboration room — the link appears to be invalid or corrupted.');
-				if (typeof window !== 'undefined') {
-					window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-				}
+				const message = 'Could not join collaboration room — the link appears to be invalid or corrupted.';
+				setSessionStatus('error');
+				setSessionError(message);
+				onErrorRef.current?.(message);
+				window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
 			});
-	}, [connect]);
+	}, [connect, stopSession]);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		syncWithLocationHash();
+		window.addEventListener('hashchange', syncWithLocationHash);
+		return () => {
+			window.removeEventListener('hashchange', syncWithLocationHash);
+		};
+	}, [syncWithLocationHash]);
 
 	useEffect(() => {
 		return () => {
@@ -547,6 +596,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		isCollaborating,
 		collaborators,
 		roomLink,
+		sessionError,
+		sessionStatus,
 		username,
 		setUsername,
 		startSession,

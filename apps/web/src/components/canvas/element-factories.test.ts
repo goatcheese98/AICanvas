@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
-import { createOverlayCustomData, getOverlayDefaults } from './element-factories';
+import { buildOverlayInsertionScene, createOverlayCustomData, getOverlayDefaults } from './element-factories';
 
 describe('element-factories', () => {
 	it('creates markdown defaults', () => {
@@ -48,7 +48,7 @@ describe('element-factories', () => {
 			type: 'kanban',
 			title: 'Kanban Board',
 			bgTheme: 'parchment',
-			fontId: 'outfit',
+			fontId: 'excalifont',
 			fontSize: 13,
 		});
 		expect(data.columns).toHaveLength(3);
@@ -73,5 +73,45 @@ describe('element-factories', () => {
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
 		expect(getOverlayDefaults('kanban')).toEqual({ width: 700, height: 500 });
 		expect(getOverlayDefaults('web-embed')).toEqual({ width: 640, height: 480 });
+	});
+
+	it('builds an insertion scene that appends and selects the new overlay', () => {
+		vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
+			'11111111-1111-1111-1111-111111111111',
+		);
+
+		const result = buildOverlayInsertionScene(
+			'markdown',
+			[
+				{
+					id: 'existing-1',
+					type: 'rectangle',
+					x: 0,
+					y: 0,
+					width: 10,
+					height: 10,
+				} as any,
+			],
+			{
+				scrollX: -100,
+				scrollY: -50,
+				width: 1000,
+				height: 800,
+				zoom: { value: 2 as any },
+			},
+		);
+
+		expect(result.insertedElementId).toBe('11111111-1111-1111-1111-111111111111');
+		expect(result.elements).toHaveLength(2);
+		expect(result.elements[1]).toMatchObject({
+			id: '11111111-1111-1111-1111-111111111111',
+			x: 150,
+			y: 100,
+			width: 400,
+			height: 300,
+		});
+		expect(result.appState).toEqual({
+			selectedElementIds: { '11111111-1111-1111-1111-111111111111': true },
+		});
 	});
 });

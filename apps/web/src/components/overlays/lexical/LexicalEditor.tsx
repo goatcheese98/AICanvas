@@ -5,6 +5,7 @@ import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
+import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { TRANSFORMERS } from '@lexical/markdown';
 import type { Klass, LexicalEditor as LexicalEditorType, LexicalNode } from 'lexical';
@@ -68,6 +69,7 @@ export function LexicalEditor({
 				</div>
 				<ListPlugin />
 				<LinkPlugin />
+				<HistoryPlugin />
 				<MarkdownShortcutPlugin transformers={TRANSFORMERS} />
 				<StateSyncPlugin serializedState={initialState} />
 				<OnChangePlugin

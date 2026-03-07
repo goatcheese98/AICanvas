@@ -65,13 +65,16 @@ Implemented:
 - kanban board component
 - web embed component
 - overlay payload typing and scene update helpers
+- markdown note settings panel and inline image insertion with mapped image references
+- richer lexical editing toolbar plus in-note discussion panel wiring
+- kanban undo/redo history and board presentation controls
+- web embed inline/PiP/expanded viewing modes
 
 Still to deepen:
 
-- richer markdown editing/media flow
-- fuller Lexical plugin/comment stack
-- more complete kanban interactions
-- web embed PiP/expanded modes
+- fuller Lexical anchor-based comment stack
+- more complete kanban metadata, checklist, and operation parity
+- web embed navigation history/proxy behavior parity
 
 ### Item 3: AI chat panel
 
@@ -152,6 +155,9 @@ Hardening completed after the first pass:
 - PartyKit worker typecheck passes
 - web and API package typechecks pass again after collaboration wiring
 - collaboration panel now shows basic live session status and collaborator names
+- collaboration hook now exposes `connecting`, `reconnecting`, and `error` session states instead of only a boolean live/offline flag
+- collaboration reconnect backoff now increments correctly across retries instead of resetting on each reconnect attempt
+- collaboration room joins now stay in sync with URL hash changes, so shared-link navigation and back/forward behavior are more predictable
 
 ## Testing Policy During Rebuild
 

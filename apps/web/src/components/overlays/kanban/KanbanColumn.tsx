@@ -3,6 +3,9 @@ import { KanbanCard } from './KanbanCard';
 
 interface KanbanColumnProps {
 	column: KanbanColumnType;
+	fontFamily?: string;
+	fontSize?: number;
+	background?: string;
 	onChange: (updates: Partial<KanbanColumnType>) => void;
 	onDelete: () => void;
 	onAddCard: () => void;
@@ -14,6 +17,9 @@ interface KanbanColumnProps {
 
 export function KanbanColumn({
 	column,
+	fontFamily,
+	fontSize = 13,
+	background = 'rgba(245,245,244,0.7)',
 	onChange,
 	onDelete,
 	onAddCard,
@@ -25,6 +31,7 @@ export function KanbanColumn({
 	return (
 		<div
 			className="flex h-full min-w-72 flex-col rounded-[24px] border border-stone-200 bg-stone-100/70 p-3"
+			style={{ background, fontFamily }}
 			onDragOver={(event) => event.preventDefault()}
 			onDrop={(event) => {
 				event.preventDefault();
@@ -35,7 +42,8 @@ export function KanbanColumn({
 				<input
 					value={column.title}
 					onChange={(event) => onChange({ title: event.target.value })}
-					className="w-full border-0 bg-transparent text-sm font-semibold text-stone-900 outline-none"
+					className="w-full border-0 bg-transparent font-semibold text-stone-900 outline-none"
+					style={{ fontSize: `${fontSize + 1}px` }}
 				/>
 				<button type="button" onClick={onDelete} className="text-xs text-stone-400 hover:text-rose-600">
 					Delete
@@ -46,6 +54,8 @@ export function KanbanColumn({
 					<KanbanCard
 						key={card.id}
 						card={card}
+						fontFamily={fontFamily}
+						fontSize={fontSize}
 						onChange={(updates) => onUpdateCard(card.id, updates)}
 						onDelete={() => onDeleteCard(card.id)}
 						onDragStart={() => onDragCard(card.id)}

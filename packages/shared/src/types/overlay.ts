@@ -1,5 +1,7 @@
 export type OverlayType = 'markdown' | 'newlex' | 'kanban' | 'web-embed';
 
+export type MarkdownEditorMode = 'raw' | 'hybrid';
+
 export interface MarkdownNoteSettings {
 	font: string;
 	fontSize: number;
@@ -55,6 +57,7 @@ export interface MarkdownOverlayCustomData {
 	content: string;
 	images?: Record<string, string>;
 	settings?: MarkdownNoteSettings;
+	editorMode?: MarkdownEditorMode;
 }
 
 export interface NewLexOverlayCustomData {

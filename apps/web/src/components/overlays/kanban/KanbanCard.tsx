@@ -2,6 +2,8 @@ import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 
 interface KanbanCardProps {
 	card: KanbanCardType;
+	fontFamily?: string;
+	fontSize?: number;
 	onChange: (updates: Partial<KanbanCardType>) => void;
 	onDelete: () => void;
 	onDragStart: () => void;
@@ -16,6 +18,8 @@ const priorityStyles = {
 
 export function KanbanCard({
 	card,
+	fontFamily,
+	fontSize = 13,
 	onChange,
 	onDelete,
 	onDragStart,
@@ -36,7 +40,8 @@ export function KanbanCard({
 				<input
 					value={card.title}
 					onChange={(event) => onChange({ title: event.target.value })}
-					className="w-full border-0 bg-transparent text-sm font-semibold text-stone-900 outline-none"
+					className="w-full border-0 bg-transparent font-semibold text-stone-900 outline-none"
+					style={{ fontFamily, fontSize: `${fontSize}px` }}
 				/>
 				<button type="button" onClick={onDelete} className="text-xs text-stone-400 hover:text-rose-600">
 					Delete
@@ -47,6 +52,7 @@ export function KanbanCard({
 				onChange={(event) => onChange({ description: event.target.value })}
 				className="min-h-20 w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700 outline-none"
 				placeholder="Details..."
+				style={{ fontFamily, fontSize: `${Math.max(fontSize - 1, 11)}px` }}
 			/>
 			<div className="mt-3 flex items-center justify-between gap-2">
 				<select

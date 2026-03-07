@@ -21,7 +21,7 @@ function createDefaultKanbanBoard(title = 'AI Kanban Board'): KanbanOverlayCusto
 		type: 'kanban',
 		title,
 		bgTheme: 'parchment',
-		fontId: 'outfit',
+		fontId: 'excalifont',
 		fontSize: 13,
 		columns: [
 			{ id: crypto.randomUUID(), title: 'To Do', cards: [] },

@@ -25,6 +25,7 @@
     "@tanstack/react-router": "^1.93.0",
     "hono": "^4.6.14",
     "lexical": "^0.40.0",
+    "katex": "^0.16.11",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-markdown": "^10.1.0",

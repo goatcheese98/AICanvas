@@ -1,10 +1,12 @@
 import type {
 	KanbanOverlayCustomData,
-	MarkdownNoteSettings,
 	OverlayType,
 	OverlayCustomData,
 } from '@ai-canvas/shared/types';
+import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { AppState } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { normalizeSceneElement } from './scene-element-normalizer';
 
 interface CreateOverlayElementOptions {
 	type: OverlayType;
@@ -32,6 +34,7 @@ export interface SceneCenter {
 
 export interface OverlayElementDraft {
 	id: string;
+	index: string;
 	type: 'rectangle';
 	x: number;
 	y: number;
@@ -41,11 +44,28 @@ export interface OverlayElementDraft {
 	backgroundColor: string;
 	strokeColor: string;
 	strokeWidth: number;
+	strokeStyle: 'solid';
 	roughness: number;
 	opacity: number;
 	fillStyle: 'solid';
+	roundness: null;
+	groupIds: string[];
+	frameId: null;
+	boundElements: null;
+	updated: number;
+	link: null;
+	seed: number;
+	version: number;
+	versionNonce: number;
+	isDeleted: false;
 	locked: false;
 	customData: OverlayCustomData;
+}
+
+export interface OverlayInsertionScene {
+	elements: ExcalidrawElement[];
+	appState: Partial<AppState>;
+	insertedElementId: string;
 }
 
 function createCenteredRect(sceneCenter: SceneCenter, width: number, height: number) {
@@ -85,21 +105,22 @@ export function createOverlayCustomData(
 ): OverlayCustomData {
 	switch (options.type) {
 		case 'markdown':
-			return {
-				type: 'markdown',
+			return normalizeMarkdownOverlay({
 				content:
-					(typeof options.customData?.content === 'string'
+					typeof options.customData?.content === 'string'
 						? options.customData.content
-						: '# New Note\n\nStart writing...'),
+						: '# New Note\n\nStart writing...',
 				images:
 					typeof options.customData?.images === 'object'
 						? (options.customData.images as Record<string, string>)
 						: undefined,
 				settings:
 					typeof options.customData?.settings === 'object'
-						? (options.customData.settings as MarkdownNoteSettings)
+						? (options.customData.settings as Record<string, unknown>)
 						: undefined,
-			};
+				editorMode:
+					options.customData?.editorMode === 'hybrid' ? 'hybrid' : undefined,
+			});
 		case 'newlex':
 			return {
 				type: 'newlex',
@@ -131,7 +152,7 @@ export function createOverlayCustomData(
 				fontId:
 					typeof options.customData?.fontId === 'string'
 						? options.customData.fontId
-						: 'outfit',
+						: 'excalifont',
 				fontSize:
 					typeof options.customData?.fontSize === 'number'
 						? options.customData.fontSize
@@ -163,17 +184,29 @@ export function createOverlayElementDraft(
 ): OverlayElementDraft {
 	const { width, height } = getOverlayDefaults(type);
 
-	return {
+	return normalizeSceneElement({
 		id: crypto.randomUUID(),
+		index: `a${Date.now()}` as any,
 		type: 'rectangle',
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,
 		backgroundColor: type === 'kanban' ? '#faf8f2' : '#ffffff',
 		strokeColor: type === 'markdown' ? 'transparent' : 'rgba(0,0,0,0.12)',
 		strokeWidth: type === 'markdown' ? 0 : 1,
+		strokeStyle: 'solid',
 		roughness: 0,
 		opacity: 100,
 		fillStyle: 'solid',
+		roundness: null,
+		groupIds: [],
+		frameId: null,
+		boundElements: null,
+		updated: Date.now(),
+		link: null,
+		seed: Math.floor(Math.random() * 100000),
+		version: 1,
+		versionNonce: Math.floor(Math.random() * 2 ** 31),
+		isDeleted: false,
 		locked: false,
 		customData: createOverlayCustomData({
 			type,
@@ -183,5 +216,22 @@ export function createOverlayElementDraft(
 			height,
 			customData,
 		}),
+	}) as unknown as OverlayElementDraft;
+}
+
+export function buildOverlayInsertionScene(
+	type: OverlayType,
+	currentElements: readonly ExcalidrawElement[],
+	appState: Partial<AppState>,
+	customData?: Record<string, unknown>,
+): OverlayInsertionScene {
+	const draft = createOverlayElementDraft(type, getViewportSceneCenter(appState), customData);
+
+	return {
+		elements: [...currentElements, draft as unknown as ExcalidrawElement],
+		appState: {
+			selectedElementIds: { [draft.id]: true },
+		},
+		insertedElementId: draft.id,
 	};
 }

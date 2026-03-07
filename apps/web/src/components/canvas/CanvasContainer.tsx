@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { CanvasCore } from './CanvasCore';
 import { CanvasUI } from './CanvasUI';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
@@ -15,6 +16,7 @@ import {
 	buildPersistedCanvasData,
 	shouldWaitForCanvasHydration,
 } from './canvas-persistence-utils';
+import { normalizeSceneElements } from './scene-element-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
 
@@ -26,6 +28,9 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	const { getToken } = useAuth();
 	const queryClient = useQueryClient();
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
+	const elements = useAppStore((s) => s.elements);
+	const appState = useAppStore((s) => s.appState);
+	const files = useAppStore((s) => s.files);
 	const setPersistenceState = useAppStore((s) => s.setPersistenceState);
 	const addToast = useAppStore((s) => s.addToast);
 
@@ -110,6 +115,21 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 		[canvasId, scheduleServerSave],
 	);
 
+	const handleOverlaySceneChange = useCallback(
+		(nextElements: readonly ExcalidrawElement[]) => {
+			if (!isInitializedRef.current) return;
+			const nextData = buildPersistedCanvasData(
+				nextElements,
+				excalidrawApi?.getAppState() ?? appState,
+				(excalidrawApi?.getFiles() as Record<string, unknown> | null | undefined) ?? files,
+			);
+			latestSceneRef.current = nextData;
+			coordinatorRef.current?.scheduleSave(nextData, canvasId);
+			scheduleServerSave(nextData);
+		},
+		[appState, canvasId, excalidrawApi, files, scheduleServerSave],
+	);
+
 	// Load canvas data from API
 	const { data: canvasQueryData, fetchStatus, status } = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -129,7 +149,11 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 
 		if (status === 'success' && canvasQueryData?.data) {
 			const { elements, appState, files } = canvasQueryData.data as any;
-			const remoteData = buildPersistedCanvasData(elements ?? [], appState ?? {}, files ?? null);
+			const remoteData = buildPersistedCanvasData(
+				normalizeSceneElements((elements ?? []) as ExcalidrawElement[]),
+				appState ?? {},
+				files ?? null,
+			);
 			excalidrawApi.updateScene({
 				elements: remoteData.elements,
 				appState: remoteData.appState as any,
@@ -143,7 +167,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 			const local = coordinatorRef.current?.loadFromStorage(canvasId);
 			if (local) {
 				const localData = buildPersistedCanvasData(
-					local.elements ?? [],
+					normalizeSceneElements((local.elements ?? []) as ExcalidrawElement[]),
 					local.appState ?? {},
 					local.files ?? null,
 				);
@@ -167,6 +191,11 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 		isInitializedRef.current = true;
 	}, [canvasId, canvasQueryData, excalidrawApi, fetchStatus, status]);
 
+	useEffect(() => {
+		if (!isInitializedRef.current) return;
+		latestSceneRef.current = buildPersistedCanvasData(elements, appState, files);
+	}, [appState, elements, files]);
+
 	// Cleanup on unmount
 	useEffect(() => {
 		const coordinator = coordinatorRef.current;
@@ -189,7 +218,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				onSceneChange={collaboration.handleSceneChange}
 				onPointerUpdate={collaboration.handlePointerUpdate}
 			/>
-			{excalidrawApi && <CanvasNotesLayer />}
+			{excalidrawApi && <CanvasNotesLayer onOverlaySceneChange={handleOverlaySceneChange} />}
 			<CanvasUI canvasId={canvasId} collaboration={collaboration} />
 		</div>
 	);

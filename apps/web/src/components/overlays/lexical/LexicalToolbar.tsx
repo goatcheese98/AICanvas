@@ -1,4 +1,9 @@
-import { FORMAT_TEXT_COMMAND } from 'lexical';
+import {
+	FORMAT_ELEMENT_COMMAND,
+	FORMAT_TEXT_COMMAND,
+	REDO_COMMAND,
+	UNDO_COMMAND,
+} from 'lexical';
 import { INSERT_ORDERED_LIST_COMMAND, INSERT_UNORDERED_LIST_COMMAND } from '@lexical/list';
 import { TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
@@ -11,11 +16,34 @@ export function LexicalToolbar() {
 
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b border-stone-200 bg-stone-100/85 px-3 py-2">
+			<button type="button" className={buttonClass} onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}>
+				Undo
+			</button>
+			<button type="button" className={buttonClass} onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}>
+				Redo
+			</button>
 			<button type="button" className={buttonClass} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}>
 				Bold
 			</button>
 			<button type="button" className={buttonClass} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}>
 				Italic
+			</button>
+			<button type="button" className={buttonClass} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}>
+				Underline
+			</button>
+			<button
+				type="button"
+				className={buttonClass}
+				onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
+			>
+				Strike
+			</button>
+			<button
+				type="button"
+				className={buttonClass}
+				onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code')}
+			>
+				Code
 			</button>
 			<button
 				type="button"
@@ -40,6 +68,20 @@ export function LexicalToolbar() {
 				}}
 			>
 				Link
+			</button>
+			<button
+				type="button"
+				className={buttonClass}
+				onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}
+			>
+				Unlink
+			</button>
+			<button
+				type="button"
+				className={buttonClass}
+				onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center')}
+			>
+				Center
 			</button>
 		</div>
 	);

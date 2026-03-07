@@ -5,6 +5,13 @@ export interface ParsedRoomHash {
 	keyBase64: string;
 }
 
+export type CollaborationSessionStatus =
+	| 'idle'
+	| 'connecting'
+	| 'connected'
+	| 'reconnecting'
+	| 'error';
+
 export function readStoredUsername(storage: Pick<Storage, 'getItem'> | null | undefined): string {
 	if (!storage) return 'Anonymous';
 	return storage.getItem('excalidraw_name') || 'Anonymous';
@@ -35,6 +42,48 @@ export function getPartykitWebSocketUrl(roomId: string, host: string, secure?: b
 			? 'wss'
 			: 'ws';
 	return `${protocol}://${host}/parties/main/${roomId}`;
+}
+
+export function getReconnectDelayMs(attempt: number, baseMs: number, maxMs: number): number {
+	if (attempt <= 0) return baseMs;
+	return Math.min(baseMs * 2 ** (attempt - 1), maxMs);
+}
+
+export function getCollaborationStatusCopy(
+	status: CollaborationSessionStatus,
+	collaboratorCount: number,
+	sessionError?: string | null,
+) {
+	const collaboratorLabel = `${collaboratorCount} collaborator${collaboratorCount === 1 ? '' : 's'} connected`;
+
+	switch (status) {
+		case 'connecting':
+			return {
+				label: 'Connecting',
+				detail: 'Joining encrypted collaboration room.',
+			};
+		case 'connected':
+			return {
+				label: 'Live',
+				detail: collaboratorLabel,
+			};
+		case 'reconnecting':
+			return {
+				label: 'Reconnecting',
+				detail: sessionError || 'Connection dropped. Trying to restore the room.',
+			};
+		case 'error':
+			return {
+				label: 'Connection error',
+				detail: sessionError || 'Could not join the collaboration room.',
+			};
+		case 'idle':
+		default:
+			return {
+				label: 'Not connected',
+				detail: collaboratorLabel,
+			};
+	}
 }
 
 const PERSISTENCE_APP_STATE_KEYS_TO_DROP = [

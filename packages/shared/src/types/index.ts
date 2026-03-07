@@ -9,6 +9,7 @@ export type {
 	OverlayType,
 	OverlayCustomData,
 	OverlayElement,
+	MarkdownEditorMode,
 	MarkdownNoteSettings,
 	MarkdownOverlayCustomData,
 	NewLexCommentReply,

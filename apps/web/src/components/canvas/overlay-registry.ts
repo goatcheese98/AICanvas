@@ -17,6 +17,11 @@ export type OverlayUpdatePayloadMap = {
 		content: string;
 		images?: Record<string, string>;
 		settings?: MarkdownOverlayCustomData['settings'];
+		editorMode?: MarkdownOverlayCustomData['editorMode'];
+		elementStyle?: {
+			backgroundColor?: string;
+			strokeColor?: string;
+		};
 	};
 	newlex: {
 		lexicalState?: string;
@@ -36,6 +41,7 @@ export function collectOverlayElements(
 }
 
 function isOverlayElement(el: ExcalidrawElement): boolean {
+	if (el.isDeleted) return false;
 	const customData = el.customData as OverlayCustomData | undefined;
 	if (!customData?.type) return false;
 	return (OVERLAY_TYPES as readonly string[]).includes(customData.type);
@@ -60,6 +66,12 @@ export function applyOverlayUpdateByType<K extends OverlayType>(
 			const markdownPayload = payload as OverlayUpdatePayloadMap['markdown'];
 			return bumpElementVersion({
 				...element,
+				...(markdownPayload.elementStyle?.backgroundColor !== undefined
+					? { backgroundColor: markdownPayload.elementStyle.backgroundColor }
+					: {}),
+				...(markdownPayload.elementStyle?.strokeColor !== undefined
+					? { strokeColor: markdownPayload.elementStyle.strokeColor }
+					: {}),
 				customData: {
 					...markdownData,
 					type: 'markdown',
@@ -70,6 +82,9 @@ export function applyOverlayUpdateByType<K extends OverlayType>(
 					...(markdownPayload.settings !== undefined
 						? { settings: markdownPayload.settings }
 						: { settings: markdownData.settings }),
+					...(markdownPayload.editorMode !== undefined
+						? { editorMode: markdownPayload.editorMode }
+						: { editorMode: markdownData.editorMode }),
 				},
 			}) as TypedOverlayCanvasElement;
 		}

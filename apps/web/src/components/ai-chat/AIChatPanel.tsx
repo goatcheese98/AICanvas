@@ -19,6 +19,12 @@ const generationModes: Array<{ value: GenerationMode; label: string }> = [
 	{ value: 'sketch', label: 'Sketch' },
 ];
 
+const PANEL_BUTTON =
+	'inline-flex h-9 items-center justify-center rounded-[8px] border px-3 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors';
+const PANEL_BUTTON_IDLE =
+	'border-stone-300 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
+const PANEL_BUTTON_ACTIVE = 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]';
+
 function ArtifactCard({
 	artifact,
 	onInsert,
@@ -30,7 +36,7 @@ function ArtifactCard({
 		case 'mermaid':
 		case 'd2':
 			return (
-				<div className="rounded-2xl border border-stone-200 bg-stone-50 p-3">
+				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3">
 					<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
 						{artifact.type}
 					</div>
@@ -39,7 +45,7 @@ function ArtifactCard({
 						<button
 							type="button"
 							onClick={() => onInsert(artifact)}
-							className="mt-3 rounded-full border border-stone-300 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+							className={`mt-3 ${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
 						>
 							Insert On Canvas
 						</button>
@@ -48,7 +54,7 @@ function ArtifactCard({
 			);
 		case 'kanban-ops':
 			return (
-				<div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-3">
+				<div className="rounded-[10px] border border-indigo-200 bg-indigo-50 p-3">
 					<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
 						Kanban Ops
 					</div>
@@ -57,7 +63,7 @@ function ArtifactCard({
 						<button
 							type="button"
 							onClick={() => onInsert(artifact)}
-							className="mt-3 rounded-full border border-indigo-300 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700"
+							className="mt-3 inline-flex h-9 items-center justify-center rounded-[8px] border border-indigo-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
 						>
 							Insert On Canvas
 						</button>
@@ -66,7 +72,7 @@ function ArtifactCard({
 			);
 		case 'image':
 			return (
-				<div className="rounded-2xl border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
+				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
 					Image artifact placeholder: {artifact.content}
 				</div>
 			);
@@ -84,7 +90,7 @@ function MessageCard({
 
 	return (
 		<div
-			className={`rounded-[22px] px-4 py-3 shadow-sm ${
+			className={`rounded-[10px] px-4 py-3 shadow-sm ${
 				isUser ? 'ml-8 bg-stone-900 text-white' : 'mr-8 border border-stone-200 bg-white text-stone-900'
 			}`}
 		>
@@ -209,7 +215,7 @@ export function AIChatPanel() {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-stone-50 shadow-xl">
+		<div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[12px] border border-stone-200 bg-stone-50 shadow-xl">
 			<div className="border-b border-stone-200 bg-white px-4 py-3">
 				<div className="flex items-center justify-between gap-2">
 					<div>
@@ -219,7 +225,7 @@ export function AIChatPanel() {
 					<button
 						type="button"
 						onClick={clearMessages}
-						className="rounded-full border border-stone-300 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
 					>
 						Clear
 					</button>
@@ -228,7 +234,7 @@ export function AIChatPanel() {
 					<select
 						value={generationMode}
 						onChange={(event) => setGenerationMode(event.target.value as GenerationMode)}
-						className="rounded-full border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700"
+						className={`h-9 rounded-[8px] border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700 ${PANEL_BUTTON_IDLE}`}
 					>
 						{generationModes.map((mode) => (
 							<option key={mode.value} value={mode.value}>
@@ -239,7 +245,7 @@ export function AIChatPanel() {
 					<select
 						value={contextMode}
 						onChange={(event) => setContextMode(event.target.value as 'all' | 'selected')}
-						className="rounded-full border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700"
+						className={`h-9 rounded-[8px] border border-stone-300 bg-white px-3 py-2 text-xs text-stone-700 ${PANEL_BUTTON_IDLE}`}
 					>
 						<option value="all">Whole canvas</option>
 						<option value="selected">Selected only</option>
@@ -249,7 +255,7 @@ export function AIChatPanel() {
 
 			<div className="min-h-0 flex-1 space-y-3 overflow-auto px-4 py-4">
 				{messages.length === 0 ? (
-					<div className="rounded-[24px] border border-dashed border-stone-300 bg-white/70 p-4 text-sm text-stone-500">
+					<div className="rounded-[10px] border border-dashed border-stone-300 bg-white/70 p-4 text-sm text-stone-500">
 						Start with a prompt like “map the auth flow”, “turn this into kanban tasks”, or “summarize the selected elements”.
 					</div>
 				) : (
@@ -262,7 +268,7 @@ export function AIChatPanel() {
 					))
 				)}
 				{isChatLoading && (
-					<div className="mr-8 rounded-[22px] border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+					<div className="mr-8 rounded-[10px] border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
 						Thinking...
 					</div>
 				)}
@@ -270,7 +276,7 @@ export function AIChatPanel() {
 
 			<div className="border-t border-stone-200 bg-white px-4 py-3">
 				{chatError && (
-					<div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
 						{chatError}
 					</div>
 				)}
@@ -283,7 +289,7 @@ export function AIChatPanel() {
 							void sendMessage();
 						}
 					}}
-					className="min-h-24 w-full resize-none rounded-[22px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none"
+					className="min-h-24 w-full resize-none rounded-[10px] border border-stone-300 bg-stone-50 px-4 py-3 text-sm text-stone-900 outline-none focus:border-[#d7dafd] focus:bg-[#f9f8ff]"
 					placeholder="Ask the assistant to explain, diagram, or transform this canvas..."
 				/>
 				<div className="mt-3 flex items-center justify-between gap-3">
@@ -292,7 +298,7 @@ export function AIChatPanel() {
 						type="button"
 						disabled={disabled}
 						onClick={() => void sendMessage()}
-						className="rounded-full bg-stone-900 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white disabled:opacity-50"
+						className={`${PANEL_BUTTON} ${disabled ? 'opacity-50' : PANEL_BUTTON_ACTIVE} bg-[#eef0ff] px-4 disabled:cursor-not-allowed`}
 					>
 						Send
 					</button>
