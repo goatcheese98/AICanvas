@@ -19,6 +19,27 @@ import {
 import { normalizeSceneElements } from './scene-element-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
+const THUMBNAIL_MIME_TYPE = 'image/png';
+
+let exportToBlobLoader: Promise<typeof import('@excalidraw/excalidraw')['exportToBlob']> | null = null;
+
+async function getExportToBlob() {
+	if (!exportToBlobLoader) {
+		exportToBlobLoader = import('@excalidraw/excalidraw').then((module) => module.exportToBlob);
+	}
+	return exportToBlobLoader;
+}
+
+function getThumbnailSignature(data: CanvasData): string {
+	return JSON.stringify(
+		data.elements.map((element: Record<string, unknown>) => [
+			element.id,
+			element.version,
+			element.versionNonce,
+			element.isDeleted === true,
+		]),
+	);
+}
 
 interface CanvasContainerProps {
 	canvasId: string;
@@ -49,6 +70,68 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	// Throttled server save — only fires after 5s of inactivity
 	const serverSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const latestSceneRef = useRef<CanvasData | null>(null);
+	const latestThumbnailSignatureRef = useRef<string | null>(null);
+	const inFlightThumbnailSignatureRef = useRef<string | null>(null);
+	const persistThumbnail = useCallback(
+		async (data: CanvasData) => {
+			const signature = getThumbnailSignature(data);
+			if (
+				signature === latestThumbnailSignatureRef.current ||
+				signature === inFlightThumbnailSignatureRef.current
+			) {
+				return;
+			}
+
+			const elements = data.elements.filter(
+				(element) => (element as Record<string, unknown>).isDeleted !== true,
+			);
+			if (elements.length === 0) return;
+
+			inFlightThumbnailSignatureRef.current = signature;
+
+			try {
+				const exportToBlob = await getExportToBlob();
+				const blob = await exportToBlob({
+					elements: elements as never,
+					appState: {
+						...(data.appState ?? {}),
+						exportBackground: true,
+						viewBackgroundColor:
+							typeof data.appState?.viewBackgroundColor === 'string'
+								? data.appState.viewBackgroundColor
+								: '#ffffff',
+					},
+					files: ((data.files ?? {}) as Record<string, unknown>) as never,
+					mimeType: THUMBNAIL_MIME_TYPE,
+					exportPadding: 16,
+				});
+
+				const headers = await getRequiredAuthHeaders(getToken);
+				const response = await fetch(`/api/canvas/${canvasId}/thumbnail`, {
+					method: 'POST',
+					headers: {
+						...headers,
+						'Content-Type': THUMBNAIL_MIME_TYPE,
+					},
+					body: blob,
+				});
+
+				if (!response.ok) {
+					throw new Error(await response.text());
+				}
+
+				latestThumbnailSignatureRef.current = signature;
+				void queryClient.invalidateQueries({ queryKey: ['canvases'] });
+			} catch (err) {
+				console.error('Thumbnail upload failed:', err);
+			} finally {
+				if (inFlightThumbnailSignatureRef.current === signature) {
+					inFlightThumbnailSignatureRef.current = null;
+				}
+			}
+		},
+		[canvasId, getToken, queryClient],
+	);
 	const persistServerSave = useCallback(
 		async (data: CanvasData) => {
 			try {
@@ -71,14 +154,14 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 
 				await Promise.all([
 					queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] }),
-					queryClient.invalidateQueries({ queryKey: ['canvas-preview', canvasId] }),
 					queryClient.invalidateQueries({ queryKey: ['canvases'] }),
 				]);
+				void persistThumbnail(data);
 			} catch (err) {
 				console.error('Server auto-save failed:', err);
 			}
 		},
-		[canvasId, getToken, queryClient],
+		[canvasId, getToken, persistThumbnail, queryClient],
 	);
 
 	const scheduleServerSave = useCallback(
@@ -97,6 +180,8 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	useEffect(() => {
 		isInitializedRef.current = false;
 		latestSceneRef.current = null;
+		latestThumbnailSignatureRef.current = null;
+		inFlightThumbnailSignatureRef.current = null;
 		coordinatorRef.current?.cancelPendingSave();
 		if (serverSaveTimeoutRef.current) {
 			clearTimeout(serverSaveTimeoutRef.current);
@@ -113,21 +198,6 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 			scheduleServerSave(data);
 		},
 		[canvasId, scheduleServerSave],
-	);
-
-	const handleOverlaySceneChange = useCallback(
-		(nextElements: readonly ExcalidrawElement[]) => {
-			if (!isInitializedRef.current) return;
-			const nextData = buildPersistedCanvasData(
-				nextElements,
-				excalidrawApi?.getAppState() ?? appState,
-				(excalidrawApi?.getFiles() as Record<string, unknown> | null | undefined) ?? files,
-			);
-			latestSceneRef.current = nextData;
-			coordinatorRef.current?.scheduleSave(nextData, canvasId);
-			scheduleServerSave(nextData);
-		},
-		[appState, canvasId, excalidrawApi, files, scheduleServerSave],
 	);
 
 	// Load canvas data from API
@@ -222,7 +292,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				onSceneChange={collaboration.handleSceneChange}
 				onPointerUpdate={collaboration.handlePointerUpdate}
 			/>
-			{excalidrawApi && <CanvasNotesLayer onOverlaySceneChange={handleOverlaySceneChange} />}
+			{excalidrawApi && <CanvasNotesLayer />}
 			<CanvasUI canvasId={canvasId} collaboration={collaboration} />
 		</div>
 	);

@@ -4,13 +4,18 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
 import {
-	BOARD_FONTS,
-	BOARD_THEMES,
 	cloneKanbanBoard,
 	moveKanbanCard,
 	normalizeKanbanBoard,
 	pushKanbanHistory,
 } from './kanban-utils';
+import {
+	KANBAN_ACCENT_BORDER,
+	KANBAN_ACCENT_SURFACE,
+	KANBAN_ACCENT_SURFACE_SOFT,
+	KANBAN_ACCENT_SURFACE_STRONG,
+	KANBAN_ACCENT_TEXT,
+} from './kanban-theme';
 
 type KanbanElement = ExcalidrawElement & {
 	customData: KanbanOverlayCustomData;
@@ -22,6 +27,21 @@ interface KanbanBoardProps {
 	onChange: (elementId: string, data: KanbanOverlayCustomData) => void;
 	onEditingChange?: (isEditing: boolean) => void;
 }
+
+const KANBAN_FONT_FAMILY = 'var(--font-sans)';
+const KANBAN_FONT_SIZE = 14;
+const KANBAN_BUTTON =
+	'inline-flex h-8 items-center justify-center rounded-[10px] border px-3 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-40';
+const KANBAN_BUTTON_STYLE = {
+	borderColor: 'var(--color-border)',
+	background: 'var(--color-surface-strong)',
+	color: 'var(--color-text-secondary)',
+};
+const KANBAN_BUTTON_HOVER_STYLE = {
+	borderColor: KANBAN_ACCENT_BORDER,
+	background: KANBAN_ACCENT_SURFACE,
+	color: KANBAN_ACCENT_TEXT,
+};
 
 function createCard(): KanbanCard {
 	return {
@@ -75,14 +95,10 @@ export function KanbanBoard({
 			setPendingDeleteColumnId(null);
 		}
 	}, [isSelected]);
-
-	const theme = useMemo(
-		() => BOARD_THEMES[(board.bgTheme as keyof typeof BOARD_THEMES) ?? 'parchment'] ?? BOARD_THEMES.parchment,
-		[board.bgTheme],
+	const boardCardCount = useMemo(
+		() => board.columns.reduce((total, column) => total + column.cards.length, 0),
+		[board.columns],
 	);
-	const fontFamily =
-		BOARD_FONTS[(board.fontId as keyof typeof BOARD_FONTS) ?? 'excalifont'] ?? BOARD_FONTS.excalifont;
-	const fontSize = board.fontSize ?? 13;
 
 	const commit = (nextBoard: KanbanOverlayCustomData) => {
 		undoStackRef.current = pushKanbanHistory(undoStackRef.current, board);
@@ -123,30 +139,62 @@ export function KanbanBoard({
 		<OverlaySurface
 			element={element}
 			isSelected={isSelected}
-			backgroundColor={theme.boardBg}
+			backgroundColor={element.backgroundColor}
 			className="flex h-full min-h-0 flex-col"
-			style={{ fontFamily }}
+			style={{
+				fontFamily: KANBAN_FONT_FAMILY,
+				backgroundImage:
+					`linear-gradient(180deg, ${KANBAN_ACCENT_SURFACE_SOFT} 0%, color-mix(in srgb, var(--color-surface-strong) 96%, white) 100%)`,
+			}}
 		>
 			<div
-				className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 px-4 py-3"
-				style={{ background: theme.headerBg }}
+				className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3"
+				style={{
+					borderColor: 'var(--color-border)',
+					background:
+						`linear-gradient(180deg, ${KANBAN_ACCENT_SURFACE_STRONG} 0%, color-mix(in srgb, var(--color-surface) 94%, white) 100%)`,
+				}}
 			>
-				<input
-					value={board.title}
-					onChange={(event) => {
-						const next = { ...board, title: event.target.value };
-						const normalized = normalizeKanbanBoard(next);
-						setBoard(normalized);
-						onChange(element.id, normalized);
-					}}
-					className="min-w-52 flex-1 border-0 bg-transparent text-base font-semibold text-stone-900 outline-none"
-				/>
+				<div className="min-w-52 flex-1">
+					<div
+						className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
+						style={{ color: 'var(--color-text-tertiary)' }}
+					>
+						Board
+					</div>
+					<div className="flex flex-wrap items-center gap-2">
+						<input
+							value={board.title}
+							onChange={(event) => {
+								const next = { ...board, title: event.target.value };
+								const normalized = normalizeKanbanBoard(next);
+								setBoard(normalized);
+								onChange(element.id, normalized);
+							}}
+							className="min-w-0 flex-1 border-0 bg-transparent text-base font-semibold outline-none"
+							style={{ color: 'var(--color-text-primary)' }}
+						/>
+						<span
+							className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+							style={{
+								borderColor: KANBAN_ACCENT_BORDER,
+								background: KANBAN_ACCENT_SURFACE,
+								color: KANBAN_ACCENT_TEXT,
+							}}
+						>
+							{board.columns.length} columns / {boardCardCount} cards
+						</span>
+					</div>
+				</div>
 				<div className="flex flex-wrap items-center gap-2">
 					<button
 						type="button"
 						onClick={handleUndo}
 						disabled={undoStackRef.current.length === 0}
-						className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 disabled:cursor-not-allowed disabled:opacity-40"
+						className={KANBAN_BUTTON}
+						style={KANBAN_BUTTON_STYLE}
+						onMouseEnter={(event) => Object.assign(event.currentTarget.style, KANBAN_BUTTON_HOVER_STYLE)}
+						onMouseLeave={(event) => Object.assign(event.currentTarget.style, KANBAN_BUTTON_STYLE)}
 					>
 						Undo
 					</button>
@@ -154,45 +202,12 @@ export function KanbanBoard({
 						type="button"
 						onClick={handleRedo}
 						disabled={redoStackRef.current.length === 0}
-						className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 disabled:cursor-not-allowed disabled:opacity-40"
+						className={KANBAN_BUTTON}
+						style={KANBAN_BUTTON_STYLE}
+						onMouseEnter={(event) => Object.assign(event.currentTarget.style, KANBAN_BUTTON_HOVER_STYLE)}
+						onMouseLeave={(event) => Object.assign(event.currentTarget.style, KANBAN_BUTTON_STYLE)}
 					>
 						Redo
-					</button>
-					<select
-						value={board.bgTheme ?? 'parchment'}
-						onChange={(event) => commit({ ...board, bgTheme: event.target.value })}
-						className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-stone-600"
-					>
-						{Object.keys(BOARD_THEMES).map((themeId) => (
-							<option key={themeId} value={themeId}>
-								{themeId}
-							</option>
-						))}
-					</select>
-					<select
-						value={board.fontId ?? 'excalifont'}
-						onChange={(event) => commit({ ...board, fontId: event.target.value })}
-						className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.18em] text-stone-600"
-					>
-						{Object.keys(BOARD_FONTS).map((fontId) => (
-							<option key={fontId} value={fontId}>
-								{fontId}
-							</option>
-						))}
-					</select>
-					<button
-						type="button"
-						onClick={() => commit({ ...board, fontSize: Math.max(11, (board.fontSize ?? 13) - 1) })}
-						className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-					>
-						A-
-					</button>
-					<button
-						type="button"
-						onClick={() => commit({ ...board, fontSize: Math.min(20, (board.fontSize ?? 13) + 1) })}
-						className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-					>
-						A+
 					</button>
 					<button
 						type="button"
@@ -205,22 +220,25 @@ export function KanbanBoard({
 								],
 							})
 						}
-						className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+						className={KANBAN_BUTTON}
+						style={{
+							borderColor: KANBAN_ACCENT_BORDER,
+							background: KANBAN_ACCENT_SURFACE,
+							color: KANBAN_ACCENT_TEXT,
+						}}
 					>
 						Add column
 					</button>
 				</div>
 			</div>
 
-			<div className="min-h-0 flex-1 overflow-auto p-4">
-				<div className="flex h-full min-w-full gap-4">
+			<div className="min-h-0 flex-1 overflow-auto p-3">
+				<div className="flex h-full min-w-full gap-3">
 					{board.columns.map((column) => (
 						<KanbanColumnView
 							key={column.id}
 							column={column}
-							fontFamily={fontFamily}
-							fontSize={fontSize}
-							background={theme.columnBg}
+							fontSize={KANBAN_FONT_SIZE}
 							onChange={(updates) => updateColumn(column.id, (current) => ({ ...current, ...updates }))}
 							onDelete={() =>
 								pendingDeleteColumnId === column.id
@@ -260,13 +278,26 @@ export function KanbanBoard({
 			</div>
 
 			{pendingDeleteColumnId ? (
-				<div className="border-t border-stone-200 bg-white/80 px-4 py-3 text-xs text-stone-600">
+				<div
+					className="border-t px-4 py-3 text-xs"
+					style={{
+						borderColor: 'var(--color-danger-border)',
+						background: 'color-mix(in srgb, var(--color-danger-bg) 82%, white)',
+						color: 'var(--color-danger-text)',
+					}}
+				>
 					<div className="flex items-center justify-between gap-3">
 						<span>Press delete again on the same column to confirm removal.</span>
 						<button
 							type="button"
 							onClick={() => setPendingDeleteColumnId(null)}
-							className="rounded-full border border-stone-300 px-3 py-1 font-semibold uppercase tracking-[0.18em] text-stone-700"
+							className={KANBAN_BUTTON}
+							style={{
+								height: '2rem',
+								borderColor: 'var(--color-danger-border)',
+								background: 'var(--color-surface-strong)',
+								color: 'var(--color-danger-text)',
+							}}
 						>
 							Cancel
 						</button>

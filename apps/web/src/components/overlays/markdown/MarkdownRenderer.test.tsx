@@ -39,6 +39,30 @@ describe('MarkdownRenderer', () => {
 		expect(taskItems.every((item) => item.className.includes('list-none'))).toBe(true);
 	});
 
+	it('applies a stable readable text color to inherited markdown content', () => {
+		const { container } = render(
+			<MarkdownRenderer
+				content={`- First list item
+
+| Resource | Link |
+| -------- | ---- |
+| Markdown Guide | CommonMark |`}
+				settings={TEST_MARKDOWN_SETTINGS}
+			/>,
+		);
+
+		const root = container.firstElementChild;
+		expect(root?.className).toContain('text-stone-700');
+
+		const list = container.querySelector('ul');
+		const tableHeader = container.querySelector('th');
+		const tableCell = container.querySelector('td');
+
+		expect(list?.className).toContain('text-stone-700');
+		expect(tableHeader?.className).toContain('text-stone-700');
+		expect(tableCell?.className).toContain('text-stone-700');
+	});
+
 	it('renders raw html images with explicit sizing inline', () => {
 		const { container } = render(
 			<MarkdownRenderer

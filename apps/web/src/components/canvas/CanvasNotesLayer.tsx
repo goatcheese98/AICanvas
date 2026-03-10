@@ -1,6 +1,5 @@
-import { useCallback, useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type CSSProperties } from 'react';
 import type { AppState } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
 import {
@@ -53,11 +52,83 @@ function getOverlayContainerStyle(
 	} satisfies CSSProperties;
 }
 
-interface CanvasNotesLayerProps {
-	onOverlaySceneChange?: (elements: readonly ExcalidrawElement[]) => void;
+interface OverlayContentProps {
+	element: TypedOverlayCanvasElement;
+	isSelected: boolean;
+	onChange: (payload: OverlayUpdatePayloadMap[OverlayType]) => void;
+	onEditingChange: (isEditing: boolean) => void;
 }
 
-export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps) {
+function OverlayContent({
+	element,
+	isSelected,
+	onChange,
+	onEditingChange,
+}: OverlayContentProps) {
+	const definition = getOverlayDefinition(element.customData.type);
+	return definition.render({
+		element: element as never,
+		isSelected,
+		onChange: onChange as never,
+		onEditingChange,
+	});
+}
+
+interface OverlayItemProps {
+	element: TypedOverlayCanvasElement;
+	stackIndex: number;
+	appState: ReturnType<typeof getNormalizedAppState>;
+	updateOverlayElement: <K extends OverlayType>(
+		elementId: string,
+		type: K,
+		payload: OverlayUpdatePayloadMap[K],
+	) => void;
+}
+
+function OverlayItem({
+	element,
+	stackIndex,
+	appState,
+	updateOverlayElement,
+}: OverlayItemProps) {
+	const [isEditing, setIsEditing] = useState(false);
+	const type = element.customData.type;
+	const normalizedElement = normalizeOverlayElement(type, element);
+	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
+	const containerStyle = getOverlayContainerStyle(
+		normalizedElement,
+		appState,
+		getOverlayZIndex(isSelected, isEditing, stackIndex),
+	);
+	const interactionEnabled = isSelected;
+	const handleChange = useCallback(
+		(payload: OverlayUpdatePayloadMap[typeof type]) => {
+			updateOverlayElement(normalizedElement.id, type, payload);
+		},
+		[normalizedElement.id, type, updateOverlayElement],
+	);
+
+	return (
+		<div
+			className="absolute"
+			style={{
+				...containerStyle,
+				pointerEvents: interactionEnabled ? 'auto' : 'none',
+			}}
+		>
+			<div className="h-full w-full">
+				<OverlayContent
+					element={normalizedElement}
+					isSelected={isSelected}
+					onChange={handleChange as never}
+					onEditingChange={setIsEditing}
+				/>
+			</div>
+		</div>
+	);
+}
+
+export function CanvasNotesLayer() {
 	const elements = useAppStore((s) => s.elements);
 	const scrollX = useAppStore((s) => s.appState.scrollX ?? 0);
 	const scrollY = useAppStore((s) => s.appState.scrollY ?? 0);
@@ -80,65 +151,25 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
-			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
+			const { elements: currentElements, excalidrawApi } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
+			let didChange = false;
 			const nextElements = currentElements.map((candidate) => {
 				if (candidate.id !== elementId) return candidate;
-				return applyOverlayUpdateByType(
+				const updated = applyOverlayUpdateByType(
 					type,
 					candidate as unknown as TypedOverlayCanvasElement,
 					payload,
 				);
+				didChange = didChange || updated !== candidate;
+				return updated;
 			});
+			if (!didChange) return;
 
-			excalidrawApi.updateScene({ elements: nextElements as ExcalidrawElement[] });
-			setElements(nextElements as ExcalidrawElement[]);
-			onOverlaySceneChange?.(nextElements as ExcalidrawElement[]);
+			excalidrawApi.updateScene({ elements: nextElements });
 		},
-		[onOverlaySceneChange],
-	);
-
-	const renderOverlay = useCallback(
-		(element: TypedOverlayCanvasElement, stackIndex: number) => {
-			const type = element.customData.type;
-			const normalizedElement = normalizeOverlayElement(type, element);
-			const isSelected = normalizedAppState.selectedElementIds[normalizedElement.id] === true;
-			const containerStyle = getOverlayContainerStyle(
-				normalizedElement,
-				normalizedAppState,
-				getOverlayZIndex(isSelected, false, stackIndex),
-			);
-
-			const interactionEnabled = isSelected;
-			const definition = getOverlayDefinition(type);
-			const content: ReactNode = definition.render({
-				element: normalizedElement as never,
-				isSelected,
-				onChange: (payload) =>
-					updateOverlayElement(
-						normalizedElement.id,
-						type,
-						payload as OverlayUpdatePayloadMap[typeof type],
-					),
-			});
-
-			return (
-				<div
-					key={normalizedElement.id}
-					className="absolute"
-					style={{
-						...containerStyle,
-						pointerEvents: interactionEnabled ? 'auto' : 'none',
-					}}
-				>
-					<div className="h-full w-full">
-						{content}
-					</div>
-				</div>
-			);
-		},
-		[normalizedAppState, updateOverlayElement],
+		[],
 	);
 
 	return (
@@ -146,7 +177,15 @@ export function CanvasNotesLayer({ onOverlaySceneChange }: CanvasNotesLayerProps
 			className="pointer-events-none absolute inset-0 overflow-hidden"
 			style={{ zIndex: 2 }}
 		>
-			{overlayElements.map((element, stackIndex) => renderOverlay(element, stackIndex))}
+			{overlayElements.map((element, stackIndex) => (
+				<OverlayItem
+					key={element.id}
+					element={element}
+					stackIndex={stackIndex}
+					appState={normalizedAppState}
+					updateOverlayElement={updateOverlayElement}
+				/>
+			))}
 		</div>
 	);
 }

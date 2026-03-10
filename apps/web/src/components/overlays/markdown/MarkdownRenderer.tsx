@@ -168,17 +168,19 @@ export function MarkdownRenderer({
 			),
 			table: ({ children }: any) => (
 				<div className="my-4 overflow-x-auto">
-					<table className={`min-w-full border-collapse overflow-hidden ${RENDERER_SURFACE} bg-white/80`}>
+					<table
+						className={`min-w-full border-collapse overflow-hidden text-stone-700 ${RENDERER_SURFACE} bg-white/80`}
+					>
 						{children}
 					</table>
 				</div>
 			),
 			th: ({ children }: any) => (
-				<th className="border border-stone-200 bg-stone-100/80 px-3 py-2 text-left font-semibold">
+				<th className="border border-stone-200 bg-stone-100/80 px-3 py-2 text-left font-semibold text-stone-700">
 					{children}
 				</th>
 			),
-			td: ({ children }: any) => <td className="border border-stone-200 px-3 py-2">{children}</td>,
+			td: ({ children }: any) => <td className="border border-stone-200 px-3 py-2 text-stone-700">{children}</td>,
 			a: ({ href, children }: any) => (
 				<a
 					href={href}
@@ -230,20 +232,20 @@ export function MarkdownRenderer({
 				<ul
 					className={
 						className?.includes('contains-task-list')
-							? 'mb-3 space-y-2 pl-0'
-							: 'mb-3 list-disc pl-6'
+							? 'mb-3 space-y-2 pl-0 text-stone-700'
+							: 'mb-3 list-disc pl-6 text-stone-700'
 					}
 				>
 					{children}
 				</ul>
 			),
-			ol: ({ children }: any) => <ol className="mb-3 list-decimal pl-6">{children}</ol>,
+			ol: ({ children }: any) => <ol className="mb-3 list-decimal pl-6 text-stone-700">{children}</ol>,
 			li: ({ children, className }: any) => (
 				<li
 					className={
 						className?.includes('task-list-item')
-							? 'flex list-none items-center gap-2 whitespace-break-spaces'
-							: 'mb-1 whitespace-break-spaces'
+							? 'flex list-none items-center gap-2 whitespace-break-spaces text-stone-700'
+							: 'mb-1 whitespace-break-spaces text-stone-700'
 					}
 				>
 					{children}
@@ -254,7 +256,7 @@ export function MarkdownRenderer({
 	}, [images, onCheckboxToggle, settings.inlineCodeColor]);
 
 	return (
-		<div className={className} style={typographyStyle}>
+		<div className={className ? `${className} text-stone-700` : 'text-stone-700'} style={typographyStyle}>
 			<ReactMarkdown
 				remarkPlugins={[remarkMath, remarkGfm]}
 				rehypePlugins={[rehypeRaw, rehypeKatex]}

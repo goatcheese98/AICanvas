@@ -1,9 +1,21 @@
-import type { AssistantArtifact, AssistantMessage, GenerationMode } from '@ai-canvas/shared/types';
+import type {
+	AssistantArtifact,
+	AssistantContextSnapshot,
+	AssistantContextMode,
+	AssistantMessage,
+	GenerationMode,
+	PrototypeOverlayCustomData,
+} from '@ai-canvas/shared/types';
+import type { AppEnv } from '../../types';
 
 export interface AssistantServiceInput {
 	message: string;
-	contextMode: 'all' | 'selected';
-	generationMode: GenerationMode;
+	contextMode: AssistantContextMode;
+	generationMode?: GenerationMode;
+	history?: AssistantMessage[];
+	contextSnapshot?: AssistantContextSnapshot;
+	prototypeContext?: PrototypeOverlayCustomData;
+	bindings?: AppEnv['Bindings'];
 }
 
 export interface AssistantServiceResult {

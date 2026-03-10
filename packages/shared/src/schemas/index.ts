@@ -14,10 +14,17 @@ export {
 	normalizeNewLexOverlay,
 	normalizeKanbanOverlay,
 	normalizeWebEmbedOverlay,
+	normalizePrototypeOverlay,
 	normalizeOverlayCustomData,
 	isOverlayCustomData,
 	type MarkdownNoteSettingsInput,
 	type MarkdownOverlayInput,
 } from './overlay';
 export { userSchemas, type UserPreferences } from './user';
-export { assistantSchemas, type SendMessage } from './assistant';
+export {
+	assistantSchemas,
+	type SendMessage,
+	type CreateRun,
+	type ListThreads,
+	type CreateThread,
+} from './assistant';

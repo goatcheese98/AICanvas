@@ -5,12 +5,14 @@ import type {
 	NewLexOverlayCustomData,
 	OverlayCustomData,
 	OverlayType,
+	PrototypeOverlayCustomData,
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizeNewLexOverlay,
+	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -18,6 +20,7 @@ import { OVERLAY_TYPES } from '@ai-canvas/shared/constants';
 import { MarkdownNote } from '../overlays/markdown';
 import { LexicalNote } from '../overlays/lexical';
 import { KanbanBoard } from '../overlays/kanban';
+import { PrototypeNote } from '../overlays/prototype';
 import { WebEmbed } from '../overlays/web-embed';
 
 export type TypedOverlayCanvasElement<T extends OverlayCustomData = OverlayCustomData> =
@@ -28,6 +31,7 @@ type OverlayCustomDataMap = {
 	newlex: NewLexOverlayCustomData;
 	kanban: KanbanOverlayCustomData;
 	'web-embed': WebEmbedOverlayCustomData;
+	prototype: PrototypeOverlayCustomData;
 };
 
 export type OverlayUpdatePayloadMap = {
@@ -43,13 +47,23 @@ export type OverlayUpdatePayloadMap = {
 		};
 	};
 	newlex: {
+		title?: string;
 		lexicalState?: string;
 		comments?: NewLexOverlayCustomData['comments'];
-		commentsPanelOpen?: boolean;
 	};
 	kanban: KanbanOverlayCustomData;
 	'web-embed': {
 		url: string;
+	};
+	prototype: {
+		title?: string;
+		template?: PrototypeOverlayCustomData['template'];
+		files?: PrototypeOverlayCustomData['files'];
+		dependencies?: Record<string, string>;
+		preview?: PrototypeOverlayCustomData['preview'];
+		activeFile?: string;
+		showEditor?: boolean;
+		showPreview?: boolean;
 	};
 };
 
@@ -124,6 +138,10 @@ console.log(example);
 
 > Tip: switch between Raw, Hybrid, and Preview to explore the note.`;
 
+function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
+	return JSON.stringify(value ?? []);
+}
+
 const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	markdown: {
 		defaultSize: { width: 400, height: 300 },
@@ -186,6 +204,10 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		normalizeCustomData: normalizeNewLexOverlay,
 		createCustomData: (options) =>
 			normalizeNewLexOverlay({
+				title:
+					typeof options.customData?.title === 'string'
+						? options.customData.title
+						: undefined,
 				lexicalState:
 					typeof options.customData?.lexicalState === 'string'
 						? options.customData.lexicalState
@@ -200,14 +222,27 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				version:
 					typeof options.customData?.version === 'number' ? options.customData.version : 1,
 			}),
-		applyUpdate: (element, payload) =>
-			bumpElementVersion({
+		applyUpdate: (element, payload) => {
+			const current = normalizeNewLexOverlay(element.customData);
+			const nextCustomData = normalizeNewLexOverlay({
+				...current,
+				commentsPanelOpen: false,
+				...payload,
+			});
+
+			const didChange =
+				nextCustomData.title !== current.title ||
+				nextCustomData.lexicalState !== current.lexicalState ||
+				serializeNewLexComments(nextCustomData.comments) !==
+					serializeNewLexComments(current.comments);
+
+			if (!didChange) return element;
+
+			return bumpElementVersion({
 				...element,
-				customData: normalizeNewLexOverlay({
-					...element.customData,
-					...payload,
-				}),
-			}),
+				customData: nextCustomData,
+			});
+		},
 		render: ({ element, isSelected, onChange, onEditingChange }) => (
 			<LexicalNote
 				element={element}
@@ -226,18 +261,6 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					typeof options.customData?.title === 'string'
 						? options.customData.title
 						: 'Kanban Board',
-				bgTheme:
-					typeof options.customData?.bgTheme === 'string'
-						? options.customData.bgTheme
-						: 'parchment',
-				fontId:
-					typeof options.customData?.fontId === 'string'
-						? options.customData.fontId
-						: 'excalifont',
-				fontSize:
-					typeof options.customData?.fontSize === 'number'
-						? options.customData.fontSize
-						: 13,
 				columns: Array.isArray(options.customData?.columns)
 					? (options.customData.columns as KanbanOverlayCustomData['columns'])
 					: createDefaultKanbanColumns(),
@@ -277,6 +300,57 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				isSelected={isSelected}
 				onChange={(_elementId, url) => onChange({ url })}
 				onEditingChange={onEditingChange}
+			/>
+		),
+	},
+	prototype: {
+		defaultSize: { width: 720, height: 520 },
+		normalizeCustomData: normalizePrototypeOverlay,
+		createCustomData: (options) =>
+			normalizePrototypeOverlay({
+				title:
+					typeof options.customData?.title === 'string'
+						? options.customData.title
+						: 'Prototype',
+				template:
+					options.customData?.template === 'vanilla' ? 'vanilla' : 'react',
+				files:
+					typeof options.customData?.files === 'object'
+						? (options.customData.files as PrototypeOverlayCustomData['files'])
+						: undefined,
+				dependencies:
+					typeof options.customData?.dependencies === 'object'
+						? (options.customData.dependencies as Record<string, string>)
+						: undefined,
+				preview:
+					typeof options.customData?.preview === 'object'
+						? (options.customData.preview as PrototypeOverlayCustomData['preview'])
+						: undefined,
+				activeFile:
+					typeof options.customData?.activeFile === 'string'
+						? options.customData.activeFile
+						: undefined,
+				showEditor:
+					typeof options.customData?.showEditor === 'boolean'
+						? options.customData.showEditor
+						: undefined,
+				showPreview:
+					typeof options.customData?.showPreview === 'boolean'
+						? options.customData.showPreview
+						: undefined,
+			}),
+		applyUpdate: (element, payload) =>
+			bumpElementVersion({
+				...element,
+				customData: normalizePrototypeOverlay({
+					...element.customData,
+					...payload,
+				}),
+			}),
+		render: ({ element, isSelected }) => (
+			<PrototypeNote
+				element={element}
+				isSelected={isSelected}
 			/>
 		),
 	},

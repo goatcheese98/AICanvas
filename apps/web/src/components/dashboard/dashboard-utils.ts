@@ -3,6 +3,13 @@ import { getCanvasTitleKey } from '@ai-canvas/shared/schemas';
 
 export type DashboardSortOption = 'recent' | 'alphabetical' | 'favorites';
 
+const UPDATED_AT_FORMATTER = new Intl.DateTimeFormat(undefined, {
+	month: 'short',
+	day: 'numeric',
+	hour: 'numeric',
+	minute: '2-digit',
+});
+
 export function filterAndSortCanvases(
 	canvases: Canvas[],
 	searchTerm: string,
@@ -40,4 +47,8 @@ export function hasCanvasTitleConflict(
 	return canvases.some(
 		(canvas) => canvas.id !== excludeCanvasId && getCanvasTitleKey(canvas.title) === titleKey,
 	);
+}
+
+export function formatCanvasUpdatedAt(value: string): string {
+	return UPDATED_AT_FORMATTER.format(new Date(value));
 }

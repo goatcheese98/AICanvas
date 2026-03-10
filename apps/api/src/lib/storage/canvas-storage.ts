@@ -56,6 +56,15 @@ export async function saveThumbnailToR2(
 	return key;
 }
 
+export async function loadThumbnailFromR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+): Promise<R2ObjectBody | null> {
+	const key = thumbnailKey(userId, canvasId);
+	return r2.get(key);
+}
+
 export async function deleteCanvasFromR2(
 	r2: R2Bucket,
 	userId: string,

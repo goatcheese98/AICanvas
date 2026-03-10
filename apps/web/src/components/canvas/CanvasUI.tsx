@@ -99,8 +99,8 @@ function PanelFrame({
 
 const MIN_PANEL_WIDTH = 280;
 const MAX_PANEL_WIDTH = 420;
-const MIN_CHAT_WIDTH = 300;
-const MAX_CHAT_WIDTH = 460;
+const MIN_CHAT_WIDTH = 620;
+const MAX_CHAT_WIDTH = 1080;
 
 export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 	const navigate = useNavigate();
@@ -113,7 +113,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 	const addToast = useAppStore((s) => s.addToast);
 	const [isInsertMenuOpen, setIsInsertMenuOpen] = useState(false);
 	const [sidePanelWidth, setSidePanelWidth] = useState(332);
-	const [chatPanelWidth, setChatPanelWidth] = useState(352);
+	const [chatPanelWidth, setChatPanelWidth] = useState(920);
+	const [chatPanelHeight, setChatPanelHeight] = useState(680);
 	const insertMenuRef = useRef<HTMLDivElement | null>(null);
 	const initials = useMemo(() => {
 		const name =
@@ -156,6 +157,7 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		{ type: 'newlex', label: 'Rich Text', description: 'Lexical editor with comments' },
 		{ type: 'kanban', label: 'Kanban', description: 'Board for planning work' },
 		{ type: 'web-embed', label: 'Web Embed', description: 'Inline site or prototype' },
+		{ type: 'prototype', label: 'Prototype', description: 'Live React or JS app with preview' },
 	];
 
 	useEffect(() => {
@@ -219,6 +221,27 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 	const startSidePanelResize = startResize(setSidePanelWidth, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
 	const startChatPanelResize = startResize(setChatPanelWidth, MIN_CHAT_WIDTH, MAX_CHAT_WIDTH);
 
+	const startChatHeightResize = useCallback(
+		(event: ReactPointerEvent<HTMLDivElement>) => {
+			event.preventDefault();
+			const startY = event.clientY;
+			let snapshot = chatPanelHeight;
+			setChatPanelHeight((v) => { snapshot = v; return v; });
+			const handleMove = (e: PointerEvent) => {
+				const delta = e.clientY - startY;
+				const maxH = Math.floor(window.innerHeight * 0.88);
+				setChatPanelHeight(Math.max(300, Math.min(maxH, snapshot - delta)));
+			};
+			const handleUp = () => {
+				window.removeEventListener('pointermove', handleMove);
+				window.removeEventListener('pointerup', handleUp);
+			};
+			window.addEventListener('pointermove', handleMove);
+			window.addEventListener('pointerup', handleUp);
+		},
+		[chatPanelHeight],
+	);
+
 	const insertOverlay = (type: OverlayType) => {
 		if (!excalidrawApi) {
 			addToast({ message: 'Canvas is still loading. Try again in a moment.', type: 'info' });
@@ -235,6 +258,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 			message:
 				type === 'newlex'
 					? 'Rich text note inserted'
+					: type === 'prototype'
+						? 'Prototype overlay inserted'
 					: `${overlayActions.find((action) => action.type === type)?.label ?? 'Overlay'} inserted`,
 			type: 'success',
 		});
@@ -523,15 +548,30 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 			</div>
 
 			{activePanel === 'chat' ? (
-				<PanelFrame
-					width={chatPanelWidth}
-					onResizeStart={startChatPanelResize}
-					className="absolute bottom-20 right-4 z-20 h-[min(34rem,calc(100vh-9rem))]"
+				<div
+					className="absolute bottom-20 right-4 z-20"
+					style={{ width: chatPanelWidth, height: chatPanelHeight }}
 				>
-					<div className="h-full">
-						<AIChatPanel />
+					{/* Horizontal resize handle (left edge) */}
+					<div
+						className="absolute inset-y-8 -left-2 z-30 flex w-4 cursor-ew-resize items-center justify-center"
+						onPointerDown={startChatPanelResize}
+						aria-label="Resize panel width"
+					>
+						<div className="h-16 w-1 rounded-[999px] bg-stone-200/90 shadow-sm" />
 					</div>
-				</PanelFrame>
+					{/* Vertical resize handle (top edge) */}
+					<div
+						className="absolute -top-2 inset-x-8 z-30 flex h-4 cursor-ns-resize items-center justify-center"
+						onPointerDown={startChatHeightResize}
+						aria-label="Resize panel height"
+					>
+						<div className="h-1 w-16 rounded-[999px] bg-stone-200/90 shadow-sm" />
+					</div>
+					<div className="h-full">
+						<AIChatPanel canvasId={canvasId} />
+					</div>
+				</div>
 			) : null}
 		</>
 	);

@@ -18,6 +18,9 @@ interface CreateOverlayElementOptions {
 
 const DEFAULT_VIEWPORT_WIDTH = 800;
 const DEFAULT_VIEWPORT_HEIGHT = 600;
+const DEFAULT_NOTE_BACKGROUND = '#f8f7f3';
+const DEFAULT_NOTE_STROKE = 'rgba(17,24,39,0.09)';
+const DEFAULT_RICH_TEXT_STROKE = 'rgba(17,24,39,0.16)';
 
 export interface SceneCenter {
 	x: number;
@@ -40,7 +43,7 @@ export interface OverlayElementDraft {
 	roughness: number;
 	opacity: number;
 	fillStyle: 'solid';
-	roundness: null;
+	roundness: { type: number; value?: number } | null;
 	groupIds: string[];
 	frameId: null;
 	boundElements: null;
@@ -108,6 +111,9 @@ export function createOverlayElementDraft(
 	customData?: Record<string, unknown>,
 ): OverlayElementDraft {
 	const { width, height } = getOverlayDefaults(type);
+	const isPrototype = type === 'prototype';
+	const isRichText = type === 'newlex';
+	const isTextNote = type === 'markdown' || type === 'newlex';
 
 	return normalizeSceneElement({
 		id: crypto.randomUUID(),
@@ -115,14 +121,15 @@ export function createOverlayElementDraft(
 		type: 'rectangle',
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,
-		backgroundColor: type === 'kanban' ? '#faf8f2' : '#ffffff',
-		strokeColor: type === 'markdown' ? 'transparent' : 'rgba(0,0,0,0.12)',
-		strokeWidth: type === 'markdown' ? 0 : 1,
+		backgroundColor: isPrototype ? '#fcfcfb' : isTextNote ? DEFAULT_NOTE_BACKGROUND : '#ffffff',
+		strokeColor:
+			isPrototype ? DEFAULT_NOTE_STROKE : isRichText ? DEFAULT_RICH_TEXT_STROKE : DEFAULT_NOTE_STROKE,
+		strokeWidth: 1,
 		strokeStyle: 'solid',
 		roughness: 0,
 		opacity: 100,
 		fillStyle: 'solid',
-		roundness: null,
+		roundness: type === 'kanban' ? { type: 3, value: 18 } : null,
 		groupIds: [],
 		frameId: null,
 		boundElements: null,

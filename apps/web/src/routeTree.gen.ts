@@ -16,6 +16,7 @@ import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCanvasIdRouteImport } from './routes/_app/canvas.$id'
+import { Route as AppCanvasIdPrototypePrototypeIdRouteImport } from './routes/_app/canvas.$id.prototype.$prototypeId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -50,20 +51,28 @@ const AppCanvasIdRoute = AppCanvasIdRouteImport.update({
   path: '/canvas/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCanvasIdPrototypePrototypeIdRoute =
+  AppCanvasIdPrototypePrototypeIdRouteImport.update({
+    id: '/prototype/$prototypeId',
+    path: '/prototype/$prototypeId',
+    getParentRoute: () => AppCanvasIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
-  '/canvas/$id': typeof AppCanvasIdRoute
+  '/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
-  '/canvas/$id': typeof AppCanvasIdRoute
+  '/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -73,13 +82,26 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
-  '/_app/canvas/$id': typeof AppCanvasIdRoute
+  '/_app/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/login' | '/signup' | '/canvas/$id'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/signup'
+    | '/canvas/$id'
+    | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/login' | '/signup' | '/canvas/$id'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/login'
+    | '/signup'
+    | '/canvas/$id'
+    | '/canvas/$id/prototype/$prototypeId'
   id:
     | '__root__'
     | '/'
@@ -89,6 +111,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/signup'
     | '/_app/canvas/$id'
+    | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -148,17 +171,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCanvasIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/canvas/$id/prototype/$prototypeId': {
+      id: '/_app/canvas/$id/prototype/$prototypeId'
+      path: '/prototype/$prototypeId'
+      fullPath: '/canvas/$id/prototype/$prototypeId'
+      preLoaderRoute: typeof AppCanvasIdPrototypePrototypeIdRouteImport
+      parentRoute: typeof AppCanvasIdRoute
+    }
   }
 }
 
+interface AppCanvasIdRouteChildren {
+  AppCanvasIdPrototypePrototypeIdRoute: typeof AppCanvasIdPrototypePrototypeIdRoute
+}
+
+const AppCanvasIdRouteChildren: AppCanvasIdRouteChildren = {
+  AppCanvasIdPrototypePrototypeIdRoute: AppCanvasIdPrototypePrototypeIdRoute,
+}
+
+const AppCanvasIdRouteWithChildren = AppCanvasIdRoute._addFileChildren(
+  AppCanvasIdRouteChildren,
+)
+
 interface AppRouteChildren {
   AppDashboardRoute: typeof AppDashboardRoute
-  AppCanvasIdRoute: typeof AppCanvasIdRoute
+  AppCanvasIdRoute: typeof AppCanvasIdRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppDashboardRoute: AppDashboardRoute,
-  AppCanvasIdRoute: AppCanvasIdRoute,
+  AppCanvasIdRoute: AppCanvasIdRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

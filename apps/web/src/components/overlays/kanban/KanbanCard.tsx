@@ -1,8 +1,12 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
+import {
+	KANBAN_ACCENT_BORDER,
+	KANBAN_ACCENT_SURFACE,
+	KANBAN_ACCENT_TEXT,
+} from './kanban-theme';
 
 interface KanbanCardProps {
 	card: KanbanCardType;
-	fontFamily?: string;
 	fontSize?: number;
 	onChange: (updates: Partial<KanbanCardType>) => void;
 	onDelete: () => void;
@@ -11,15 +15,26 @@ interface KanbanCardProps {
 }
 
 const priorityStyles = {
-	low: 'bg-emerald-100 text-emerald-700',
-	medium: 'bg-amber-100 text-amber-700',
-	high: 'bg-rose-100 text-rose-700',
+	low: {
+		background: 'var(--color-success-bg)',
+		borderColor: 'color-mix(in srgb, var(--color-success-text) 18%, transparent)',
+		color: 'var(--color-success-text)',
+	},
+	medium: {
+		background: KANBAN_ACCENT_SURFACE,
+		borderColor: KANBAN_ACCENT_BORDER,
+		color: KANBAN_ACCENT_TEXT,
+	},
+	high: {
+		background: 'var(--color-danger-bg)',
+		borderColor: 'var(--color-danger-border)',
+		color: 'var(--color-danger-text)',
+	},
 } as const;
 
 export function KanbanCard({
 	card,
-	fontFamily,
-	fontSize = 13,
+	fontSize = 14,
 	onChange,
 	onDelete,
 	onDragStart,
@@ -34,25 +49,55 @@ export function KanbanCard({
 				event.preventDefault();
 				onDrop();
 			}}
-			className="rounded-2xl border border-stone-200 bg-white p-3 shadow-sm"
+			className="rounded-[14px] border p-3 shadow-[0_12px_30px_-24px_rgba(15,23,42,0.4)]"
+			style={{
+				borderColor: 'var(--color-border)',
+				background: 'var(--color-surface-strong)',
+			}}
 		>
 			<div className="mb-2 flex items-start justify-between gap-2">
 				<input
 					value={card.title}
 					onChange={(event) => onChange({ title: event.target.value })}
-					className="w-full border-0 bg-transparent font-semibold text-stone-900 outline-none"
-					style={{ fontFamily, fontSize: `${fontSize}px` }}
+					className="w-full border-0 bg-transparent font-semibold outline-none"
+					style={{ fontFamily: 'var(--font-sans)', fontSize: `${fontSize}px`, color: 'var(--color-text-primary)' }}
 				/>
-				<button type="button" onClick={onDelete} className="text-xs text-stone-400 hover:text-rose-600">
+				<button
+					type="button"
+					onClick={onDelete}
+					className="text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors"
+					style={{ color: 'var(--color-text-tertiary)' }}
+					onMouseEnter={(event) => {
+						event.currentTarget.style.color = 'var(--color-danger-text)';
+					}}
+					onMouseLeave={(event) => {
+						event.currentTarget.style.color = 'var(--color-text-tertiary)';
+					}}
+				>
 					Delete
 				</button>
 			</div>
 			<textarea
 				value={card.description ?? ''}
 				onChange={(event) => onChange({ description: event.target.value })}
-				className="min-h-20 w-full resize-none rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 text-xs text-stone-700 outline-none"
+				className="min-h-20 w-full resize-none rounded-[12px] border px-3 py-2 text-xs outline-none transition-colors"
 				placeholder="Details..."
-				style={{ fontFamily, fontSize: `${Math.max(fontSize - 1, 11)}px` }}
+				style={{
+					fontFamily: 'var(--font-sans)',
+					fontSize: `${Math.max(fontSize - 1, 12)}px`,
+					borderColor: 'var(--color-border)',
+					background: 'color-mix(in srgb, var(--color-surface-muted) 92%, white)',
+					color: 'var(--color-text-secondary)',
+				}}
+				onFocus={(event) => {
+					event.currentTarget.style.borderColor = 'var(--color-accent-border)';
+					event.currentTarget.style.background = 'var(--color-surface-strong)';
+				}}
+				onBlur={(event) => {
+					event.currentTarget.style.borderColor = 'var(--color-border)';
+					event.currentTarget.style.background =
+						'color-mix(in srgb, var(--color-surface-muted) 92%, white)';
+				}}
 			/>
 			<div className="mt-3 flex items-center justify-between gap-2">
 				<select
@@ -60,16 +105,20 @@ export function KanbanCard({
 					onChange={(event) =>
 						onChange({ priority: event.target.value as KanbanCardType['priority'] })
 					}
-					className="rounded-full border border-stone-300 bg-white px-2 py-1 text-[10px] uppercase tracking-[0.15em] text-stone-600"
+					className="rounded-[10px] border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] outline-none"
+					style={{
+						borderColor: 'var(--color-border)',
+						background: 'var(--color-surface-strong)',
+						color: 'var(--color-text-secondary)',
+					}}
 				>
 					<option value="low">Low</option>
 					<option value="medium">Medium</option>
 					<option value="high">High</option>
 				</select>
 				<span
-					className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] ${
-						priorityStyles[card.priority ?? 'medium']
-					}`}
+					className="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+					style={priorityStyles[card.priority ?? 'medium']}
 				>
 					{card.priority ?? 'medium'}
 				</span>

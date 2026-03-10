@@ -52,6 +52,7 @@ describe('element-factories', () => {
 
 		expect(data).toMatchObject({
 			type: 'newlex',
+			title: 'RichText',
 			lexicalState: '',
 			comments: [],
 			commentsPanelOpen: false,
@@ -74,9 +75,6 @@ describe('element-factories', () => {
 		expect(data).toMatchObject({
 			type: 'kanban',
 			title: 'Kanban Board',
-			bgTheme: 'parchment',
-			fontId: 'excalifont',
-			fontSize: 13,
 		});
 		expect(data.columns).toHaveLength(3);
 		expect(data.columns.map((column) => column.title)).toEqual(['To Do', 'In Progress', 'Done']);
@@ -95,11 +93,35 @@ describe('element-factories', () => {
 		});
 	});
 
+	it('creates prototype defaults', () => {
+		const data = createOverlayCustomData({
+			type: 'prototype',
+			x: 0,
+			y: 0,
+		});
+
+		expect(data).toMatchObject({
+			type: 'prototype',
+			title: 'Prototype',
+			template: 'react',
+			preview: {
+				eyebrow: 'PulseBoard',
+				title: 'Prototype',
+			},
+			activeFile: '/App.jsx',
+			showEditor: true,
+			showPreview: true,
+			dependencies: {},
+		});
+		expect((data as any).files['/App.jsx']).toBeDefined();
+	});
+
 	it('returns expected overlay defaults', () => {
 		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 300 });
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
 		expect(getOverlayDefaults('kanban')).toEqual({ width: 700, height: 500 });
 		expect(getOverlayDefaults('web-embed')).toEqual({ width: 640, height: 480 });
+		expect(getOverlayDefaults('prototype')).toEqual({ width: 720, height: 520 });
 	});
 
 	it('builds an insertion scene that appends and selects the new overlay', () => {

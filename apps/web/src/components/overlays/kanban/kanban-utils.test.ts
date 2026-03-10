@@ -50,7 +50,7 @@ describe('kanban-utils', () => {
 
 		expect(normalized.columns).toHaveLength(1);
 		expect(normalized.columns[0]?.cards).toEqual([]);
-		expect(normalized.fontId).toBe('excalifont');
-		expect(normalized.fontSize).toBe(13);
+		expect(normalized.fontId).toBeUndefined();
+		expect(normalized.fontSize).toBeUndefined();
 	});
 });

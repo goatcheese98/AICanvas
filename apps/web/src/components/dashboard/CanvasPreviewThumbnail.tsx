@@ -1,93 +1,71 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
-import type { CanvasAppState, CanvasElement, CanvasFiles } from '@ai-canvas/shared/types';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { getRequiredAuthHeaders } from '@/lib/api';
 
 interface CanvasPreviewThumbnailProps {
 	canvasId: string;
 	title: string;
+	thumbnailUrl?: string;
 }
 
-let exportToSvgLoader: Promise<typeof import('@excalidraw/excalidraw')['exportToSvg']> | null = null;
-
-async function getExportToSvg() {
-	if (!exportToSvgLoader) {
-		exportToSvgLoader = import('@excalidraw/excalidraw').then((module) => module.exportToSvg);
-	}
-	return exportToSvgLoader;
-}
-
-export function CanvasPreviewThumbnail({ canvasId, title }: CanvasPreviewThumbnailProps) {
+export function CanvasPreviewThumbnail({
+	canvasId,
+	title,
+	thumbnailUrl,
+}: CanvasPreviewThumbnailProps) {
 	const { getToken } = useAuth();
+	const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
 	const previewQuery = useQuery({
-		queryKey: ['canvas-preview', canvasId, 'svg'],
+		queryKey: ['canvas-thumbnail', canvasId, thumbnailUrl],
+		enabled: Boolean(thumbnailUrl),
 		queryFn: async () => {
 			const headers = await getRequiredAuthHeaders(getToken);
-			const response = await api.api.canvas[':id'].$get({ param: { id: canvasId } }, { headers });
+			const response = await fetch(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`, {
+				headers,
+			});
+
+			if (response.status === 404) {
+				return null;
+			}
+
 			if (!response.ok) {
 				throw new Error(await response.text());
 			}
 
-			const result = await response.json();
-			const data = result.data as
-				| {
-						elements?: CanvasElement[];
-						appState?: CanvasAppState;
-						files?: CanvasFiles | null;
-				  }
-				| null;
-			const elements = (data?.elements ?? []).filter(
-				(element) => (element as Record<string, unknown>).isDeleted !== true,
-			);
-
-			if (elements.length === 0) {
-				return null;
-			}
-
-			const exportToSvg = await getExportToSvg();
-			const svg = await exportToSvg({
-				elements: elements as never,
-				appState: {
-					exportBackground: true,
-					viewBackgroundColor: '#f8fafc',
-					exportPadding: 16,
-				},
-				files: ((data?.files ?? null) as Record<string, unknown> | null) as never,
-				skipInliningFonts: true,
-				renderEmbeddables: false,
-			});
-
-			svg.setAttribute('width', '100%');
-			svg.setAttribute('height', '100%');
-			svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-
-			return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
-				new XMLSerializer().serializeToString(svg),
-			)}`;
+			return response.blob();
 		},
 		staleTime: 1000 * 60 * 5,
 	});
 
-	if (previewQuery.isLoading) {
-		return <div className="h-full w-full animate-pulse bg-stone-100" />;
+	useEffect(() => {
+		if (!previewQuery.data) {
+			setObjectUrl(null);
+			return;
+		}
+
+		const nextObjectUrl = URL.createObjectURL(previewQuery.data);
+		setObjectUrl(nextObjectUrl);
+
+		return () => {
+			URL.revokeObjectURL(nextObjectUrl);
+		};
+	}, [previewQuery.data]);
+
+	if (thumbnailUrl && previewQuery.isLoading) {
+		return <div className="h-full w-full animate-pulse bg-[var(--color-surface-muted)]" />;
 	}
 
-	if (!previewQuery.data) {
+	if (!objectUrl) {
 		return (
-			<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#f5efe0_0%,#e9f3ff_55%,#f8d9c7_100%)]">
-				<div className="rounded-full bg-white/85 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600">
-					{previewQuery.isError ? 'Preview Unavailable' : 'Empty Canvas'}
+			<div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,rgba(242,244,248,0.96)_0%,rgba(236,239,246,0.94)_55%,rgba(250,251,252,1)_100%)]">
+				<div className="rounded-full border border-[var(--color-border)] bg-white/80 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+					{previewQuery.isError ? 'Preview Unavailable' : 'Canvas Preview'}
 				</div>
 			</div>
 		);
 	}
 
-	return (
-		<img
-			src={previewQuery.data}
-			alt={`${title} preview`}
-			className="h-full w-full object-cover"
-		/>
-	);
+	return <img src={objectUrl} alt={`${title} preview`} className="h-full w-full object-cover" />;
 }

@@ -3,50 +3,55 @@ import { CanvasLibrary } from './CanvasLibrary';
 
 export function Dashboard() {
 	const { user } = useUser();
+	const displayName = user?.firstName || user?.fullName || user?.username || 'Workspace';
+	const email = user?.primaryEmailAddress?.emailAddress ?? 'Signed in';
+	const initials =
+		user?.fullName
+			?.split(/\s+/)
+			.slice(0, 2)
+			.map((part) => part[0]?.toUpperCase() ?? '')
+			.join('') ||
+		user?.firstName?.slice(0, 1).toUpperCase() ||
+		'AI';
 
 	return (
-		<div className="min-h-full bg-[radial-gradient(circle_at_top_left,_rgba(245,239,224,0.92),_rgba(255,255,255,1)_44%,_rgba(232,244,255,0.86)_100%)]">
-			<header className="border-b border-stone-200 bg-white/75 px-6 py-5 backdrop-blur">
-				<div className="mx-auto flex max-w-7xl items-center justify-between">
-					<div className="flex items-center gap-4">
-						<div>
-							<p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-								Canvas Workspace
-							</p>
-							<h1 className="text-2xl font-semibold text-stone-900">My Canvases</h1>
-						</div>
-					</div>
-					<div className="flex items-center gap-3">
-						<button
-							type="button"
-							className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"
-						>
-							Standalone Build
-						</button>
-						<div className="flex items-center gap-2">
-							{user?.imageUrl && (
-								<img
-									src={user.imageUrl}
-									alt=""
-									className="h-8 w-8 rounded-full"
-								/>
-							)}
-							<span className="text-sm text-stone-600">
-								{user?.fullName}
-							</span>
-						</div>
-					</div>
-				</div>
-			</header>
+		<div className="app-shell min-h-full overflow-hidden">
+			<div className="app-grid pointer-events-none absolute inset-0 opacity-60" />
 
-			<main className="mx-auto max-w-7xl p-6">
-				<section className="mb-6 max-w-3xl">
-					<p className="text-sm leading-relaxed text-stone-600">
-						Browse, create, favorite, and remove saved canvases from the standalone app. This dashboard is now wired against the Hono API with authenticated TanStack Query calls.
-					</p>
-				</section>
-				<CanvasLibrary />
-			</main>
+			<div className="relative mx-auto flex min-h-full max-w-7xl flex-col px-4 pb-10 pt-3 sm:px-6 lg:px-8">
+				<header className="sticky top-3 z-20">
+					<div className="app-panel flex items-center justify-between gap-4 rounded-[28px] px-5 py-3">
+						<div className="min-w-0">
+							<p className="app-kicker">Canvas Workspace</p>
+							<h1 className="app-display mt-1.5 text-[1.75rem] leading-none text-[var(--color-text-primary)] sm:text-[1.95rem]">
+								My Canvases
+							</h1>
+						</div>
+
+						<div className="flex items-center gap-3 rounded-[999px] border border-[var(--color-border)] bg-white/72 px-2.5 py-2 pr-4">
+							{user?.imageUrl ? (
+								<img src={user.imageUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
+							) : (
+								<div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent-bg)] text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
+									{initials}
+								</div>
+							)}
+							<div className="min-w-0">
+								<div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+									{displayName}
+								</div>
+								<div className="truncate text-xs text-[var(--color-text-secondary)]">{email}</div>
+							</div>
+						</div>
+					</div>
+				</header>
+
+				<main className="pt-5">
+					<section>
+						<CanvasLibrary />
+					</section>
+				</main>
+			</div>
 		</div>
 	);
 }

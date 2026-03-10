@@ -6,7 +6,13 @@ import { canvasSchemas, getCanvasTitleKey } from '@ai-canvas/shared/schemas';
 import { requireAuth } from '../middleware/auth';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
-import { saveCanvasToR2, loadCanvasFromR2, deleteCanvasFromR2 } from '../lib/storage/canvas-storage';
+import {
+	saveCanvasToR2,
+	loadCanvasFromR2,
+	saveThumbnailToR2,
+	loadThumbnailFromR2,
+	deleteCanvasFromR2,
+} from '../lib/storage/canvas-storage';
 import type { AppEnv } from '../types';
 
 const canvasSelect = {
@@ -21,6 +27,15 @@ const canvasSelect = {
 	createdAt: canvases.createdAt,
 	updatedAt: canvases.updatedAt,
 } as const;
+
+function withVersionedThumbnailUrl<T extends { thumbnailUrl: string | null; updatedAt: Date }>(canvas: T) {
+	return {
+		...canvas,
+		thumbnailUrl: canvas.thumbnailUrl
+			? `${canvas.thumbnailUrl}?v=${canvas.updatedAt.getTime()}`
+			: undefined,
+	};
+}
 
 function isUniqueCanvasTitleError(error: unknown): boolean {
 	return error instanceof Error && error.message.includes('canvases_user_normalized_title_unique');
@@ -48,7 +63,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 			.limit(limit + 1);
 
 		const hasMore = results.length > limit;
-		const items = hasMore ? results.slice(0, limit) : results;
+		const items = (hasMore ? results.slice(0, limit) : results).map(withVersionedThumbnailUrl);
 
 		return c.json({
 			items,
@@ -93,13 +108,66 @@ export const canvasRoutes = new Hono<AppEnv>()
 				})
 				.returning(canvasSelect);
 
-			return c.json(canvas, 201);
+			return c.json(withVersionedThumbnailUrl(canvas), 201);
 		} catch (error) {
 			if (isUniqueCanvasTitleError(error)) {
 				return c.json({ error: 'You already have a canvas with that name.' }, 409);
 			}
 			throw error;
 		}
+	})
+
+	.post('/:id/thumbnail', async (c) => {
+		const id = c.req.param('id');
+		const user = c.get('user');
+		const db = createDb(c.env.DB);
+
+		const canvas = await db.query.canvases.findFirst({
+			where: and(eq(canvases.id, id), eq(canvases.userId, user.id)),
+			columns: { id: true },
+		});
+
+		if (!canvas) return c.json({ error: 'Not found' }, 404);
+
+		const body = await c.req.arrayBuffer();
+		if (body.byteLength === 0) {
+			return c.json({ error: 'Empty body' }, 400);
+		}
+
+		if (body.byteLength > 2 * 1024 * 1024) {
+			return c.json({ error: 'Thumbnail too large (max 2MB)' }, 400);
+		}
+
+		await saveThumbnailToR2(c.env.R2, user.id, id, body);
+
+		const thumbnailUrl = `/api/canvas/${id}/thumbnail`;
+		await db.update(canvases).set({ thumbnailUrl }).where(eq(canvases.id, id));
+
+		return c.json({ thumbnailUrl });
+	})
+
+	.get('/:id/thumbnail', async (c) => {
+		const id = c.req.param('id');
+		const user = c.get('user');
+		const db = createDb(c.env.DB);
+
+		const canvas = await db.query.canvases.findFirst({
+			where: and(eq(canvases.id, id), eq(canvases.userId, user.id)),
+			columns: { id: true },
+		});
+
+		if (!canvas) return c.json({ error: 'Not found' }, 404);
+
+		const object = await loadThumbnailFromR2(c.env.R2, user.id, id);
+		if (!object) return c.json({ error: 'No thumbnail' }, 404);
+
+		return new Response(object.body, {
+			status: 200,
+			headers: {
+				'Content-Type': object.httpMetadata?.contentType ?? 'image/png',
+				'Cache-Control': object.httpMetadata?.cacheControl ?? 'private, max-age=300',
+			},
+		});
 	})
 
 	// Get canvas
@@ -115,7 +183,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 		if (!canvas) return c.json({ error: 'Not found' }, 404);
 
 		const data = await loadCanvasFromR2(c.env.R2, user.id, id);
-		return c.json({ canvas, data });
+		return c.json({ canvas: withVersionedThumbnailUrl(canvas), data });
 	})
 
 	.patch('/:id/meta', zValidator('json', canvasSchemas.update), async (c) => {
@@ -161,7 +229,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 				.where(eq(canvases.id, id))
 				.returning(canvasSelect);
 
-			return c.json(updated);
+			return c.json(withVersionedThumbnailUrl(updated));
 		} catch (error) {
 			if (isUniqueCanvasTitleError(error)) {
 				return c.json({ error: 'You already have a canvas with that name.' }, 409);

@@ -5,6 +5,8 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
 import path from 'node:path';
 
 const roughJsEntry = path.resolve(__dirname, '../../node_modules/.bun/node_modules/roughjs/bin/rough.js');
+const reactEntry = path.resolve(__dirname, '../../node_modules/.bun/node_modules/react');
+const reactDomEntry = path.resolve(__dirname, '../../node_modules/.bun/node_modules/react-dom');
 
 function manualChunks(id: string) {
 	if (!id.includes('node_modules')) return;
@@ -57,8 +59,11 @@ export default defineConfig({
 		tailwindcss(),
 	],
 	resolve: {
+		dedupe: ['react', 'react-dom'],
 		alias: [
 			{ find: '@', replacement: path.resolve(__dirname, './src') },
+			{ find: 'react', replacement: reactEntry },
+			{ find: 'react-dom', replacement: reactDomEntry },
 			{ find: 'roughjs/bin/rough', replacement: roughJsEntry },
 		],
 	},

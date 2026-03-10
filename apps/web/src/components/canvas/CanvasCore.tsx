@@ -15,6 +15,25 @@ interface CanvasCoreProps {
 	}) => void;
 }
 
+function createElementsSnapshot(elements: readonly ExcalidrawElement[]) {
+	return [...elements];
+}
+
+function createAppStateSnapshot(appState: any) {
+	return {
+		...appState,
+		selectedElementIds: { ...(appState?.selectedElementIds ?? {}) },
+		zoom:
+			appState?.zoom && typeof appState.zoom === 'object'
+				? { ...appState.zoom }
+				: appState?.zoom,
+	};
+}
+
+function createFilesSnapshot(files: any) {
+	return files && typeof files === 'object' ? { ...files } : files;
+}
+
 export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpdate }: CanvasCoreProps) {
 	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
 	const setElements = useAppStore((s) => s.setElements);
@@ -30,11 +49,15 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 
 	const handleChange = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: any, files: any) => {
-			setElements(elements);
-			setAppState(appState);
-			setFiles(files);
-			onSceneChange?.(elements, appState, files);
-			onSaveNeeded?.(elements, appState, files);
+			const elementSnapshot = createElementsSnapshot(elements);
+			const appStateSnapshot = createAppStateSnapshot(appState);
+			const filesSnapshot = createFilesSnapshot(files);
+
+			setElements(elementSnapshot);
+			setAppState(appStateSnapshot);
+			setFiles(filesSnapshot);
+			onSceneChange?.(elementSnapshot, appStateSnapshot, filesSnapshot);
+			onSaveNeeded?.(elementSnapshot, appStateSnapshot, filesSnapshot);
 		},
 		[setElements, setAppState, setFiles, onSaveNeeded, onSceneChange],
 	);

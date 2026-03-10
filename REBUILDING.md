@@ -80,6 +80,11 @@ Still to deepen:
 
 Status: in progress, first functional pass completed
 
+Architecture target:
+
+- the next assistant architecture is defined in [docs/assistant-v2-architecture.md](./docs/assistant-v2-architecture.md)
+- the current mode-based chat panel is an interim port, not the final design
+
 Implemented:
 
 - canvas AI chat panel in the standalone web app
@@ -91,10 +96,13 @@ Implemented:
 
 Still to deepen:
 
-- true Anthropic-backed generation and streaming
+- intent-routed runs instead of `generationMode`
+- typed tool registry and repeated tool use
+- run streaming, persistence, and verification loops
+- multi-provider routing and fallback
 - richer artifact rendering/application on the canvas
 - richer conversation persistence/history
-- image and sketch generation flows
+- unified image, vectorization, and multi-artifact composition flows
 
 ### Item 4: Dashboard
 

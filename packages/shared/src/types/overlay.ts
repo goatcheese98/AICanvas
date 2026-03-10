@@ -1,6 +1,7 @@
-export type OverlayType = 'markdown' | 'newlex' | 'kanban' | 'web-embed';
+export type OverlayType = 'markdown' | 'newlex' | 'kanban' | 'web-embed' | 'prototype';
 
 export type MarkdownEditorMode = 'raw' | 'hybrid';
+export type PrototypeTemplate = 'react' | 'vanilla';
 
 export interface MarkdownNoteSettings {
 	font: string;
@@ -66,6 +67,7 @@ export interface MarkdownOverlayCustomData {
 
 export interface NewLexOverlayCustomData {
 	type: 'newlex';
+	title?: string;
 	lexicalState: string;
 	comments?: NewLexCommentThread[];
 	commentsPanelOpen?: boolean;
@@ -87,11 +89,46 @@ export interface WebEmbedOverlayCustomData {
 	url: string;
 }
 
+export interface PrototypeOverlayFile {
+	code: string;
+	active?: boolean;
+	hidden?: boolean;
+	readOnly?: boolean;
+}
+
+export interface PrototypeCardMetric {
+	label: string;
+	value: string;
+}
+
+export interface PrototypeCardPreview {
+	eyebrow: string;
+	title: string;
+	description: string;
+	accent: string;
+	background: string;
+	badges: string[];
+	metrics: PrototypeCardMetric[];
+}
+
+export interface PrototypeOverlayCustomData {
+	type: 'prototype';
+	title: string;
+	template: PrototypeTemplate;
+	files: Record<string, PrototypeOverlayFile>;
+	dependencies?: Record<string, string>;
+	preview?: PrototypeCardPreview;
+	activeFile?: string;
+	showEditor?: boolean;
+	showPreview?: boolean;
+}
+
 export type OverlayCustomData =
 	| MarkdownOverlayCustomData
 	| NewLexOverlayCustomData
 	| KanbanOverlayCustomData
-	| WebEmbedOverlayCustomData;
+	| WebEmbedOverlayCustomData
+	| PrototypeOverlayCustomData;
 
 export interface OverlayElement {
 	id: string;

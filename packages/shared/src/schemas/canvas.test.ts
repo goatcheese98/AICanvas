@@ -39,7 +39,6 @@ describe('canvas schemas', () => {
 		expect(result.elements[1]?.customData).toMatchObject({
 			type: 'kanban',
 			title: 'Board',
-			bgTheme: 'parchment',
 		});
 		expect((result.elements[1]?.customData as { columns: unknown[] }).columns).toHaveLength(3);
 		expect(result.elements[2]?.customData).toBeUndefined();

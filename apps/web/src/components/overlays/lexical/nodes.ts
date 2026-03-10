@@ -1,8 +1,11 @@
-import { HeadingNode, QuoteNode } from '@lexical/rich-text';
-import { ListItemNode, ListNode } from '@lexical/list';
+import { CodeHighlightNode, CodeNode } from '@lexical/code';
 import { LinkNode, AutoLinkNode } from '@lexical/link';
-import { CodeNode } from '@lexical/code';
+import { ListItemNode, ListNode } from '@lexical/list';
+import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import { HeadingNode, QuoteNode } from '@lexical/rich-text';
 import { TableCellNode, TableNode, TableRowNode } from '@lexical/table';
+import { EquationNode } from './nodes/EquationNode';
+import { ImageNode } from './nodes/ImageNode';
 
 export const lexicalNodes = [
 	HeadingNode,
@@ -12,7 +15,11 @@ export const lexicalNodes = [
 	LinkNode,
 	AutoLinkNode,
 	CodeNode,
+	CodeHighlightNode,
 	TableNode,
 	TableRowNode,
 	TableCellNode,
+	HorizontalRuleNode,
+	EquationNode,
+	ImageNode,
 ];

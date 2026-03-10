@@ -8,6 +8,7 @@ import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { CanvasPreviewThumbnail } from './CanvasPreviewThumbnail';
 import {
 	filterAndSortCanvases,
+	formatCanvasUpdatedAt,
 	hasCanvasTitleConflict,
 	type DashboardSortOption,
 } from './dashboard-utils';
@@ -44,81 +45,76 @@ function CanvasDetailsDialog({
 	onSubmit: () => void;
 }) {
 	return (
-		<div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/20 p-4 backdrop-blur-sm">
-			<div className="w-full max-w-lg rounded-[32px] border border-stone-200 bg-white p-6 shadow-2xl">
-				<div className="flex items-start justify-between gap-4">
-					<div>
-						<h2 className="text-xl font-semibold text-stone-900">{title}</h2>
-						<p className="mt-1 text-sm text-stone-500">
-							Canvas names are validated and must be unique within your workspace.
-						</p>
+		<div className="app-dialog-backdrop fixed inset-0 z-40 flex items-center justify-center p-4">
+			<div className="app-panel app-panel-strong w-full max-w-xl overflow-hidden">
+				<div className="border-b border-[var(--color-border)] px-6 py-5">
+					<div className="flex items-start justify-between gap-4">
+						<div>
+							<p className="app-kicker">Canvas Details</p>
+							<h2 className="mt-3 text-2xl font-semibold text-[var(--color-text-primary)]">{title}</h2>
+						</div>
+						<button type="button" onClick={onClose} className="app-button app-button-secondary px-4 py-2.5">
+							Close
+						</button>
 					</div>
-					<button
-						type="button"
-						onClick={onClose}
-						className="rounded-full border border-stone-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-stone-600"
-					>
-						Close
-					</button>
 				</div>
 
-				<div className="mt-6 space-y-4">
+				<div className="space-y-4 px-6 py-6">
 					<div>
-						<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+						<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
 							Canvas Name
 						</label>
 						<input
 							value={value.title}
 							onChange={(event) => onChange({ ...value, title: event.target.value })}
-							className="w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm text-stone-900 outline-none"
-							placeholder="Product roadmap"
+							className="app-field"
+							placeholder="Q2 experience strategy"
 						/>
 					</div>
 
 					<div>
-						<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+						<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
 							Description
 						</label>
 						<textarea
 							value={value.description}
 							onChange={(event) => onChange({ ...value, description: event.target.value })}
-							className="min-h-28 w-full resize-none rounded-2xl border border-stone-300 px-4 py-3 text-sm text-stone-900 outline-none"
+							className="app-field-multiline"
 							placeholder="What this canvas is for"
 						/>
 					</div>
 
-					<label className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-700">
+					<label className="flex cursor-pointer items-start gap-3 rounded-[26px] border border-[var(--color-border)] bg-white/72 px-4 py-4">
 						<input
 							type="checkbox"
 							checked={value.isPublic}
 							onChange={(event) => onChange({ ...value, isPublic: event.target.checked })}
+							className="mt-1 h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-accent-text)]"
 						/>
-						<span>Make canvas public</span>
+						<div className="text-sm text-[var(--color-text-primary)]">Make canvas public</div>
 					</label>
 
 					{error ? (
-						<div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+						<div className="rounded-[22px] border border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] px-4 py-3 text-sm text-[var(--color-danger-text)]">
 							{error}
 						</div>
 					) : null}
 				</div>
 
-				<div className="mt-6 flex justify-end gap-3">
-					<button
-						type="button"
-						onClick={onClose}
-						className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700"
-					>
-						Cancel
-					</button>
-					<button
-						type="button"
-						onClick={onSubmit}
-						disabled={isSubmitting}
-						className="rounded-full bg-stone-900 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50"
-					>
-						{submitLabel}
-					</button>
+				<div className="flex flex-col-reverse gap-3 border-t border-[var(--color-border)] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex items-center justify-end gap-3">
+						<button type="button" onClick={onClose} className="app-button app-button-secondary">
+							Cancel
+						</button>
+						<button
+							type="button"
+							onClick={onSubmit}
+							disabled={isSubmitting}
+							className="app-button app-button-primary"
+						>
+							{submitLabel}
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -139,63 +135,89 @@ function CanvasCard({
 	onToggleFavorite: () => void;
 }) {
 	return (
-		<div className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-sm transition-transform hover:-translate-y-1 hover:shadow-xl">
-			<button
-				type="button"
+		<article className="app-panel app-panel-strong app-card-hover group flex h-full flex-col overflow-hidden rounded-[20px]">
+			<div
+				role="button"
+				tabIndex={0}
 				onClick={onOpen}
-				className="relative h-40 overflow-hidden text-left"
+				onKeyDown={(event) => {
+					if (event.key === 'Enter' || event.key === ' ') {
+						event.preventDefault();
+						onOpen();
+					}
+				}}
+				className="flex flex-1 cursor-pointer flex-col text-left outline-none"
 			>
-				<CanvasPreviewThumbnail canvasId={canvas.id} title={canvas.title} />
-				<div className="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-white via-white/88 to-transparent p-4">
-					<div>
-						<div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-600">
-						{canvas.isPublic ? 'Public' : 'Private'}
-						</div>
-						<div className="mt-2 text-lg font-semibold text-stone-900">{canvas.title}</div>
-					</div>
-					<div className="rounded-full bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-700">
-						Open
-					</div>
-				</div>
-			</button>
+				<div className="relative h-48 overflow-hidden border-b border-[var(--color-border)]">
+					<CanvasPreviewThumbnail
+						canvasId={canvas.id}
+						title={canvas.title}
+						thumbnailUrl={canvas.thumbnailUrl}
+					/>
 
-			<div className="flex flex-1 flex-col p-4">
-				<p className="min-h-12 text-sm leading-relaxed text-stone-600">
-					{canvas.description || 'No description yet.'}
-				</p>
-				<div className="mt-4 flex items-center justify-between gap-2 text-xs text-stone-500">
-					<span>Updated {new Date(canvas.updatedAt).toLocaleDateString()}</span>
-					<span>{canvas.isFavorite ? 'Favorited' : 'Standard'}</span>
+					<div className="absolute left-4 top-4 flex flex-wrap gap-2">
+						<span className={canvas.isPublic ? 'app-badge app-badge-accent' : 'app-badge app-badge-muted'}>
+							{canvas.isPublic ? 'Public' : 'Private'}
+						</span>
+						{canvas.isFavorite ? <span className="app-badge app-badge-muted">Favorite</span> : null}
+					</div>
+
+					<div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(250,251,252,0)_0%,rgba(250,251,252,0.96)_52%,rgba(250,251,252,1)_100%)] px-5 pb-4 pt-12">
+						<div className="flex items-end justify-between gap-3">
+							<div className="min-w-0">
+								<div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+									Updated {formatCanvasUpdatedAt(canvas.updatedAt)}
+								</div>
+								<h3 className="mt-2 truncate text-xl font-semibold text-[var(--color-text-primary)]">
+									{canvas.title}
+								</h3>
+							</div>
+						</div>
+					</div>
 				</div>
-				<div className="mt-4 flex items-center gap-2">
+
+				<div className="flex flex-1 flex-col px-5 py-5">
+					<p className="min-h-12 text-sm leading-7 text-[var(--color-text-secondary)]">
+						{canvas.description || 'No description yet.'}
+					</p>
+				</div>
+			</div>
+
+			<div className="border-t border-[var(--color-border)] px-5 py-4">
+				<div className="flex flex-wrap gap-2">
 					<button
 						type="button"
-						onClick={onRename}
-						className="rounded-full border border-stone-300 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+						onClick={(event) => {
+							event.stopPropagation();
+							onRename();
+						}}
+						className="app-button app-button-secondary px-4 py-3"
 					>
 						Rename
 					</button>
 					<button
 						type="button"
-						onClick={onToggleFavorite}
-						className={`rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] ${
-							canvas.isFavorite
-								? 'bg-amber-100 text-amber-800'
-								: 'border border-stone-300 text-stone-700'
-						}`}
+						onClick={(event) => {
+							event.stopPropagation();
+							onToggleFavorite();
+						}}
+						className="app-button app-button-secondary px-4 py-3"
 					>
 						{canvas.isFavorite ? 'Unfavorite' : 'Favorite'}
 					</button>
 					<button
 						type="button"
-						onClick={onDelete}
-						className="rounded-full border border-rose-200 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-rose-700"
+						onClick={(event) => {
+							event.stopPropagation();
+							onDelete();
+						}}
+						className="app-button app-button-danger px-4 py-3"
 					>
 						Delete
 					</button>
 				</div>
 			</div>
-		</div>
+		</article>
 	);
 }
 
@@ -352,20 +374,38 @@ export function CanvasLibrary() {
 		return result.data;
 	};
 
+	const openCreateDialog = () => {
+		setFormState(DEFAULT_CREATE_FORM);
+		setFormError(null);
+		setIsCreateDialogOpen(true);
+	};
+
+	const openRenameDialog = (canvas: Canvas) => {
+		setRenameTarget(canvas);
+		setFormState({
+			title: canvas.title,
+			description: canvas.description ?? '',
+			isPublic: canvas.isPublic,
+		});
+		setFormError(null);
+	};
+
 	const handleCreateSubmit = () => {
 		const parsed = validateForm('create');
 		if (!parsed || !parsed.title) return;
-			createCanvas.mutate({
-				title: parsed.title,
-				description: parsed.description ?? '',
-				isPublic: parsed.isPublic ?? false,
-			});
-		};
+
+		createCanvas.mutate({
+			title: parsed.title,
+			description: parsed.description ?? '',
+			isPublic: parsed.isPublic ?? false,
+		});
+	};
 
 	const handleRenameSubmit = () => {
 		if (!renameTarget) return;
 		const parsed = validateForm('rename');
 		if (!parsed || !parsed.title) return;
+
 		updateCanvasMeta.mutate({
 			id: renameTarget.id,
 			data: {
@@ -378,88 +418,104 @@ export function CanvasLibrary() {
 
 	if (canvasesQuery.isLoading) {
 		return (
-			<div className="rounded-[28px] border border-stone-200 bg-white p-8 text-sm text-stone-500">
-				Loading canvases...
+			<div className="space-y-5">
+				<div className="app-panel app-panel-strong h-[4.75rem] animate-pulse rounded-[30px] bg-white/70" />
+				<div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+					{Array.from({ length: 3 }).map((_, index) => (
+						<div
+							key={index}
+							className="app-panel app-panel-strong h-[22rem] animate-pulse rounded-[32px] bg-white/70"
+						/>
+					))}
+				</div>
 			</div>
 		);
 	}
 
 	if (canvasesQuery.isError) {
 		return (
-			<div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
-				{canvasesQuery.error instanceof Error ? canvasesQuery.error.message : 'Failed to load canvases.'}
+			<div className="app-panel app-panel-strong rounded-[28px] border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] px-6 py-8">
+				<div className="app-kicker">Library Error</div>
+				<div className="mt-4 text-2xl font-semibold text-[var(--color-danger-text)]">
+					Unable to load your canvases.
+				</div>
+				<p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-danger-text)]">
+					{canvasesQuery.error instanceof Error ? canvasesQuery.error.message : 'Failed to load canvases.'}
+				</p>
 			</div>
 		);
 	}
 
 	return (
-		<div className="space-y-6">
-			<div className="flex flex-col gap-4 rounded-[28px] border border-stone-200 bg-white p-4 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-				<div className="flex flex-1 items-center gap-3 rounded-full border border-stone-200 bg-stone-50 px-4 py-3">
-					<span className="text-stone-400">Search</span>
-					<input
-						value={searchTerm}
-						onChange={(event) => {
-							const value = event.target.value;
-							startTransition(() => setSearchTerm(value));
-						}}
-						placeholder="Find canvases by title or description"
-						className="w-full border-0 bg-transparent text-sm text-stone-900 outline-none"
-					/>
-				</div>
+		<div className="space-y-5">
+			<div className="app-panel app-panel-strong rounded-[26px] px-4 py-4 sm:px-5">
+				<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+					<label className="relative min-w-0 flex-1">
+						<span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]">
+							<svg
+								aria-hidden="true"
+								viewBox="0 0 20 20"
+								fill="none"
+								className="h-4 w-4"
+								stroke="currentColor"
+								strokeWidth="1.7"
+							>
+								<circle cx="9" cy="9" r="5.25" />
+								<path d="M13 13l3.5 3.5" strokeLinecap="round" />
+							</svg>
+						</span>
+						<input
+							value={searchTerm}
+							onChange={(event) => {
+								const value = event.target.value;
+								startTransition(() => setSearchTerm(value));
+							}}
+							placeholder="Search canvases"
+							className="app-input pl-11"
+						/>
+					</label>
 
-				<div className="flex items-center gap-3">
-					<select
-						value={sortBy}
-						onChange={(event) => setSortBy(event.target.value as DashboardSortOption)}
-						className="rounded-full border border-stone-300 bg-white px-4 py-3 text-sm text-stone-700"
-					>
-						<option value="recent">Recent</option>
-						<option value="alphabetical">Alphabetical</option>
-						<option value="favorites">Favorites</option>
-					</select>
+					<div className="flex flex-wrap items-center gap-2">
+						{([
+							['recent', 'Recent'],
+							['alphabetical', 'A-Z'],
+							['favorites', 'Favorites'],
+						] as const).map(([value, label]) => (
+							<button
+								key={value}
+								type="button"
+								onClick={() => setSortBy(value)}
+								className={`app-toolbar-chip ${sortBy === value ? 'app-toolbar-chip-active' : ''}`}
+							>
+								{label}
+							</button>
+						))}
+					</div>
 
-					<button
-						type="button"
-						onClick={() => {
-							setFormState({
-								title: '',
-								description: '',
-								isPublic: false,
-							});
-							setFormError(null);
-							setIsCreateDialogOpen(true);
-						}}
-						disabled={createCanvas.isPending}
-						className="rounded-full bg-stone-900 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
-					>
-						New Canvas
-					</button>
+					<div className="lg:ml-auto">
+						<button
+							type="button"
+							onClick={openCreateDialog}
+							disabled={createCanvas.isPending}
+							className="app-button app-button-primary w-full lg:w-auto"
+						>
+							New Canvas
+						</button>
+					</div>
 				</div>
 			</div>
 
 			{filtered.length === 0 ? (
-				<div className="rounded-[32px] border border-dashed border-stone-300 bg-white/80 px-8 py-16 text-center">
-					<div className="text-sm uppercase tracking-[0.2em] text-stone-500">No Canvases</div>
-					<h2 className="mt-3 text-2xl font-semibold text-stone-900">Start your next board</h2>
-					<p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-stone-600">
-						Create a canvas for notes, diagrams, kanban planning, or embedded research. The dashboard is now wired to the standalone Hono API.
-					</p>
-					<button
-						type="button"
-						onClick={() => {
-							setFormState({
-								title: '',
-								description: '',
-								isPublic: false,
-							});
-							setFormError(null);
-							setIsCreateDialogOpen(true);
-						}}
-						className="mt-6 rounded-full bg-stone-900 px-5 py-3 text-sm font-semibold text-white"
-					>
-						Create Canvas
-					</button>
+				<div className="app-panel app-panel-strong rounded-[22px] px-8 py-14 text-center">
+					<div className="mx-auto max-w-xl">
+						<h2 className="text-2xl font-semibold text-[var(--color-text-primary)]">No canvases yet</h2>
+						<p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
+							Create your first canvas to get started.
+						</p>
+						<button type="button" onClick={openCreateDialog} className="app-button app-button-primary mt-6">
+							Create Canvas
+						</button>
+					</div>
 				</div>
 			) : (
 				<div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -468,15 +524,7 @@ export function CanvasLibrary() {
 							key={canvas.id}
 							canvas={canvas}
 							onOpen={() => void navigate({ to: '/canvas/$id', params: { id: canvas.id } })}
-							onRename={() => {
-								setRenameTarget(canvas as Canvas);
-								setFormState({
-									title: canvas.title,
-									description: canvas.description ?? '',
-									isPublic: canvas.isPublic,
-								});
-								setFormError(null);
-							}}
+							onRename={() => openRenameDialog(canvas)}
 							onDelete={() => deleteCanvas.mutate(canvas.id)}
 							onToggleFavorite={() => toggleFavorite.mutate(canvas.id)}
 						/>
@@ -484,7 +532,7 @@ export function CanvasLibrary() {
 				</div>
 			)}
 
-			{isCreateDialogOpen && (
+			{isCreateDialogOpen ? (
 				<CanvasDetailsDialog
 					title="Create Canvas"
 					submitLabel="Create Canvas"
@@ -498,9 +546,9 @@ export function CanvasLibrary() {
 					}}
 					onSubmit={handleCreateSubmit}
 				/>
-			)}
+			) : null}
 
-			{renameTarget && (
+			{renameTarget ? (
 				<CanvasDetailsDialog
 					title="Rename Canvas"
 					submitLabel="Save Changes"
@@ -514,7 +562,7 @@ export function CanvasLibrary() {
 					}}
 					onSubmit={handleRenameSubmit}
 				/>
-			)}
+			) : null}
 		</div>
 	);
 }

@@ -188,6 +188,67 @@ describe('overlay-registry', () => {
 		expect(updated.customData.columns).toHaveLength(1);
 	});
 
+	it('applies prototype updates by merging file state and visibility flags', () => {
+		const element = {
+			id: 'prototype-1',
+			type: 'rectangle',
+			x: 10,
+			y: 20,
+			width: 300,
+			height: 200,
+			angle: 0,
+			version: 3,
+			versionNonce: 9,
+			customData: {
+				type: 'prototype',
+				title: 'Prototype',
+				template: 'react',
+				files: {
+					'/App.js': { code: 'export default function App() { return null; }', active: true },
+				},
+				dependencies: {},
+				preview: {
+					eyebrow: 'PulseBoard',
+					title: 'Prototype',
+					description: 'Preview',
+					accent: '#2563eb',
+					background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+					badges: ['React'],
+					metrics: [{ label: 'Revenue', value: '$128k' }],
+				},
+				activeFile: '/App.js',
+				showEditor: true,
+				showPreview: true,
+			},
+		} as any;
+
+		const updated = applyOverlayUpdateByType('prototype', element, {
+			title: 'Prototype v2',
+			showPreview: false,
+			preview: {
+				eyebrow: 'PulseBoard',
+				title: 'Prototype v2',
+				description: 'Updated preview',
+				accent: '#2563eb',
+				background: 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+				badges: ['React', 'Dashboard'],
+				metrics: [{ label: 'Revenue', value: '$144k' }],
+			},
+			files: {
+				'/App.js': { code: 'export default function App() { return <div>Hi</div>; }', active: true },
+			},
+			activeFile: '/App.js',
+		});
+
+		expect(updated.version).toBe(4);
+		expect(updated.customData.title).toBe('Prototype v2');
+		expect(updated.customData.showPreview).toBe(false);
+		expect(updated.customData.preview?.title).toBe('Prototype v2');
+		expect(updated.customData.files['/App.js']).toBeUndefined();
+		expect(updated.customData.files['/App.jsx']?.code).toContain('Hi');
+		expect(updated.customData.activeFile).toBe('/App.jsx');
+	});
+
 	it('calculates z-index with selection and editing promotion', () => {
 		expect(getOverlayZIndex(false, false, 2)).toBe(20);
 		expect(getOverlayZIndex(true, false, 2)).toBe(10020);

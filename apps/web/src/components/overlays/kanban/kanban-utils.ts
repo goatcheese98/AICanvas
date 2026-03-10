@@ -2,41 +2,6 @@ import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const MAX_HISTORY_ENTRIES = 100;
 
-export const BOARD_FONTS = {
-	excalifont: 'Excalifont, Xiaolai, "Segoe UI Emoji", sans-serif',
-	'comic-shanns': '"Comic Shanns", "Segoe UI Emoji", cursive',
-	'lilita-one': '"Lilita One", "Segoe UI Emoji", sans-serif',
-	nunito: 'Nunito, "Segoe UI Emoji", sans-serif',
-} as const;
-
-export const BOARD_THEMES = {
-	parchment: {
-		boardBg: '#f8f2e6',
-		headerBg: 'rgba(255,255,255,0.58)',
-		columnBg: 'rgba(255,255,255,0.5)',
-	},
-	white: {
-		boardBg: '#ffffff',
-		headerBg: '#f5f5f4',
-		columnBg: '#fafaf9',
-	},
-	blue: {
-		boardBg: '#eff6ff',
-		headerBg: '#dbeafe',
-		columnBg: 'rgba(255,255,255,0.72)',
-	},
-	green: {
-		boardBg: '#f0fdf4',
-		headerBg: '#dcfce7',
-		columnBg: 'rgba(255,255,255,0.72)',
-	},
-	rose: {
-		boardBg: '#fff1f2',
-		headerBg: '#ffe4e6',
-		columnBg: 'rgba(255,255,255,0.72)',
-	},
-} as const;
-
 export function cloneKanbanBoard(board: KanbanOverlayCustomData): KanbanOverlayCustomData {
 	if (typeof structuredClone === 'function') {
 		return structuredClone(board);
@@ -50,9 +15,9 @@ export function normalizeKanbanBoard(board: Partial<KanbanOverlayCustomData> | n
 	return {
 		type: 'kanban',
 		title: typeof board?.title === 'string' ? board.title : 'Kanban Board',
-		bgTheme: typeof board?.bgTheme === 'string' ? board.bgTheme : 'parchment',
-		fontId: typeof board?.fontId === 'string' ? board.fontId : 'excalifont',
-		fontSize: typeof board?.fontSize === 'number' ? board.fontSize : 13,
+		bgTheme: typeof board?.bgTheme === 'string' ? board.bgTheme : undefined,
+		fontId: typeof board?.fontId === 'string' ? board.fontId : undefined,
+		fontSize: typeof board?.fontSize === 'number' ? board.fontSize : undefined,
 		columns: columns.map((column, columnIndex) => ({
 			id:
 				typeof column?.id === 'string' && column.id.length > 0

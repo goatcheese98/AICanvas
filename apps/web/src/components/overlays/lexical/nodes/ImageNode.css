@@ -1,0 +1,33 @@
+.canvas-editor-image {
+	display: inline-block;
+	line-height: 0;
+	position: relative;
+	user-select: none;
+	vertical-align: bottom;
+}
+
+.canvas-editor-image img {
+	display: block;
+	max-width: 100%;
+}
+
+.canvas-editor-image.selected img {
+	outline: 2px solid #2563eb;
+	outline-offset: 1px;
+}
+
+.canvas-image-resize-handle {
+	background: #2563eb;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	bottom: 4px;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+	cursor: nwse-resize;
+	display: block;
+	height: 12px;
+	position: absolute;
+	right: 4px;
+	touch-action: none;
+	width: 12px;
+	z-index: 10;
+}
