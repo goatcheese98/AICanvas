@@ -1,6 +1,19 @@
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { createStarterKanbanColumns as createSharedStarterKanbanColumns, normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
+import type { KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const MAX_HISTORY_ENTRIES = 100;
+
+interface CardWithId {
+	id: string;
+}
+
+interface ColumnWithId {
+	id: string;
+}
+
+export function createStarterKanbanColumns(): KanbanColumn[] {
+	return createSharedStarterKanbanColumns();
+}
 
 export function cloneKanbanBoard(board: KanbanOverlayCustomData): KanbanOverlayCustomData {
 	if (typeof structuredClone === 'function') {
@@ -10,92 +23,133 @@ export function cloneKanbanBoard(board: KanbanOverlayCustomData): KanbanOverlayC
 }
 
 export function normalizeKanbanBoard(board: Partial<KanbanOverlayCustomData> | null | undefined): KanbanOverlayCustomData {
-	const columns = Array.isArray(board?.columns) ? board.columns : [];
+	return normalizeKanbanOverlay(board);
+}
 
-	return {
-		type: 'kanban',
-		title: typeof board?.title === 'string' ? board.title : 'Kanban Board',
-		bgTheme: typeof board?.bgTheme === 'string' ? board.bgTheme : undefined,
-		fontId: typeof board?.fontId === 'string' ? board.fontId : undefined,
-		fontSize: typeof board?.fontSize === 'number' ? board.fontSize : undefined,
-		columns: columns.map((column, columnIndex) => ({
-			id:
-				typeof column?.id === 'string' && column.id.length > 0
-					? column.id
-					: `column-${columnIndex + 1}`,
-			title:
-				typeof column?.title === 'string' && column.title.length > 0
-					? column.title
-					: `Column ${columnIndex + 1}`,
-			color: column?.color,
-			wipLimit: typeof column?.wipLimit === 'number' ? column.wipLimit : undefined,
-			cards: Array.isArray(column?.cards)
-				? column.cards.map((card, cardIndex) => ({
-						id:
-							typeof card?.id === 'string' && card.id.length > 0
-								? card.id
-								: `card-${columnIndex + 1}-${cardIndex + 1}`,
-						title:
-							typeof card?.title === 'string' && card.title.length > 0
-								? card.title
-								: 'Untitled card',
-						description: typeof card?.description === 'string' ? card.description : '',
-						priority:
-							card?.priority === 'low' || card?.priority === 'high' || card?.priority === 'medium'
-								? card.priority
-								: 'medium',
-						labels: Array.isArray(card?.labels) ? card.labels.filter((label): label is string => typeof label === 'string') : [],
-						dueDate: typeof card?.dueDate === 'string' ? card.dueDate : undefined,
-						checklist: Array.isArray(card?.checklist)
-							? card.checklist.map((item) => ({
-									text: typeof item?.text === 'string' ? item.text : '',
-									done: Boolean(item?.done),
-								}))
-							: [],
-					}))
-				: [],
-		})),
-	};
+export function getProjectedOverCardId(
+	cards: ReadonlyArray<CardWithId>,
+	hoveredCardId: string,
+	isPastMidpoint: boolean,
+): string | null {
+	const hoveredIndex = cards.findIndex((card) => card.id === hoveredCardId);
+	if (hoveredIndex === -1) return null;
+	if (!isPastMidpoint) return hoveredCardId;
+	return cards[hoveredIndex + 1]?.id ?? null;
+}
+
+export function getProjectedOverColumnId(
+	columns: ReadonlyArray<ColumnWithId>,
+	hoveredColumnId: string,
+	isPastMidpoint: boolean,
+): string | null {
+	const hoveredIndex = columns.findIndex((column) => column.id === hoveredColumnId);
+	if (hoveredIndex === -1) return null;
+	if (!isPastMidpoint) return hoveredColumnId;
+	return columns[hoveredIndex + 1]?.id ?? null;
 }
 
 export function moveKanbanCard(
 	board: KanbanOverlayCustomData,
 	cardId: string,
 	toColumnId: string,
-	beforeCardId?: string,
+	overCardId?: string | null,
 ): KanbanOverlayCustomData {
-	let draggedCard: (typeof board.columns)[number]['cards'][number] | null = null;
+	const fromColumn = board.columns.find((column) => column.cards.some((card) => card.id === cardId));
+	if (!fromColumn) return board;
 
-	const strippedColumns = board.columns.map((column) => ({
-		...column,
-		cards: column.cards.filter((card) => {
-			if (card.id === cardId) {
-				draggedCard = card;
-				return false;
-			}
-			return true;
-		}),
-	}));
+	const sourceCardIndex = fromColumn.cards.findIndex((card) => card.id === cardId);
+	if (sourceCardIndex === -1) return board;
 
-	if (!draggedCard) return board;
+	const movingCard = fromColumn.cards[sourceCardIndex];
+	if (!movingCard) return board;
+
+	if (fromColumn.id === toColumnId) {
+		if (overCardId === cardId) return board;
+
+		const cardsWithoutMoving = fromColumn.cards.filter((card) => card.id !== cardId);
+		let nextIndex = cardsWithoutMoving.length;
+
+		if (overCardId) {
+			const targetIndex = cardsWithoutMoving.findIndex((card) => card.id === overCardId);
+			if (targetIndex === -1) return board;
+			nextIndex = targetIndex;
+		}
+
+		const nextCards = [...cardsWithoutMoving];
+		nextCards.splice(nextIndex, 0, movingCard);
+
+		const isUnchanged = nextCards.every((card, index) => card.id === fromColumn.cards[index]?.id);
+		if (isUnchanged) return board;
+
+		return {
+			...board,
+			columns: board.columns.map((column) =>
+				column.id === fromColumn.id ? { ...column, cards: nextCards } : column,
+			),
+		};
+	}
+
+	const toColumn = board.columns.find((column) => column.id === toColumnId);
+	if (!toColumn) return board;
+
+	const nextColumns = board.columns.map((column) => ({ ...column, cards: [...column.cards] }));
+	const source = nextColumns.find((column) => column.id === fromColumn.id);
+	const destination = nextColumns.find((column) => column.id === toColumnId);
+	if (!source || !destination) return board;
+
+	const removalIndex = source.cards.findIndex((card) => card.id === cardId);
+	if (removalIndex === -1) return board;
+
+	const [removedCard] = source.cards.splice(removalIndex, 1);
+	if (!removedCard) return board;
+
+	const insertionIndex = overCardId
+		? destination.cards.findIndex((card) => card.id === overCardId)
+		: -1;
+
+	if (insertionIndex === -1) {
+		destination.cards.push(removedCard);
+	} else {
+		destination.cards.splice(insertionIndex, 0, removedCard);
+	}
 
 	return {
 		...board,
-		columns: strippedColumns.map((column) => {
-			if (column.id !== toColumnId) return column;
-			const nextCards = [...column.cards];
-			if (!beforeCardId) {
-				nextCards.push(draggedCard!);
-			} else {
-				const targetIndex = nextCards.findIndex((card) => card.id === beforeCardId);
-				if (targetIndex === -1) {
-					nextCards.push(draggedCard!);
-				} else {
-					nextCards.splice(targetIndex, 0, draggedCard!);
-				}
-			}
-			return { ...column, cards: nextCards };
-		}),
+		columns: nextColumns,
+	};
+}
+
+export function moveKanbanColumn(
+	board: KanbanOverlayCustomData,
+	columnId: string,
+	overColumnId?: string | null,
+): KanbanOverlayCustomData {
+	const sourceIndex = board.columns.findIndex((column) => column.id === columnId);
+	if (sourceIndex === -1) return board;
+
+	if (overColumnId === columnId) return board;
+
+	const remainingColumns = board.columns.filter((column) => column.id !== columnId);
+	let nextIndex = remainingColumns.length;
+
+	if (overColumnId) {
+		const targetIndex = remainingColumns.findIndex((column) => column.id === overColumnId);
+		if (targetIndex === -1) return board;
+		nextIndex = targetIndex;
+	}
+
+	const movingColumn = board.columns[sourceIndex];
+	if (!movingColumn) return board;
+
+	const nextColumns = [...remainingColumns];
+	nextColumns.splice(nextIndex, 0, movingColumn);
+
+	const isUnchanged = nextColumns.every((column, index) => column.id === board.columns[index]?.id);
+	if (isUnchanged) return board;
+
+	return {
+		...board,
+		columns: nextColumns,
 	};
 }
 

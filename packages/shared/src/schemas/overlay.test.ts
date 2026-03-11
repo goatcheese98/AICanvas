@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	DEFAULT_MARKDOWN_NOTE_SETTINGS,
+	summarizeKanbanOverlay,
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizeMarkdownSettings,
@@ -83,7 +84,7 @@ describe('overlay schemas', () => {
 			}),
 		).toMatchObject({
 			type: 'newlex',
-			title: 'RichText',
+			title: 'Rich Text',
 			lexicalState: '{"root":{}}',
 			comments: [],
 			commentsPanelOpen: false,
@@ -107,6 +108,63 @@ describe('overlay schemas', () => {
 		expect(normalized.columns[0]?.cards[0]).toMatchObject({
 			title: 'Ship it',
 			priority: 'medium',
+		});
+	});
+
+	it('provides a starter kanban template when no columns are supplied', () => {
+		const normalized = normalizeKanbanOverlay({});
+		expect(normalized.columns).toHaveLength(3);
+		expect(normalized.columns.some((column) => column.cards.length > 0)).toBe(true);
+	});
+
+	it('summarizes kanban overlays into AI-friendly board stats', () => {
+		const summary = summarizeKanbanOverlay({
+			title: 'Launch board',
+			columns: [
+				{
+					id: 'todo',
+					title: 'To Do',
+					cards: [
+						{
+							id: 'card-1',
+							title: 'Ship docs',
+							description: 'Draft release notes',
+							priority: 'high',
+							labels: ['docs', 'launch'],
+							checklist: [
+								{ text: 'Outline', done: true },
+								{ text: 'Review', done: false },
+							],
+						},
+					],
+				},
+				{
+					id: 'done',
+					title: 'Done',
+					cards: [],
+				},
+			],
+		});
+
+		expect(summary).toMatchObject({
+			title: 'Launch board',
+			columnCount: 2,
+			cardCount: 1,
+			emptyColumnCount: 1,
+			cardsWithDescriptions: 1,
+			completedChecklistItemCount: 1,
+			totalChecklistItemCount: 2,
+			priorityCounts: {
+				low: 0,
+				medium: 0,
+				high: 1,
+			},
+			labels: ['docs', 'launch'],
+		});
+		expect(summary.columns[0]?.cards[0]).toMatchObject({
+			title: 'Ship docs',
+			priority: 'high',
+			hasDescription: true,
 		});
 	});
 

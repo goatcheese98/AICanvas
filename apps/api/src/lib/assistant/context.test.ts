@@ -87,6 +87,10 @@ describe('assistant context', () => {
 			kanban: {
 				title: 'Launch board',
 			},
+			kanbanSummary: {
+				columnCount: 1,
+				cardCount: 0,
+			},
 		});
 		expect(snapshot.selectedContexts[2]).toMatchObject({
 			kind: 'generated-diagram',

@@ -56,6 +56,39 @@ export interface KanbanColumn {
 	cards: KanbanCard[];
 }
 
+export interface KanbanCardSummary {
+	id: string;
+	title: string;
+	priority: 'low' | 'medium' | 'high';
+	labels: string[];
+	hasDescription: boolean;
+	dueDate?: string;
+	isOverdue: boolean;
+	completedChecklistItemCount: number;
+	totalChecklistItemCount: number;
+}
+
+export interface KanbanColumnSummary {
+	id: string;
+	title: string;
+	cardCount: number;
+	cards: KanbanCardSummary[];
+}
+
+export interface KanbanBoardSummary {
+	title: string;
+	columnCount: number;
+	cardCount: number;
+	emptyColumnCount: number;
+	cardsWithDescriptions: number;
+	overdueCardCount: number;
+	completedChecklistItemCount: number;
+	totalChecklistItemCount: number;
+	priorityCounts: Record<'low' | 'medium' | 'high', number>;
+	labels: string[];
+	columns: KanbanColumnSummary[];
+}
+
 export interface MarkdownOverlayCustomData {
 	type: 'markdown';
 	title?: string;

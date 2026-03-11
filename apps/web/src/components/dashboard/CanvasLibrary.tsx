@@ -46,7 +46,7 @@ function CanvasDetailsDialog({
 }) {
 	return (
 		<div className="app-dialog-backdrop fixed inset-0 z-40 flex items-center justify-center p-4">
-			<div className="app-panel app-panel-strong w-full max-w-xl overflow-hidden">
+			<div className="app-panel app-panel-strong w-full max-w-xl overflow-hidden rounded-[18px]">
 				<div className="border-b border-[var(--color-border)] px-6 py-5">
 					<div className="flex items-start justify-between gap-4">
 						<div>
@@ -84,7 +84,7 @@ function CanvasDetailsDialog({
 						/>
 					</div>
 
-					<label className="flex cursor-pointer items-start gap-3 rounded-[26px] border border-[var(--color-border)] bg-white/72 px-4 py-4">
+					<label className="flex cursor-pointer items-start gap-3 rounded-[14px] border border-[var(--color-border)] bg-white/72 px-4 py-4">
 						<input
 							type="checkbox"
 							checked={value.isPublic}
@@ -95,7 +95,7 @@ function CanvasDetailsDialog({
 					</label>
 
 					{error ? (
-						<div className="rounded-[22px] border border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] px-4 py-3 text-sm text-[var(--color-danger-text)]">
+						<div className="rounded-[12px] border border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] px-4 py-3 text-sm text-[var(--color-danger-text)]">
 							{error}
 						</div>
 					) : null}
@@ -135,7 +135,7 @@ function CanvasCard({
 	onToggleFavorite: () => void;
 }) {
 	return (
-		<article className="app-panel app-panel-strong app-card-hover group flex h-full flex-col overflow-hidden rounded-[20px]">
+		<article className="app-panel app-panel-strong app-card-hover group flex h-full flex-col overflow-hidden rounded-[14px]">
 			<div
 				role="button"
 				tabIndex={0}
@@ -148,27 +148,27 @@ function CanvasCard({
 				}}
 				className="flex flex-1 cursor-pointer flex-col text-left outline-none"
 			>
-				<div className="relative h-48 overflow-hidden border-b border-[var(--color-border)]">
+				<div className="relative h-40 overflow-hidden border-b border-[var(--color-border)]">
 					<CanvasPreviewThumbnail
 						canvasId={canvas.id}
 						title={canvas.title}
 						thumbnailUrl={canvas.thumbnailUrl}
 					/>
 
-					<div className="absolute left-4 top-4 flex flex-wrap gap-2">
+					<div className="absolute left-3 top-3 flex flex-wrap gap-2">
 						<span className={canvas.isPublic ? 'app-badge app-badge-accent' : 'app-badge app-badge-muted'}>
 							{canvas.isPublic ? 'Public' : 'Private'}
 						</span>
 						{canvas.isFavorite ? <span className="app-badge app-badge-muted">Favorite</span> : null}
 					</div>
 
-					<div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(250,251,252,0)_0%,rgba(250,251,252,0.96)_52%,rgba(250,251,252,1)_100%)] px-5 pb-4 pt-12">
+					<div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,rgba(250,251,252,0)_0%,rgba(250,251,252,0.96)_52%,rgba(250,251,252,1)_100%)] px-4 pb-3 pt-10">
 						<div className="flex items-end justify-between gap-3">
 							<div className="min-w-0">
-								<div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+								<div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-text-secondary)]">
 									Updated {formatCanvasUpdatedAt(canvas.updatedAt)}
 								</div>
-								<h3 className="mt-2 truncate text-xl font-semibold text-[var(--color-text-primary)]">
+								<h3 className="mt-1.5 truncate text-lg font-semibold text-[var(--color-text-primary)]">
 									{canvas.title}
 								</h3>
 							</div>
@@ -176,14 +176,14 @@ function CanvasCard({
 					</div>
 				</div>
 
-				<div className="flex flex-1 flex-col px-5 py-5">
-					<p className="min-h-12 text-sm leading-7 text-[var(--color-text-secondary)]">
+				<div className="flex flex-1 flex-col px-4 py-4">
+					<p className="min-h-10 text-[13px] leading-6 text-[var(--color-text-secondary)]">
 						{canvas.description || 'No description yet.'}
 					</p>
 				</div>
 			</div>
 
-			<div className="border-t border-[var(--color-border)] px-5 py-4">
+			<div className="border-t border-[var(--color-border)] px-4 py-3">
 				<div className="flex flex-wrap gap-2">
 					<button
 						type="button"
@@ -191,7 +191,7 @@ function CanvasCard({
 							event.stopPropagation();
 							onRename();
 						}}
-						className="app-button app-button-secondary px-4 py-3"
+						className="app-button app-button-secondary px-3.5 py-2.5"
 					>
 						Rename
 					</button>
@@ -201,7 +201,7 @@ function CanvasCard({
 							event.stopPropagation();
 							onToggleFavorite();
 						}}
-						className="app-button app-button-secondary px-4 py-3"
+						className="app-button app-button-secondary px-3.5 py-2.5"
 					>
 						{canvas.isFavorite ? 'Unfavorite' : 'Favorite'}
 					</button>
@@ -211,7 +211,7 @@ function CanvasCard({
 							event.stopPropagation();
 							onDelete();
 						}}
-						className="app-button app-button-danger px-4 py-3"
+						className="app-button app-button-danger px-3.5 py-2.5"
 					>
 						Delete
 					</button>
@@ -419,12 +419,12 @@ export function CanvasLibrary() {
 	if (canvasesQuery.isLoading) {
 		return (
 			<div className="space-y-5">
-				<div className="app-panel app-panel-strong h-[4.75rem] animate-pulse rounded-[30px] bg-white/70" />
-				<div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+				<div className="app-panel app-panel-strong h-[4.75rem] animate-pulse rounded-[18px] bg-white/70" />
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 					{Array.from({ length: 3 }).map((_, index) => (
 						<div
 							key={index}
-							className="app-panel app-panel-strong h-[22rem] animate-pulse rounded-[32px] bg-white/70"
+							className="app-panel app-panel-strong h-[22rem] animate-pulse rounded-[14px] bg-white/70"
 						/>
 					))}
 				</div>
@@ -448,7 +448,7 @@ export function CanvasLibrary() {
 
 	return (
 		<div className="space-y-5">
-			<div className="app-panel app-panel-strong rounded-[26px] px-4 py-4 sm:px-5">
+			<div className="app-panel app-panel-strong rounded-[18px] px-4 py-4 sm:px-5">
 				<div className="flex flex-col gap-3 lg:flex-row lg:items-center">
 					<label className="relative min-w-0 flex-1">
 						<span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]">
@@ -471,7 +471,7 @@ export function CanvasLibrary() {
 								startTransition(() => setSearchTerm(value));
 							}}
 							placeholder="Search canvases"
-							className="app-input pl-11"
+							className="app-input app-search-input"
 						/>
 					</label>
 
@@ -506,7 +506,7 @@ export function CanvasLibrary() {
 			</div>
 
 			{filtered.length === 0 ? (
-				<div className="app-panel app-panel-strong rounded-[22px] px-8 py-14 text-center">
+				<div className="app-panel app-panel-strong rounded-[16px] px-8 py-14 text-center">
 					<div className="mx-auto max-w-xl">
 						<h2 className="text-2xl font-semibold text-[var(--color-text-primary)]">No canvases yet</h2>
 						<p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
@@ -518,7 +518,7 @@ export function CanvasLibrary() {
 					</div>
 				</div>
 			) : (
-				<div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 					{filtered.map((canvas) => (
 						<CanvasCard
 							key={canvas.id}

@@ -20,27 +20,29 @@ export function Dashboard() {
 
 			<div className="relative mx-auto flex min-h-full max-w-7xl flex-col px-4 pb-10 pt-3 sm:px-6 lg:px-8">
 				<header className="sticky top-3 z-20">
-					<div className="app-panel flex items-center justify-between gap-4 rounded-[28px] px-5 py-3">
-						<div className="min-w-0">
-							<p className="app-kicker">Canvas Workspace</p>
-							<h1 className="app-display mt-1.5 text-[1.75rem] leading-none text-[var(--color-text-primary)] sm:text-[1.95rem]">
-								My Canvases
-							</h1>
-						</div>
-
-						<div className="flex items-center gap-3 rounded-[999px] border border-[var(--color-border)] bg-white/72 px-2.5 py-2 pr-4">
-							{user?.imageUrl ? (
-								<img src={user.imageUrl} alt="" className="h-10 w-10 rounded-full object-cover" />
-							) : (
-								<div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-accent-bg)] text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
-									{initials}
-								</div>
-							)}
+					<div className="app-panel rounded-[16px] px-5 py-3.5 sm:px-6">
+						<div className="flex items-center justify-between gap-4">
 							<div className="min-w-0">
-								<div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
-									{displayName}
+								<p className="app-kicker">Canvas Workspace</p>
+								<h1 className="app-display mt-1 text-[1.3rem] leading-none text-[var(--color-text-primary)] sm:text-[1.45rem]">
+									My Canvases
+								</h1>
+							</div>
+
+							<div className="flex items-center gap-3 rounded-[12px] border border-[var(--color-border)] bg-white/72 px-2.5 py-2 pr-4">
+								{user?.imageUrl ? (
+									<img src={user.imageUrl} alt="" className="h-10 w-10 rounded-[10px] object-cover" />
+								) : (
+									<div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-bg)] text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
+										{initials}
+									</div>
+								)}
+								<div className="min-w-0">
+									<div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
+										{displayName}
+									</div>
+									<div className="truncate text-xs text-[var(--color-text-secondary)]">{email}</div>
 								</div>
-								<div className="truncate text-xs text-[var(--color-text-secondary)]">{email}</div>
 							</div>
 						</div>
 					</div>

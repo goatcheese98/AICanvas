@@ -2,6 +2,7 @@ import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizePrototypeOverlay,
+	summarizeKanbanOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
 import type {
@@ -133,10 +134,12 @@ function buildSelectedContext(element: CanvasElement): AssistantSelectedContext 
 	}
 
 	if (kind === 'kanban') {
+		const kanban = normalizeKanbanOverlay(toObjectRecord(element.customData));
 		return {
 			...base,
 			kind,
-			kanban: normalizeKanbanOverlay(toObjectRecord(element.customData)),
+			kanban,
+			kanbanSummary: summarizeKanbanOverlay(kanban),
 		};
 	}
 
@@ -272,9 +275,38 @@ export function summarizeAssistantContextSnapshot(
 
 			if (context.kind === 'kanban') {
 				lines.push(`- Kanban board${title} (${context.id})`);
-				lines.push('```json');
-				lines.push(JSON.stringify(context.kanban, null, 2));
-				lines.push('```');
+				lines.push(
+					`Summary: ${context.kanbanSummary.columnCount} columns, ${context.kanbanSummary.cardCount} cards, ${context.kanbanSummary.emptyColumnCount} empty columns, ${context.kanbanSummary.overdueCardCount} overdue cards.`,
+				);
+				lines.push(
+					`Priorities: low ${context.kanbanSummary.priorityCounts.low}, medium ${context.kanbanSummary.priorityCounts.medium}, high ${context.kanbanSummary.priorityCounts.high}.`,
+				);
+				if (context.kanbanSummary.labels.length > 0) {
+					lines.push(`Labels: ${context.kanbanSummary.labels.join(', ')}.`);
+				}
+				for (const column of context.kanbanSummary.columns) {
+					const cards =
+						column.cards.length > 0
+							? column.cards
+									.map((card) => {
+										const parts = [`"${card.title}"`, card.priority];
+										if (card.isOverdue) {
+											parts.push('overdue');
+										}
+										if (card.totalChecklistItemCount > 0) {
+											parts.push(
+												`checklist ${card.completedChecklistItemCount}/${card.totalChecklistItemCount}`,
+											);
+										}
+										if (card.labels.length > 0) {
+											parts.push(`labels: ${card.labels.join(', ')}`);
+										}
+										return parts.join(' | ');
+									})
+									.join('; ')
+							: 'no cards';
+					lines.push(`Column "${column.title}": ${cards}.`);
+				}
 				continue;
 			}
 

@@ -6,7 +6,7 @@ import { MarkdownRenderer, normalizeDisplayMath } from './MarkdownRenderer';
 const TEST_MARKDOWN_SETTINGS: MarkdownNoteSettings = {
 	font: 'Nunito, "Segoe UI Emoji", sans-serif',
 	fontSize: 15,
-	background: '#fffefc',
+	background: '#ffffff',
 	lineHeight: 1.65,
 	inlineCodeColor: '#7c3aed',
 	showEmptyLines: true,

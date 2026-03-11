@@ -1,4 +1,5 @@
 import type {
+	KanbanBoardSummary,
 	KanbanOverlayCustomData,
 	MarkdownOverlayCustomData,
 	PrototypeOverlayCustomData,
@@ -93,6 +94,7 @@ export interface AssistantSelectedMarkdownContext extends AssistantSelectedConte
 export interface AssistantSelectedKanbanContext extends AssistantSelectedContextBase {
 	kind: 'kanban';
 	kanban: KanbanOverlayCustomData;
+	kanbanSummary: KanbanBoardSummary;
 }
 
 export interface AssistantSelectedWebEmbedContext extends AssistantSelectedContextBase {

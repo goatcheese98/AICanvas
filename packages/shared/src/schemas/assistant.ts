@@ -70,6 +70,42 @@ const assistantContextSnapshotSchema = z.object({
 					overlayType: z.string().min(1).max(100).optional(),
 					label: z.string().min(1).max(200).optional(),
 					kanban: overlaySchemas.kanban,
+					kanbanSummary: z.object({
+						title: z.string().min(1).max(240),
+						columnCount: z.number().int().min(0),
+						cardCount: z.number().int().min(0),
+						emptyColumnCount: z.number().int().min(0),
+						cardsWithDescriptions: z.number().int().min(0),
+						overdueCardCount: z.number().int().min(0),
+						completedChecklistItemCount: z.number().int().min(0),
+						totalChecklistItemCount: z.number().int().min(0),
+						priorityCounts: z.object({
+							low: z.number().int().min(0),
+							medium: z.number().int().min(0),
+							high: z.number().int().min(0),
+						}),
+						labels: z.array(z.string().min(1).max(200)).max(500),
+						columns: z.array(
+							z.object({
+								id: z.string().min(1).max(200),
+								title: z.string().min(1).max(240),
+								cardCount: z.number().int().min(0),
+								cards: z.array(
+									z.object({
+										id: z.string().min(1).max(200),
+										title: z.string().min(1).max(240),
+										priority: z.enum(['low', 'medium', 'high']),
+										labels: z.array(z.string().min(1).max(200)).max(100),
+										hasDescription: z.boolean(),
+										dueDate: z.string().min(1).max(100).optional(),
+										isOverdue: z.boolean(),
+										completedChecklistItemCount: z.number().int().min(0),
+										totalChecklistItemCount: z.number().int().min(0),
+									}),
+								).max(2000),
+							}),
+						).max(200),
+					}),
 				}),
 				z.object({
 					kind: z.literal('web-embed'),

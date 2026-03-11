@@ -35,9 +35,9 @@
 	--app-grid:
 		linear-gradient(rgba(31, 36, 48, 0.04) 1px, transparent 1px),
 		linear-gradient(90deg, rgba(31, 36, 48, 0.04) 1px, transparent 1px);
-	--radius-panel: 34px;
-	--radius-card: 18px;
-	--radius-control: 18px;
+	--radius-panel: 24px;
+	--radius-card: 14px;
+	--radius-control: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -143,9 +143,9 @@ body {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.45rem;
-	font-size: 0.7rem;
+	font-size: 0.65rem;
 	font-weight: 700;
-	letter-spacing: 0.24em;
+	letter-spacing: 0.22em;
 	text-transform: uppercase;
 	color: var(--color-text-secondary);
 }
@@ -163,11 +163,11 @@ body {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	border-radius: 999px;
+	border-radius: 12px;
 	padding: 0.45rem 0.85rem;
-	font-size: 0.68rem;
+	font-size: 0.62rem;
 	font-weight: 700;
-	letter-spacing: 0.18em;
+	letter-spacing: 0.16em;
 	text-transform: uppercase;
 }
 
@@ -201,10 +201,10 @@ body {
 	justify-content: center;
 	gap: 0.55rem;
 	border-radius: var(--radius-control);
-	padding: 0.8rem 1.15rem;
-	font-size: 0.75rem;
+	padding: 0.72rem 1rem;
+	font-size: 0.68rem;
 	font-weight: 700;
-	letter-spacing: 0.18em;
+	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	text-decoration: none;
 	transition:
@@ -303,9 +303,13 @@ body {
 	padding: 0 1rem;
 }
 
+.app-search-input {
+	padding-left: 3rem;
+}
+
 .app-field,
 .app-field-multiline {
-	border-radius: 1.5rem;
+	border-radius: 1rem;
 	padding: 0.95rem 1rem;
 }
 
@@ -325,12 +329,12 @@ body {
 	justify-content: center;
 	min-height: 3rem;
 	border: 1px solid var(--color-border);
-	border-radius: 14px;
+	border-radius: 12px;
 	background: rgba(255, 255, 255, 0.78);
-	padding: 0 0.95rem;
-	font-size: 0.75rem;
+	padding: 0 0.9rem;
+	font-size: 0.68rem;
 	font-weight: 700;
-	letter-spacing: 0.16em;
+	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--color-text-secondary);
 	transition:

@@ -52,7 +52,7 @@ describe('element-factories', () => {
 
 		expect(data).toMatchObject({
 			type: 'newlex',
-			title: 'RichText',
+			title: 'Rich Text',
 			lexicalState: '',
 			comments: [],
 			commentsPanelOpen: false,
@@ -119,7 +119,7 @@ describe('element-factories', () => {
 	it('returns expected overlay defaults', () => {
 		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 300 });
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
-		expect(getOverlayDefaults('kanban')).toEqual({ width: 700, height: 500 });
+		expect(getOverlayDefaults('kanban')).toEqual({ width: 1050, height: 900 });
 		expect(getOverlayDefaults('web-embed')).toEqual({ width: 640, height: 480 });
 		expect(getOverlayDefaults('prototype')).toEqual({ width: 720, height: 520 });
 	});

@@ -31,8 +31,8 @@ const DEFAULT_NEWLEX_CONTENT =
 const CONTENT_COMMIT_DEBOUNCE_MS = 350;
 const NOTE_FONT_STACK =
 	'"Segoe UI Variable", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-const MAX_NEWLEX_TITLE_LENGTH = 8;
-const DEFAULT_NEWLEX_TITLE = 'RichText';
+const MAX_NEWLEX_TITLE_LENGTH = 32;
+const DEFAULT_NEWLEX_TITLE = 'Rich Text';
 const MIN_EXPANDED_EDITOR_WIDTH = 1120;
 const MIN_EXPANDED_EDITOR_WITH_COMMENTS_WIDTH = 1420;
 
@@ -326,7 +326,7 @@ export function LexicalNote({
 		<OverlaySurface
 			element={element}
 			isSelected={isSelected}
-			backgroundColor={element.backgroundColor ?? '#f8f7f3'}
+			backgroundColor={element.backgroundColor ?? '#ffffff'}
 			className="relative flex h-full flex-col"
 			style={{
 				fontFamily: NOTE_FONT_STACK,
@@ -351,11 +351,11 @@ export function LexicalNote({
 								className="w-full min-w-0 rounded-[6px] border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-600 outline-none transition-colors focus:border-[#d7dafd] focus:bg-white/70"
 								aria-label="Rich text title"
 							/>
-							{titleNotice ? (
-								<div className="mt-1 text-[10px] font-semibold normal-case tracking-normal text-amber-600">
-									Title is limited to 8 characters.
-								</div>
-							) : null}
+								{titleNotice ? (
+									<div className="mt-1 text-[10px] font-semibold normal-case tracking-normal text-amber-600">
+										Title is limited to 32 characters.
+									</div>
+								) : null}
 						</div>
 					) : (
 						<span className="truncate px-1 text-stone-600">{title}</span>

@@ -18,7 +18,7 @@ interface CreateOverlayElementOptions {
 
 const DEFAULT_VIEWPORT_WIDTH = 800;
 const DEFAULT_VIEWPORT_HEIGHT = 600;
-const DEFAULT_NOTE_BACKGROUND = '#f8f7f3';
+const DEFAULT_NOTE_BACKGROUND = '#ffffff';
 const DEFAULT_NOTE_STROKE = 'rgba(17,24,39,0.09)';
 const DEFAULT_RICH_TEXT_STROKE = 'rgba(17,24,39,0.16)';
 
