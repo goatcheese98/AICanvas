@@ -30,11 +30,31 @@ export function getProjectedOverCardId(
 	cards: ReadonlyArray<CardWithId>,
 	hoveredCardId: string,
 	isPastMidpoint: boolean,
+	previousProjectedCardId?: string | null,
+	pointerRatioWithinCard?: number,
 ): string | null {
 	const hoveredIndex = cards.findIndex((card) => card.id === hoveredCardId);
 	if (hoveredIndex === -1) return null;
+
+	const nextCardId = cards[hoveredIndex + 1]?.id ?? null;
+	if (typeof pointerRatioWithinCard !== 'number') {
+		if (!isPastMidpoint) return hoveredCardId;
+		return nextCardId;
+	}
+
+	const normalizedRatio = Math.min(1, Math.max(0, pointerRatioWithinCard));
+	const deadZone = 0.14;
+
+	if (previousProjectedCardId === hoveredCardId && normalizedRatio < 0.5 + deadZone) {
+		return hoveredCardId;
+	}
+
+	if (previousProjectedCardId === nextCardId && normalizedRatio > 0.5 - deadZone) {
+		return nextCardId;
+	}
+
 	if (!isPastMidpoint) return hoveredCardId;
-	return cards[hoveredIndex + 1]?.id ?? null;
+	return nextCardId;
 }
 
 export function getProjectedOverColumnId(

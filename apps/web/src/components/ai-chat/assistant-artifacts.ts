@@ -60,7 +60,6 @@ type KanbanOp =
 			title: string;
 			position?: number;
 			color?: string;
-			wipLimit?: number;
 	  }
 	| {
 			type: 'add_card';
@@ -79,7 +78,6 @@ type KanbanOp =
 			title: string;
 			order?: number;
 			color?: string;
-			wipLimit?: number;
 	  }
 	| {
 			operation: 'add_card';
@@ -97,7 +95,6 @@ interface NormalizedKanbanColumn {
 	title: string;
 	order: number;
 	color?: string;
-	wipLimit?: number;
 }
 
 interface NormalizedKanbanCard {
@@ -661,7 +658,6 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				title: op.column.title,
 				order: index,
 				color: op.column.color,
-				wipLimit: op.column.wipLimit,
 			});
 			continue;
 		}
@@ -672,7 +668,6 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				title: op.title,
 				order: op.order ?? index,
 				color: op.color,
-				wipLimit: op.wipLimit,
 			});
 			continue;
 		}
@@ -683,7 +678,6 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				title: op.title,
 				order: op.position ?? index,
 				color: op.color,
-				wipLimit: op.wipLimit,
 			});
 			continue;
 		}
@@ -736,7 +730,6 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 						id: column.id,
 						title: column.title,
 						color: column.color,
-						wipLimit: column.wipLimit,
 						cards: [],
 					}))
 			: [...board.columns];

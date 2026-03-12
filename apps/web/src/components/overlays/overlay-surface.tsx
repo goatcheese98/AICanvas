@@ -11,6 +11,7 @@ interface OverlaySurfaceProps extends PropsWithChildren {
 	className?: string;
 	style?: CSSProperties;
 	backgroundColor?: string;
+	inheritFillStyle?: boolean;
 }
 
 export function OverlaySurface({
@@ -19,6 +20,7 @@ export function OverlaySurface({
 	className,
 	style,
 	backgroundColor,
+	inheritFillStyle = true,
 	children,
 }: OverlaySurfaceProps) {
 	const borderRadius = getExcalidrawCornerRadius(
@@ -40,7 +42,9 @@ export function OverlaySurface({
 					strokeColor: element.strokeColor,
 					strokeWidth: element.strokeWidth,
 					strokeStyle: (element.strokeStyle as 'solid' | 'dashed' | 'dotted') ?? 'solid',
-					fillStyle: (element.fillStyle as 'solid' | 'hachure' | 'cross-hatch') ?? 'solid',
+					fillStyle: inheritFillStyle
+						? ((element.fillStyle as 'solid' | 'hachure' | 'cross-hatch') ?? 'solid')
+						: 'solid',
 					opacity: element.opacity,
 				}),
 				...style,

@@ -92,6 +92,15 @@ describe('kanban-utils', () => {
 		expect(getProjectedOverCardId(board.columns[0]?.cards ?? [], 'b', true)).toBeNull();
 	});
 
+	it('keeps the projected card position stable near the midpoint once a side is chosen', () => {
+		const cards = board.columns[0]?.cards ?? [];
+
+		expect(getProjectedOverCardId(cards, 'a', true, 'a', 0.57)).toBe('a');
+		expect(getProjectedOverCardId(cards, 'a', false, 'b', 0.43)).toBe('b');
+		expect(getProjectedOverCardId(cards, 'a', true, 'a', 0.72)).toBe('b');
+		expect(getProjectedOverCardId(cards, 'a', false, 'b', 0.28)).toBe('a');
+	});
+
 	it('moves columns before a projected target', () => {
 		const next = moveKanbanColumn(board, 'done', 'todo');
 		expect(next.columns.map((column) => column.id)).toEqual(['done', 'todo']);

@@ -1,4 +1,5 @@
-import type { DragEvent } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import type { DragEvent, FormEvent } from 'react';
 import type {
 	KanbanCard as KanbanCardType,
 	KanbanColumn as KanbanColumnType,
@@ -16,43 +17,91 @@ interface KanbanColumnProps {
 	fontSize?: number;
 	columnBackground: string;
 	cardBackground: string;
+	cardRadius: number;
+	controlRadius: number;
+	columnRadius: number;
 	borderTone: string;
 	isCardOver: boolean;
 	draggingCardId: string | null;
 	draggingFromColumnId: string | null;
 	draggingColumnId: string | null;
 	overCardId: string | null;
+	searchQuery: string;
 	onChange: (updates: Partial<KanbanColumnType>) => void;
 	onRequestDelete: () => void;
 	onAddCard: () => void;
 	onUpdateCard: (cardId: string, updates: Partial<KanbanCardType>) => void;
 	onDeleteCard: (cardId: string) => void;
 	onCardDragStart: (
-		event: DragEvent<HTMLButtonElement>,
+		event: DragEvent<HTMLElement>,
 		cardId: string,
 		columnId: string,
 	) => void;
 	onCardDragEnd: () => void;
 	onCardColumnDragOver: (event: DragEvent<HTMLDivElement>, columnId: string) => void;
 	onCardColumnDrop: (event: DragEvent<HTMLDivElement>, columnId: string) => void;
-	onCardDragEnter: (cardId: string, columnId: string, event: DragEvent<HTMLDivElement>) => void;
-	onColumnDragStart: (event: DragEvent<HTMLButtonElement>, columnId: string) => void;
+	onCardDragOverTarget: (
+		event: DragEvent<HTMLDivElement>,
+		columnId: string,
+		hoveredCardId: string,
+	) => void;
+	onColumnDragStart: (event: DragEvent<HTMLElement>, columnId: string) => void;
 	onColumnDragEnd: () => void;
 	onColumnReorderDragOver: (event: DragEvent<HTMLDivElement>, columnId: string) => void;
 	onColumnReorderDrop: (event: DragEvent<HTMLElement>) => void;
 }
 
-export function KanbanColumn({
+function CardDropIndicator({ emphasized = false }: { emphasized?: boolean }) {
+	return (
+		<div className="px-1 py-1.5">
+			<div
+				className="relative h-3 transition-all duration-150"
+				style={{ opacity: emphasized ? 1 : 0.94 }}
+			>
+				<div
+					className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full transition-all duration-150"
+					style={{
+						background: 'var(--color-accent-text)',
+						boxShadow:
+							'0 0 0 4px color-mix(in srgb, var(--color-accent-bg) 58%, transparent)',
+					}}
+				/>
+			</div>
+		</div>
+	);
+}
+
+function matchesSearch(card: KanbanCardType, query: string) {
+	const normalized = query.trim().toLowerCase();
+	if (!normalized) return true;
+
+	return (
+		card.title.toLowerCase().includes(normalized) ||
+		(card.description?.toLowerCase().includes(normalized) ?? false) ||
+		(card.labels ?? []).some((label) => label.toLowerCase().includes(normalized))
+	);
+}
+
+function autosizeTextarea(target: HTMLTextAreaElement) {
+	target.style.height = '0px';
+	target.style.height = `${target.scrollHeight}px`;
+}
+
+function KanbanColumnInner({
 	column,
 	fontSize = 14,
 	columnBackground,
 	cardBackground,
+	cardRadius,
+	controlRadius,
+	columnRadius,
 	borderTone,
 	isCardOver,
 	draggingCardId,
 	draggingFromColumnId,
 	draggingColumnId,
 	overCardId,
+	searchQuery,
 	onChange,
 	onRequestDelete,
 	onAddCard,
@@ -62,16 +111,54 @@ export function KanbanColumn({
 	onCardDragEnd,
 	onCardColumnDragOver,
 	onCardColumnDrop,
-	onCardDragEnter,
+	onCardDragOverTarget,
 	onColumnDragStart,
 	onColumnDragEnd,
 	onColumnReorderDragOver,
 	onColumnReorderDrop,
 }: KanbanColumnProps) {
 	const isColumnDragging = draggingColumnId === column.id;
+	const isSearchActive = searchQuery.trim().length > 0;
+	const [isColumnHovered, setIsColumnHovered] = useState(false);
+	const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+	const [titleDraft, setTitleDraft] = useState(column.title);
+	const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const displayCards = useMemo(
+		() => column.cards.filter((card) => matchesSearch(card, searchQuery)),
+		[column.cards, searchQuery],
+	);
+	const projectedCardId = isCardOver && draggingCardId ? overCardId ?? null : null;
+	const showEndDropIndicator = isCardOver && Boolean(draggingCardId) && projectedCardId === null;
+
+	useEffect(() => {
+		if (!titleTextareaRef.current) return;
+		autosizeTextarea(titleTextareaRef.current);
+	}, [titleDraft]);
+
+	useEffect(() => {
+		setTitleDraft(column.title);
+	}, [column.id, column.title]);
+
+	const handleTitleInput = (event: FormEvent<HTMLTextAreaElement>) => {
+		autosizeTextarea(event.currentTarget);
+	};
+
+	const commitTitleDraft = () => {
+		if (titleDraft.trim().length === 0) {
+			setTitleDraft(column.title);
+			return;
+		}
+		if (titleDraft === column.title) return;
+		onChange({ title: titleDraft });
+	};
 
 	return (
 		<div
+			onMouseEnter={() => setIsColumnHovered(true)}
+			onMouseLeave={() => {
+				setIsColumnHovered(false);
+				setHoveredCardId(null);
+			}}
 			onDragOver={(event) => {
 				if (draggingColumnId) {
 					onColumnReorderDragOver(event, column.id);
@@ -86,53 +173,67 @@ export function KanbanColumn({
 				}
 				onCardColumnDrop(event, column.id);
 			}}
-			className="group flex min-w-[19rem] max-w-[19rem] self-start flex-col rounded-[22px] border p-3 transition-all"
+			className="group flex min-w-[20.5rem] max-w-[20.5rem] self-start flex-col px-1 py-2 transition-[box-shadow,border-color,transform,opacity,background-color] duration-200"
 			style={{
-				borderColor: isCardOver ? KANBAN_ACCENT_BORDER : borderTone,
-				background: columnBackground,
+				borderRadius: `${columnRadius}px`,
+				borderColor: isCardOver ? KANBAN_ACCENT_BORDER : 'transparent',
+				background: isCardOver
+					? 'color-mix(in srgb, var(--color-accent-bg) 16%, transparent)'
+					: 'transparent',
 				boxShadow: isCardOver
-					? '0 0 0 2px color-mix(in srgb, var(--color-accent-border) 26%, transparent)'
-					: '0 16px 34px -30px rgba(15,23,42,0.18)',
+					? 'inset 0 0 0 1px color-mix(in srgb, var(--color-accent-border) 36%, transparent), 0 18px 38px -32px rgba(15,23,42,0.12)'
+					: 'none',
 				opacity: isColumnDragging ? 0.7 : 1,
+				transform: isCardOver ? 'translateY(-1px)' : 'translateY(0)',
 			}}
 		>
-			<div className="flex items-center gap-3">
-				<div className="min-w-0 flex-1">
-					<input
-						value={column.title}
-						onChange={(event) => onChange({ title: event.target.value })}
-						className="w-full border-0 bg-transparent px-0 py-0.5 text-[16px] font-semibold outline-none"
+			<div className="grid grid-cols-[4.75rem_minmax(0,1fr)_4.75rem] items-center px-2 py-0.5">
+				<div aria-hidden="true" className="h-9" />
+				<div className="mx-auto flex min-h-[2rem] max-w-[14rem] min-w-0 items-center justify-center text-center">
+					<textarea
+						ref={titleTextareaRef}
+						rows={1}
+						value={titleDraft}
+						onChange={(event) => setTitleDraft(event.target.value)}
+						onBlur={commitTitleDraft}
+						onInput={handleTitleInput}
+						onKeyDown={(event) => {
+							if (event.key === 'Enter') {
+								event.preventDefault();
+								event.currentTarget.blur();
+							}
+						}}
+						maxLength={80}
+						className="min-h-[1.45rem] w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-center text-[19px] font-semibold leading-[1.05] outline-none"
 						style={{ color: 'var(--color-text-primary)', fontFamily: 'inherit' }}
 						placeholder="Column title"
 					/>
-					<div className="mt-1 flex items-center gap-2">
-						<span
-							className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
-							style={{
-								borderColor: 'var(--color-border)',
-								background: 'color-mix(in srgb, var(--color-surface-strong) 90%, white)',
-								color: 'var(--color-text-secondary)',
-							}}
-						>
-							{column.cards.length} card{column.cards.length === 1 ? '' : 's'}
-						</span>
-					</div>
 				</div>
 
-				<div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
-					<button
-						type="button"
+				<div
+					className={`flex shrink-0 items-center justify-end gap-1.5 transition-opacity duration-150 ${
+						isColumnHovered && hoveredCardId === null
+							? 'pointer-events-auto opacity-100'
+							: 'pointer-events-none opacity-0'
+					}`}
+				>
+					<div
+						role="button"
+						tabIndex={0}
 						draggable
 						onDragStart={(event) => onColumnDragStart(event, column.id)}
 						onDragEnd={onColumnDragEnd}
-						className="inline-flex h-9 w-9 items-center justify-center rounded-[11px] border transition-colors"
+						className="inline-flex h-9 w-9 items-center justify-center border transition-colors"
 						style={{
-							borderColor: 'var(--color-border)',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 90%, white)',
+							borderRadius: `${Math.max(controlRadius, 0)}px`,
+							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							background: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
+							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
 							cursor: 'grab',
+							boxShadow: 'var(--kanban-sketch-control-shadow)',
 						}}
-						aria-label={`Drag ${column.title}`}
+						aria-label={`Drag ${titleDraft || column.title}`}
 						title="Drag column"
 					>
 						<span className="grid grid-cols-2 gap-[2px]">
@@ -144,18 +245,21 @@ export function KanbanColumn({
 								/>
 							))}
 						</span>
-					</button>
+					</div>
 
 					<button
 						type="button"
 						onClick={onRequestDelete}
-						className="inline-flex h-9 w-9 items-center justify-center rounded-[11px] border transition-colors"
+						className="inline-flex h-9 w-9 items-center justify-center border transition-colors"
 						style={{
-							borderColor: 'var(--color-border)',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 90%, white)',
+							borderRadius: `${Math.max(controlRadius, 0)}px`,
+							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							background: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
+							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
+							boxShadow: 'var(--kanban-sketch-control-shadow)',
 						}}
-						aria-label={`Delete ${column.title}`}
+						aria-label={`Delete ${titleDraft || column.title}`}
 						title="Delete column"
 					>
 						×
@@ -163,52 +267,92 @@ export function KanbanColumn({
 				</div>
 			</div>
 
-			<div
-				className="mt-3 h-px rounded-full"
-				style={{ background: 'color-mix(in srgb, var(--color-border) 86%, transparent)' }}
-			/>
-
-			<div className="mt-3 space-y-3">
-				{column.cards.map((card) => {
-					const projectedCardId =
-						isCardOver && draggingCardId
-							? overCardId ?? null
-							: null;
+			<div className="mt-4 min-h-[8rem] space-y-2">
+				{displayCards.map((card) => {
+					const showDropBefore =
+						isCardOver && Boolean(draggingCardId) && projectedCardId === card.id;
 					const showReturnCue =
 						Boolean(draggingCardId) &&
 						draggingFromColumnId === column.id &&
 						projectedCardId === getProjectedOverCardId(column.cards, card.id, false);
 
 					return (
-						<KanbanCard
-							key={card.id}
-							card={card}
-							fontSize={fontSize}
-							cardBackground={cardBackground}
-							isDragging={draggingCardId === card.id}
-							showReturnCue={showReturnCue}
-							onChange={(updates) => onUpdateCard(card.id, updates)}
-							onDelete={() => onDeleteCard(card.id)}
-							onDragStart={(event) => onCardDragStart(event, card.id, column.id)}
-							onDragEnd={onCardDragEnd}
-							onDragOverCard={(event) => onCardDragEnter(card.id, column.id, event)}
-						/>
+						<div key={card.id}>
+							{showDropBefore ? <CardDropIndicator emphasized /> : null}
+							<KanbanCard
+								card={card}
+								fontSize={fontSize}
+								cardBackground={cardBackground}
+								cardRadius={cardRadius}
+								controlRadius={controlRadius}
+								isDragging={draggingCardId === card.id}
+								showReturnCue={showReturnCue}
+								onChange={(updates) => onUpdateCard(card.id, updates)}
+								onDelete={() => onDeleteCard(card.id)}
+								onDragStart={(event) => {
+									if (isSearchActive) return;
+									onCardDragStart(event, card.id, column.id);
+								}}
+								onDragEnd={onCardDragEnd}
+								onDragOverCard={(event) => {
+									if (isSearchActive) return;
+									onCardDragOverTarget(event, column.id, card.id);
+								}}
+								onHoverChange={(hovered) => setHoveredCardId(hovered ? card.id : null)}
+							/>
+						</div>
 					);
 				})}
+
+				{isSearchActive && displayCards.length === 0 ? (
+					<div
+						className="rounded-[14px] border border-dashed px-3 py-4 text-center text-[11px] font-medium"
+						style={{
+							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							color: 'var(--color-text-tertiary)',
+							background: 'color-mix(in srgb, var(--color-surface-strong) 92%, white)',
+						}}
+					>
+						No matches
+					</div>
+				) : null}
+
+				{showEndDropIndicator ? <CardDropIndicator emphasized /> : null}
 			</div>
 
 			<button
 				type="button"
 				onClick={onAddCard}
-				className="mt-3 inline-flex w-full items-center justify-center rounded-[16px] border border-dashed px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors"
+				className={`mt-4 inline-flex w-full items-center justify-center gap-2 border border-dashed px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] transition-[opacity,transform,colors] ${
+					isColumnHovered || isCardOver
+						? 'pointer-events-auto translate-y-0 opacity-100'
+						: 'pointer-events-none translate-y-1 opacity-0'
+				}`}
 				style={{
+					borderRadius: `${Math.max(cardRadius, 0)}px`,
 					borderColor: KANBAN_ACCENT_BORDER,
-					background: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
+					background: 'color-mix(in srgb, var(--color-surface-strong) 86%, white)',
+					backgroundImage: 'var(--kanban-sketch-control-texture)',
 					color: KANBAN_ACCENT_TEXT,
+					boxShadow: '0 12px 28px -26px rgba(15,23,42,0.4)',
 				}}
 			>
+				<span className="text-sm leading-none">+</span>
 				Add card
 			</button>
+
+			<div
+				className={`mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity duration-150 ${
+					isColumnHovered || isSearchActive ? 'opacity-100' : 'opacity-0'
+				}`}
+				style={{ color: 'var(--color-text-tertiary)' }}
+			>
+				{isSearchActive
+					? `${displayCards.length} shown / ${column.cards.length} cards`
+					: `${column.cards.length} card${column.cards.length === 1 ? '' : 's'}`}
+			</div>
 		</div>
 	);
 }
+
+export const KanbanColumn = memo(KanbanColumnInner);

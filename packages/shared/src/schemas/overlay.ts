@@ -89,27 +89,37 @@ export const kanbanChecklistItemSchema = z.object({
 
 export const kanbanCardSchema = z.object({
 	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
-	title: z.string().trim().min(1).default('Untitled card'),
-	description: z.string().default(''),
+	title: z
+		.string()
+		.max(120)
+		.refine((value) => value.trim().length > 0, 'Card title must include non-space characters')
+		.default('Untitled card'),
+	description: z.string().max(2000).default(''),
 	priority: z.enum(['low', 'medium', 'high']).default('medium'),
-	labels: z.array(z.string()).default([]),
+	labels: z.array(z.string().max(200)).default([]),
 	dueDate: z.string().optional(),
 	checklist: z.array(kanbanChecklistItemSchema).default([]),
 });
 
 export const kanbanColumnSchema = z.object({
 	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
-	title: z.string().trim().min(1).default('Column'),
+	title: z
+		.string()
+		.max(80)
+		.refine((value) => value.trim().length > 0, 'Column title must include non-space characters')
+		.default('Column'),
 	color: z.string().optional(),
-	wipLimit: z.coerce.number().optional(),
 	cards: z.array(kanbanCardSchema).default([]),
 });
 
 export const kanbanOverlaySchema = z.object({
 	type: z.literal('kanban'),
-	title: z.string().trim().min(1).default('Kanban Board'),
+	title: z
+		.string()
+		.max(120)
+		.refine((value) => value.trim().length > 0, 'Board title must include non-space characters')
+		.default('Kanban Board'),
 	columns: z.array(kanbanColumnSchema).default([]),
-	theme: z.enum(['sketch', 'clean']).optional(),
 	bgTheme: z.string().optional(),
 	fontId: z.string().optional(),
 	fontSize: z

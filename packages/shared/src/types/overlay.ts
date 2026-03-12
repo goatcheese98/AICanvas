@@ -52,7 +52,6 @@ export interface KanbanColumn {
 	id: string;
 	title: string;
 	color?: string;
-	wipLimit?: number;
 	cards: KanbanCard[];
 }
 
@@ -111,7 +110,6 @@ export interface KanbanOverlayCustomData {
 	type: 'kanban';
 	title: string;
 	columns: KanbanColumn[];
-	theme?: 'sketch' | 'clean';
 	bgTheme?: string;
 	fontId?: string;
 	fontSize?: number;
