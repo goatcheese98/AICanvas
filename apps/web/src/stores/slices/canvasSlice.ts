@@ -40,7 +40,8 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 	lastSaved: null,
 	hasUnsavedChanges: false,
 
-	setExcalidrawApi: (api) => set({ excalidrawApi: api }),
+	setExcalidrawApi: (api) =>
+		set((state) => (state.excalidrawApi === api ? state : { excalidrawApi: api })),
 	setElements: (elements) => set({ elements }),
 	setAppState: (appState) => set({ appState }),
 	setFiles: (files) => set({ files }),

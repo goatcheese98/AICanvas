@@ -251,7 +251,7 @@ function SearchIcon() {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function getKanbanSketchVariables(roughness?: number): CSSProperties {
+function getKanbanSketchVariables(roughness?: number, freezeForResize = false): CSSProperties {
 	const intensity = clamp((typeof roughness === 'number' ? roughness : 0) / 4, 0, 1);
 	const textureAlpha = (0.012 + intensity * 0.032).toFixed(3);
 	const highlightAlpha = (0.016 + intensity * 0.02).toFixed(3);
@@ -272,7 +272,7 @@ function getKanbanSketchVariables(roughness?: number): CSSProperties {
 	return {
 		'--kanban-sketch-intensity': `${intensity}`,
 		'--kanban-sketch-card-texture':
-			intensity > 0
+			intensity > 0 && !freezeForResize
 				? [
 						`repeating-linear-gradient(${cardTilt}deg, rgba(15, 23, 42, ${textureAlpha}) 0 1px, transparent 1px ${cardTextureSpacing}px)`,
 						`repeating-linear-gradient(${crossTilt}deg, rgba(255, 255, 255, ${highlightAlpha}) 0 1px, transparent 1px ${(
@@ -281,32 +281,36 @@ function getKanbanSketchVariables(roughness?: number): CSSProperties {
 				  ].join(', ')
 				: 'none',
 		'--kanban-sketch-control-texture':
-			intensity > 0
+			intensity > 0 && !freezeForResize
 				? `repeating-linear-gradient(${(-12 - intensity * 8).toFixed(2)}deg, rgba(15, 23, 42, ${(
 						Number(textureAlpha) * 0.85
 					).toFixed(3)}) 0 1px, transparent 1px ${controlTextureSpacing}px)`
 				: 'none',
 		'--kanban-sketch-divider':
-			intensity > 0
+			intensity > 0 && !freezeForResize
 				? `linear-gradient(90deg, rgba(15, 23, 42, ${dividerAlpha}) 0%, rgba(15, 23, 42, ${(
 						Number(dividerAlpha) * 0.34
 					).toFixed(3)}) 48%, rgba(15, 23, 42, ${dividerAlpha}) 100%)`
 				: 'none',
 		'--kanban-sketch-card-shadow':
-			intensity > 0
+			intensity > 0 && !freezeForResize
 				? `${(0.75 + intensity * 0.9).toFixed(2)}px ${(1.25 + intensity * 1.15).toFixed(2)}px 0 rgba(15, 23, 42, ${cardEchoAlpha})`
 				: 'none',
 		'--kanban-sketch-control-shadow':
-			intensity > 0
+			intensity > 0 && !freezeForResize
 				? `${(0.55 + intensity * 0.6).toFixed(2)}px ${(0.95 + intensity * 0.8).toFixed(2)}px 0 rgba(15, 23, 42, ${controlEchoAlpha})`
 				: 'none',
 		'--kanban-sketch-edge-soft': `rgba(15, 23, 42, ${edgeSoftAlpha})`,
 		'--kanban-sketch-edge-strong': `rgba(15, 23, 42, ${edgeStrongAlpha})`,
-		'--kanban-sketch-edge-offset': `${edgeOffset}px`,
-		'--kanban-sketch-edge-offset-alt': `${edgeOffsetAlt}px`,
-		'--kanban-sketch-edge-tilt': `${edgeTilt}deg`,
-		'--kanban-sketch-edge-tilt-alt': `${edgeTiltAlt}deg`,
+		'--kanban-sketch-edge-offset': freezeForResize ? '0px' : `${edgeOffset}px`,
+		'--kanban-sketch-edge-offset-alt': freezeForResize ? '0px' : `${edgeOffsetAlt}px`,
+		'--kanban-sketch-edge-tilt': freezeForResize ? '0deg' : `${edgeTilt}deg`,
+		'--kanban-sketch-edge-tilt-alt': freezeForResize ? '0deg' : `${edgeTiltAlt}deg`,
 	} as CSSProperties;
+}
+
+function serializeBoard(board: KanbanOverlayCustomData) {
+	return JSON.stringify(board);
 }
 
 export function KanbanBoard({
@@ -332,6 +336,10 @@ export function KanbanBoard({
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const onEditingChangeRef = useRef(onEditingChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
+	const externalBoardSignatureRef = useRef(serializeBoard(normalizeKanbanBoard(element.customData)));
+	const resizeSettleTimeoutRef = useRef<number | null>(null);
+	const previousSizeRef = useRef({ width: element.width, height: element.height });
+	const [isLiveResizing, setIsLiveResizing] = useState(false);
 
 	useEffect(() => {
 		boardRef.current = board;
@@ -351,15 +359,39 @@ export function KanbanBoard({
 
 	useEffect(() => {
 		const normalized = normalizeKanbanBoard(element.customData);
+		const nextSignature = serializeBoard(normalized);
+		if (nextSignature === externalBoardSignatureRef.current) return;
+		externalBoardSignatureRef.current = nextSignature;
 		boardRef.current = normalized;
-		setBoard(normalized);
-		setBoardTitleDraft(normalized.title);
+		setBoard((current) => (serializeBoard(current) === nextSignature ? current : normalized));
+		setBoardTitleDraft((current) => (current === normalized.title ? current : normalized.title));
 	}, [element.customData]);
 
 	useEffect(() => {
 		undoStackRef.current = [];
 		redoStackRef.current = [];
 	}, [element.id]);
+
+	useEffect(() => {
+		const width = element.width;
+		const height = element.height;
+		const previousSize = previousSizeRef.current;
+		const sizeChanged = previousSize.width !== width || previousSize.height !== height;
+		previousSizeRef.current = { width, height };
+
+		if (!sizeChanged || !isSelected) {
+			return;
+		}
+
+		setIsLiveResizing(true);
+		if (resizeSettleTimeoutRef.current !== null) {
+			window.clearTimeout(resizeSettleTimeoutRef.current);
+		}
+		resizeSettleTimeoutRef.current = window.setTimeout(() => {
+			setIsLiveResizing(false);
+			resizeSettleTimeoutRef.current = null;
+		}, 140);
+	}, [element.width, element.height, isSelected]);
 
 	useEffect(() => {
 		if (lastReportedEditingRef.current === isSelected) return;
@@ -369,6 +401,9 @@ export function KanbanBoard({
 
 	useEffect(
 		() => () => {
+			if (resizeSettleTimeoutRef.current !== null) {
+				window.clearTimeout(resizeSettleTimeoutRef.current);
+			}
 			if (lastReportedEditingRef.current) {
 				onEditingChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
@@ -476,7 +511,10 @@ export function KanbanBoard({
 	const activeTheme = getKanbanBackgroundTheme(board.bgTheme);
 	const activeFont = getKanbanFontOption(board.fontId);
 	const fontSize = clampKanbanFontSize(board.fontSize);
-	const sketchVariables = useMemo(() => getKanbanSketchVariables(element.roughness), [element.roughness]);
+	const sketchVariables = useMemo(
+		() => getKanbanSketchVariables(element.roughness, isLiveResizing),
+		[element.roughness, isLiveResizing],
+	);
 	const elementRoundness =
 		(element.roundness as { type: number; value?: number } | null | undefined) ?? null;
 	const cardRadius = useMemo(() => {
@@ -504,6 +542,14 @@ export function KanbanBoard({
 	const boardCardCount = useMemo(
 		() => board.columns.reduce((total, column) => total + column.cards.length, 0),
 		[board.columns],
+	);
+	const motionVariables = useMemo(
+		() =>
+			({
+				'--kanban-motion-duration': isLiveResizing ? '0ms' : '200ms',
+				'--kanban-motion-duration-fast': isLiveResizing ? '0ms' : '150ms',
+			}) as CSSProperties,
+		[isLiveResizing],
 	);
 	const pendingDeleteColumn = useMemo(
 		() => board.columns.find((column) => column.id === pendingDeleteColumnId) ?? null,
@@ -763,17 +809,18 @@ export function KanbanBoard({
 				fontFamily: activeFont.family,
 				backgroundColor: boardFillSurface.backgroundColor,
 				backgroundImage: boardFillSurface.backgroundImage,
+				...motionVariables,
 				...sketchVariables,
 			}}
 		>
 			<div
-				className="flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5"
+				className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b px-3 py-2.5"
 				style={{
 					borderColor: activeTheme.borderTone,
 					background: activeTheme.headerBackground,
 				}}
 			>
-				<div className="min-w-52 flex-1">
+				<div className="min-w-0">
 					<input
 						value={boardTitleDraft}
 						onChange={(event) => setBoardTitleDraft(event.target.value)}
@@ -790,9 +837,9 @@ export function KanbanBoard({
 					/>
 				</div>
 
-				<div className="flex flex-wrap items-center gap-1.5">
+				<div className="flex shrink-0 flex-nowrap items-center gap-1.5 pl-2">
 					<span
-						className="inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
+						className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
 						style={{
 							borderColor: KANBAN_ACCENT_BORDER,
 							background: KANBAN_ACCENT_SURFACE,
@@ -806,7 +853,7 @@ export function KanbanBoard({
 
 					{/* Search input */}
 					<div
-						className={`flex shrink-0 items-center rounded-[10px] border transition-all ${
+						className={`flex shrink-0 items-center rounded-[10px] border transition-[width,padding,gap,border-color,background-color,color] ${
 							searchFocused || searchQuery ? 'justify-start gap-2 px-2.5' : 'justify-center px-0'
 						}`}
 						style={{
@@ -821,6 +868,7 @@ export function KanbanBoard({
 							height: '2rem',
 							width: searchFocused || searchQuery ? '9rem' : '2rem',
 							boxShadow: 'var(--kanban-sketch-control-shadow)',
+							transitionDuration: 'var(--kanban-motion-duration-fast)',
 						}}
 					>
 						<SearchIcon />
@@ -901,6 +949,7 @@ export function KanbanBoard({
 								controlRadius={controlRadius}
 								columnRadius={columnRadius}
 								borderTone={activeTheme.borderTone}
+								isLiveResizing={isLiveResizing}
 								isCardOver={cardOverColumnId === column.id}
 								draggingCardId={draggingCardId}
 								draggingFromColumnId={draggingFromColumnId}

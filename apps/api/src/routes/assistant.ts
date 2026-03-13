@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
+import { and, eq } from 'drizzle-orm';
 import { assistantSchemas } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantContextSnapshot,
@@ -12,6 +13,7 @@ import type {
 import type { AppEnv } from '../types';
 import { requireAuth } from '../middleware/auth';
 import { createDb } from '../lib/db/client';
+import { canvases } from '../lib/db/schema';
 import { buildAssistantContextSnapshot } from '../lib/assistant/context';
 import { generateAssistantResponse } from '../lib/assistant/service';
 import { planAssistantRun } from '../lib/assistant/planner';
@@ -645,18 +647,34 @@ export const assistantRoutes = new Hono<AppEnv>()
 		} = c.req.valid('json');
 		const db = createDb(c.env.DB);
 		let contextSnapshot: AssistantContextSnapshot | undefined;
-		try {
-			contextSnapshot = await buildAssistantContextSnapshot(
-				c.env,
-				ownerId,
-				canvasId,
-				selectedElementIds ?? [],
-			);
-		} catch (error) {
-			if (error instanceof Error && error.message === 'Canvas context not found') {
+		if (contextMode !== 'none') {
+			const canvas = await db.query.canvases.findFirst({
+				columns: {
+					id: true,
+					title: true,
+					description: true,
+				},
+				where: and(eq(canvases.id, canvasId), eq(canvases.userId, ownerId)),
+			});
+			if (!canvas) {
 				return c.json({ error: 'Canvas not found' }, 404);
 			}
-			throw error;
+			try {
+				contextSnapshot = await buildAssistantContextSnapshot(c.env, ownerId, {
+					canvasId,
+					contextMode,
+					selectedElementIds: selectedElementIds ?? [],
+					canvasMeta: {
+						title: canvas.title,
+						description: canvas.description ?? undefined,
+					},
+				});
+			} catch (error) {
+				if (error instanceof Error && error.message === 'Canvas context not found') {
+					return c.json({ error: 'Canvas not found' }, 404);
+				}
+				throw error;
+			}
 		}
 		let run;
 		try {

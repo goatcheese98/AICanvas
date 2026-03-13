@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import '@excalidraw/excalidraw/index.css';
 import { CanvasCore } from './CanvasCore';
 import { CanvasUI } from './CanvasUI';
 import { CanvasNotesLayer } from './CanvasNotesLayer';

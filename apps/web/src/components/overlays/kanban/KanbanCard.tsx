@@ -15,6 +15,7 @@ interface KanbanCardProps {
 	cardBackground: string;
 	cardRadius: number;
 	controlRadius: number;
+	isLiveResizing: boolean;
 	isDragging: boolean;
 	showReturnCue: boolean;
 	onChange: (updates: Partial<KanbanCardType>) => void;
@@ -135,6 +136,7 @@ function KanbanCardInner({
 	cardBackground,
 	cardRadius,
 	controlRadius,
+	isLiveResizing,
 	isDragging,
 	showReturnCue,
 	onChange,
@@ -236,7 +238,7 @@ function KanbanCardInner({
 				setIsHovered(false);
 				onHoverChange?.(false);
 			}}
-			className="group relative border px-4 py-4 transition-[transform,box-shadow,border-color,opacity] duration-200"
+			className="group relative border px-4 py-4 transition-[transform,box-shadow,border-color,opacity]"
 			style={{
 				borderRadius: `${cardRadius}px`,
 				borderColor: showReturnCue
@@ -249,6 +251,7 @@ function KanbanCardInner({
 					: '0 18px 34px -30px rgba(15,23,42,0.22), var(--kanban-sketch-card-shadow)',
 				opacity: isDragging && !showReturnCue ? 0.48 : 1,
 				transform: showReturnCue ? 'translateY(-1px)' : 'translateY(0)',
+				transitionDuration: 'var(--kanban-motion-duration)',
 			}}
 		>
 			<div
@@ -259,7 +262,9 @@ function KanbanCardInner({
 					boxShadow: 'inset 0 0 0 1px var(--kanban-sketch-edge-soft)',
 					transform:
 						'translate(var(--kanban-sketch-edge-offset), calc(var(--kanban-sketch-edge-offset) * 0.55)) rotate(var(--kanban-sketch-edge-tilt))',
-					opacity: 'calc(0.22 + (var(--kanban-sketch-intensity) * 0.55))',
+					opacity: isLiveResizing
+						? 'calc(0.14 + (var(--kanban-sketch-intensity) * 0.22))'
+						: 'calc(0.22 + (var(--kanban-sketch-intensity) * 0.55))',
 				}}
 			/>
 			<div
@@ -270,7 +275,9 @@ function KanbanCardInner({
 					boxShadow: 'inset 0 0 0 1px var(--kanban-sketch-edge-strong)',
 					transform:
 						'translate(calc(var(--kanban-sketch-edge-offset-alt) * -1), var(--kanban-sketch-edge-offset-alt)) rotate(var(--kanban-sketch-edge-tilt-alt))',
-					opacity: 'calc(0.16 + (var(--kanban-sketch-intensity) * 0.48))',
+					opacity: isLiveResizing
+						? 'calc(0.1 + (var(--kanban-sketch-intensity) * 0.18))'
+						: 'calc(0.16 + (var(--kanban-sketch-intensity) * 0.48))',
 				}}
 			/>
 			<div
@@ -280,7 +287,9 @@ function KanbanCardInner({
 					borderTop: '1px solid var(--kanban-sketch-edge-soft)',
 					borderRadius: `${Math.max(cardRadius - 4, 0)}px`,
 					transform: 'rotate(calc(var(--kanban-sketch-edge-tilt) * 0.55))',
-					opacity: 'calc(0.12 + (var(--kanban-sketch-intensity) * 0.22))',
+					opacity: isLiveResizing
+						? 'calc(0.06 + (var(--kanban-sketch-intensity) * 0.08))'
+						: 'calc(0.12 + (var(--kanban-sketch-intensity) * 0.22))',
 				}}
 			/>
 			<div className="relative z-[1]">
@@ -461,11 +470,12 @@ function KanbanCardInner({
 						style={{ background: 'color-mix(in srgb, var(--color-surface-muted) 90%, white)' }}
 					>
 						<div
-							className="h-full rounded-full transition-[width] duration-200"
+							className="h-full rounded-full transition-[width]"
 							style={{
 								width: `${checklistProgress}%`,
 								background:
 									checklistProgress === 100 ? 'var(--color-success-text)' : priorityMeta.color,
+								transitionDuration: 'var(--kanban-motion-duration)',
 							}}
 						/>
 					</div>
@@ -495,9 +505,10 @@ function KanbanCardInner({
 				</button>
 
 				<div
-					className={`flex shrink-0 items-center gap-1.5 transition-opacity duration-150 ${
+					className={`flex shrink-0 items-center gap-1.5 transition-opacity ${
 						isHovered || detailsOpen || isDragging ? 'opacity-100' : 'opacity-0'
 					}`}
+					style={{ transitionDuration: 'var(--kanban-motion-duration-fast)' }}
 				>
 					<div
 						data-card-drag-handle="true"
@@ -555,12 +566,13 @@ function KanbanCardInner({
 
 			{detailsOpen ? (
 				<div
-					className="mt-3 border p-4 transition-all duration-200"
+					className="mt-3 border p-4 transition-all"
 					style={{
 						borderRadius: `${Math.max(cardRadius - 4, 0)}px`,
 						borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 						background: 'color-mix(in srgb, var(--color-surface-strong) 94%, white)',
 						backgroundImage: 'var(--kanban-sketch-card-texture)',
+						transitionDuration: 'var(--kanban-motion-duration)',
 					}}
 				>
 					<div className="space-y-4">
@@ -758,6 +770,7 @@ function KanbanCardInner({
 export const KanbanCard = memo(KanbanCardInner, (prev, next) => {
 	return (
 		prev.card === next.card &&
+		prev.isLiveResizing === next.isLiveResizing &&
 		prev.isDragging === next.isDragging &&
 		prev.showReturnCue === next.showReturnCue &&
 		prev.fontSize === next.fontSize &&

@@ -34,12 +34,66 @@ const assistantMessageSchema = z.object({
 		.optional(),
 	createdAt: z.string().min(1).max(100),
 });
+const assistantCanvasBoundsSchema = z.object({
+	x: z.number(),
+	y: z.number(),
+	width: z.number().min(0),
+	height: z.number().min(0),
+});
+const assistantCanvasStyleHintsSchema = z.object({
+	backgroundColor: z.string().min(1).max(100).optional(),
+	strokeColor: z.string().min(1).max(100).optional(),
+	fillStyle: z.string().min(1).max(100).optional(),
+	roughness: z.number().min(0).max(10).optional(),
+	roundness: z.string().min(1).max(100).optional(),
+	opacity: z.number().min(0).max(100).optional(),
+});
+const assistantCanvasElementSummarySchema = z.object({
+	id: z.string().min(1).max(200),
+	elementType: z.string().min(1).max(100),
+	overlayType: z.string().min(1).max(100).optional(),
+	label: z.string().min(1).max(200).optional(),
+	textExcerpt: z.string().min(1).max(400).optional(),
+	bounds: assistantCanvasBoundsSchema.optional(),
+	distanceFromSelection: z.number().min(0).optional(),
+});
+const assistantSelectedContextBaseSchema = z.object({
+	id: z.string().min(1).max(200),
+	priority: z.number().int().min(0).max(100),
+	elementType: z.string().min(1).max(100),
+	overlayType: z.string().min(1).max(100).optional(),
+	label: z.string().min(1).max(200).optional(),
+	bounds: assistantCanvasBoundsSchema.optional(),
+	styleHints: assistantCanvasStyleHintsSchema.optional(),
+	textExcerpt: z.string().min(1).max(400).optional(),
+});
 const assistantContextSnapshotSchema = z.object({
 	canvasId: z.string().min(1).max(200),
 	totalElementCount: z.number().int().min(0),
 	selectedElementIds: z.array(z.string().min(1).max(200)).max(500),
 	selectedElementCount: z.number().int().min(0),
 	selectedOverlayTypes: z.array(z.string().min(1).max(100)).max(50),
+	canvasMeta: z
+		.object({
+			title: z.string().min(1).max(240),
+			description: z.string().min(1).max(2000).optional(),
+		})
+		.optional(),
+	canvasSummary: z
+		.object({
+			elementTypeCounts: z.record(z.string().min(1).max(100), z.number().int().min(0)),
+			overlayTypeCounts: z.record(z.string().min(1).max(100), z.number().int().min(0)),
+			textBearingElementCount: z.number().int().min(0),
+			editableOverlayCount: z.number().int().min(0),
+			selectedCount: z.number().int().min(0),
+			hasKanban: z.boolean(),
+			hasMarkdown: z.boolean(),
+			hasPrototype: z.boolean(),
+			highlights: z.array(z.string().min(1).max(240)).max(24),
+		})
+		.optional(),
+	canvasElementSummaries: z.array(assistantCanvasElementSummarySchema).max(24).optional(),
+	selectionEnvironment: z.array(assistantCanvasElementSummarySchema).max(12).optional(),
 	selectionSummary: z
 		.array(
 			z.object({
@@ -53,22 +107,12 @@ const assistantContextSnapshotSchema = z.object({
 	selectedContexts: z
 		.array(
 			z.discriminatedUnion('kind', [
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('markdown'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
 					markdown: overlaySchemas.markdown,
 				}),
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('kanban'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
 					kanban: overlaySchemas.kanban,
 					kanbanSummary: z.object({
 						title: z.string().min(1).max(240),
@@ -107,22 +151,12 @@ const assistantContextSnapshotSchema = z.object({
 						).max(200),
 					}),
 				}),
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('web-embed'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
 					webEmbed: overlaySchemas.webEmbed,
 				}),
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('prototype'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
 					prototype: z.object({
 						title: z.string().min(1).max(240),
 						template: z.enum(['react', 'vanilla']),
@@ -131,25 +165,24 @@ const assistantContextSnapshotSchema = z.object({
 						dependencies: z.array(z.string().min(1).max(200)).max(200),
 					}),
 				}),
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('generated-diagram'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
 					diagram: z.object({
 						language: z.enum(['mermaid', 'd2']),
 						code: z.string().min(1),
 					}),
 				}),
-				z.object({
+				assistantSelectedContextBaseSchema.extend({
 					kind: z.literal('generic'),
-					id: z.string().min(1).max(200),
-					priority: z.number().int().min(0).max(100),
-					elementType: z.string().min(1).max(100),
-					overlayType: z.string().min(1).max(100).optional(),
-					label: z.string().min(1).max(200).optional(),
+					generic: z.object({
+						shapeType: z.string().min(1).max(100).optional(),
+						text: z.string().min(1).max(400).optional(),
+						link: z.string().min(1).max(2000).optional(),
+						hasImageFile: z.boolean(),
+						customDataType: z.string().min(1).max(100).optional(),
+						isConnector: z.boolean(),
+						isFrame: z.boolean(),
+					}),
 				}),
 			]),
 		)

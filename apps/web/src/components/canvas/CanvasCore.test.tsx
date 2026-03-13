@@ -114,4 +114,26 @@ describe('CanvasCore', () => {
 			fileA: { id: 'fileA', mimeType: 'image/png' },
 		});
 	});
+
+	it('ignores repeated Excalidraw API callbacks for the same instance', () => {
+		render(<CanvasCore canvasId="canvas-1" />);
+
+		expect(latestExcalidrawProps).not.toBeNull();
+
+		const listener = vi.fn();
+		const unsubscribe = useAppStore.subscribe(listener);
+		const stableApi = { refresh: vi.fn() } as never;
+
+		try {
+			act(() => {
+				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+			});
+
+			expect(useAppStore.getState().excalidrawApi).toBe(stableApi);
+			expect(listener).toHaveBeenCalledTimes(1);
+		} finally {
+			unsubscribe();
+		}
+	});
 });

@@ -68,6 +68,22 @@ export const canvasShares = sqliteTable('canvas_shares', {
 		.$defaultFn(() => new Date()),
 });
 
+export const waitlistSubscriptions = sqliteTable(
+	'waitlist_subscriptions',
+	{
+		id: text('id').primaryKey(),
+		email: text('email').notNull(),
+		source: text('source', { enum: ['landing-hero', 'landing-footer'] }).notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(table) => [
+		uniqueIndex('waitlist_subscriptions_email_unique').on(table.email),
+		index('waitlist_subscriptions_created_at_idx').on(table.createdAt),
+	],
+);
+
 export const assistantThreads = sqliteTable(
 	'assistant_threads',
 	{

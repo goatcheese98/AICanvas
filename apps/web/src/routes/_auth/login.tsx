@@ -1,10 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { SignIn } from '@clerk/clerk-react';
+import { createFileRoute, lazyRouteComponent } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_auth/login')({
-	component: LoginPage,
+	component: lazyRouteComponent(() => import('./-login-view'), 'LoginPage'),
 });
-
-function LoginPage() {
-	return <SignIn routing="path" path="/login" signUpUrl="/signup" />;
-}

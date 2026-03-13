@@ -1,4 +1,5 @@
 import type {
+	AssistantArtifact,
 	AssistantRunRequest,
 	AssistantTaskInput,
 	AssistantTaskType,
@@ -20,12 +21,49 @@ export interface AssistantPlan {
 
 type PlannerRequest = Pick<
 	AssistantRunRequest,
-	'message' | 'contextMode' | 'modeHint' | 'history' | 'prototypeContext' | 'contextSnapshot'
+	| 'message'
+	| 'contextMode'
+	| 'modeHint'
+	| 'history'
+	| 'prototypeContext'
+	| 'contextSnapshot'
+	| 'selectedElementIds'
 >;
 
-function hasSelectedKanbanContext(request: PlannerRequest): boolean {
-	return request.contextMode === 'selected'
-		&& (request.contextSnapshot?.selectedContexts ?? []).some((context) => context.kind === 'kanban');
+function getSelectedContexts(request: PlannerRequest) {
+	return request.contextSnapshot?.selectedContexts ?? [];
+}
+
+function hasSingleSelectedContextKind(
+	request: PlannerRequest,
+	kind: 'kanban' | 'markdown',
+): boolean {
+	const selectedContexts = getSelectedContexts(request);
+	return selectedContexts.length === 1 && selectedContexts[0]?.kind === kind;
+}
+
+function isCreateNewArtifactIntent(message: string): boolean {
+	return /\b(new\s+(board|kanban|note|prototype)|create\s+(a\s+)?new|from this|based on this|turn this into|make (?:a|an)\b)/i.test(
+		message,
+	);
+}
+
+function isEditIntent(message: string): boolean {
+	return /\b(add|adjust|change|clean up|condense|convert|edit|expand|fix|improve|move|organize|polish|priorit|refine|rename|reorder|rewrite|summari[sz]e|update)\b/i.test(
+		message,
+	);
+}
+
+function shouldPatchSelectedKanban(request: PlannerRequest): boolean {
+	return hasSingleSelectedContextKind(request, 'kanban')
+		&& isEditIntent(request.message)
+		&& !isCreateNewArtifactIntent(request.message);
+}
+
+function shouldPatchSelectedMarkdown(request: PlannerRequest): boolean {
+	return hasSingleSelectedContextKind(request, 'markdown')
+		&& isEditIntent(request.message)
+		&& !isCreateNewArtifactIntent(request.message);
 }
 
 function buildTaskTitle(mode: GenerationMode): string {
@@ -34,7 +72,7 @@ function buildTaskTitle(mode: GenerationMode): string {
 			return 'Generate Mermaid draft';
 		case 'd2':
 			return 'Generate D2 draft';
-	case 'kanban':
+		case 'kanban':
 			return 'Generate Kanban operations';
 		case 'prototype':
 			return 'Generate prototype files';
@@ -141,11 +179,21 @@ function buildDiagramTasks(mode: Extract<GenerationMode, 'mermaid' | 'd2'>): Pla
 			},
 		},
 		{
+			type: 'place_canvas_artifact',
+			title: 'Build placement plan',
+			input: {
+				kind: 'place_canvas_artifact',
+				targetArtifactTypes: [mode],
+				title: 'Canvas placement plan',
+				strategy: 'avoid-overlap',
+			},
+		},
+		{
 			type: 'verify_run',
 			title: 'Verify generated output',
 			input: {
 				kind: 'verify_run',
-				requiredTaskTypes: ['generate_response'],
+				requiredTaskTypes: ['generate_response', 'place_canvas_artifact'],
 				requiredArtifactTypes: [mode],
 				requireResultMessage: true,
 			},
@@ -183,46 +231,76 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 				? imageTasks
 				: resolvedMode === 'mermaid' || resolvedMode === 'd2'
 					? buildDiagramTasks(resolvedMode)
-				: [
-						{
-							type: 'generate_response',
-							title: buildTaskTitle(resolvedMode),
-							input: {
-								kind: 'generate_response',
-								resolvedMode,
-								includeArtifactTypes:
-									resolvedMode === 'kanban'
-										? hasSelectedKanbanContext(request)
-											? ['kanban-patch']
-											: ['kanban-ops']
-										: resolvedMode === 'prototype'
-											? ['prototype-files']
-											: [],
-								summary:
-									resolvedMode === 'kanban'
-										? 'Prepared Kanban operations for the canvas.'
-										: resolvedMode === 'prototype'
-											? 'Prepared prototype files for the custom runtime.'
-										: 'Prepared an assistant response for the canvas.',
+				: (() => {
+						const shouldPatchKanban = resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
+						const shouldPatchMarkdown = resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
+						const includeArtifactTypes: AssistantArtifact['type'][] =
+							resolvedMode === 'kanban'
+								? shouldPatchKanban
+									? ['kanban-patch']
+									: ['kanban-ops']
+								: resolvedMode === 'prototype'
+									? ['prototype-files']
+									: shouldPatchMarkdown
+										? ['markdown-patch']
+										: [];
+						const isInsertableCreation =
+							(resolvedMode === 'kanban' && !shouldPatchKanban)
+							|| resolvedMode === 'prototype';
+						const targetArtifactTypes: AssistantArtifact['type'][] =
+							resolvedMode === 'kanban' && !shouldPatchKanban
+								? ['kanban-ops']
+								: resolvedMode === 'prototype'
+									? ['prototype-files']
+									: [];
+						return [
+							{
+								type: 'generate_response',
+								title: buildTaskTitle(resolvedMode),
+								input: {
+									kind: 'generate_response',
+									resolvedMode,
+									includeArtifactTypes,
+									summary:
+										resolvedMode === 'kanban'
+											? shouldPatchKanban
+												? 'Prepared a reversible Kanban patch for the selected board.'
+												: 'Prepared a new Kanban board for insertion onto the canvas.'
+											: resolvedMode === 'prototype'
+												? 'Prepared prototype files for the canvas.'
+												: shouldPatchMarkdown
+													? 'Prepared a reversible markdown patch for the selected note.'
+													: 'Prepared an assistant response for the canvas.',
+								},
 							},
-						},
-						{
-							type: 'verify_run',
-							title: 'Verify generated output',
-							input: {
-								kind: 'verify_run',
-								requiredTaskTypes: ['generate_response'],
-								requiredArtifactTypes:
-									resolvedMode === 'kanban'
-										? hasSelectedKanbanContext(request)
-											? ['kanban-patch']
-											: ['kanban-ops']
-										: resolvedMode === 'prototype'
-											? ['prototype-files']
-											: [],
-								requireResultMessage: true,
+							...(isInsertableCreation
+								? [
+										{
+											type: 'place_canvas_artifact' as const,
+											title: 'Build placement plan',
+											input: {
+												kind: 'place_canvas_artifact' as const,
+												targetArtifactTypes,
+												title: 'Canvas placement plan',
+												strategy: 'avoid-overlap' as const,
+											},
+										},
+								  ]
+								: []),
+							{
+								type: 'verify_run',
+								title: 'Verify generated output',
+								input: {
+									kind: 'verify_run',
+									requiredTaskTypes: [
+										'generate_response',
+										...(isInsertableCreation ? (['place_canvas_artifact'] as const) : []),
+									],
+									requiredArtifactTypes: includeArtifactTypes,
+									requireResultMessage: true,
+								},
 							},
-						},
-				  ],
+						];
+				  })(),
 	};
 }

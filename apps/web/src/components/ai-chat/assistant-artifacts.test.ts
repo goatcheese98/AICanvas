@@ -143,6 +143,53 @@ describe('assistant-artifacts', () => {
 		expect(board.columns[1]?.cards[0]?.title).toBe('History Project');
 	});
 
+	it('builds a kanban board from update-card ops using a selected board as the base', () => {
+		const artifact: AssistantArtifact = {
+			type: 'kanban-ops',
+			content: JSON.stringify({
+				operations: [
+					{
+						op: 'update_card',
+						column: 'To Do',
+						card_index: 0,
+						updates: {
+							title: 'Review assignment brief',
+							priority: 'high',
+							labels: ['urgent', 'start-here'],
+							checklist: ['Read rubric', 'Mark due date'],
+						},
+					},
+				],
+			}),
+		};
+
+		const board = buildKanbanFromArtifact(artifact, {
+			type: 'kanban',
+			title: 'Student work',
+			columns: [
+				{
+					id: 'todo',
+					title: 'To Do',
+					cards: [
+						{
+							id: 'card-1',
+							title: 'Old title',
+							checklist: [],
+						},
+					],
+				},
+				{ id: 'done', title: 'Done', cards: [] },
+			],
+		});
+
+		expect(board.columns[0]?.cards[0]?.title).toBe('Review assignment brief');
+		expect(board.columns[0]?.cards[0]?.priority).toBe('high');
+		expect(board.columns[0]?.cards[0]?.checklist).toEqual([
+			{ text: 'Read rubric', done: false },
+			{ text: 'Mark due date', done: false },
+		]);
+	});
+
 	it('parses markdown patch artifacts and builds a simple diff', () => {
 		const artifact: AssistantArtifact = {
 			type: 'markdown-patch',

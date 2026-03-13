@@ -69,6 +69,10 @@ export interface AssistantContextSnapshot {
 	selectedElementIds: string[];
 	selectedElementCount: number;
 	selectedOverlayTypes: string[];
+	canvasMeta?: AssistantCanvasMeta;
+	canvasSummary?: AssistantCanvasSummary;
+	canvasElementSummaries?: AssistantCanvasElementSummary[];
+	selectionEnvironment?: AssistantCanvasElementSummary[];
 	selectionSummary: Array<{
 		id: string;
 		elementType: string;
@@ -78,12 +82,58 @@ export interface AssistantContextSnapshot {
 	selectedContexts: AssistantSelectedContext[];
 }
 
+export interface AssistantCanvasMeta {
+	title: string;
+	description?: string;
+}
+
+export interface AssistantCanvasBounds {
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+}
+
+export interface AssistantCanvasStyleHints {
+	backgroundColor?: string;
+	strokeColor?: string;
+	fillStyle?: string;
+	roughness?: number;
+	roundness?: string;
+	opacity?: number;
+}
+
+export interface AssistantCanvasElementSummary {
+	id: string;
+	elementType: string;
+	overlayType?: string;
+	label?: string;
+	textExcerpt?: string;
+	bounds?: AssistantCanvasBounds;
+	distanceFromSelection?: number;
+}
+
+export interface AssistantCanvasSummary {
+	elementTypeCounts: Record<string, number>;
+	overlayTypeCounts: Record<string, number>;
+	textBearingElementCount: number;
+	editableOverlayCount: number;
+	selectedCount: number;
+	hasKanban: boolean;
+	hasMarkdown: boolean;
+	hasPrototype: boolean;
+	highlights: string[];
+}
+
 export interface AssistantSelectedContextBase {
 	id: string;
 	priority: number;
 	elementType: string;
 	overlayType?: string;
 	label?: string;
+	bounds?: AssistantCanvasBounds;
+	styleHints?: AssistantCanvasStyleHints;
+	textExcerpt?: string;
 }
 
 export interface AssistantSelectedMarkdownContext extends AssistantSelectedContextBase {
@@ -123,6 +173,15 @@ export interface AssistantSelectedGeneratedDiagramContext extends AssistantSelec
 
 export interface AssistantSelectedGenericContext extends AssistantSelectedContextBase {
 	kind: 'generic';
+	generic: {
+		shapeType?: string;
+		text?: string;
+		link?: string;
+		hasImageFile: boolean;
+		customDataType?: string;
+		isConnector: boolean;
+		isFrame: boolean;
+	};
 }
 
 export type AssistantSelectedContext =

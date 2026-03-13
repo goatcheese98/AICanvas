@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAuth } from '@clerk/clerk-react';
@@ -37,6 +37,7 @@ import {
 import { useAppStore } from '@/stores/store';
 import {
 	createOverlayElementDraft,
+	getOverlayDefaults,
 	getViewportSceneCenter,
 } from '@/components/canvas/element-factories';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
@@ -70,7 +71,7 @@ import {
 } from './selection-context';
 
 const PANEL_BUTTON =
-	'inline-flex h-9 items-center justify-center rounded-[8px] border px-3 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors';
+	'inline-flex h-8 items-center justify-center rounded-[7px] border px-2.5 text-[9px] font-semibold uppercase tracking-[0.18em] transition-colors';
 const PANEL_BUTTON_IDLE =
 	'border-stone-300 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 const PANEL_BUTTON_ACTIVE =
@@ -89,6 +90,12 @@ type AssistantPatchApplyState = {
 	previousCustomData: Record<string, unknown>;
 };
 
+type AssistantInsertionState = {
+	status: 'inserted' | 'removed';
+	insertedElementIds: string[];
+	insertedFileIds?: string[];
+};
+
 type MarkdownPatchReviewState = {
 	acceptedHunkIds: string[];
 };
@@ -96,6 +103,12 @@ type MarkdownPatchReviewState = {
 type AssistantPatchApplyOptions = {
 	markdownContentOverride?: string;
 };
+
+const AFFIRMATIVE_PATCH_REPLY =
+	/^(?:y|yes|apply|apply it|apply patch|go ahead|do it|do that|confirm|sounds good|sure)\.?$/i;
+const NEGATIVE_PATCH_REPLY =
+	/^(?:n|no|don['’]?t apply|do not apply|skip|cancel|not now|leave it)\.?$/i;
+const CHAT_INPUT_MAX_HEIGHT = 136;
 
 function clonePatchCustomData<T extends Record<string, unknown>>(value: T): T {
 	if (typeof structuredClone === 'function') {
@@ -116,10 +129,45 @@ function buildConversationHistory(messages: AssistantMessage[]): AssistantMessag
 	}));
 }
 
+function looksLikePatchProposalContent(content: string): boolean {
+	return /(apply this patch|ready to apply|reversible changes|reversible selection edits|use the patch cards below|kanban update applied|patch successfully applied)/i.test(
+		content,
+	);
+}
+
+function buildArtifactKey(messageId: string, artifact: AssistantArtifact, index: number) {
+	return `${messageId}-${artifact.type}-${index}`;
+}
+
+function getLatestPendingPatchArtifacts(
+	messages: AssistantMessage[],
+	patchStates: Record<string, AssistantPatchApplyState>,
+) {
+	for (const message of [...messages].reverse()) {
+		const patchArtifacts = filterVisibleArtifacts(message.artifacts ?? [])
+			.map((artifact, index) => ({
+				artifact,
+				artifactKey: buildArtifactKey(message.id, artifact, index),
+			}))
+			.filter(
+				({ artifact, artifactKey }) =>
+					(artifact.type === 'markdown-patch' || artifact.type === 'kanban-patch')
+					&& patchStates[artifactKey]?.status !== 'applied',
+			);
+
+		if (patchArtifacts.length > 0) {
+			return patchArtifacts;
+		}
+	}
+
+	return [];
+}
+
 function canInsertMessageAsMarkdown(message: AssistantMessage): boolean {
 	return (
 		message.role === 'assistant' &&
 		message.content.trim().length > 0 &&
+		!looksLikePatchProposalContent(message.content) &&
 		!(message.artifacts ?? []).some(
 			(artifact) =>
 				artifact.type === 'kanban-ops' ||
@@ -158,6 +206,19 @@ function getSelectedPrototypeElement(
 		(candidate) =>
 			selectedElementIds[String(candidate.id)] === true &&
 			(candidate.customData as { type?: string } | undefined)?.type === 'prototype',
+	);
+
+	return selectedElements.length === 1 ? selectedElements[0] : null;
+}
+
+function getSelectedKanbanElement(
+	elements: readonly Record<string, unknown>[],
+	selectedElementIds: Record<string, boolean>,
+) {
+	const selectedElements = elements.filter(
+		(candidate) =>
+			selectedElementIds[String(candidate.id)] === true &&
+			(candidate.customData as { type?: string } | undefined)?.type === 'kanban',
 	);
 
 	return selectedElements.length === 1 ? selectedElements[0] : null;
@@ -225,6 +286,58 @@ function createCanvasImageElement(input: {
 		index: `a${Date.now()}` as any,
 		...(input.customData ? { customData: input.customData } : {}),
 	} as const;
+}
+
+function getSelectedSceneBounds(
+	elements: readonly CanvasElement[],
+	selectedIds: Record<string, boolean>,
+) {
+	const selectedBounds = elements
+		.filter((element) => selectedIds[String(element.id)] === true)
+		.map((element) => {
+			const x = typeof element.x === 'number' ? element.x : null;
+			const y = typeof element.y === 'number' ? element.y : null;
+			const width = typeof element.width === 'number' ? Math.abs(element.width) : 0;
+			const height = typeof element.height === 'number' ? Math.abs(element.height) : 0;
+			return x == null || y == null ? null : { x, y, width, height };
+		})
+		.filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>;
+
+	if (selectedBounds.length === 0) {
+		return null;
+	}
+
+	const left = Math.min(...selectedBounds.map((item) => item.x));
+	const top = Math.min(...selectedBounds.map((item) => item.y));
+	const right = Math.max(...selectedBounds.map((item) => item.x + item.width));
+	const bottom = Math.max(...selectedBounds.map((item) => item.y + item.height));
+	return {
+		x: left,
+		y: top,
+		width: right - left,
+		height: bottom - top,
+	};
+}
+
+function getViewportSceneBounds(appState: Record<string, unknown>) {
+	const view = appState as {
+		zoom?: { value?: number };
+		scrollX?: number;
+		scrollY?: number;
+		width?: number;
+		height?: number;
+	};
+	const zoomValue = typeof view.zoom?.value === 'number' && view.zoom.value > 0 ? view.zoom.value : 1;
+	const scrollX = typeof view.scrollX === 'number' ? view.scrollX : 0;
+	const scrollY = typeof view.scrollY === 'number' ? view.scrollY : 0;
+	const width = typeof view.width === 'number' ? view.width : 1280;
+	const height = typeof view.height === 'number' ? view.height : 720;
+	return {
+		left: -scrollX,
+		top: -scrollY,
+		right: -scrollX + width / zoomValue,
+		bottom: -scrollY + height / zoomValue,
+	};
 }
 
 function getThreadPreview(thread: { messages: AssistantMessage[] }) {
@@ -312,12 +425,12 @@ function CodeSnippet({
 				className="absolute right-2 top-2 z-10 h-7 px-2 text-[9px] opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
 			/>
 			{language ? (
-				<div className="border-b border-stone-200 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+				<div className="border-b border-stone-200 bg-white px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 					{language}
 				</div>
 			) : null}
 			<pre
-				className={`overflow-auto whitespace-pre-wrap p-3 font-mono text-xs text-stone-800 ${
+				className={`overflow-auto whitespace-pre-wrap p-3 font-mono text-[11px] text-stone-800 ${
 					compact ? 'max-h-44' : 'max-h-72'
 				}`}
 			>
@@ -328,11 +441,17 @@ function CodeSnippet({
 }
 
 function DiagramArtifactCard({
+	artifactKey,
 	artifact,
+	insertionState,
+	onUndoInsertedArtifact,
 	onInsertRenderedDiagram,
 }: {
+	artifactKey: string;
 	artifact: AssistantArtifact;
-	onInsertRenderedDiagram?: (input: {
+	insertionState?: AssistantInsertionState;
+	onUndoInsertedArtifact?: (artifactKey: string) => void;
+	onInsertRenderedDiagram?: (artifactKey: string, input: {
 		title: string;
 		svgMarkup: string;
 		width: number;
@@ -398,7 +517,7 @@ function DiagramArtifactCard({
 	return (
 		<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3">
 			<div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-				<div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+				<div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-stone-500">
 					{title}
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
@@ -406,7 +525,7 @@ function DiagramArtifactCard({
 						<select
 							value={d2Variant}
 							onChange={(event) => setD2Variant(event.target.value as D2RenderVariant)}
-							className={`h-9 rounded-[8px] border border-stone-300 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 ${PANEL_BUTTON_IDLE}`}
+							className={`h-8 rounded-[7px] border border-stone-300 bg-white px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-700 ${PANEL_BUTTON_IDLE}`}
 						>
 							<option value="default">Default</option>
 							<option value="sketch">Sketch</option>
@@ -414,24 +533,41 @@ function DiagramArtifactCard({
 						</select>
 					) : null}
 					{rendered && onInsertRenderedDiagram ? (
-						<button
-							type="button"
-							onClick={() =>
-								onInsertRenderedDiagram({
-									title,
-									svgMarkup: rendered.svgMarkup,
-									width: rendered.width,
-									height: rendered.height,
-									diagram: {
-										language: diagram.language,
-										code: diagram.code,
-									},
-								})
-							}
-							className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-						>
-							Insert On Canvas
-						</button>
+						insertionState?.status === 'inserted' ? (
+							<>
+								<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+									Inserted Onto Canvas
+								</div>
+								{onUndoInsertedArtifact ? (
+									<button
+										type="button"
+										onClick={() => onUndoInsertedArtifact(artifactKey)}
+										className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+									>
+										Undo Insert
+									</button>
+								) : null}
+							</>
+						) : (
+							<button
+								type="button"
+								onClick={() =>
+									onInsertRenderedDiagram(artifactKey, {
+										title,
+										svgMarkup: rendered.svgMarkup,
+										width: rendered.width,
+										height: rendered.height,
+										diagram: {
+											language: diagram.language,
+											code: diagram.code,
+										},
+									})
+								}
+								className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+							>
+								Insert On Canvas
+							</button>
+						)
 					) : null}
 					{rendered ? (
 						<>
@@ -470,9 +606,9 @@ function DiagramArtifactCard({
 			</div>
 			<div className="overflow-hidden rounded-[10px] border border-stone-200 bg-white">
 				{isRendering ? (
-					<div className="px-4 py-10 text-center text-sm text-stone-500">Rendering diagram...</div>
+					<div className="px-4 py-10 text-center text-[12px] text-stone-500">Rendering diagram...</div>
 				) : renderError ? (
-					<div className="px-4 py-10 text-center text-sm text-rose-700">{renderError}</div>
+					<div className="px-4 py-10 text-center text-[12px] text-rose-700">{renderError}</div>
 				) : rendered ? (
 					<div
 						className="max-h-[320px] overflow-auto p-3"
@@ -481,7 +617,7 @@ function DiagramArtifactCard({
 				) : null}
 			</div>
 			<details className="mt-3">
-				<summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+				<summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 					View Source
 				</summary>
 				<div className="mt-3">
@@ -567,10 +703,10 @@ function PatchArtifactCard({
 
 		return (
 			<div className="rounded-[10px] border border-amber-200 bg-amber-50 p-3">
-				<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+				<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-700">
 					Markdown Patch
 				</div>
-				<div className="mb-3 text-sm text-stone-800">{markdownPatch.summary}</div>
+				<div className="mb-3 text-[13px] text-stone-800">{markdownPatch.summary}</div>
 				<div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-stone-600">
 					<div className="rounded-full border border-amber-200 bg-white px-2 py-1">
 						{isSelectableReview ? `${markdownHunks.length} hunks` : 'Whole patch'}
@@ -582,15 +718,15 @@ function PatchArtifactCard({
 					) : null}
 				</div>
 				{currentMarkdownContent === null ? (
-					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
 						This markdown note is no longer available on the canvas.
 					</div>
 				) : conflictState === 'modified' ? (
-					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
 						The note changed after this patch was prepared. Undo or regenerate the patch before applying.
 					</div>
 				) : conflictState === 'already-applied' && applyState?.status !== 'applied' ? (
-					<div className="mb-3 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+					<div className="mb-3 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">
 						The selected hunk set already matches the current note content.
 					</div>
 				) : null}
@@ -631,10 +767,10 @@ function PatchArtifactCard({
 									>
 										<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
 											<div>
-												<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+												<div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 													Hunk {hunkIndex + 1}
 												</div>
-												<div className="text-xs text-stone-600">
+												<div className="text-[11px] text-stone-600">
 													{hunk.addedLineCount} added, {hunk.removedLineCount} removed
 												</div>
 											</div>
@@ -657,7 +793,7 @@ function PatchArtifactCard({
 											</button>
 										</div>
 										<div className="overflow-hidden rounded-[10px] border border-stone-200 bg-white">
-											<pre className="max-h-56 overflow-auto p-3 font-mono text-xs leading-6 text-stone-800">
+											<pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-6 text-stone-800">
 												{hunk.lines.map((line, index) => (
 													<div
 														key={`${artifactKey}-${hunk.id}-${index}`}
@@ -682,7 +818,7 @@ function PatchArtifactCard({
 					</>
 				) : (
 					<div className="overflow-hidden rounded-[10px] border border-stone-200 bg-white">
-						<pre className="max-h-56 overflow-auto p-3 font-mono text-xs leading-6 text-stone-800">
+						<pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-6 text-stone-800">
 							{diffLines.map((line, index) => (
 								<div
 									key={`${artifactKey}-md-${index}`}
@@ -749,19 +885,19 @@ function PatchArtifactCard({
 	const kanbanChanges = summarizeKanbanPatchChanges(kanbanPatch);
 	return (
 		<div className="rounded-[10px] border border-indigo-200 bg-indigo-50 p-3">
-			<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-700">
+			<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-700">
 				Kanban Patch
 			</div>
-			<div className="mb-3 text-sm text-stone-800">{kanbanPatch.summary}</div>
+			<div className="mb-3 text-[13px] text-stone-800">{kanbanPatch.summary}</div>
 			<div className="rounded-[10px] border border-stone-200 bg-white p-3">
-				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+				<div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 					Planned Changes
 				</div>
 				<div className="mt-2 space-y-2">
 					{kanbanChanges.map((change, index) => (
 						<div
 							key={`${artifactKey}-kanban-${index}`}
-							className="rounded-[8px] bg-stone-50 px-3 py-2 text-xs text-stone-700"
+							className="rounded-[8px] bg-stone-50 px-3 py-2 text-[11px] text-stone-700"
 						>
 							{change}
 						</div>
@@ -789,7 +925,7 @@ function PatchArtifactCard({
 					<button
 						type="button"
 						onClick={() => onApplyPatch?.(artifactKey, artifact)}
-						className="inline-flex h-9 items-center justify-center rounded-[8px] border border-indigo-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
+						className="inline-flex h-8 items-center justify-center rounded-[7px] border border-indigo-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
 					>
 						Apply Patch
 					</button>
@@ -804,6 +940,8 @@ function ArtifactCard({
 	artifactKey,
 	elements,
 	onInsertArtifact,
+	insertionState,
+	onUndoInsertedArtifact,
 	onInsertRenderedDiagram,
 	patchApplyState,
 	markdownReviewState,
@@ -815,8 +953,10 @@ function ArtifactCard({
 	artifact: AssistantArtifact;
 	artifactKey: string;
 	elements?: readonly CanvasElement[];
-	onInsertArtifact?: (artifact: AssistantArtifact) => void;
-	onInsertRenderedDiagram?: (input: {
+	onInsertArtifact?: (artifactKey: string, artifact: AssistantArtifact) => void;
+	insertionState?: AssistantInsertionState;
+	onUndoInsertedArtifact?: (artifactKey: string) => void;
+	onInsertRenderedDiagram?: (artifactKey: string, input: {
 		title: string;
 		svgMarkup: string;
 		width: number;
@@ -845,7 +985,10 @@ function ArtifactCard({
 	if (diagram) {
 		return (
 			<DiagramArtifactCard
+				artifactKey={artifactKey}
 				artifact={artifact}
+				insertionState={insertionState}
+				onUndoInsertedArtifact={onUndoInsertedArtifact}
 				onInsertRenderedDiagram={onInsertRenderedDiagram}
 			/>
 		);
@@ -871,66 +1014,123 @@ function ArtifactCard({
 		case 'markdown':
 			return (
 				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3">
-					<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-stone-500">
+					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-stone-500">
 						Markdown
 					</div>
 					<CodeSnippet code={artifact.content} language="Markdown" compact />
 					{onInsertArtifact ? (
-						<button
-							type="button"
-							onClick={() => onInsertArtifact(artifact)}
-							className={`mt-3 ${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-						>
-							Insert On Canvas
-						</button>
+						<div className="mt-3 flex flex-wrap gap-2">
+							{insertionState?.status === 'inserted' ? (
+								<>
+									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+										Inserted Onto Canvas
+									</div>
+									{onUndoInsertedArtifact ? (
+										<button
+											type="button"
+											onClick={() => onUndoInsertedArtifact(artifactKey)}
+											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+										>
+											Undo Insert
+										</button>
+									) : null}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => onInsertArtifact(artifactKey, artifact)}
+									className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+								>
+									Insert On Canvas
+								</button>
+							)}
+						</div>
 					) : null}
 				</div>
 			);
 		case 'kanban-ops':
 			return (
 				<div className="rounded-[10px] border border-indigo-200 bg-indigo-50 p-3">
-					<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
+					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
 						Kanban Ops
 					</div>
 					<CodeSnippet code={artifact.content} language="JSON" compact />
 					{onInsertArtifact ? (
-						<button
-							type="button"
-							onClick={() => onInsertArtifact(artifact)}
-							className="mt-3 inline-flex h-9 items-center justify-center rounded-[8px] border border-indigo-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
-						>
-							Insert On Canvas
-						</button>
+						<div className="mt-3 flex flex-wrap gap-2">
+							{insertionState?.status === 'inserted' ? (
+								<>
+									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+										Inserted Onto Canvas
+									</div>
+									{onUndoInsertedArtifact ? (
+										<button
+											type="button"
+											onClick={() => onUndoInsertedArtifact(artifactKey)}
+											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+										>
+											Undo Insert
+										</button>
+									) : null}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => onInsertArtifact(artifactKey, artifact)}
+									className="inline-flex h-8 items-center justify-center rounded-[7px] border border-indigo-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
+								>
+									Insert On Canvas
+								</button>
+							)}
+						</div>
 					) : null}
 				</div>
 			);
 		case 'prototype-files':
 			return (
 				<div className="rounded-[10px] border border-sky-200 bg-sky-50 p-3">
-					<div className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-sky-700">
+					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-sky-700">
 						Prototype Files
 					</div>
 					<CodeSnippet code={artifact.content} language="JSON" compact />
 					{onInsertArtifact ? (
-						<button
-							type="button"
-							onClick={() => onInsertArtifact(artifact)}
-							className="mt-3 inline-flex h-9 items-center justify-center rounded-[8px] border border-sky-300 bg-white px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sky-700 transition-colors hover:border-sky-400 hover:bg-sky-100"
-						>
-							Apply Prototype
-						</button>
+						<div className="mt-3 flex flex-wrap gap-2">
+							{insertionState?.status === 'inserted' ? (
+								<>
+									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+										Inserted Onto Canvas
+									</div>
+									{onUndoInsertedArtifact ? (
+										<button
+											type="button"
+											onClick={() => onUndoInsertedArtifact(artifactKey)}
+											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+										>
+											Undo Insert
+										</button>
+									) : null}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => onInsertArtifact(artifactKey, artifact)}
+									className="inline-flex h-8 items-center justify-center rounded-[7px] border border-sky-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-sky-700 transition-colors hover:border-sky-400 hover:bg-sky-100"
+								>
+									Apply Prototype
+								</button>
+							)}
+						</div>
 					) : null}
 				</div>
 			);
 		case 'image':
 			return (
-				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-xs text-stone-600">
+				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-600">
 					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Image" compact />
 				</div>
 			);
 		case 'image-vector':
 			return (
-				<div className="rounded-[10px] border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">
+				<div className="rounded-[10px] border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-900">
 					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Vector Asset" compact />
 				</div>
 			);
@@ -938,7 +1138,7 @@ function ArtifactCard({
 			return (
 				<div className="rounded-[10px] border border-amber-200 bg-amber-50 p-3">
 					<details>
-						<summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-700">
+						<summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-700">
 							Layout Plan
 						</summary>
 						<div className="mt-3">
@@ -956,6 +1156,8 @@ function MessageCard({
 	message,
 	elements,
 	onInsertArtifact,
+	insertionStates,
+	onUndoInsertedArtifact,
 	onInsertMarkdown,
 	onInsertPrototype,
 	onInsertRenderedDiagram,
@@ -968,10 +1170,12 @@ function MessageCard({
 }: {
 	message: AssistantMessage;
 	elements?: readonly CanvasElement[];
-	onInsertArtifact?: (artifact: AssistantArtifact) => void;
+	onInsertArtifact?: (artifactKey: string, artifact: AssistantArtifact) => void;
+	insertionStates?: Record<string, AssistantInsertionState>;
+	onUndoInsertedArtifact?: (artifactKey: string) => void;
 	onInsertMarkdown?: (message: AssistantMessage) => void;
 	onInsertPrototype?: (message: AssistantMessage) => void;
-	onInsertRenderedDiagram?: (input: {
+	onInsertRenderedDiagram?: (artifactKey: string, input: {
 		title: string;
 		svgMarkup: string;
 		width: number;
@@ -1001,13 +1205,13 @@ function MessageCard({
 
 	return (
 		<div
-			className={`max-w-[92%] rounded-[16px] px-4 py-3 shadow-sm ${
+			className={`max-w-[92%] rounded-[14px] px-3.5 py-2.5 shadow-sm ${
 				isUser
 					? 'ml-auto border border-[#d7dafd] bg-[#f3f1ff] text-[#4d55cc] shadow-none'
 					: 'mr-auto border border-stone-200 bg-white text-stone-900 shadow-none'
 			}`}
 		>
-			<div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] opacity-70">
+			<div className="mb-1.5 flex items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] opacity-70">
 				<span>{isUser ? 'You' : message.generationMode ?? 'Assistant'}</span>
 				<div className="flex items-center gap-2">
 					<span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -1015,9 +1219,9 @@ function MessageCard({
 				</div>
 			</div>
 			{isUser ? (
-				<div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
+				<div className="whitespace-pre-wrap text-[13px] leading-relaxed">{message.content}</div>
 			) : (
-				<div className="text-sm leading-relaxed">
+				<div className="text-[13px] leading-relaxed">
 					<ReactMarkdown
 						remarkPlugins={[remarkGfm]}
 						components={{
@@ -1026,17 +1230,17 @@ function MessageCard({
 							em: ({ children }) => <em className="italic">{children}</em>,
 							ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4">{children}</ul>,
 							ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4">{children}</ol>,
-							li: ({ children }) => <li className="text-sm">{children}</li>,
-							h1: ({ children }) => <h1 className="mb-2 text-base font-semibold">{children}</h1>,
-							h2: ({ children }) => <h2 className="mb-1.5 text-sm font-semibold">{children}</h2>,
-							h3: ({ children }) => <h3 className="mb-1 text-sm font-medium">{children}</h3>,
+							li: ({ children }) => <li className="text-[13px]">{children}</li>,
+							h1: ({ children }) => <h1 className="mb-2 text-[15px] font-semibold">{children}</h1>,
+							h2: ({ children }) => <h2 className="mb-1.5 text-[13px] font-semibold">{children}</h2>,
+							h3: ({ children }) => <h3 className="mb-1 text-[13px] font-medium">{children}</h3>,
 							code: ({ node, className, children, ...props }) => {
 								const isBlock =
 									(node?.position?.start.line ?? 0) !== (node?.position?.end.line ?? 0);
 								if (!isBlock) {
 									return (
 										<code
-											className="rounded bg-stone-100 px-1 py-0.5 text-xs font-mono"
+											className="rounded bg-stone-100 px-1 py-0.5 text-[11px] font-mono"
 											{...props}
 										>
 											{children}
@@ -1073,7 +1277,7 @@ function MessageCard({
 			{visibleArtifacts.length > 0 ? (
 				<div className="mt-3 space-y-3">
 					{visibleArtifacts.map((artifact, index) => {
-						const artifactKey = `${message.id}-${artifact.type}-${index}`;
+						const artifactKey = buildArtifactKey(message.id, artifact, index);
 						return (
 						<ArtifactCard
 							key={artifactKey}
@@ -1081,6 +1285,8 @@ function MessageCard({
 							artifactKey={artifactKey}
 							elements={elements}
 							onInsertArtifact={onInsertArtifact}
+							insertionState={insertionStates?.[artifactKey]}
+							onUndoInsertedArtifact={onUndoInsertedArtifact}
 							onInsertRenderedDiagram={onInsertRenderedDiagram}
 							patchApplyState={patchStates?.[artifactKey]}
 							markdownReviewState={markdownPatchReviewStates?.[artifactKey]}
@@ -1129,12 +1335,12 @@ function SelectionConfirmationCard({
 	onContinueWithoutSelection: () => void;
 }) {
 	return (
-		<div className="mr-auto max-w-[92%] rounded-[16px] border border-amber-200 bg-amber-50 px-4 py-3 text-stone-900 shadow-none">
-			<div className="mb-2 flex items-center justify-between gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700">
+		<div className="mr-auto max-w-[92%] rounded-[14px] border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-stone-900 shadow-none">
+			<div className="mb-1.5 flex items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] text-amber-700">
 				<span>Assistant</span>
 				<span>Context Check</span>
 			</div>
-			<div className="text-sm leading-relaxed">
+			<div className="text-[13px] leading-relaxed">
 				This request looks like it refers to the current selection. {selectionLabel}.
 			</div>
 			<div className="mt-2 rounded-[10px] border border-amber-200 bg-white/70 px-3 py-2 text-xs text-stone-600">
@@ -1185,6 +1391,9 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 	const [assistantPatchStates, setAssistantPatchStates] = useState<
 		Record<string, AssistantPatchApplyState>
 	>({});
+	const [assistantInsertionStates, setAssistantInsertionStates] = useState<
+		Record<string, AssistantInsertionState>
+	>({});
 	const [markdownPatchReviewStates, setMarkdownPatchReviewStates] = useState<
 		Record<string, MarkdownPatchReviewState>
 	>({});
@@ -1192,6 +1401,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		prompt: string;
 		createdAt: string;
 	} | null>(null);
+	const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
 	const currentThread = useMemo(
 		() => threads.find((thread) => thread.id === activeThreadId) ?? threads[0] ?? null,
@@ -1206,11 +1416,16 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		() => !input.trim() || isChatLoading || isThreadsLoading,
 		[input, isChatLoading, isThreadsLoading],
 	);
+	const latestPendingPatchArtifacts = useMemo(
+		() => getLatestPendingPatchArtifacts(messages, assistantPatchStates),
+		[messages, assistantPatchStates],
+	);
 
 	useEffect(() => {
 		setRunProgress(null);
 		setChatError(null);
 		setAssistantPatchStates({});
+		setAssistantInsertionStates({});
 		setMarkdownPatchReviewStates({});
 		setPendingSelectionConfirmation(null);
 	}, [activeThreadId, setChatError]);
@@ -1220,6 +1435,22 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			setPendingSelectionConfirmation(null);
 		}
 	}, [selectionIndicator]);
+
+	useEffect(() => {
+		const textarea = chatTextareaRef.current;
+		if (!textarea) {
+			return;
+		}
+
+		textarea.style.height = '0px';
+		const nextHeight = Math.min(
+			Math.max(textarea.scrollHeight, 44),
+			CHAT_INPUT_MAX_HEIGHT,
+		);
+		textarea.style.height = `${nextHeight}px`;
+		textarea.style.overflowY =
+			textarea.scrollHeight > CHAT_INPUT_MAX_HEIGHT ? 'auto' : 'hidden';
+	}, [input]);
 
 	useEffect(() => {
 		if (!runProgress) {
@@ -1367,6 +1598,19 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		return previousCustomData;
 	};
 
+	const appendLocalAssistantMessage = (content: string) => {
+		if (!currentThread) {
+			return;
+		}
+
+		appendMessageToThread(currentThread.id, {
+			id: crypto.randomUUID(),
+			role: 'assistant',
+			content,
+			createdAt: new Date().toISOString(),
+		});
+	};
+
 	const applyAssistantPatch = (
 		artifactKey: string,
 		artifact: AssistantArtifact,
@@ -1410,7 +1654,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 						previousCustomData: clonePatchCustomData(previousCustomData),
 					},
 				}));
-				return;
+				return true;
 			}
 
 			const kanbanPatch = parseKanbanPatchArtifact(artifact);
@@ -1437,12 +1681,13 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 						previousCustomData: clonePatchCustomData(previousCustomData),
 					},
 				}));
-				return;
+				return true;
 			}
 
 			throw new Error('Patch artifact is invalid.');
 		} catch (error) {
 			setChatError(error instanceof Error ? error.message : 'Failed to apply patch');
+			return false;
 		}
 	};
 
@@ -1480,18 +1725,95 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		}
 	};
 
-	const insertMarkdownOnCanvas = async (content: string) => {
+	const resolveInsertionSceneCenter = (width: number, height: number) => {
 		if (!excalidrawApi) {
-			setChatError('Canvas is not ready yet.');
+			return { x: 0, y: 0 };
+		}
+
+		const appState = excalidrawApi.getAppState();
+		const viewportCenter = getViewportSceneCenter(appState);
+		const selectionBounds = getSelectedSceneBounds(
+			elements as unknown as CanvasElement[],
+			selectedElementIds,
+		);
+		if (!selectionBounds) {
+			return viewportCenter;
+		}
+
+		const viewportBounds = getViewportSceneBounds(appState as Record<string, unknown>);
+		const gap = 72;
+		const rightCenterX = selectionBounds.x + selectionBounds.width + gap + width / 2;
+		const rightFits = rightCenterX + width / 2 <= viewportBounds.right - 24;
+		if (rightFits) {
+			return {
+				x: rightCenterX,
+				y: selectionBounds.y + Math.max(selectionBounds.height, height) / 2,
+			};
+		}
+
+		return {
+			x: selectionBounds.x + width / 2,
+			y: selectionBounds.y + selectionBounds.height + gap + height / 2,
+		};
+	};
+
+	const removeInsertedArtifact = (artifactKey: string) => {
+		const insertionState = assistantInsertionStates[artifactKey];
+		if (!insertionState || !excalidrawApi) {
 			return;
 		}
 
+		const nextElements = excalidrawApi
+			.getSceneElements()
+			.filter((element) => !insertionState.insertedElementIds.includes(String(element.id)));
+		const currentFiles = excalidrawApi.getFiles();
+		const nextFiles = { ...currentFiles };
+		for (const fileId of insertionState.insertedFileIds ?? []) {
+			delete nextFiles[fileId];
+		}
+
+		excalidrawApi.updateScene({
+			elements: nextElements,
+			appState: {
+				selectedElementIds: {},
+			},
+		});
+		setElements(nextElements);
+		setFiles(nextFiles);
+		setAssistantInsertionStates((current) => ({
+			...current,
+			[artifactKey]: {
+				...insertionState,
+				status: 'removed',
+			},
+		}));
+	};
+
+	const insertMarkdownOnCanvas = async (content: string): Promise<AssistantInsertionState | null> => {
+		if (!excalidrawApi) {
+			setChatError('Canvas is not ready yet.');
+			return null;
+		}
+
 		const convertToExcalidrawElements = await getConvertToExcalidrawElements();
-		const sceneCenter = getViewportSceneCenter(excalidrawApi.getAppState());
+		const { width, height } = getOverlayDefaults('markdown');
+		const sceneCenter = resolveInsertionSceneCenter(width, height);
 		const currentElements = excalidrawApi.getSceneElements();
 		const draft = createOverlayElementDraft('markdown', sceneCenter, { content });
 		const converted = convertToExcalidrawElements([draft as never]);
-		excalidrawApi.updateScene({ elements: [...currentElements, ...converted] });
+		const insertedElementIds = converted.map((element) => String(element.id));
+		const nextElements = [...currentElements, ...converted];
+		excalidrawApi.updateScene({
+			elements: nextElements,
+			appState: {
+				selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
+			},
+		});
+		setElements(nextElements);
+		return {
+			status: 'inserted',
+			insertedElementIds,
+		};
 	};
 
 	const insertRenderedDiagramOnCanvas = async (input: {
@@ -1503,10 +1825,10 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			language: 'mermaid' | 'd2';
 			code: string;
 		};
-	}) => {
+	}): Promise<AssistantInsertionState | null> => {
 		if (!excalidrawApi) {
 			setChatError('Canvas is not ready yet.');
-			return;
+			return null;
 		}
 
 		const dataURL = svgToDataUrl(input.svgMarkup) as BinaryFileData['dataURL'];
@@ -1520,9 +1842,9 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		};
 		const currentElements = excalidrawApi.getSceneElements();
 		const currentFiles = excalidrawApi.getFiles();
-		const sceneCenter = getViewportSceneCenter(excalidrawApi.getAppState());
 		const width = Math.max(200, Math.round(input.width));
 		const height = Math.max(120, Math.round(input.height));
+		const sceneCenter = resolveInsertionSceneCenter(width, height);
 		const imageElement = createCanvasImageElement({
 			fileId,
 			x: sceneCenter.x - width / 2,
@@ -1549,6 +1871,11 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			[fileId]: imageFile,
 		});
 		setElements([...currentElements, imageElement]);
+		return {
+			status: 'inserted',
+			insertedElementIds: [String(imageElement.id)],
+			insertedFileIds: [fileId],
+		};
 	};
 
 	const getPrototypeContextForRequest = (effectiveContextMode: AssistantContextMode) => {
@@ -1567,32 +1894,54 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		return normalizePrototypeOverlay(selectedPrototype.customData as Record<string, unknown>);
 	};
 
-	const insertArtifactOnCanvas = async (artifact: AssistantArtifact) => {
+	const insertArtifactOnCanvas = async (
+		artifact: AssistantArtifact,
+	): Promise<AssistantInsertionState | null> => {
 		if (!excalidrawApi) {
 			setChatError('Canvas is not ready yet.');
-			return;
+			return null;
 		}
 
 		const convertToExcalidrawElements = await getConvertToExcalidrawElements();
-		const sceneCenter = getViewportSceneCenter(excalidrawApi.getAppState());
 		const currentElements = excalidrawApi.getSceneElements();
 
 		switch (artifact.type) {
 			case 'kanban-ops': {
+				const { width, height } = getOverlayDefaults('kanban');
+				const sceneCenter = resolveInsertionSceneCenter(width, height);
+				const selectedKanban = getSelectedKanbanElement(
+					currentElements as unknown as Record<string, unknown>[],
+					selectedElementIds,
+				);
 				const draft = createOverlayElementDraft(
 					'kanban',
 					sceneCenter,
-					buildKanbanFromArtifact(artifact) as unknown as Record<string, unknown>,
+					buildKanbanFromArtifact(
+						artifact,
+						selectedKanban
+							? normalizeKanbanOverlay(selectedKanban.customData as Record<string, unknown>)
+							: undefined,
+					) as unknown as Record<string, unknown>,
 				);
 				const converted = convertToExcalidrawElements([draft as never]);
-				excalidrawApi.updateScene({ elements: [...currentElements, ...converted] });
-				break;
+				const insertedElementIds = converted.map((element) => String(element.id));
+				const nextElements = [...currentElements, ...converted];
+				excalidrawApi.updateScene({
+					elements: nextElements,
+					appState: {
+						selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
+					},
+				});
+				setElements(nextElements);
+				return {
+					status: 'inserted',
+					insertedElementIds,
+				};
 			}
 			case 'mermaid':
 			case 'd2':
 			case 'markdown': {
-				await insertMarkdownOnCanvas(buildMarkdownArtifactContent(artifact));
-				break;
+				return await insertMarkdownOnCanvas(buildMarkdownArtifactContent(artifact));
 			}
 			case 'prototype-files': {
 				const prototype = buildPrototypeFromArtifact(artifact);
@@ -1618,20 +1967,37 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 					);
 					excalidrawApi.updateScene({ elements: nextElements });
 					setElements(nextElements);
-					break;
+					return {
+						status: 'inserted',
+						insertedElementIds: [String(selectedPrototype.id)],
+					};
 				}
 
+				const { width, height } = getOverlayDefaults('prototype');
+				const sceneCenter = resolveInsertionSceneCenter(width, height);
 				const draft = createOverlayElementDraft(
 					'prototype',
 					sceneCenter,
 					prototype as unknown as Record<string, unknown>,
 				);
 				const converted = convertToExcalidrawElements([draft as never]);
-				excalidrawApi.updateScene({ elements: [...currentElements, ...converted] });
-				break;
+				const insertedElementIds = converted.map((element) => String(element.id));
+				const nextElements = [...currentElements, ...converted];
+				excalidrawApi.updateScene({
+					elements: nextElements,
+					appState: {
+						selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
+					},
+				});
+				setElements(nextElements);
+				return {
+					status: 'inserted',
+					insertedElementIds,
+				};
 			}
 			default:
 				setChatError('This artifact type is not insertable yet.');
+				return null;
 		}
 	};
 
@@ -1678,13 +2044,145 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		excalidrawApi.updateScene({ elements: [...currentElements, ...converted] });
 	};
 
+	useEffect(() => {
+		if (!runProgress || runProgress.status !== 'completed') {
+			return;
+		}
+
+		const latestAssistantMessage = [...messages]
+			.reverse()
+			.find((message) => message.role === 'assistant' && (message.artifacts?.length ?? 0) > 0);
+		if (!latestAssistantMessage) {
+			return;
+		}
+
+		const visibleArtifacts = filterVisibleArtifacts(latestAssistantMessage.artifacts ?? []);
+		const pendingArtifacts = visibleArtifacts
+			.map((artifact, index) => ({
+				artifact,
+				artifactKey: buildArtifactKey(latestAssistantMessage.id, artifact, index),
+			}))
+			.filter(
+				({ artifact, artifactKey }) =>
+					(artifact.type === 'kanban-ops'
+						|| artifact.type === 'markdown'
+						|| artifact.type === 'prototype-files'
+						|| artifact.type === 'mermaid'
+						|| artifact.type === 'd2')
+					&& !assistantInsertionStates[artifactKey],
+			);
+
+		if (pendingArtifacts.length === 0) {
+			return;
+		}
+
+		let cancelled = false;
+		void (async () => {
+			for (const { artifact, artifactKey } of pendingArtifacts) {
+				if (cancelled) {
+					return;
+				}
+
+				try {
+					const insertionState =
+						artifact.type === 'mermaid' || artifact.type === 'd2'
+							? await (async () => {
+									const diagram = getDiagramArtifactSource(artifact);
+									if (!diagram) {
+										return null;
+									}
+									const rendered = await renderCodeArtifactToSvg({
+										language: diagram.language,
+										code: diagram.code,
+										d2Variant: 'default',
+									});
+									return insertRenderedDiagramOnCanvas({
+										title: diagram.language === 'mermaid' ? 'Mermaid Diagram' : 'D2 Diagram',
+										svgMarkup: rendered.svgMarkup,
+										width: rendered.width,
+										height: rendered.height,
+										diagram,
+									});
+							  })()
+							: await insertArtifactOnCanvas(artifact);
+
+					if (!cancelled && insertionState) {
+						setAssistantInsertionStates((current) => ({
+							...current,
+							[artifactKey]: insertionState,
+						}));
+					}
+				} catch (error) {
+					if (!cancelled) {
+						setChatError(
+							error instanceof Error ? error.message : 'Failed to insert artifact onto the canvas',
+						);
+					}
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [assistantInsertionStates, messages, runProgress, setChatError]);
+
 	const sendMessage = async (options?: {
 		contextModeOverride?: AssistantContextMode;
 		promptOverride?: string;
 		skipSelectionConfirmation?: boolean;
 	}) => {
-		const text = (options?.promptOverride ?? input).trim();
+		const rawText = options?.promptOverride ?? input;
+		const text = rawText.trim();
 		if (!text || isChatLoading) return;
+
+		if (!pendingSelectionConfirmation) {
+			const isAffirmativePatchReply = AFFIRMATIVE_PATCH_REPLY.test(text);
+			const isNegativePatchReply = NEGATIVE_PATCH_REPLY.test(text);
+
+			if (isAffirmativePatchReply || isNegativePatchReply) {
+				if (!options?.promptOverride) {
+					setInput('');
+				}
+				setChatError(null);
+
+				if (latestPendingPatchArtifacts.length === 1) {
+					const [{ artifact, artifactKey }] = latestPendingPatchArtifacts;
+					if (isAffirmativePatchReply) {
+						const patchState = assistantPatchStates[artifactKey];
+						const didApply = applyAssistantPatch(
+							artifactKey,
+							artifact,
+							patchState?.status === 'undone' ? 'reapply' : 'apply',
+						);
+						if (didApply) {
+							appendLocalAssistantMessage(
+								patchState?.status === 'undone'
+									? 'Reapplied the pending patch to the selected canvas item.'
+									: 'Applied the pending patch to the selected canvas item.',
+							);
+						}
+					} else {
+						appendLocalAssistantMessage(
+							'Kept the pending patch as a suggestion. Nothing changed on the canvas.',
+						);
+					}
+					return;
+				}
+
+				if (latestPendingPatchArtifacts.length > 1) {
+					setChatError(
+						'There are multiple pending patches right now. Use the specific patch button so we apply the right change.',
+					);
+					return;
+				}
+
+				appendLocalAssistantMessage(
+					"There isn't a pending structured patch ready to apply right now. Use an Apply Patch button when one is shown, or ask me to regenerate the change.",
+				);
+				return;
+			}
+		}
 
 		const effectiveContextMode = options?.contextModeOverride ?? contextMode;
 		const selectedIds = getSelectedElementIdsFromMap(selectedElementIds);
@@ -1715,7 +2213,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			createdAt: new Date().toISOString(),
 		};
 		const history = buildConversationHistory(messages);
-		const requestSelectedIds = effectiveContextMode === 'selected' ? selectedIds : [];
+		const requestSelectedIds = selectedIds;
 		const prototypeContext = getPrototypeContextForRequest(effectiveContextMode);
 		if (!options?.promptOverride) {
 			setInput('');
@@ -1790,7 +2288,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 					isHistoryCollapsed ? 'w-[60px]' : 'w-[286px]'
 				}`}
 			>
-				<div className="border-b border-stone-200 px-3 py-2.5">
+				<div className="border-b border-stone-200 px-3 py-2">
 					<div className={`flex items-center ${isHistoryCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
 						{isHistoryCollapsed ? null : (
 							<div className="text-[11px] font-medium text-stone-500">
@@ -1800,7 +2298,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 						<button
 							type="button"
 							onClick={() => setIsHistoryCollapsed((current) => !current)}
-							className="group inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-transparent text-stone-500 transition-all duration-200 hover:border-stone-200 hover:bg-white hover:text-stone-900"
+							className="group inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-transparent text-stone-500 transition-all duration-200 hover:border-stone-200 hover:bg-white hover:text-stone-900"
 							aria-label={isHistoryCollapsed ? 'Expand chat history' : 'Collapse chat history'}
 							title={isHistoryCollapsed ? 'Expand chat history' : 'Collapse chat history'}
 						>
@@ -1838,7 +2336,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 							}
 						}}
 						className={`mt-2 ${PANEL_BUTTON} ${isHistoryCollapsed ? PANEL_BUTTON_ACTIVE : PANEL_BUTTON_IDLE} ${
-							isHistoryCollapsed ? 'h-10 w-full rounded-[10px] px-0' : 'w-full justify-center'
+							isHistoryCollapsed ? 'h-9 w-full rounded-[9px] px-0' : 'w-full justify-center'
 						}`}
 						title="Create a new chat"
 					>
@@ -1854,7 +2352,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 				</div>
 
 				<div className="min-h-0 flex-1 overflow-auto p-2">
-					<div className="space-y-1.5">
+					<div className="space-y-1">
 						{threads.map((thread) => {
 							const isActive = thread.id === currentThread?.id;
 							const displayTitle = getThreadDisplayTitle(thread);
@@ -1865,12 +2363,12 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										onClick={() => setActiveThreadId(thread.id)}
 										className={`text-left transition-colors ${
 											isHistoryCollapsed
-												? `flex h-10 w-full items-center justify-center rounded-[10px] border ${
+												? `flex h-9 w-full items-center justify-center rounded-[10px] border ${
 														isActive
 															? 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]'
 															: 'border-stone-200 bg-white text-stone-500 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]'
 													}`
-												: `flex w-full items-start rounded-[10px] border px-3 py-2.5 ${
+												: `flex w-full items-start rounded-[10px] border px-3 py-2 ${
 														isActive
 															? 'border-[#d7dafd] bg-[#f3f1ff]'
 															: 'border-transparent bg-transparent hover:border-stone-200 hover:bg-white'
@@ -1884,14 +2382,14 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 											) : (
 												<div className="min-w-0 flex-1 pr-7">
 													<div className="flex items-center justify-between gap-3">
-														<div className="truncate text-sm font-medium text-stone-900">
+														<div className="truncate text-[13px] font-medium text-stone-900">
 															{displayTitle}
 														</div>
-														<div className="shrink-0 text-[10px] text-stone-400">
+														<div className="shrink-0 text-[9px] text-stone-400">
 															{formatThreadTimestamp(thread.updatedAt)}
 														</div>
 													</div>
-													<div className="mt-1 truncate text-xs text-stone-500">
+													<div className="mt-1 truncate text-[11px] text-stone-500">
 														{getThreadPreview(thread)}
 													</div>
 												</div>
@@ -1935,7 +2433,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 							);
 						})}
 						{threads.length === 0 ? (
-							<div className="rounded-[10px] border border-dashed border-stone-200 bg-white px-3 py-4 text-xs text-stone-500">
+							<div className="rounded-[10px] border border-dashed border-stone-200 bg-white px-3 py-4 text-[11px] text-stone-500">
 								No saved chats for this canvas yet.
 							</div>
 						) : null}
@@ -1944,15 +2442,15 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			</aside>
 
 				<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-stone-50">
-					<div className="border-b border-stone-200 bg-white px-4 py-3">
+					<div className="border-b border-stone-200 bg-white px-4 py-2.5">
 						<div className="flex items-center justify-between gap-3">
-						<div className="min-w-0 truncate text-[12px] text-stone-500">
+						<div className="min-w-0 truncate text-[11px] text-stone-500">
 								{messages.length} message{messages.length === 1 ? '' : 's'}
 							</div>
 						<div className="flex flex-wrap items-center gap-2">
 							{selectionIndicator ? (
 								<div
-									className={`inline-flex h-10 items-center rounded-[10px] border px-3 text-xs ${
+									className={`inline-flex h-9 items-center rounded-[9px] border px-3 text-[11px] ${
 										contextMode === 'selected'
 											? 'border-emerald-200 bg-emerald-50 text-emerald-700'
 											: 'border-amber-200 bg-amber-50 text-amber-700'
@@ -1967,7 +2465,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 							<select
 								value={contextMode}
 								onChange={(event) => setContextMode(event.target.value as 'all' | 'selected' | 'none')}
-								className={`h-10 min-w-[210px] rounded-[10px] border bg-white px-3 py-2 text-sm ${PANEL_BUTTON_IDLE}`}
+								className={`h-9 min-w-[188px] rounded-[9px] border bg-white px-3 py-2 text-[12px] ${PANEL_BUTTON_IDLE}`}
 							>
 								<option value="none">No canvas context</option>
 								<option value="all">Whole canvas</option>
@@ -1992,7 +2490,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										);
 									}
 								}}
-								className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER} h-10`}
+								className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER} h-9`}
 							>
 								Clear Thread
 							</button>
@@ -2001,24 +2499,24 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 				</div>
 
 				<div className="min-h-0 flex-1 overflow-auto">
-					<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-4 px-5 py-5">
+					<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
 						{runProgress ? (
 								<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-3">
 								<div className="flex items-center justify-between gap-3">
 									<div className="flex items-center gap-3">
-										<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+										<div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 											Run Status
 										</div>
 										<button
 											type="button"
 											onClick={() => setIsRunProgressExpanded((current) => !current)}
-											className="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500 transition-colors hover:text-stone-900"
+											className="text-[9px] font-semibold uppercase tracking-[0.16em] text-stone-500 transition-colors hover:text-stone-900"
 										>
 											{isRunProgressExpanded ? 'Collapse' : 'Expand'}
 										</button>
 									</div>
 									<div
-										className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+										className={`rounded-full px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] ${
 											runProgress.status === 'failed'
 												? 'bg-rose-100 text-rose-700'
 												: runProgress.status === 'completed'
@@ -2029,7 +2527,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										{runProgress.status}
 									</div>
 								</div>
-								<div className="mt-1 text-sm font-medium text-stone-900">
+								<div className="mt-1 text-[13px] font-medium text-stone-900">
 									{getAssistantRunProgressLabel(runProgress)}
 								</div>
 								{isRunProgressExpanded && runProgress.tasks.length > 0 ? (
@@ -2037,7 +2535,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										{runProgress.tasks.map((task) => (
 											<div
 												key={task.id}
-												className="flex items-center justify-between gap-3 rounded-[10px] bg-stone-50 px-3 py-2 text-xs"
+												className="flex items-center justify-between gap-3 rounded-[10px] bg-stone-50 px-3 py-2 text-[11px]"
 											>
 												<div className="text-stone-700">{task.title}</div>
 												<div
@@ -2059,14 +2557,14 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 								) : null}
 								{isRunProgressExpanded && runProgress.artifacts.length > 0 ? (
 									<div className="mt-3 rounded-[10px] border border-stone-200 bg-stone-50 px-3 py-2">
-										<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+										<div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 											Artifacts
 										</div>
 										<div className="mt-2 flex flex-wrap gap-2">
 											{runProgress.artifacts.map((artifact) => (
 												<div
 													key={artifact.id}
-													className="rounded-full border border-stone-200 bg-white px-2 py-1 text-[11px] text-stone-700"
+													className="rounded-full border border-stone-200 bg-white px-2 py-1 text-[10px] text-stone-700"
 												>
 													{artifact.title}
 												</div>
@@ -2079,20 +2577,20 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 
 						{messages.length === 0 ? (
 								<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-4">
-									<div className="text-[11px] font-medium text-stone-500">
+									<div className="text-[10px] font-medium text-stone-500">
 										Try asking the canvas assistant to diagram, summarize, or transform your current selection.
 									</div>
 									<div className="mt-3 flex flex-wrap gap-2">
-										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900">
+										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
 											Diagram the auth flow
 										</div>
-										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900">
+										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
 											Turn this into kanban tasks
 										</div>
-										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900">
+										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
 											Summarize this idea as markdown
 										</div>
-										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900">
+										<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
 											Build a landing page prototype
 										</div>
 									</div>
@@ -2103,13 +2601,31 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 									key={message.id}
 									message={message}
 									elements={elements as unknown as CanvasElement[]}
-									onInsertArtifact={insertArtifactOnCanvas}
+									onInsertArtifact={(artifactKey, artifact) =>
+										void insertArtifactOnCanvas(artifact).then((insertionState) => {
+											if (insertionState) {
+												setAssistantInsertionStates((current) => ({
+													...current,
+													[artifactKey]: insertionState,
+												}));
+											}
+										})
+									}
+									insertionStates={assistantInsertionStates}
+									onUndoInsertedArtifact={removeInsertedArtifact}
 									onInsertMarkdown={(nextMessage) => void insertMarkdownOnCanvas(nextMessage.content)}
 									onInsertPrototype={(nextMessage) =>
 										void insertPrototypeOnCanvas(buildPrototypeFromMessageContent(nextMessage.content))
 									}
-									onInsertRenderedDiagram={(diagramInput) =>
-										void insertRenderedDiagramOnCanvas(diagramInput)
+									onInsertRenderedDiagram={(artifactKey, diagramInput) =>
+										void insertRenderedDiagramOnCanvas(diagramInput).then((insertionState) => {
+											if (insertionState) {
+												setAssistantInsertionStates((current) => ({
+													...current,
+													[artifactKey]: insertionState,
+												}));
+											}
+										})
 									}
 									patchStates={assistantPatchStates}
 									markdownPatchReviewStates={markdownPatchReviewStates}
@@ -2147,27 +2663,28 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 						) : null}
 
 						{isChatLoading && !runProgress ? (
-							<div className="mr-auto rounded-[12px] border border-stone-200 bg-white px-4 py-3 text-sm text-stone-500">
+							<div className="mr-auto rounded-[12px] border border-stone-200 bg-white px-4 py-3 text-[12px] text-stone-500">
 								Planning and running...
 							</div>
 						) : null}
 					</div>
 				</div>
 
-				<div className="border-t border-stone-200 bg-stone-50 px-5 py-4">
+				<div className="border-t border-stone-200 bg-stone-50 px-4 py-3">
 					<div className="mx-auto w-full max-w-[1120px]">
 						{chatError ? (
-							<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+							<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
 								{chatError}
 							</div>
 						) : null}
 						{selectionIndicator && contextMode !== 'selected' ? (
-							<div className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+							<div className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
 								{selectionIndicator.label}. {selectionIndicator.detail}
 							</div>
 						) : null}
-						<div className="rounded-[12px] border border-stone-200 bg-white p-3">
+						<div className="rounded-[12px] border border-stone-200 bg-white p-2.5">
 							<textarea
+								ref={chatTextareaRef}
 								value={input}
 								onChange={(event) => setInput(event.target.value)}
 								onKeyDown={(event) => {
@@ -2176,18 +2693,18 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										void sendMessage();
 									}
 								}}
-								className="min-h-[72px] w-full resize-none border-0 bg-transparent px-1 py-1 text-sm text-stone-900 outline-none placeholder:text-stone-400"
+								className="w-full resize-none border-0 bg-transparent px-1 py-1 text-[13px] leading-5 text-stone-900 outline-none placeholder:text-stone-400"
 								placeholder="Describe the result you want on the canvas..."
 							/>
-							<div className="mt-3 flex items-center justify-between gap-3 border-t border-stone-200 pt-3">
-								<div className="text-[11px] text-stone-500">Cmd/Ctrl+Enter to send</div>
+							<div className="mt-2 flex items-center justify-between gap-3 border-t border-stone-200 pt-2">
+								<div className="text-[10px] text-stone-500">Cmd/Ctrl+Enter to send</div>
 								<button
 									type="button"
 									disabled={disabled}
 									onClick={() => void sendMessage()}
 									className={`${PANEL_BUTTON} ${
 										disabled ? 'cursor-not-allowed border-stone-200 bg-stone-200 text-stone-400' : PANEL_BUTTON_ACTIVE
-									} h-10 px-4`}
+									} h-8 px-3`}
 								>
 									Send
 								</button>

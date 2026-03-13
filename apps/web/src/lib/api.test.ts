@@ -4,6 +4,7 @@ import {
 	deleteAssistantThread,
 	fetchAssistantThreads,
 	getRequiredAuthHeaders,
+	joinWaitlist,
 } from './api';
 
 const originalFetch = globalThis.fetch;
@@ -102,6 +103,37 @@ describe('assistant thread api helpers', () => {
 			'/api/assistant/threads/thread-1',
 			expect.objectContaining({
 				method: 'DELETE',
+			}),
+		);
+	});
+});
+
+describe('waitlist api helper', () => {
+	it('posts a waitlist submission', async () => {
+		globalThis.fetch = vi.fn(async () =>
+			new Response(
+				JSON.stringify({
+					status: 'created',
+					message: "Thanks for joining. We'll be in touch soon.",
+				}),
+				{ status: 201, headers: { 'Content-Type': 'application/json' } },
+			),
+		) as typeof fetch;
+
+		const result = await joinWaitlist({
+			email: 'hello@roopstudio.com',
+			source: 'landing-hero',
+		});
+
+		expect(result.status).toBe('created');
+		expect(globalThis.fetch).toHaveBeenCalledWith(
+			'/api/waitlist',
+			expect.objectContaining({
+				method: 'POST',
+				body: JSON.stringify({
+					email: 'hello@roopstudio.com',
+					source: 'landing-hero',
+				}),
 			}),
 		);
 	});

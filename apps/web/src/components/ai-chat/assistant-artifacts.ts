@@ -89,6 +89,29 @@ type KanbanOp =
 			labels?: string[];
 			due_date?: string;
 	  };
+type ExtendedKanbanOp =
+	| KanbanOp
+	| {
+			op: 'update_card';
+			column?: string;
+			columnId?: string;
+			card_index?: number;
+			cardIndex?: number;
+			updates?: Partial<KanbanCard> & {
+				checklist?: Array<string | { text?: string; done?: boolean }>;
+			};
+	  }
+	| {
+			op: 'move_card';
+			from_column?: string;
+			fromColumn?: string;
+			to_column?: string;
+			toColumn?: string;
+			card_index?: number;
+			cardIndex?: number;
+			target_index?: number;
+			targetIndex?: number;
+	  };
 
 interface NormalizedKanbanColumn {
 	id: string;
@@ -106,6 +129,50 @@ interface NormalizedKanbanCard {
 	labels?: string[];
 	dueDate?: string;
 	checklist?: KanbanCard['checklist'];
+}
+
+function normalizeChecklistItems(
+	checklist: unknown,
+): KanbanCard['checklist'] {
+	if (!Array.isArray(checklist)) {
+		return [];
+	}
+
+	return checklist
+		.map((item) => {
+			if (typeof item === 'string') {
+				const text = item.trim();
+				return text ? { text, done: false } : null;
+			}
+
+			if (item && typeof item === 'object') {
+				const text =
+					typeof (item as { text?: unknown }).text === 'string'
+						? (item as { text: string }).text.trim()
+						: '';
+				if (!text) {
+					return null;
+				}
+				return {
+					text,
+					done: Boolean((item as { done?: unknown }).done),
+				};
+			}
+
+			return null;
+		})
+		.filter(Boolean) as KanbanCard['checklist'];
+}
+
+function findColumnByReference(
+	columns: KanbanColumn[],
+	reference?: string,
+): KanbanColumn | undefined {
+	if (!reference) {
+		return undefined;
+	}
+
+	return columns.find((column) => column.id === reference || column.title === reference);
 }
 
 export interface MarkdownPatchDiffLine {
@@ -626,8 +693,11 @@ export function buildPrototypeFromMessageContent(
 	return null;
 }
 
-export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOverlayCustomData {
-	const board = createDefaultKanbanBoard();
+export function buildKanbanFromArtifact(
+	artifact: AssistantArtifact,
+	baseBoard?: KanbanOverlayCustomData,
+): KanbanOverlayCustomData {
+	const board = normalizeKanbanOverlay(baseBoard ?? createDefaultKanbanBoard());
 	if (artifact.type === 'kanban-patch') {
 		return parseKanbanPatchArtifact(artifact)?.next ?? board;
 	}
@@ -636,18 +706,34 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 		return board;
 	}
 
-	let parsed: KanbanOp[] = [];
+	let parsed: ExtendedKanbanOp[] = [];
 	try {
-		const candidate = JSON.parse(artifact.content) as KanbanOp[] | { operations?: KanbanOp[] };
+		const candidate = JSON.parse(artifact.content) as
+			| ExtendedKanbanOp[]
+			| { operations?: ExtendedKanbanOp[] }
+			| KanbanOverlayCustomData;
 		if (Array.isArray(candidate)) {
 			parsed = candidate;
-		} else if (Array.isArray(candidate.operations)) {
+		} else if (
+			candidate &&
+			typeof candidate === 'object' &&
+			'operations' in candidate &&
+			Array.isArray(candidate.operations)
+		) {
 			parsed = candidate.operations;
+		} else if (
+			candidate &&
+			typeof candidate === 'object' &&
+			'columns' in candidate &&
+			Array.isArray((candidate as { columns?: unknown }).columns)
+		) {
+			return normalizeKanbanOverlay(candidate as KanbanOverlayCustomData);
 		}
 	} catch {
 		return board;
 	}
 
+	const workingBoard = normalizeKanbanOverlay(board);
 	const normalizedColumns: NormalizedKanbanColumn[] = [];
 	const normalizedCards: NormalizedKanbanCard[] = [];
 
@@ -691,7 +777,7 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				priority: op.card.priority,
 				labels: op.card.labels,
 				dueDate: op.card.dueDate,
-				checklist: op.card.checklist,
+				checklist: normalizeChecklistItems(op.card.checklist),
 			});
 			continue;
 		}
@@ -705,6 +791,7 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				priority: op.priority,
 				labels: op.labels,
 				dueDate: op.due_date,
+				checklist: [],
 			});
 			continue;
 		}
@@ -718,7 +805,49 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 				priority: op.priority,
 				labels: op.labels,
 				dueDate: op.due_date,
+				checklist: [],
 			});
+			continue;
+		}
+
+		if ('op' in op && op.op === 'update_card') {
+			const column = findColumnByReference(workingBoard.columns, op.columnId ?? op.column);
+			const cardIndex = op.cardIndex ?? op.card_index ?? -1;
+			if (!column || cardIndex < 0 || cardIndex >= column.cards.length) {
+				continue;
+			}
+			const existingCard = column.cards[cardIndex];
+			if (!existingCard) {
+				continue;
+			}
+			column.cards[cardIndex] = {
+				...existingCard,
+				...op.updates,
+				checklist:
+					op.updates?.checklist != null
+						? normalizeChecklistItems(op.updates.checklist)
+						: normalizeChecklistItems(existingCard.checklist),
+			};
+			continue;
+		}
+
+		if ('op' in op && op.op === 'move_card') {
+			const fromColumn = findColumnByReference(workingBoard.columns, op.fromColumn ?? op.from_column);
+			const toColumn = findColumnByReference(workingBoard.columns, op.toColumn ?? op.to_column);
+			const cardIndex = op.cardIndex ?? op.card_index ?? -1;
+			const targetIndex = op.targetIndex ?? op.target_index ?? -1;
+			if (!fromColumn || !toColumn || cardIndex < 0 || cardIndex >= fromColumn.cards.length) {
+				continue;
+			}
+			const [movedCard] = fromColumn.cards.splice(cardIndex, 1);
+			if (!movedCard) {
+				continue;
+			}
+			if (targetIndex >= 0 && targetIndex <= toColumn.cards.length) {
+				toColumn.cards.splice(targetIndex, 0, movedCard);
+			} else {
+				toColumn.cards.push(movedCard);
+			}
 		}
 	}
 
@@ -732,7 +861,7 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 						color: column.color,
 						cards: [],
 					}))
-			: [...board.columns];
+			: [...workingBoard.columns];
 
 	for (const card of normalizedCards) {
 		const targetColumn = baseColumns.find((column) => column.id === card.columnId);
@@ -747,13 +876,13 @@ export function buildKanbanFromArtifact(artifact: AssistantArtifact): KanbanOver
 			priority: card.priority,
 			labels: card.labels,
 			dueDate: card.dueDate,
-			checklist: card.checklist,
+			checklist: normalizeChecklistItems(card.checklist),
 		});
 	}
 
-	return {
-		...board,
-		title: baseColumns.some((column) => column.title === 'AI Next') ? 'AI Next Board' : board.title,
+	return normalizeKanbanOverlay({
+		...workingBoard,
+		title: baseColumns.some((column) => column.title === 'AI Next') ? 'AI Next Board' : workingBoard.title,
 		columns: baseColumns,
-	};
+	});
 }

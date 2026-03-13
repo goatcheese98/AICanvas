@@ -69,6 +69,10 @@ function createReply(message: string): NewLexCommentReply {
 	};
 }
 
+function serializeComments(comments: NewLexCommentThread[]) {
+	return JSON.stringify(comments);
+}
+
 function shouldShowLexicalDebugPanel() {
 	if (!import.meta.env.DEV || typeof window === 'undefined') return false;
 	const url = new URL(window.location.href);
@@ -102,6 +106,7 @@ export function LexicalNote({
 	const commentsRef = useRef(comments);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
 	const externalTitleRef = useRef(incomingTitle);
+	const externalCommentsRef = useRef(serializeComments(element.customData.comments ?? []));
 	const lastCommittedTitleRef = useRef(incomingTitle);
 	const [debugEnabled] = useState(() => shouldShowLexicalDebugPanel());
 	const renderCountRef = useRef(0);
@@ -133,7 +138,11 @@ export function LexicalNote({
 	}, [incomingTitle]);
 
 	useEffect(() => {
-		setComments(element.customData.comments ?? []);
+		const nextComments = element.customData.comments ?? [];
+		const nextSignature = serializeComments(nextComments);
+		if (nextSignature === externalCommentsRef.current) return;
+		externalCommentsRef.current = nextSignature;
+		setComments((current) => (serializeComments(current) === nextSignature ? current : nextComments));
 	}, [element.customData.comments]);
 
 	useEffect(() => {

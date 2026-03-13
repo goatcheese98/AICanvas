@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -39,9 +39,14 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 	const setElements = useAppStore((s) => s.setElements);
 	const setAppState = useAppStore((s) => s.setAppState);
 	const setFiles = useAppStore((s) => s.setFiles);
+	const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
 	const handleApiReady = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
+			if (apiRef.current === api) {
+				return;
+			}
+			apiRef.current = api;
 			setExcalidrawApi(api);
 		},
 		[setExcalidrawApi],

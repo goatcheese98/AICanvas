@@ -7,6 +7,7 @@ import type {
 	AssistantTask,
 	AssistantThread,
 } from '@ai-canvas/shared/types';
+import type { JoinWaitlist, JoinWaitlistResponse } from '@ai-canvas/shared/schemas';
 
 export async function getRequiredAuthHeaders(
 	getToken: () => Promise<string | null>,
@@ -174,5 +175,20 @@ export async function fetchAssistantRunArtifacts(
 	return readJsonOrThrow<AssistantArtifactRecord[]>(
 		response,
 		`Assistant artifact fetch failed with status ${response.status}`,
+	);
+}
+
+export async function joinWaitlist(input: JoinWaitlist): Promise<JoinWaitlistResponse> {
+	const response = await fetch('/api/waitlist', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(input),
+	});
+
+	return readJsonOrThrow<JoinWaitlistResponse>(
+		response,
+		`Waitlist signup failed with status ${response.status}`,
 	);
 }

@@ -57,8 +57,15 @@ describe('assistant context', () => {
 				ENVIRONMENT: string;
 			},
 			'user-1',
-			'canvas-1',
-			['diagram-1', 'board-1', 'note-1'],
+			{
+				canvasId: 'canvas-1',
+				contextMode: 'all',
+				selectedElementIds: ['diagram-1', 'board-1', 'note-1'],
+				canvasMeta: {
+					title: 'Product planning',
+					description: 'Launch planning canvas',
+				},
+			},
 		);
 
 		expect(snapshot).toMatchObject({
@@ -66,10 +73,28 @@ describe('assistant context', () => {
 			totalElementCount: 4,
 			selectedElementCount: 3,
 			selectedOverlayTypes: ['markdown', 'kanban'],
+			canvasMeta: {
+				title: 'Product planning',
+				description: 'Launch planning canvas',
+			},
+			canvasSummary: {
+				hasKanban: true,
+				hasMarkdown: true,
+				selectedCount: 3,
+			},
 		});
 		expect(snapshot.selectionSummary[0]).toMatchObject({
 			id: 'note-1',
 			label: 'Roadmap',
+		});
+		expect(snapshot.canvasElementSummaries?.[0]).toMatchObject({
+			id: 'shape-1',
+			elementType: 'rectangle',
+		});
+		expect(snapshot.selectedContexts[0]).toMatchObject({
+			kind: 'markdown',
+			bounds: undefined,
+			textExcerpt: 'Quarterly roadmap',
 		});
 		expect(snapshot.selectedContexts.map((context) => context.kind)).toEqual([
 			'markdown',
@@ -108,6 +133,35 @@ describe('assistant context', () => {
 			selectedElementIds: ['a', 'b'],
 			selectedElementCount: 2,
 			selectedOverlayTypes: ['markdown', 'prototype'],
+			canvasMeta: {
+				title: 'Launch canvas',
+			},
+			canvasSummary: {
+				elementTypeCounts: { rectangle: 6, image: 2 },
+				overlayTypeCounts: { markdown: 1, prototype: 1 },
+				textBearingElementCount: 4,
+				editableOverlayCount: 2,
+				selectedCount: 2,
+				hasKanban: false,
+				hasMarkdown: true,
+				hasPrototype: true,
+				highlights: ['Release checklist', 'Prototype shell'],
+			},
+			canvasElementSummaries: [
+				{
+					id: 'frame-1',
+					elementType: 'rectangle',
+					label: 'Prototype shell',
+				},
+			],
+			selectionEnvironment: [
+				{
+					id: 'shape-2',
+					elementType: 'ellipse',
+					label: 'Launch milestone',
+					distanceFromSelection: 24,
+				},
+			],
 			selectionSummary: [
 				{
 					id: 'a',
@@ -124,6 +178,7 @@ describe('assistant context', () => {
 					elementType: 'rectangle',
 					overlayType: 'markdown',
 					label: 'Release checklist',
+					textExcerpt: '# Release checklist - [ ] Ship it',
 					markdown: {
 						type: 'markdown',
 						title: 'Release checklist',
@@ -133,6 +188,10 @@ describe('assistant context', () => {
 			],
 		});
 
+		expect(summary).toContain('Canvas title: "Launch canvas".');
+		expect(summary).toContain('Canvas summary: 4 text-bearing elements, 2 editable overlays, 2 selected.');
+		expect(summary).toContain('Relevant canvas elements: rectangle | "Prototype shell".');
+		expect(summary).toContain('Nearby selection context: ellipse | "Launch milestone" | distance 24.');
 		expect(summary).toContain('Canvas snapshot: 8 elements.');
 		expect(summary).toContain('Selected overlay types: markdown, prototype.');
 		expect(summary).toContain('Release checklist');

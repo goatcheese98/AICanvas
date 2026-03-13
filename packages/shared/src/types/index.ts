@@ -37,6 +37,11 @@ export type {
 } from './collab';
 export type {
 	AssistantThread,
+	AssistantCanvasBounds,
+	AssistantCanvasElementSummary,
+	AssistantCanvasMeta,
+	AssistantCanvasStyleHints,
+	AssistantCanvasSummary,
 	AssistantContextSnapshot,
 	AssistantSelectedContext,
 	AssistantSelectedMarkdownContext,

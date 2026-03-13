@@ -9,7 +9,11 @@ describe('assistant planner', () => {
 		});
 
 		expect(plan.resolvedMode).toBe('mermaid');
-		expect(plan.tasks.map((task) => task.type)).toEqual(['generate_response', 'verify_run']);
+		expect(plan.tasks.map((task) => task.type)).toEqual([
+			'generate_response',
+			'place_canvas_artifact',
+			'verify_run',
+		]);
 	});
 
 	it('keeps diagram follow-ups in the last diagram mode', () => {
@@ -71,7 +75,11 @@ describe('assistant planner', () => {
 		});
 
 		expect(plan.resolvedMode).toBe('prototype');
-		expect(plan.tasks.map((task) => task.type)).toEqual(['generate_response', 'verify_run']);
+		expect(plan.tasks.map((task) => task.type)).toEqual([
+			'generate_response',
+			'place_canvas_artifact',
+			'verify_run',
+		]);
 		expect(plan.tasks[0]?.input).toMatchObject({
 			kind: 'generate_response',
 			includeArtifactTypes: ['prototype-files'],
@@ -89,6 +97,17 @@ describe('assistant planner', () => {
 				selectedElementIds: ['board-1'],
 				selectedElementCount: 1,
 				selectedOverlayTypes: ['kanban'],
+				canvasSummary: {
+					elementTypeCounts: { rectangle: 1 },
+					overlayTypeCounts: { kanban: 1 },
+					textBearingElementCount: 1,
+					editableOverlayCount: 1,
+					selectedCount: 1,
+					hasKanban: true,
+					hasMarkdown: false,
+					hasPrototype: false,
+					highlights: ['Launch board'],
+				},
 				selectionSummary: [
 					{
 						id: 'board-1',
@@ -105,6 +124,7 @@ describe('assistant planner', () => {
 						elementType: 'rectangle',
 						overlayType: 'kanban',
 						label: 'Launch board',
+						textExcerpt: 'Launch board',
 						kanban: {
 							type: 'kanban',
 							title: 'Launch board',

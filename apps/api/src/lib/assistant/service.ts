@@ -198,13 +198,15 @@ function isEditableSelectionRequest(message: string): boolean {
 	);
 }
 
+function isCreateNewArtifactIntent(message: string): boolean {
+	return /\b(new\s+(board|kanban|note|prototype)|create\s+(a\s+)?new|from this|based on this|turn this into|make (?:a|an)\b)/i.test(
+		message,
+	);
+}
+
 function getSelectedEditableContexts(
 	input: AssistantServiceInput,
 ): AssistantSelectedContext[] {
-	if (input.contextMode !== 'selected') {
-		return [];
-	}
-
 	return (input.contextSnapshot?.selectedContexts ?? []).filter(
 		(context) => context.kind === 'markdown' || context.kind === 'kanban',
 	);
@@ -786,13 +788,28 @@ async function buildSelectedEditDraft(
 	input: AssistantServiceInput,
 	generationMode: GenerationMode,
 ): Promise<AssistantDraft | null> {
-	if (!isEditableSelectionRequest(input.message)) {
+	if (!isEditableSelectionRequest(input.message) || isCreateNewArtifactIntent(input.message)) {
 		return null;
 	}
 
 	const editableContexts = getSelectedEditableContexts(input);
 	if (editableContexts.length === 0) {
 		return null;
+	}
+
+	if (editableContexts.length > 1) {
+		const labels = editableContexts
+			.map((context) => context.label ?? context.id)
+			.slice(0, 4)
+			.join(', ');
+		return {
+			content: [
+				'I found more than one editable selected item, so I did not apply a patch automatically.',
+				'',
+				`Selected editable items: ${labels}.`,
+				'Please narrow the selection or name the specific board or note you want me to change.',
+			].join('\n'),
+		};
 	}
 
 	const artifacts: AssistantArtifact[] = [];
@@ -2432,23 +2449,160 @@ function buildD2DraftFromHistory(input: AssistantServiceInput): AssistantDraft |
 	};
 }
 
-function buildKanbanDraft(message: string): AssistantDraft {
-	const title = sentenceCase(message);
-	const ops = [
-		{
-			op: 'add_column',
-			column: { id: 'ai-next', title: 'AI Next', cards: [] },
-		},
-		{
-			op: 'add_card',
-			columnId: 'ai-next',
-			card: {
-				title,
+function buildKanbanColumnTitles(input: AssistantServiceInput): string[] {
+	const selectedKanban = input.contextSnapshot?.selectedContexts.find((context) => context.kind === 'kanban');
+	if (selectedKanban && isCreateNewArtifactIntent(input.message)) {
+		const titles = selectedKanban.kanbanSummary.columns
+			.map((column) => column.title.trim())
+			.filter(Boolean)
+			.slice(0, 4);
+		if (titles.length > 0) {
+			return titles;
+		}
+	}
+
+	const corpus = [
+		input.message,
+		...(input.contextSnapshot?.canvasSummary?.highlights ?? []),
+		...(input.contextSnapshot?.selectedContexts ?? []).flatMap((context) => {
+			if (context.kind === 'markdown') {
+				return [context.markdown.title ?? '', context.markdown.content];
+			}
+			if (context.kind === 'kanban') {
+				return [context.kanban.title, ...context.kanban.columns.map((column) => column.title)];
+			}
+			if (context.kind === 'prototype') {
+				return [context.prototype.title, ...context.prototype.filePaths];
+			}
+			return [context.label ?? '', context.textExcerpt ?? ''];
+		}),
+	]
+		.join('\n')
+		.toLowerCase();
+
+	if (
+		/(backlog|to do|todo|in progress|doing|done|complete|completed|review)/.test(corpus)
+	) {
+		return ['To Do', 'In Progress', 'Done'];
+	}
+
+	if (/(research|build|review|ship|launch)/.test(corpus)) {
+		return ['Research', 'Build', 'Review', 'Ship'];
+	}
+
+	return ['To Do', 'In Progress', 'Done'];
+}
+
+function extractTaskCandidatesFromMarkdown(content: string): string[] {
+	return content
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean)
+		.map((line) => line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '').replace(/^#+\s+/, '').trim())
+		.filter((line) => line.length > 3)
+		.slice(0, 12);
+}
+
+function buildKanbanCardSeeds(input: AssistantServiceInput): Array<{
+	title: string;
+	description?: string;
+	priority?: 'low' | 'medium' | 'high';
+	labels?: string[];
+}> {
+	const seeds: Array<{
+		title: string;
+		description?: string;
+		priority?: 'low' | 'medium' | 'high';
+		labels?: string[];
+	}> = [];
+
+	for (const context of input.contextSnapshot?.selectedContexts ?? []) {
+		if (context.kind === 'markdown') {
+			for (const item of extractTaskCandidatesFromMarkdown(context.markdown.content)) {
+				seeds.push({ title: truncateLabel(item, 56), labels: ['Notes'] });
+			}
+			continue;
+		}
+
+		if (context.kind === 'kanban' && isCreateNewArtifactIntent(input.message)) {
+			for (const column of context.kanbanSummary.columns) {
+				for (const card of column.cards.slice(0, 3)) {
+					seeds.push({
+						title: truncateLabel(card.title, 56),
+						priority: card.priority,
+						labels: card.labels.slice(0, 2),
+					});
+				}
+			}
+			continue;
+		}
+
+		if (context.kind === 'prototype') {
+			seeds.push(
+				{ title: `Map ${context.prototype.title}`, labels: ['Prototype'] },
+				{ title: 'Review key screens', labels: ['Prototype'] },
+				{ title: 'Validate primary interaction flow', labels: ['Prototype'] },
+			);
+			continue;
+		}
+
+		const label = context.label ?? context.textExcerpt;
+		if (label) {
+			seeds.push({
+				title: truncateLabel(label, 56),
+				description: context.textExcerpt && context.textExcerpt !== label ? context.textExcerpt : undefined,
+			});
+		}
+	}
+
+	if (seeds.length === 0) {
+		for (const highlight of input.contextSnapshot?.canvasSummary?.highlights ?? []) {
+			seeds.push({ title: truncateLabel(highlight, 56), labels: ['Canvas'] });
+			if (seeds.length >= 6) {
+				break;
+			}
+		}
+	}
+
+	if (seeds.length === 0) {
+		seeds.push(
+			{
+				title: truncateLabel(input.message, 56),
 				description: 'Generated from the assistant request',
-				priority: 'medium',
+				priority: /high|urgent|critical/i.test(input.message) ? 'high' : 'medium',
 			},
+			{ title: 'Clarify scope', description: 'Capture the concrete outcome this board should support.' },
+			{ title: 'Define the next step', description: 'Turn the first obvious move into a card.' },
+		);
+	}
+
+	return seeds.slice(0, 9);
+}
+
+function buildKanbanDraft(input: AssistantServiceInput): AssistantDraft {
+	const columns = buildKanbanColumnTitles(input);
+	const seeds = buildKanbanCardSeeds(input);
+	const ops: Array<Record<string, unknown>> = columns.map((title, index) => ({
+		op: 'add_column',
+		column: {
+			id: slug(title) || `column-${index + 1}`,
+			title,
 		},
-	];
+	}));
+
+	const primaryColumnId = String((ops[0] as { column: { id: string } }).column.id);
+	for (const seed of seeds) {
+		ops.push({
+			op: 'add_card',
+			columnId: primaryColumnId,
+			card: {
+				title: seed.title,
+				description: seed.description,
+				priority: seed.priority ?? 'medium',
+				labels: seed.labels,
+			},
+		});
+	}
 	const serialized = JSON.stringify(ops, null, 2);
 
 	return {
@@ -2506,7 +2660,7 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 		case 'd2':
 			return buildD2DraftFromHistory(input) ?? buildD2Draft(input.message, input.contextMode);
 		case 'kanban':
-			return buildKanbanDraft(input.message);
+			return buildKanbanDraft(input);
 		case 'image':
 		case 'sketch':
 			return {

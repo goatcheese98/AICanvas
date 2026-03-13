@@ -21,6 +21,7 @@ interface KanbanColumnProps {
 	controlRadius: number;
 	columnRadius: number;
 	borderTone: string;
+	isLiveResizing: boolean;
 	isCardOver: boolean;
 	draggingCardId: string | null;
 	draggingFromColumnId: string | null;
@@ -96,6 +97,7 @@ function KanbanColumnInner({
 	controlRadius,
 	columnRadius,
 	borderTone,
+	isLiveResizing,
 	isCardOver,
 	draggingCardId,
 	draggingFromColumnId,
@@ -173,7 +175,7 @@ function KanbanColumnInner({
 				}
 				onCardColumnDrop(event, column.id);
 			}}
-			className="group flex min-w-[20.5rem] max-w-[20.5rem] self-start flex-col px-1 py-2 transition-[box-shadow,border-color,transform,opacity,background-color] duration-200"
+			className="group flex min-w-[20.5rem] max-w-[20.5rem] self-start flex-col px-1 py-2 transition-[box-shadow,border-color,transform,opacity,background-color]"
 			style={{
 				borderRadius: `${columnRadius}px`,
 				borderColor: isCardOver ? KANBAN_ACCENT_BORDER : 'transparent',
@@ -185,6 +187,7 @@ function KanbanColumnInner({
 					: 'none',
 				opacity: isColumnDragging ? 0.7 : 1,
 				transform: isCardOver ? 'translateY(-1px)' : 'translateY(0)',
+				transitionDuration: 'var(--kanban-motion-duration)',
 			}}
 		>
 			<div className="grid grid-cols-[4.75rem_minmax(0,1fr)_4.75rem] items-center px-2 py-0.5">
@@ -285,6 +288,7 @@ function KanbanColumnInner({
 								cardBackground={cardBackground}
 								cardRadius={cardRadius}
 								controlRadius={controlRadius}
+								isLiveResizing={isLiveResizing}
 								isDragging={draggingCardId === card.id}
 								showReturnCue={showReturnCue}
 								onChange={(updates) => onUpdateCard(card.id, updates)}
@@ -335,6 +339,7 @@ function KanbanColumnInner({
 					backgroundImage: 'var(--kanban-sketch-control-texture)',
 					color: KANBAN_ACCENT_TEXT,
 					boxShadow: '0 12px 28px -26px rgba(15,23,42,0.4)',
+					transitionDuration: 'var(--kanban-motion-duration-fast)',
 				}}
 			>
 				<span className="text-sm leading-none">+</span>
@@ -342,10 +347,13 @@ function KanbanColumnInner({
 			</button>
 
 			<div
-				className={`mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity duration-150 ${
+				className={`mt-2 text-center text-[10px] font-semibold uppercase tracking-[0.16em] transition-opacity ${
 					isColumnHovered || isSearchActive ? 'opacity-100' : 'opacity-0'
 				}`}
-				style={{ color: 'var(--color-text-tertiary)' }}
+				style={{
+					color: 'var(--color-text-tertiary)',
+					transitionDuration: 'var(--kanban-motion-duration-fast)',
+				}}
 			>
 				{isSearchActive
 					? `${displayCards.length} shown / ${column.cards.length} cards`

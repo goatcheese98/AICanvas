@@ -24,6 +24,11 @@ export {
 } from './overlay';
 export { userSchemas, type UserPreferences } from './user';
 export {
+	waitlistSchemas,
+	type JoinWaitlist,
+	type JoinWaitlistResponse,
+} from './waitlist';
+export {
 	assistantSchemas,
 	type SendMessage,
 	type CreateRun,
