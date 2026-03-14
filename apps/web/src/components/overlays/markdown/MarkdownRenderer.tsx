@@ -107,9 +107,8 @@ function MarkdownImage({ src, alt, width, height, inlineSized, props }: Markdown
 	if (failed) {
 		return (
 			<span
-				className={`inline-flex items-center border border-amber-200 bg-amber-50 text-[0.92em] text-amber-800 ${
-					inlineSized ? 'my-0 inline-flex align-middle' : 'my-3'
-				}`}
+				className={`inline-flex items-center border border-amber-200 bg-amber-50 text-[0.92em] text-amber-800 ${inlineSized ? 'my-0 inline-flex align-middle' : 'my-3'
+					}`}
 				style={{
 					borderRadius: INLINE_RADIUS,
 					padding: '0.16em 0.52em',
@@ -139,10 +138,10 @@ function MarkdownImage({ src, alt, width, height, inlineSized, props }: Markdown
 				inlineSized
 					? undefined
 					: {
-							borderRadius: SURFACE_RADIUS,
-							marginTop: BLOCK_SPACING,
-							marginBottom: BLOCK_SPACING,
-						}
+						borderRadius: SURFACE_RADIUS,
+						marginTop: BLOCK_SPACING,
+						marginBottom: BLOCK_SPACING,
+					}
 			}
 			onError={() => {
 				failedImageSrcCache.add(src);
@@ -172,7 +171,7 @@ export function MarkdownRenderer({
 
 	const components = useMemo(() => {
 		return {
-			pre: ({ children }: any) => (
+			pre: ({ children }: { children: React.ReactNode }) => (
 				<pre
 					className={`overflow-x-auto ${RENDERER_SURFACE} bg-stone-100/90 text-[0.9em] text-stone-800`}
 					style={{
@@ -184,7 +183,7 @@ export function MarkdownRenderer({
 					{children}
 				</pre>
 			),
-			code: ({ inline, className, children, ...props }: any) => {
+			code: ({ inline, className, children, ...props }: { inline?: boolean; className?: string; children: React.ReactNode }) => {
 				const isInline = inline === true || (!className && typeof inline !== 'boolean');
 				return isInline ? (
 					<code
@@ -206,7 +205,7 @@ export function MarkdownRenderer({
 					</code>
 				);
 			},
-			blockquote: ({ children }: any) => (
+			blockquote: ({ children }: { children: React.ReactNode }) => (
 				<blockquote
 					className="border-indigo-300 italic text-stone-600"
 					style={{
@@ -218,7 +217,7 @@ export function MarkdownRenderer({
 					{children}
 				</blockquote>
 			),
-			table: ({ children }: any) => (
+			table: ({ children }: { children: React.ReactNode }) => (
 				<div className="overflow-x-auto" style={{ margin: '1.05em 0' }}>
 					<table
 						className={`min-w-full border-collapse overflow-hidden text-stone-700 ${RENDERER_SURFACE} bg-white/80`}
@@ -228,7 +227,7 @@ export function MarkdownRenderer({
 					</table>
 				</div>
 			),
-			th: ({ children }: any) => (
+			th: ({ children }: { children: React.ReactNode }) => (
 				<th
 					className="border border-stone-200 bg-stone-100/80 text-left font-semibold text-stone-700"
 					style={{ padding: CELL_PADDING }}
@@ -236,12 +235,12 @@ export function MarkdownRenderer({
 					{children}
 				</th>
 			),
-			td: ({ children }: any) => (
+			td: ({ children }: { children: React.ReactNode }) => (
 				<td className="border border-stone-200 text-stone-700" style={{ padding: CELL_PADDING }}>
 					{children}
 				</td>
 			),
-			a: ({ href, children }: any) => (
+			a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
 				<a
 					href={href}
 					target="_blank"
@@ -252,7 +251,7 @@ export function MarkdownRenderer({
 					{children}
 				</a>
 			),
-			img: ({ src, alt, width, height, ...props }: any) => {
+			img: ({ src, alt, width, height, ...props }: { src?: string; alt?: string; width?: number; height?: number }) => {
 				const resolvedSrc = resolveMarkdownAssetSrc(src, images);
 				if (!resolvedSrc) return null;
 				const inlineSized = width || height;
@@ -267,9 +266,9 @@ export function MarkdownRenderer({
 					/>
 				);
 			},
-			input: ({ type, checked, node }: any) => {
+			input: ({ type, checked, node }: { type?: string; checked?: boolean; node?: { position?: { start?: { line?: number | null } | null } | null } }) => {
 				if (type !== 'checkbox') return <input type={type} checked={checked} readOnly />;
-				const lineIndex = getCheckboxLineIndex(node);
+				const lineIndex = node ? getCheckboxLineIndex(node) : -1;
 				return (
 					<input
 						type="checkbox"
@@ -289,7 +288,7 @@ export function MarkdownRenderer({
 					/>
 				);
 			},
-			p: ({ children, style }: any) => (
+			p: ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => (
 				<p
 					className="whitespace-break-spaces text-stone-700"
 					style={{
@@ -301,37 +300,37 @@ export function MarkdownRenderer({
 					{children}
 				</p>
 			),
-			h1: ({ children }: any) => (
+			h1: ({ children }: { children: React.ReactNode }) => (
 				<h1 className="flex items-center font-bold text-stone-950" style={HEADING_STYLES.h1}>
 					{children}
 				</h1>
 			),
-			h2: ({ children }: any) => (
+			h2: ({ children }: { children: React.ReactNode }) => (
 				<h2 className="font-semibold text-stone-900" style={HEADING_STYLES.h2}>
 					{children}
 				</h2>
 			),
-			h3: ({ children }: any) => (
+			h3: ({ children }: { children: React.ReactNode }) => (
 				<h3 className="font-semibold text-stone-900" style={HEADING_STYLES.h3}>
 					{children}
 				</h3>
 			),
-			h4: ({ children }: any) => (
+			h4: ({ children }: { children: React.ReactNode }) => (
 				<h4 className="font-semibold text-stone-900" style={HEADING_STYLES.h4}>
 					{children}
 				</h4>
 			),
-			h5: ({ children }: any) => (
+			h5: ({ children }: { children: React.ReactNode }) => (
 				<h5 className="font-semibold text-stone-900" style={HEADING_STYLES.h5}>
 					{children}
 				</h5>
 			),
-			h6: ({ children }: any) => (
+			h6: ({ children }: { children: React.ReactNode }) => (
 				<h6 className="font-semibold uppercase tracking-[0.08em] text-stone-700" style={HEADING_STYLES.h6}>
 					{children}
 				</h6>
 			),
-			ul: ({ children, className }: any) => (
+			ul: ({ children, className }: { children: React.ReactNode; className?: string }) => (
 				<ul
 					className={
 						className?.includes('contains-task-list')
@@ -347,7 +346,7 @@ export function MarkdownRenderer({
 					{children}
 				</ul>
 			),
-			ol: ({ children }: any) => (
+			ol: ({ children }: { children: React.ReactNode }) => (
 				<ol
 					className="list-decimal text-stone-700"
 					style={{ marginTop: 0, marginBottom: '0.9em', paddingLeft: '1.35em' }}
@@ -355,28 +354,28 @@ export function MarkdownRenderer({
 					{children}
 				</ol>
 			),
-			li: ({ children, className }: any) => (
+			li: ({ children, className }: { children: React.ReactNode; className?: string }) => (
 				<li
 					className={
 						className?.includes('task-list-item')
 							? 'flex list-none items-center whitespace-break-spaces text-stone-700'
 							: 'whitespace-break-spaces text-stone-700'
 					}
-						style={
-							className?.includes('task-list-item')
-								? ({
-										gap: COMPACT_SPACING,
-										marginBottom: '0.7em',
-										'--markdown-paragraph-margin-top': 0,
-										'--markdown-paragraph-margin-bottom': 0,
-									} as CSSProperties)
-								: ({
-										marginBottom: '0.45em',
-										'--markdown-paragraph-margin-top': 0,
-										'--markdown-paragraph-margin-bottom': 0,
-									} as CSSProperties)
-						}
-					>
+					style={
+						className?.includes('task-list-item')
+							? ({
+								gap: COMPACT_SPACING,
+								marginBottom: '0.7em',
+								'--markdown-paragraph-margin-top': 0,
+								'--markdown-paragraph-margin-bottom': 0,
+							} as CSSProperties)
+							: ({
+								marginBottom: '0.45em',
+								'--markdown-paragraph-margin-top': 0,
+								'--markdown-paragraph-margin-bottom': 0,
+							} as CSSProperties)
+					}
+				>
 					{children}
 				</li>
 			),

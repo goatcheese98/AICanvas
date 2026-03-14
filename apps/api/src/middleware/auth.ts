@@ -1,6 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { createDb } from '../lib/db/client';
+import { applySentryUserContext } from '../lib/observability';
 import { buildAuthUser } from '../lib/auth/build-auth-user';
 import { syncAuthenticatedUser } from '../lib/auth/sync-user';
 import type { AppEnv } from '../types';
@@ -26,6 +27,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 		await syncAuthenticatedUser(db, user);
 
 		c.set('user', user);
+		applySentryUserContext(user);
 
 		await next();
 	} catch {

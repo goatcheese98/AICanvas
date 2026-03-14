@@ -8,6 +8,44 @@ import type {
 	AssistantThread,
 } from '@ai-canvas/shared/types';
 import type { JoinWaitlist, JoinWaitlistResponse } from '@ai-canvas/shared/schemas';
+import {
+	addObservabilityBreadcrumb,
+	captureBrowserException,
+	getSentryTraceHeaders,
+} from './observability';
+
+function createClientRequestId() {
+	return typeof crypto.randomUUID === 'function'
+		? crypto.randomUUID()
+		: `client-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function buildObservedHeaders(headers: Record<string, string> = {}) {
+	return {
+		...getSentryTraceHeaders(),
+		...headers,
+		'x-client-request-id': createClientRequestId(),
+	};
+}
+
+async function observedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+	const observedHeaders = buildObservedHeaders(
+		Object.fromEntries(new Headers(init.headers).entries()),
+	);
+	const response = await fetch(input, {
+		...init,
+		headers: observedHeaders,
+	});
+	const serverRequestId = response.headers.get('x-request-id') ?? undefined;
+	addObservabilityBreadcrumb('api.request', {
+		url: typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url,
+		method: init.method ?? 'GET',
+		status: response.status,
+		serverRequestId,
+		clientRequestId: observedHeaders['x-client-request-id'],
+	});
+	return response;
+}
 
 export async function getRequiredAuthHeaders(
 	getToken: () => Promise<string | null>,
@@ -22,12 +60,30 @@ export async function getRequiredAuthHeaders(
 	};
 }
 
-export const api = hc<AppType>('/');
+export const api = hc<AppType>('/', {
+	fetch: observedFetch,
+});
 
 async function readJsonOrThrow<T>(response: Response, fallbackMessage: string): Promise<T> {
+	const serverRequestId = response.headers.get('x-request-id');
+
 	if (!response.ok) {
 		const body = await response.text();
-		throw new Error(body || fallbackMessage);
+		const message = body || fallbackMessage;
+		const enrichedMessage = serverRequestId ? `${message} (request ${serverRequestId})` : message;
+		const error = new Error(enrichedMessage);
+		captureBrowserException(error, {
+			tags: {
+				area: 'api',
+				action: 'response_error',
+			},
+			extra: {
+				status: response.status,
+				serverRequestId,
+				url: response.url,
+			},
+		});
+		throw error;
 	}
 
 	return (await response.json()) as T;
@@ -67,7 +123,7 @@ export async function streamAssistantRunEvents(
 	headers: Record<string, string>,
 	onEvent: (event: AssistantRunEvent) => void,
 ): Promise<void> {
-	const response = await fetch(`/api/assistant/runs/${runId}/events`, {
+	const response = await observedFetch(`/api/assistant/runs/${runId}/events`, {
 		headers,
 	});
 
@@ -107,7 +163,7 @@ export async function fetchAssistantThreads(
 	canvasId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantThread[]> {
-	const response = await fetch(`/api/assistant/threads?canvasId=${encodeURIComponent(canvasId)}`, {
+	const response = await observedFetch(`/api/assistant/threads?canvasId=${encodeURIComponent(canvasId)}`, {
 		headers,
 	});
 	return readJsonOrThrow<AssistantThread[]>(
@@ -120,7 +176,7 @@ export async function createAssistantThread(
 	input: { canvasId: string; title?: string },
 	headers: Record<string, string>,
 ): Promise<AssistantThread> {
-	const response = await fetch('/api/assistant/threads', {
+	const response = await observedFetch('/api/assistant/threads', {
 		method: 'POST',
 		headers: {
 			...headers,
@@ -138,7 +194,7 @@ export async function deleteAssistantThread(
 	threadId: string,
 	headers: Record<string, string>,
 ): Promise<void> {
-	const response = await fetch(`/api/assistant/threads/${threadId}`, {
+	const response = await observedFetch(`/api/assistant/threads/${threadId}`, {
 		method: 'DELETE',
 		headers,
 	});
@@ -152,7 +208,7 @@ export async function fetchAssistantRun(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantRun> {
-	const response = await fetch(`/api/assistant/runs/${runId}`, { headers });
+	const response = await observedFetch(`/api/assistant/runs/${runId}`, { headers });
 	return readJsonOrThrow<AssistantRun>(response, `Assistant run fetch failed with status ${response.status}`);
 }
 
@@ -160,7 +216,7 @@ export async function fetchAssistantRunTasks(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantTask[]> {
-	const response = await fetch(`/api/assistant/runs/${runId}/tasks`, { headers });
+	const response = await observedFetch(`/api/assistant/runs/${runId}/tasks`, { headers });
 	return readJsonOrThrow<AssistantTask[]>(
 		response,
 		`Assistant task fetch failed with status ${response.status}`,
@@ -171,7 +227,7 @@ export async function fetchAssistantRunArtifacts(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantArtifactRecord[]> {
-	const response = await fetch(`/api/assistant/runs/${runId}/artifacts`, { headers });
+	const response = await observedFetch(`/api/assistant/runs/${runId}/artifacts`, { headers });
 	return readJsonOrThrow<AssistantArtifactRecord[]>(
 		response,
 		`Assistant artifact fetch failed with status ${response.status}`,
@@ -179,7 +235,7 @@ export async function fetchAssistantRunArtifacts(
 }
 
 export async function joinWaitlist(input: JoinWaitlist): Promise<JoinWaitlistResponse> {
-	const response = await fetch('/api/waitlist', {
+	const response = await observedFetch('/api/waitlist', {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',

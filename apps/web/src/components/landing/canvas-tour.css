@@ -6,14 +6,10 @@
 	--tour-muted: #5f6879;
 	--tour-accent: #6965db;
 	min-height: 100vh;
-	background:
-		linear-gradient(var(--tour-grid) 1px, transparent 1px),
+	background: linear-gradient(var(--tour-grid) 1px, transparent 1px),
 		linear-gradient(90deg, var(--tour-grid) 1px, transparent 1px),
 		linear-gradient(180deg, #fafbfd 0%, var(--tour-bg) 100%);
-	background-size:
-		36px 36px,
-		36px 36px,
-		100% 100%;
+	background-size: 36px 36px, 36px 36px, 100% 100%;
 	color: var(--tour-text);
 }
 
@@ -177,10 +173,7 @@
 	border-radius: 12px;
 	background: transparent;
 	color: #707785;
-	transition:
-		background-color 180ms ease,
-		color 180ms ease,
-		box-shadow 180ms ease;
+	transition: background-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
 }
 
 .canvas-tour-toolbar-button:hover {
@@ -344,9 +337,7 @@
 	box-shadow: 0 24px 40px rgba(31, 36, 48, 0.12);
 	opacity: 0;
 	transform: translateY(120%);
-	transition:
-		opacity 280ms ease,
-		transform 340ms ease;
+	transition: opacity 280ms ease, transform 340ms ease;
 	pointer-events: none;
 }
 
@@ -452,7 +443,7 @@
 	resize: vertical;
 }
 
-.canvas-tour-layout-field input[type='color'] {
+.canvas-tour-layout-field input[type="color"] {
 	min-height: 2.8rem;
 	padding: 0.28rem;
 }
@@ -639,9 +630,7 @@
 	box-shadow: 0 14px 30px rgba(31, 36, 48, 0.08);
 	opacity: 0.44;
 	transform: translateY(24px);
-	transition:
-		opacity 220ms ease,
-		transform 280ms ease;
+	transition: opacity 220ms ease, transform 280ms ease;
 	pointer-events: auto;
 }
 

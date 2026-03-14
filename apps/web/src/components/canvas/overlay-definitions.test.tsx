@@ -69,8 +69,8 @@ describe('normalizeOverlayElement', () => {
 		const element = createMarkdownOverlay();
 		const first = normalizeOverlayElement('markdown', element);
 
-		(element as any).x = 320;
-		(element as any).customData = {
+		(element as { x: number }).x = 320;
+		(element as { customData: Record<string, unknown> }).customData = {
 			...element.customData,
 			content: 'Changed while dragging',
 		};

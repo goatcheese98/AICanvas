@@ -1,3 +1,5 @@
+import { captureBrowserException } from '@/lib/observability';
+
 export interface CanvasData {
 	elements: any[];
 	appState: Record<string, any>;
@@ -84,6 +86,15 @@ export class CanvasPersistenceCoordinator {
 			};
 		} catch (err) {
 			console.error('Failed to load canvas from localStorage:', err);
+			captureBrowserException(err, {
+				tags: {
+					area: 'canvas.persistence',
+					action: 'load_snapshot',
+				},
+				extra: {
+					canvasId,
+				},
+			});
 			localStorage.removeItem(this.getStorageKey(canvasId));
 			localStorage.removeItem(STORAGE_KEY_PREFIX);
 			return null;
@@ -189,6 +200,16 @@ export class CanvasPersistenceCoordinator {
 				this._isSaving = false;
 				this.emitStateChange();
 				console.error('Failed to save canvas:', err);
+				captureBrowserException(err, {
+					tags: {
+						area: 'canvas.persistence',
+						action: 'save_snapshot',
+					},
+					extra: {
+						canvasId,
+						elementCount: canvasData.elements.length,
+					},
+				});
 				return;
 			}
 		}
@@ -216,5 +237,15 @@ export class CanvasPersistenceCoordinator {
 		this._isSaving = false;
 		this.emitStateChange();
 		console.error('localStorage completely full — canvas structure may be too large');
+		captureBrowserException(new Error('Canvas localStorage quota exhausted'), {
+			tags: {
+				area: 'canvas.persistence',
+				action: 'quota_exhausted',
+			},
+			extra: {
+				canvasId,
+				elementCount: canvasData.elements.length,
+			},
+		});
 	}
 }

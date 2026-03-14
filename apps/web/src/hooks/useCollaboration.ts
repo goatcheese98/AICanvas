@@ -2,12 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { reconcileElements } from '@excalidraw/excalidraw';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type {
-	ClientToServerMessage,
-	ServerToClientMessage,
-} from '@ai-canvas/shared/types';
+import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/shared/types';
+import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
-import { decryptData, encryptData, exportKey, generateEncryptionKey, importKey } from '@/lib/collab/encryption';
+import {
+	decryptData,
+	encryptData,
+	exportKey,
+	generateEncryptionKey,
+	importKey,
+} from '@/lib/collab/encryption';
 import {
 	buildRoomHash,
 	buildRoomLink,
@@ -94,7 +98,8 @@ function createId(): string {
 
 function getSessionCollaboratorColor(): CollaboratorColor {
 	const colors = getCollaboratorColors();
-	const raw = typeof window !== 'undefined' ? window.localStorage.getItem(LAST_COLOR_INDEX_KEY) : null;
+	const raw =
+		typeof window !== 'undefined' ? window.localStorage.getItem(LAST_COLOR_INDEX_KEY) : null;
 	const previousIndex = raw !== null ? Number.parseInt(raw, 10) : Number.NaN;
 	let nextIndex = Math.floor(Math.random() * colors.length);
 
@@ -127,11 +132,14 @@ function useThrottledCallback<A extends unknown[]>(fn: (...args: A) => void, ms:
 				fnRef.current(...args);
 			} else {
 				if (timerRef.current) clearTimeout(timerRef.current);
-				timerRef.current = setTimeout(() => {
-					lastRef.current = Date.now();
-					timerRef.current = null;
-					fnRef.current(...args);
-				}, ms - (now - lastRef.current));
+				timerRef.current = setTimeout(
+					() => {
+						lastRef.current = Date.now();
+						timerRef.current = null;
+						fnRef.current(...args);
+					},
+					ms - (now - lastRef.current),
+				);
 			}
 		},
 		[ms],
@@ -220,6 +228,15 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 				ws.send(JSON.stringify({ type: msgType, ...encrypted }));
 			} catch (error) {
 				console.error('[Collab] Encrypt/send failed:', error);
+				captureBrowserException(error, {
+					tags: {
+						area: 'collaboration',
+						action: 'encrypt_send_scene',
+					},
+					extra: {
+						roomId: roomIdRef.current,
+					},
+				});
 			}
 		},
 		[],
@@ -264,19 +281,22 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 	const broadcastCursorThrottled = useThrottledCallback(broadcastCursorRaw, CURSOR_THROTTLE_MS);
 
-	const applyCollaborators = useCallback((next: Map<string, CollaboratorState>) => {
-		collaboratorsRef.current = next;
-		setCollaborators(new Map(next));
-		const api = apiRef.current;
-		if (!api) return;
-		api.updateScene({
-			appState: { collaborators: next } as Parameters<typeof api.updateScene>[0]['appState'],
-		});
-		setAppState({
-			...api.getAppState(),
-			collaborators: next,
-		} as Partial<AppState>);
-	}, [setAppState]);
+	const applyCollaborators = useCallback(
+		(next: Map<string, CollaboratorState>) => {
+			collaboratorsRef.current = next;
+			setCollaborators(new Map(next));
+			const api = apiRef.current;
+			if (!api) return;
+			api.updateScene({
+				appState: { collaborators: next } as Parameters<typeof api.updateScene>[0]['appState'],
+			});
+			setAppState({
+				...api.getAppState(),
+				collaborators: next,
+			} as Partial<AppState>);
+		},
+		[setAppState],
+	);
 
 	const applyRemoteScene = useCallback(
 		(
@@ -399,7 +419,9 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	const connect = useCallback(
 		(roomId: string, key: CryptoKey, keyBase64: string) => {
 			const isReconnect =
-				roomIdRef.current === roomId && keyBase64Ref.current === keyBase64 && reconnectAttemptRef.current > 0;
+				roomIdRef.current === roomId &&
+				keyBase64Ref.current === keyBase64 &&
+				reconnectAttemptRef.current > 0;
 
 			if (wsRef.current) {
 				wsRef.current.onclose = null;
@@ -473,7 +495,11 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 		if (typeof window !== 'undefined') {
 			const hash = buildRoomHash(roomId, keyBase64);
-			window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+			window.history.pushState(
+				null,
+				'',
+				`${window.location.pathname}${window.location.search}${hash}`,
+			);
 		}
 
 		connect(roomId, key, keyBase64);
@@ -567,11 +593,16 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		importKey(parsed.keyBase64)
 			.then((key) => connect(parsed.roomId, key, parsed.keyBase64))
 			.catch(() => {
-				const message = 'Could not join collaboration room — the link appears to be invalid or corrupted.';
+				const message =
+					'Could not join collaboration room — the link appears to be invalid or corrupted.';
 				setSessionStatus('error');
 				setSessionError(message);
 				onErrorRef.current?.(message);
-				window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+				window.history.replaceState(
+					null,
+					'',
+					`${window.location.pathname}${window.location.search}`,
+				);
 			});
 	}, [connect, stopSession]);
 

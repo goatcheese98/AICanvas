@@ -2,9 +2,24 @@ name = "ai-canvas-api"
 main = "src/index.ts"
 compatibility_date = "2024-12-18"
 compatibility_flags = ["nodejs_compat"]
+upload_source_maps = true
+
+[observability]
+enabled = true
+
+  [observability.logs]
+  invocation_logs = true
+  head_sampling_rate = 1
+
+  [observability.traces]
+  enabled = true
+  head_sampling_rate = 0.1
 
 [vars]
 ENVIRONMENT = "development"
+# SENTRY_DSN = "https://examplePublicKey@o0.ingest.sentry.io/0"
+# SENTRY_RELEASE = "local-dev"
+# SENTRY_TRACES_SAMPLE_RATE = "1.0"
 # ANTHROPIC_TEXT_MODEL = "claude-3-5-haiku-latest"
 # ANTHROPIC_API_BASE_URL = "https://api.anthropic.com"
 # OPENROUTER_TEXT_MODEL = "anthropic/claude-3.7-sonnet"

@@ -6,6 +6,7 @@ import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { captureBrowserException } from '@/lib/observability';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
@@ -16,10 +17,7 @@ interface PrototypeStudioPageProps {
 	prototypeId: string;
 }
 
-export function PrototypeStudioPage({
-	canvasId,
-	prototypeId,
-}: PrototypeStudioPageProps) {
+export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPageProps) {
 	const { getToken } = useAuth();
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
@@ -39,7 +37,7 @@ export function PrototypeStudioPage({
 	const elements = useMemo(
 		() =>
 			normalizeSceneElements(
-				((canvasQuery.data?.data?.elements ?? []) as unknown as ExcalidrawElement[]),
+				(canvasQuery.data?.data?.elements ?? []) as unknown as ExcalidrawElement[],
 			),
 		[canvasQuery.data?.data?.elements],
 	);
@@ -51,12 +49,11 @@ export function PrototypeStudioPage({
 		[elements],
 	);
 	const matchedPrototypeElement = useMemo(
-		() =>
-			prototypeElements.find((element) => element.id === prototypeId) ?? null,
+		() => prototypeElements.find((element) => element.id === prototypeId) ?? null,
 		[prototypeElements, prototypeId],
 	);
 	const fallbackPrototypeElement = useMemo(
-		() => (matchedPrototypeElement ? null : prototypeElements[0] ?? null),
+		() => (matchedPrototypeElement ? null : (prototypeElements[0] ?? null)),
 		[matchedPrototypeElement, prototypeElements],
 	);
 	const prototypeElement = matchedPrototypeElement ?? fallbackPrototypeElement;
@@ -71,10 +68,7 @@ export function PrototypeStudioPage({
 		() => (normalizedPrototype ? serializePrototypeState(normalizedPrototype) : ''),
 		[normalizedPrototype],
 	);
-	const draftSignature = useMemo(
-		() => (draft ? serializePrototypeState(draft) : ''),
-		[draft],
-	);
+	const draftSignature = useMemo(() => (draft ? serializePrototypeState(draft) : ''), [draft]);
 	const isDirty = Boolean(draft && savedSignature && draftSignature !== savedSignature);
 
 	useEffect(() => {
@@ -114,7 +108,7 @@ export function PrototypeStudioPage({
 		try {
 			const nextElements = elements.map((element) => {
 				if (element.id !== prototypeElement.id) return element;
-				return applyOverlayUpdateByType('prototype', element as any, {
+				return applyOverlayUpdateByType('prototype', element as ExcalidrawElement & { customData: PrototypeOverlayCustomData }, {
 					title: draft.title,
 					template: draft.template,
 					files: draft.files,
@@ -147,6 +141,16 @@ export function PrototypeStudioPage({
 			setSaveState('saved');
 		} catch (error) {
 			console.error('Failed to save prototype draft', error);
+			captureBrowserException(error, {
+				tags: {
+					area: 'prototype.studio',
+					action: 'save_draft',
+				},
+				extra: {
+					canvasId,
+					prototypeId: prototypeElement.id,
+				},
+			});
 			setSaveState('error');
 		}
 	}
@@ -209,7 +213,8 @@ export function PrototypeStudioPage({
 						Prototype Studio
 					</div>
 					<div className="mt-1 text-sm text-stone-600">
-						Edit files outside the canvas. The canvas now renders the same live prototype runtime preview.
+						Edit files outside the canvas. The canvas now renders the same live prototype runtime
+						preview.
 					</div>
 				</div>
 				<div className="flex items-center gap-3">

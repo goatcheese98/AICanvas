@@ -25,8 +25,10 @@ import {
 import { $isAutoLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { $createImageNode, $isImageNode, ImageNode, type ImagePayload } from '../nodes/ImageNode';
 import { compressImageDataUrl } from '@/lib/image-compression';
+import { captureBrowserException } from '@/lib/observability';
 
-export const INSERT_IMAGE_COMMAND: LexicalCommand<ImagePayload> = createCommand('INSERT_IMAGE_COMMAND');
+export const INSERT_IMAGE_COMMAND: LexicalCommand<ImagePayload> =
+	createCommand('INSERT_IMAGE_COMMAND');
 
 const SUPPORTED_MIME = new Set([
 	'image/jpeg',
@@ -42,7 +44,8 @@ const SUPPORTED_MIME = new Set([
 	'image/x-icon',
 ]);
 
-const TRANSPARENT_IMAGE = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+const TRANSPARENT_IMAGE =
+	'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 const dragImage = document.createElement('img');
 dragImage.src = TRANSPARENT_IMAGE;
 
@@ -181,6 +184,12 @@ export function openImageFilePicker(onSelect: (payload: ImagePayload) => void) {
 			});
 		} catch (error) {
 			console.error('Canvas note image pick failed', error);
+			captureBrowserException(error, {
+				tags: {
+					area: 'lexical.images',
+					action: 'file_picker',
+				},
+			});
 		}
 	};
 	input.click();
@@ -207,9 +216,17 @@ export default function ImagesPlugin() {
 				},
 				COMMAND_PRIORITY_EDITOR,
 			),
-			editor.registerCommand(DRAGSTART_COMMAND, (event) => $onDragStart(event), COMMAND_PRIORITY_HIGH),
+			editor.registerCommand(
+				DRAGSTART_COMMAND,
+				(event) => $onDragStart(event),
+				COMMAND_PRIORITY_HIGH,
+			),
 			editor.registerCommand(DRAGOVER_COMMAND, (event) => $onDragOver(event), COMMAND_PRIORITY_LOW),
-			editor.registerCommand(DROP_COMMAND, (event) => $onDrop(event, editor), COMMAND_PRIORITY_HIGH),
+			editor.registerCommand(
+				DROP_COMMAND,
+				(event) => $onDrop(event, editor),
+				COMMAND_PRIORITY_HIGH,
+			),
 		);
 
 		const rootElement = editor.getRootElement();
@@ -231,6 +248,12 @@ export default function ImagesPlugin() {
 					});
 				} catch (error) {
 					console.error('Canvas note image paste failed', error);
+					captureBrowserException(error, {
+						tags: {
+							area: 'lexical.images',
+							action: 'paste',
+						},
+					});
 				}
 				break;
 			}
@@ -259,6 +282,12 @@ export default function ImagesPlugin() {
 				});
 			} catch (error) {
 				console.error('Canvas note image drop failed', error);
+				captureBrowserException(error, {
+					tags: {
+						area: 'lexical.images',
+						action: 'drop',
+					},
+				});
 			}
 		};
 

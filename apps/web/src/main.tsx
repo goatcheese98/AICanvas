@@ -1,8 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import * as Sentry from '@sentry/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import { routeTree } from './routeTree.gen';
+import { initObservability, isSentryEnabled } from './lib/observability';
 import './styles/globals.css';
 
 declare global {
@@ -39,6 +41,8 @@ declare module '@tanstack/react-router' {
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Root element not found');
+
+initObservability();
 
 function reportReactError(
 	kind: 'caught' | 'uncaught' | 'recoverable',
@@ -89,16 +93,22 @@ function reportReactError(
 	console.error(`[React ${kind} error]`, error, componentStack ?? '');
 }
 
+function createReactErrorHandler(kind: 'caught' | 'uncaught' | 'recoverable') {
+	if (!isSentryEnabled()) {
+		return (error: unknown, errorInfo: { componentStack?: string }) => {
+			reportReactError(kind, error, errorInfo.componentStack);
+		};
+	}
+
+	return Sentry.reactErrorHandler((error, errorInfo) => {
+		reportReactError(kind, error, errorInfo.componentStack ?? undefined);
+	});
+}
+
 createRoot(root, {
-	onCaughtError: (error, errorInfo) => {
-		reportReactError('caught', error, errorInfo.componentStack);
-	},
-	onUncaughtError: (error, errorInfo) => {
-		reportReactError('uncaught', error, errorInfo.componentStack);
-	},
-	onRecoverableError: (error, errorInfo) => {
-		reportReactError('recoverable', error, errorInfo.componentStack);
-	},
+	onCaughtError: createReactErrorHandler('caught'),
+	onUncaughtError: createReactErrorHandler('uncaught'),
+	onRecoverableError: createReactErrorHandler('recoverable'),
 }).render(
 	<StrictMode>
 		<QueryClientProvider client={queryClient}>

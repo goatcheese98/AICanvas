@@ -28,10 +28,7 @@ import './canvas-tour.css';
 
 const IS_DEV = import.meta.env.DEV;
 
-function getChapterById(
-	sceneId: string,
-	fallback: CanvasTourChapter,
-) {
+function getChapterById(sceneId: string, fallback: CanvasTourChapter) {
 	return canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? fallback;
 }
 
@@ -314,9 +311,9 @@ export function CanvasTourPage() {
 		const hasScenes = Object.keys(nextScenes).length > 0;
 		const nextLibrary = hasScenes
 			? {
-				scenes: nextScenes,
-				updatedAt: new Date().toISOString(),
-			}
+					scenes: nextScenes,
+					updatedAt: new Date().toISOString(),
+				}
 			: null;
 		if (nextLibrary) {
 			persistRegisteredTourScenes(nextLibrary);
@@ -458,13 +455,13 @@ export function CanvasTourPage() {
 		const widthRem = clamp(
 			placement.widthRem,
 			OVERLAY_MIN_WIDTH_REM,
-			Math.max(OVERLAY_MIN_WIDTH_REM, Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx)),
+			Math.max(
+				OVERLAY_MIN_WIDTH_REM,
+				Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx),
+			),
 		);
 		const widthPx = widthRem * rootFontSizePx;
-		const maxLeftRem = Math.max(
-			OVERLAY_LEFT_MARGIN_REM,
-			(area.rightPx - widthPx) / rootFontSizePx,
-		);
+		const maxLeftRem = Math.max(OVERLAY_LEFT_MARGIN_REM, (area.rightPx - widthPx) / rootFontSizePx);
 		const maxTopRem = Math.max(
 			OVERLAY_TOP_MARGIN_REM,
 			(area.bottomPx - overlayHeightPx) / rootFontSizePx,
@@ -491,9 +488,7 @@ export function CanvasTourPage() {
 		setOverlayDraft((current) => ({
 			...current,
 			...patch,
-			placement: patch.placement
-				? { ...current.placement, ...patch.placement }
-				: current.placement,
+			placement: patch.placement ? { ...current.placement, ...patch.placement } : current.placement,
 		}));
 	};
 	const updateOverlayPlacement = (
@@ -641,8 +636,13 @@ export function CanvasTourPage() {
 					<CanvasNotesLayer />
 					{isGuideMode ? <div className="canvas-tour-interaction-mask" aria-hidden="true" /> : null}
 
-					{isGuideMode || (showRegistryControls && isRegistryOpen && registrySceneId === activeChapter.id) ? (
-						<div ref={overlayShellRef} className="canvas-tour-intro-shell" style={introOverlayStyle}>
+					{isGuideMode ||
+					(showRegistryControls && isRegistryOpen && registrySceneId === activeChapter.id) ? (
+						<div
+							ref={overlayShellRef}
+							className="canvas-tour-intro-shell"
+							style={introOverlayStyle}
+						>
 							<svg
 								className="canvas-tour-intro-outline"
 								viewBox="0 0 100 100"

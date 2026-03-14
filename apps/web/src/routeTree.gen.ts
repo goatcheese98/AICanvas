@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExperimentsOverlayRegressionRouteImport } from './routes/experiments.overlay-regression'
 import { Route as ExperimentsCanvasTourRouteImport } from './routes/experiments.canvas-tour'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -32,6 +33,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExperimentsOverlayRegressionRoute =
+  ExperimentsOverlayRegressionRouteImport.update({
+    id: '/experiments/overlay-regression',
+    path: '/experiments/overlay-regression',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ExperimentsCanvasTourRoute = ExperimentsCanvasTourRouteImport.update({
   id: '/experiments/canvas-tour',
   path: '/experiments/canvas-tour',
@@ -70,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
+  '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -79,6 +87,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
+  '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -91,6 +100,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
+  '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/_app/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -102,6 +112,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/experiments/canvas-tour'
+    | '/experiments/overlay-regression'
     | '/canvas/$id'
     | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/signup'
     | '/experiments/canvas-tour'
+    | '/experiments/overlay-regression'
     | '/canvas/$id'
     | '/canvas/$id/prototype/$prototypeId'
   id:
@@ -122,6 +134,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/signup'
     | '/experiments/canvas-tour'
+    | '/experiments/overlay-regression'
     | '/_app/canvas/$id'
     | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
@@ -131,6 +144,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ExperimentsCanvasTourRoute: typeof ExperimentsCanvasTourRoute
+  ExperimentsOverlayRegressionRoute: typeof ExperimentsOverlayRegressionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -154,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/experiments/overlay-regression': {
+      id: '/experiments/overlay-regression'
+      path: '/experiments/overlay-regression'
+      fullPath: '/experiments/overlay-regression'
+      preLoaderRoute: typeof ExperimentsOverlayRegressionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/experiments/canvas-tour': {
@@ -242,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ExperimentsCanvasTourRoute: ExperimentsCanvasTourRoute,
+  ExperimentsOverlayRegressionRoute: ExperimentsOverlayRegressionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,7 +1,7 @@
 import { landingContent } from './landing-content';
 import './landing.css';
 
-function ToolbarIcon({ children, viewBox = '0 0 24 24' }: { children: any; viewBox?: string }) {
+function ToolbarIcon({ children, viewBox = '0 0 24 24' }: { children: React.ReactNode; viewBox?: string }) {
 	return (
 		<svg
 			aria-hidden="true"

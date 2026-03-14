@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState, BinaryFiles, BinaryFileData } from '@excalidraw/excalidraw/types';
 import '@excalidraw/excalidraw/index.css';
 import { CanvasCore } from './CanvasCore';
 import { CanvasUI } from './CanvasUI';
@@ -9,20 +10,19 @@ import { CanvasNotesLayer } from './CanvasNotesLayer';
 import { useAppStore } from '@/stores/store';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { captureBrowserException } from '@/lib/observability';
 import {
 	CanvasPersistenceCoordinator,
 	type CanvasData,
 } from '@/lib/persistence/CanvasPersistenceCoordinator';
-import {
-	buildPersistedCanvasData,
-	shouldWaitForCanvasHydration,
-} from './canvas-persistence-utils';
+import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
 import { normalizeSceneElements } from './scene-element-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
 const THUMBNAIL_MIME_TYPE = 'image/png';
 
-let exportToBlobLoader: Promise<typeof import('@excalidraw/excalidraw')['exportToBlob']> | null = null;
+let exportToBlobLoader: Promise<typeof import('@excalidraw/excalidraw')['exportToBlob']> | null =
+	null;
 
 async function getExportToBlob() {
 	if (!exportToBlobLoader) {
@@ -102,7 +102,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 								? data.appState.viewBackgroundColor
 								: '#ffffff',
 					},
-					files: ((data.files ?? {}) as Record<string, unknown>) as never,
+					files: (data.files ?? {}) as Record<string, unknown> as never,
 					mimeType: THUMBNAIL_MIME_TYPE,
 					exportPadding: 16,
 				});
@@ -125,6 +125,16 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				void queryClient.invalidateQueries({ queryKey: ['canvases'] });
 			} catch (err) {
 				console.error('Thumbnail upload failed:', err);
+				captureBrowserException(err, {
+					tags: {
+						area: 'canvas.thumbnail',
+						action: 'upload',
+					},
+					extra: {
+						canvasId,
+						signature,
+					},
+				});
 			} finally {
 				if (inFlightThumbnailSignatureRef.current === signature) {
 					inFlightThumbnailSignatureRef.current = null;
@@ -160,6 +170,16 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				void persistThumbnail(data);
 			} catch (err) {
 				console.error('Server auto-save failed:', err);
+				captureBrowserException(err, {
+					tags: {
+						area: 'canvas.save',
+						action: 'server_autosave',
+					},
+					extra: {
+						canvasId,
+						elementCount: data.elements.length,
+					},
+				});
 			}
 		},
 		[canvasId, getToken, persistThumbnail, queryClient],
@@ -191,9 +211,9 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	}, [canvasId]);
 
 	const handleSaveNeeded = useCallback(
-		(elements: readonly any[], appState: any, files: any) => {
+		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 			if (!isInitializedRef.current) return;
-			const data = buildPersistedCanvasData(elements, appState, files);
+			const data = buildPersistedCanvasData(elements, appState as unknown as Record<string, unknown>, files as unknown as Record<string, unknown>);
 			latestSceneRef.current = data;
 			coordinatorRef.current?.scheduleSave(data, canvasId);
 			scheduleServerSave(data);
@@ -202,7 +222,11 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	);
 
 	// Load canvas data from API
-	const { data: canvasQueryData, fetchStatus, status } = useQuery({
+	const {
+		data: canvasQueryData,
+		fetchStatus,
+		status,
+	} = useQuery({
 		queryKey: ['canvas', canvasId],
 		queryFn: async () => {
 			const headers = await getRequiredAuthHeaders(getToken);

@@ -54,7 +54,10 @@ describe('assistant thread api helpers', () => {
 		expect(globalThis.fetch).toHaveBeenCalledWith(
 			'/api/assistant/threads?canvasId=canvas-1',
 			expect.objectContaining({
-				headers: { Authorization: 'Bearer test' },
+				headers: expect.objectContaining({
+					authorization: 'Bearer test',
+					'x-client-request-id': expect.any(String),
+				}),
 			}),
 		);
 	});

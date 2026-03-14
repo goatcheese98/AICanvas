@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useAppStore } from '@/stores/store';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
 
@@ -30,7 +31,7 @@ describe('CanvasNotesLayer', () => {
 				type: 'markdown',
 				content: 'Hello',
 			},
-		} as any;
+		} as unknown as ExcalidrawElement;
 
 		useAppStore.setState({
 			elements: [overlayElement],
@@ -47,8 +48,8 @@ describe('CanvasNotesLayer', () => {
 
 		expect(initialContainer).toBeTruthy();
 
-		overlayElement.x = 340;
-		overlayElement.y = 260;
+		(overlayElement as { x: number }).x = 340;
+		(overlayElement as { y: number }).y = 260;
 		useAppStore.setState({
 			elements: [overlayElement],
 		});
@@ -73,7 +74,7 @@ describe('CanvasNotesLayer', () => {
 				type: 'markdown',
 				content: 'Zoom me',
 			},
-		} as any;
+		} as unknown as ExcalidrawElement;
 
 		useAppStore.setState({
 			elements: [overlayElement],
@@ -103,7 +104,7 @@ describe('CanvasNotesLayer', () => {
 		rerender(<CanvasNotesLayer />);
 
 		const movedContainer = container.querySelector(
-			'[style*="left: 270px;"][style*="top: 247.5px;"][style*="transform: scale(1.5) rotate(0rad);"]',
+			'[style*="left: 355px;"][style*="top: 337.5px;"][style*="transform: scale(1.5) rotate(0rad);"]',
 		);
 		expect(movedContainer).toBeTruthy();
 	});

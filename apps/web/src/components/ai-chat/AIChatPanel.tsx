@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import type {
-	AssistantArtifact,
-	AssistantMessage,
-	CanvasElement,
-} from '@ai-canvas/shared/types';
+import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
 import { buildSelectionIndicator } from './selection-context';
 import { CHAT_INPUT_MAX_HEIGHT } from './ai-chat-constants';
 import { getLatestPendingPatchArtifacts } from './ai-chat-helpers';
@@ -157,8 +153,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		textarea.style.height = '0px';
 		const nextHeight = Math.min(Math.max(textarea.scrollHeight, 44), CHAT_INPUT_MAX_HEIGHT);
 		textarea.style.height = `${nextHeight}px`;
-		textarea.style.overflowY =
-			textarea.scrollHeight > CHAT_INPUT_MAX_HEIGHT ? 'auto' : 'hidden';
+		textarea.style.overflowY = textarea.scrollHeight > CHAT_INPUT_MAX_HEIGHT ? 'auto' : 'hidden';
 	}, [input]);
 
 	const handleCreateThread = async () => {
@@ -236,7 +231,8 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 						{messages.length === 0 ? (
 							<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-4">
 								<div className="text-[10px] font-medium text-stone-500">
-									Try asking the canvas assistant to diagram, summarize, or transform your current selection.
+									Try asking the canvas assistant to diagram, summarize, or transform your current
+									selection.
 								</div>
 								<div className="mt-3 flex flex-wrap gap-2">
 									<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
@@ -279,16 +275,9 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 									onApplyPatch={(artifactKey, artifact, options) =>
 										canvasActions.applyAssistantPatch(artifactKey, artifact, 'apply', options)
 									}
-									onUndoPatch={(artifactKey) =>
-										canvasActions.undoAssistantPatch(artifactKey)
-									}
+									onUndoPatch={(artifactKey) => canvasActions.undoAssistantPatch(artifactKey)}
 									onReapplyPatch={(artifactKey, artifact, options) =>
-										canvasActions.applyAssistantPatch(
-											artifactKey,
-											artifact,
-											'reapply',
-											options,
-										)
+										canvasActions.applyAssistantPatch(artifactKey, artifact, 'reapply', options)
 									}
 								/>
 							))

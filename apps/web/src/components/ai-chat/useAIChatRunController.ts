@@ -22,14 +22,8 @@ import {
 	reconcileAssistantRunProgress,
 	type AssistantRunProgress,
 } from './run-progress';
-import {
-	AFFIRMATIVE_PATCH_REPLY,
-	NEGATIVE_PATCH_REPLY,
-} from './ai-chat-constants';
-import {
-	buildArtifactKey,
-	buildConversationHistory,
-} from './ai-chat-helpers';
+import { AFFIRMATIVE_PATCH_REPLY, NEGATIVE_PATCH_REPLY } from './ai-chat-constants';
+import { buildArtifactKey, buildConversationHistory } from './ai-chat-helpers';
 import { getSelectedElementIdsFromMap, shouldConfirmSelectionForPrompt } from './selection-context';
 import { getDiagramArtifactSource } from './assistant-artifacts';
 import type {
@@ -175,14 +169,13 @@ export function useAIChatRunController({
 										d2Variant: 'default',
 									});
 									return insertRenderedDiagramOnCanvas({
-										title:
-											diagram.language === 'mermaid' ? 'Mermaid Diagram' : 'D2 Diagram',
+										title: diagram.language === 'mermaid' ? 'Mermaid Diagram' : 'D2 Diagram',
 										svgMarkup: rendered.svgMarkup,
 										width: rendered.width,
 										height: rendered.height,
 										diagram,
 									});
-							  })()
+								})()
 							: await insertArtifactOnCanvas(artifact);
 
 					if (!cancelled && insertionState) {
@@ -191,9 +184,7 @@ export function useAIChatRunController({
 				} catch (error) {
 					if (!cancelled) {
 						setChatError(
-							error instanceof Error
-								? error.message
-								: 'Failed to insert artifact onto the canvas',
+							error instanceof Error ? error.message : 'Failed to insert artifact onto the canvas',
 						);
 					}
 				}

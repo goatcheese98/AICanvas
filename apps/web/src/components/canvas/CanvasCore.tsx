@@ -2,12 +2,18 @@ import { useCallback, useRef } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import { useAppStore } from '@/stores/store';
 
 interface CanvasCoreProps {
 	canvasId: string;
-	onSaveNeeded?: (elements: readonly ExcalidrawElement[], appState: any, files: any) => void;
-	onSceneChange?: (elements: readonly ExcalidrawElement[], appState: any, files: any) => void;
+	onSaveNeeded?: (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => void;
+	onSceneChange?: (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => void;
+	initialData?: {
+		elements: readonly ExcalidrawElement[];
+		appState?: AppState;
+		files?: BinaryFiles;
+	};
 	onPointerUpdate?: (payload: {
 		pointer: { x: number; y: number };
 		button: 'down' | 'up';
@@ -19,7 +25,7 @@ function createElementsSnapshot(elements: readonly ExcalidrawElement[]) {
 	return [...elements];
 }
 
-function createAppStateSnapshot(appState: any) {
+function createAppStateSnapshot(appState: AppState) {
 	return {
 		...appState,
 		selectedElementIds: { ...(appState?.selectedElementIds ?? {}) },
@@ -30,11 +36,17 @@ function createAppStateSnapshot(appState: any) {
 	};
 }
 
-function createFilesSnapshot(files: any) {
+function createFilesSnapshot(files: BinaryFiles) {
 	return files && typeof files === 'object' ? { ...files } : files;
 }
 
-export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpdate }: CanvasCoreProps) {
+export function CanvasCore({
+	canvasId,
+	onSaveNeeded,
+	onSceneChange,
+	initialData,
+	onPointerUpdate,
+}: CanvasCoreProps) {
 	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
 	const setElements = useAppStore((s) => s.setElements);
 	const setAppState = useAppStore((s) => s.setAppState);
@@ -68,7 +80,7 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 	);
 
 	const handleChange = useCallback(
-		(elements: readonly ExcalidrawElement[], appState: any, files: any) => {
+		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 			const elementSnapshot = createElementsSnapshot(elements);
 			const appStateSnapshot = createAppStateSnapshot(appState);
 			const filesSnapshot = createFilesSnapshot(files);
@@ -98,9 +110,10 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 	);
 
 	return (
-		<div className="h-full w-full">
+		<div className="h-full w-full" data-testid="canvas-core">
 			<Excalidraw
 				excalidrawAPI={handleApiReady}
+				initialData={initialData}
 				onChange={handleChange}
 				onPointerUpdate={handlePointerUpdate}
 				UIOptions={{

@@ -52,7 +52,7 @@ export function useAIChatThreads({
 				setActiveThreadId((current) =>
 					nextThreads.some((thread) => thread.id === current)
 						? current
-						: nextThreads[0]?.id ?? null,
+						: (nextThreads[0]?.id ?? null),
 				);
 				setChatError(null);
 			} catch (error) {

@@ -11,6 +11,7 @@ import {
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
 import type { OverlayType } from '@ai-canvas/shared/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
 import { useAppStore } from '@/stores/store';
 import { AIChatPanel } from '@/components/ai-chat';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
@@ -92,9 +93,9 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 			? 'bg-emerald-500'
 			: collaboration.sessionStatus === 'reconnecting'
 				? 'bg-amber-500'
-					: collaboration.sessionStatus === 'error'
-						? 'bg-rose-500'
-						: 'bg-stone-300';
+				: collaboration.sessionStatus === 'error'
+					? 'bg-rose-500'
+					: 'bg-stone-300';
 
 	useEffect(() => {
 		if (!isInsertMenuOpen) return;
@@ -187,7 +188,7 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		const sceneUpdate = buildOverlayInsertionScene(type, elements, appState);
 		excalidrawApi.updateScene({
 			elements: sceneUpdate.elements,
-			appState: sceneUpdate.appState as any,
+			appState: sceneUpdate.appState as AppState,
 		});
 		setIsInsertMenuOpen(false);
 		addToast({
@@ -196,7 +197,7 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					? 'Rich text note inserted'
 					: type === 'prototype'
 						? 'Prototype overlay inserted'
-					: `${overlayActions.find((action) => action.type === type)?.label ?? 'Overlay'} inserted`,
+						: `${overlayActions.find((action) => action.type === type)?.label ?? 'Overlay'} inserted`,
 			type: 'success',
 		});
 	};
@@ -218,9 +219,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					<button
 						type="button"
 						onClick={() => setIsInsertMenuOpen((current) => !current)}
-						className={`${CHROME_BUTTON_BASE} ${
-							isInsertMenuOpen ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-						} bg-white/96 tracking-[0.22em] backdrop-blur`}
+						className={`${CHROME_BUTTON_BASE} ${isInsertMenuOpen ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+							} bg-white/96 tracking-[0.22em] backdrop-blur`}
 					>
 						Insert
 					</button>
@@ -250,9 +250,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					type="button"
 					aria-label="Profile and workspace menu"
 					onClick={() => setActivePanel(activePanel === 'assets' ? 'none' : 'assets')}
-					className={`flex h-9 w-9 items-center justify-center rounded-[8px] border shadow-sm backdrop-blur ${
-						activePanel === 'assets' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-					}`}
+					className={`flex h-9 w-9 items-center justify-center rounded-[8px] border shadow-sm backdrop-blur ${activePanel === 'assets' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+						}`}
 				>
 					{user?.imageUrl ? (
 						<img src={user.imageUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -327,9 +326,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				<button
 					type="button"
 					onClick={() => setActivePanel(activePanel === 'collab' ? 'none' : 'collab')}
-					className={`${CHROME_BUTTON_BASE} ${
-						activePanel === 'collab' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-					} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
+					className={`${CHROME_BUTTON_BASE} ${activePanel === 'collab' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+						} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
 				>
 					<span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
 					Live
@@ -338,9 +336,8 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				<button
 					type="button"
 					onClick={() => setActivePanel(activePanel === 'chat' ? 'none' : 'chat')}
-					className={`${CHROME_BUTTON_BASE} ${
-						activePanel === 'chat' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-					} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
+					className={`${CHROME_BUTTON_BASE} ${activePanel === 'chat' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+						} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

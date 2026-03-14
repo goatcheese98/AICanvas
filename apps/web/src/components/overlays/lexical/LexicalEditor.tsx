@@ -14,6 +14,7 @@ import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { TRANSFORMERS } from '@lexical/markdown';
 import type { EditorState } from 'lexical';
+import { captureBrowserException } from '@/lib/observability';
 import { lexicalNodes } from './nodes';
 import { LexicalToolbar } from './LexicalToolbar';
 import EquationPlugin from './plugins/EquationPlugin';
@@ -240,10 +241,21 @@ export function LexicalEditor({
 			initialConfig={{
 				namespace,
 				theme: editorTheme,
-				onError: (error) => console.error('Canvas Lexical error:', error),
+				onError: (error) => {
+					console.error('Canvas Lexical error:', error);
+					captureBrowserException(error, {
+						tags: {
+							area: 'lexical',
+							action: 'editor_error',
+						},
+						extra: {
+							namespace,
+						},
+					});
+				},
 				editable: !readOnly,
 				editorState: initialState,
-					nodes: lexicalNodes,
+				nodes: lexicalNodes,
 			}}
 		>
 			<div

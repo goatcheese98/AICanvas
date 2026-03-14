@@ -1,9 +1,6 @@
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
 import { buildPrototypeFromMessageContent, filterVisibleArtifacts } from './assistant-artifacts';
-import type {
-	AssistantPatchApplyState,
-	PatchArtifactDescriptor,
-} from './ai-chat-types';
+import type { AssistantPatchApplyState, PatchArtifactDescriptor } from './ai-chat-types';
 
 export function clonePatchCustomData<T extends Record<string, unknown>>(value: T): T {
 	if (typeof structuredClone === 'function') {
@@ -46,8 +43,8 @@ export function getLatestPendingPatchArtifacts(
 			}))
 			.filter(
 				({ artifact, artifactKey }) =>
-					(artifact.type === 'markdown-patch' || artifact.type === 'kanban-patch')
-					&& patchStates[artifactKey]?.status !== 'applied',
+					(artifact.type === 'markdown-patch' || artifact.type === 'kanban-patch') &&
+					patchStates[artifactKey]?.status !== 'applied',
 			);
 
 		if (patchArtifacts.length > 0) {

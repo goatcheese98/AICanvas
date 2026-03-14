@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
@@ -42,7 +43,10 @@ import {
 	updateAssistantTaskRecord,
 	updateAssistantRunRecord,
 } from '../lib/assistant/store';
-import { loadAssistantAssetFromR2, saveAssistantAssetToR2 } from '../lib/storage/assistant-asset-storage';
+import {
+	loadAssistantAssetFromR2,
+	saveAssistantAssetToR2,
+} from '../lib/storage/assistant-asset-storage';
 
 interface StoredAssistantAssetContent {
 	kind: 'stored_asset';
@@ -122,417 +126,483 @@ async function executeAssistantRun(
 		prototypeContext?: PrototypeOverlayCustomData;
 	},
 ) {
-	await updateAssistantRunRecord(db, ownerId, runId, { status: 'running' });
-	const startedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.started', {
-		status: 'running',
-	});
-	publishAssistantRunEvent(ownerId, runId, startedEvent);
+	return Sentry.startSpan(
+		{
+			name: 'assistant.execute_run',
+			op: 'ai.run',
+			attributes: {
+				'assistant.run.id': runId,
+				'assistant.canvas.id': input.canvasId,
+				'assistant.context_mode': input.contextMode,
+			},
+		},
+		async () => {
+			Sentry.setTag('assistant.run_id', runId);
+			Sentry.setTag('assistant.canvas_id', input.canvasId);
+			Sentry.setTag('assistant.context_mode', input.contextMode);
 
-	try {
-		let nextTask = await getNextQueuedAssistantTaskRecord(db, ownerId, runId);
-
-		while (nextTask) {
-			const runningTask = await updateAssistantTaskRecord(db, ownerId, nextTask.id, {
+			await updateAssistantRunRecord(db, ownerId, runId, { status: 'running' });
+			const startedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.started', {
 				status: 'running',
-				error: null,
 			});
+			publishAssistantRunEvent(ownerId, runId, startedEvent);
 
-			if (!runningTask) {
-				throw new Error('Assistant task disappeared during execution');
-			}
+			try {
+				let nextTask = await getNextQueuedAssistantTaskRecord(db, ownerId, runId);
 
-			await publishTaskEvent(db, ownerId, runningTask, 'task.started', 'running');
-
-			if (runningTask.type === 'plan_run') {
-				const plan = planAssistantRun({
-					message: input.message,
-					contextMode: input.contextMode,
-					modeHint: input.modeHint,
-					history: input.history,
-					contextSnapshot: input.contextSnapshot,
-					prototypeContext: input.prototypeContext,
-				});
-
-				for (const task of plan.tasks) {
-					const queuedTask = await createAssistantTaskRecord(db, ownerId, {
-						runId,
-						type: task.type,
-						title: task.title,
-						input: task.input,
+				while (nextTask) {
+					const runningTask = await updateAssistantTaskRecord(db, ownerId, nextTask.id, {
+						status: 'running',
+						error: null,
 					});
-					await publishTaskEvent(db, ownerId, queuedTask, 'task.created', 'queued');
-				}
 
-				const completedPlanningTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-					status: 'completed',
-					output: {
-						kind: 'plan_run',
-						resolvedMode: plan.resolvedMode,
-						enqueuedTaskTypes: plan.tasks.map((task) => task.type),
-					},
-					error: null,
-				});
-				if (!completedPlanningTask) {
-					throw new Error('Failed to complete planning task');
-				}
-				await publishTaskEvent(db, ownerId, completedPlanningTask, 'task.completed', 'completed');
-				} else if (runningTask.type === 'generate_image') {
-					if (runningTask.input?.kind !== 'generate_image') {
-						throw new Error('Image generation task is missing payload');
+					if (!runningTask) {
+						throw new Error('Assistant task disappeared during execution');
 					}
-					const generated = await generateImageAsset(bindings, {
-						prompt: runningTask.input.prompt,
-						style: runningTask.input.style,
-					});
-					const storageKey = await saveAssistantAssetToR2(
-						bindings.R2,
-						runId,
-						`${runningTask.id}-${crypto.randomUUID()}`,
-						{
-							body: generated.bytes,
-							mimeType: generated.mimeType,
-						},
-					);
-					const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
-						runId,
-						taskId: runningTask.id,
-						type: 'image',
-						title: runningTask.input.outputTitle,
-						content: serializeStoredAssistantAssetContent({
-							kind: 'stored_asset',
-							r2Key: storageKey,
-							mimeType: generated.mimeType,
-							provider: generated.provider,
-							model: generated.model,
-							prompt: generated.prompt,
-							revisedPrompt: generated.revisedPrompt,
-							byteSize: generated.bytes.byteLength,
-						}),
-					});
-					const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-						status: 'completed',
-					output: {
-						kind: 'artifact_created',
-						artifactIds: [createdArtifact.id],
-					},
-					error: null,
-				});
-				if (!completedTask) {
-					throw new Error('Failed to complete image generation task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-				} else if (runningTask.type === 'vectorize_asset') {
-					if (runningTask.input?.kind !== 'vectorize_asset') {
-						throw new Error('Vectorization task is missing payload');
-					}
-					const taskInput = runningTask.input;
-				const imageArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
-				const latestImageArtifact = [...imageArtifacts]
-					.reverse()
-					.find((artifact) => artifact.type === taskInput.sourceArtifactType);
-					if (!latestImageArtifact) {
-						throw new Error('Vectorization failed: missing image artifact');
-					}
-					const sourceImage = parseStoredAssistantAssetContent(latestImageArtifact.content);
-					if (!sourceImage) {
-						throw new Error('Vectorization failed: image artifact content is not a stored asset');
-					}
-					const sourceObject = await loadAssistantAssetFromR2(bindings.R2, sourceImage.r2Key);
-					if (!sourceObject) {
-						throw new Error('Vectorization failed: source image asset is missing from storage');
-					}
-					const vectorized = await vectorizeImageAsset(bindings, {
-						bytes: await sourceObject.arrayBuffer(),
-						mimeType: sourceImage.mimeType,
-						prompt: sourceImage.prompt,
-					});
-					const storageKey = await saveAssistantAssetToR2(
-						bindings.R2,
-						runId,
-						`${runningTask.id}-${crypto.randomUUID()}`,
-						{
-							body: vectorized.content,
-							mimeType: vectorized.mimeType,
-						},
-					);
-					const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
-						runId,
-						taskId: runningTask.id,
-						type: 'image-vector',
-						title: taskInput.outputTitle,
-						content: serializeStoredAssistantAssetContent({
-							kind: 'stored_asset',
-							r2Key: storageKey,
-							mimeType: vectorized.mimeType,
-							provider: vectorized.provider,
-							model: vectorized.model,
-							tool: vectorized.tool,
-							sourceArtifactId: latestImageArtifact.id,
-						}),
-					});
-					const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-						status: 'completed',
-					output: {
-						kind: 'artifact_created',
-						artifactIds: [createdArtifact.id],
-					},
-					error: null,
-				});
-				if (!completedTask) {
-					throw new Error('Failed to complete vectorization task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-			} else if (runningTask.type === 'create_markdown_overlay') {
-				if (runningTask.input?.kind !== 'create_markdown_overlay') {
-					throw new Error('Markdown overlay task is missing payload');
-				}
-				const taskInput = runningTask.input;
-				const availableArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
-				const artifact = await buildMarkdownOverlayArtifact({
-					message: input.message,
-					contextMode: input.contextMode,
-					mode: taskInput.resolvedMode,
-					artifacts: availableArtifacts.filter((candidate) =>
-						taskInput.sourceArtifactTypes.includes(candidate.type),
-					),
-				});
-				const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
-					runId,
-					taskId: runningTask.id,
-					type: 'markdown',
-					title: artifact.title,
-					content: artifact.content,
-				});
-				const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-					status: 'completed',
-					output: {
-						kind: 'artifact_created',
-						artifactIds: [createdArtifact.id],
-					},
-					error: null,
-				});
-				if (!completedTask) {
-					throw new Error('Failed to complete markdown overlay task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-			} else if (runningTask.type === 'place_canvas_artifact') {
-				if (runningTask.input?.kind !== 'place_canvas_artifact') {
-					throw new Error('Placement task is missing payload');
-				}
-				const taskInput = runningTask.input;
-				const targetArtifacts = await listArtifactsByTypes(
-					db,
-					ownerId,
-					runId,
-					taskInput.targetArtifactTypes,
-				);
-				if (targetArtifacts.length === 0) {
-					throw new Error('Placement planning failed: missing target artifacts');
-				}
-				const placementPlan = buildPlacementPlanArtifact({
-					title: taskInput.title,
-					artifacts: targetArtifacts,
-				});
-				const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
-					runId,
-					taskId: runningTask.id,
-					type: 'layout-plan',
-					title: placementPlan.title,
-					content: placementPlan.content,
-				});
-				const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-					status: 'completed',
-					output: {
-						kind: 'placement_ready',
-						artifactIds: [createdArtifact.id],
-						strategy: taskInput.strategy,
-					},
-					error: null,
-				});
-				if (!completedTask) {
-					throw new Error('Failed to complete placement task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-			} else if (runningTask.type === 'generate_response') {
-				if (runningTask.input?.kind !== 'generate_response') {
-					throw new Error('Response generation task is missing payload');
-				}
-				const taskInput = runningTask.input;
-				const result = await generateAssistantResponse({
-					message: input.message,
-					contextMode: input.contextMode,
-					generationMode: taskInput.resolvedMode,
-					history: input.history,
-					contextSnapshot: input.contextSnapshot,
-					prototypeContext: input.prototypeContext,
-					bindings,
-				});
 
-				for (const artifact of result.message.artifacts ?? []) {
-					if (
-						artifact.type === 'mermaid' ||
-						artifact.type === 'd2' ||
-						artifact.type === 'kanban-ops' ||
-						artifact.type === 'kanban-patch' ||
-						artifact.type === 'prototype-files'
-						|| artifact.type === 'markdown-patch'
-					) {
-						await createAssistantArtifactRecord(db, ownerId, {
+					await publishTaskEvent(db, ownerId, runningTask, 'task.started', 'running');
+
+					if (runningTask.type === 'plan_run') {
+						const plan = planAssistantRun({
+							message: input.message,
+							contextMode: input.contextMode,
+							modeHint: input.modeHint,
+							history: input.history,
+							contextSnapshot: input.contextSnapshot,
+							prototypeContext: input.prototypeContext,
+						});
+
+						for (const task of plan.tasks) {
+							const queuedTask = await createAssistantTaskRecord(db, ownerId, {
+								runId,
+								type: task.type,
+								title: task.title,
+								input: task.input,
+							});
+							await publishTaskEvent(db, ownerId, queuedTask, 'task.created', 'queued');
+						}
+
+						const completedPlanningTask = await updateAssistantTaskRecord(
+							db,
+							ownerId,
+							runningTask.id,
+							{
+								status: 'completed',
+								output: {
+									kind: 'plan_run',
+									resolvedMode: plan.resolvedMode,
+									enqueuedTaskTypes: plan.tasks.map((task) => task.type),
+								},
+								error: null,
+							},
+						);
+						if (!completedPlanningTask) {
+							throw new Error('Failed to complete planning task');
+						}
+						await publishTaskEvent(
+							db,
+							ownerId,
+							completedPlanningTask,
+							'task.completed',
+							'completed',
+						);
+					} else if (runningTask.type === 'generate_image') {
+						if (runningTask.input?.kind !== 'generate_image') {
+							throw new Error('Image generation task is missing payload');
+						}
+						const generated = await generateImageAsset(bindings, {
+							prompt: runningTask.input.prompt,
+							style: runningTask.input.style,
+						});
+						const storageKey = await saveAssistantAssetToR2(
+							bindings.R2,
+							runId,
+							`${runningTask.id}-${crypto.randomUUID()}`,
+							{
+								body: generated.bytes,
+								mimeType: generated.mimeType,
+							},
+						);
+						const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
 							runId,
 							taskId: runningTask.id,
-							type: artifact.type,
-							title: getArtifactTitle(artifact.type),
+							type: 'image',
+							title: runningTask.input.outputTitle,
+							content: serializeStoredAssistantAssetContent({
+								kind: 'stored_asset',
+								r2Key: storageKey,
+								mimeType: generated.mimeType,
+								provider: generated.provider,
+								model: generated.model,
+								prompt: generated.prompt,
+								revisedPrompt: generated.revisedPrompt,
+								byteSize: generated.bytes.byteLength,
+							}),
+						});
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'artifact_created',
+								artifactIds: [createdArtifact.id],
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete image generation task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					} else if (runningTask.type === 'vectorize_asset') {
+						if (runningTask.input?.kind !== 'vectorize_asset') {
+							throw new Error('Vectorization task is missing payload');
+						}
+						const taskInput = runningTask.input;
+						const imageArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
+						const latestImageArtifact = [...imageArtifacts]
+							.reverse()
+							.find((artifact) => artifact.type === taskInput.sourceArtifactType);
+						if (!latestImageArtifact) {
+							throw new Error('Vectorization failed: missing image artifact');
+						}
+						const sourceImage = parseStoredAssistantAssetContent(latestImageArtifact.content);
+						if (!sourceImage) {
+							throw new Error('Vectorization failed: image artifact content is not a stored asset');
+						}
+						const sourceObject = await loadAssistantAssetFromR2(bindings.R2, sourceImage.r2Key);
+						if (!sourceObject) {
+							throw new Error('Vectorization failed: source image asset is missing from storage');
+						}
+						const vectorized = await vectorizeImageAsset(bindings, {
+							bytes: await sourceObject.arrayBuffer(),
+							mimeType: sourceImage.mimeType,
+							prompt: sourceImage.prompt,
+						});
+						const storageKey = await saveAssistantAssetToR2(
+							bindings.R2,
+							runId,
+							`${runningTask.id}-${crypto.randomUUID()}`,
+							{
+								body: vectorized.content,
+								mimeType: vectorized.mimeType,
+							},
+						);
+						const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
+							runId,
+							taskId: runningTask.id,
+							type: 'image-vector',
+							title: taskInput.outputTitle,
+							content: serializeStoredAssistantAssetContent({
+								kind: 'stored_asset',
+								r2Key: storageKey,
+								mimeType: vectorized.mimeType,
+								provider: vectorized.provider,
+								model: vectorized.model,
+								tool: vectorized.tool,
+								sourceArtifactId: latestImageArtifact.id,
+							}),
+						});
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'artifact_created',
+								artifactIds: [createdArtifact.id],
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete vectorization task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					} else if (runningTask.type === 'create_markdown_overlay') {
+						if (runningTask.input?.kind !== 'create_markdown_overlay') {
+							throw new Error('Markdown overlay task is missing payload');
+						}
+						const taskInput = runningTask.input;
+						const availableArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
+						const artifact = await buildMarkdownOverlayArtifact({
+							message: input.message,
+							contextMode: input.contextMode,
+							mode: taskInput.resolvedMode,
+							artifacts: availableArtifacts.filter((candidate) =>
+								taskInput.sourceArtifactTypes.includes(candidate.type),
+							),
+						});
+						const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
+							runId,
+							taskId: runningTask.id,
+							type: 'markdown',
+							title: artifact.title,
 							content: artifact.content,
 						});
-					}
-				}
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'artifact_created',
+								artifactIds: [createdArtifact.id],
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete markdown overlay task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					} else if (runningTask.type === 'place_canvas_artifact') {
+						if (runningTask.input?.kind !== 'place_canvas_artifact') {
+							throw new Error('Placement task is missing payload');
+						}
+						const taskInput = runningTask.input;
+						const targetArtifacts = await listArtifactsByTypes(
+							db,
+							ownerId,
+							runId,
+							taskInput.targetArtifactTypes,
+						);
+						if (targetArtifacts.length === 0) {
+							throw new Error('Placement planning failed: missing target artifacts');
+						}
+						const placementPlan = buildPlacementPlanArtifact({
+							title: taskInput.title,
+							artifacts: targetArtifacts,
+						});
+						const createdArtifact = await createAssistantArtifactRecord(db, ownerId, {
+							runId,
+							taskId: runningTask.id,
+							type: 'layout-plan',
+							title: placementPlan.title,
+							content: placementPlan.content,
+						});
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'placement_ready',
+								artifactIds: [createdArtifact.id],
+								strategy: taskInput.strategy,
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete placement task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					} else if (runningTask.type === 'generate_response') {
+						if (runningTask.input?.kind !== 'generate_response') {
+							throw new Error('Response generation task is missing payload');
+						}
+						const taskInput = runningTask.input;
+						const result = await Sentry.startSpan(
+							{
+								name: 'assistant.generate_response',
+								op: 'ai.generate',
+								attributes: {
+									'assistant.run.id': runId,
+									'assistant.task.id': runningTask.id,
+									'assistant.generation_mode': taskInput.resolvedMode,
+								},
+							},
+							() =>
+								generateAssistantResponse({
+									message: input.message,
+									contextMode: input.contextMode,
+									generationMode: taskInput.resolvedMode,
+									history: input.history,
+									contextSnapshot: input.contextSnapshot,
+									prototypeContext: input.prototypeContext,
+									bindings,
+								}),
+						);
 
-				const taskArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
-				const selectedArtifacts = taskArtifacts.filter((artifact) =>
-					taskInput.includeArtifactTypes.includes(artifact.type),
-				);
-				const nextMessage = {
-					...result.message,
-					content: [
-						buildResponseSummary({
-							mode: taskInput.resolvedMode,
-							message: input.message,
-							artifacts: selectedArtifacts,
-							summary: taskInput.summary,
-						}),
-						'',
-						result.message.content,
-					].join('\n'),
-					artifacts: buildResponseArtifacts(
-						taskArtifacts,
-						taskInput.includeArtifactTypes,
-						result.message.artifacts ?? [],
-					),
-				};
+						for (const artifact of result.message.artifacts ?? []) {
+							if (
+								artifact.type === 'mermaid' ||
+								artifact.type === 'd2' ||
+								artifact.type === 'kanban-ops' ||
+								artifact.type === 'kanban-patch' ||
+								artifact.type === 'prototype-files' ||
+								artifact.type === 'markdown-patch'
+							) {
+								await createAssistantArtifactRecord(db, ownerId, {
+									runId,
+									taskId: runningTask.id,
+									type: artifact.type,
+									title: getArtifactTitle(artifact.type),
+									content: artifact.content,
+								});
+							}
+						}
+
+						const taskArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
+						const selectedArtifacts = taskArtifacts.filter((artifact) =>
+							taskInput.includeArtifactTypes.includes(artifact.type),
+						);
+						const nextMessage = {
+							...result.message,
+							content: [
+								buildResponseSummary({
+									mode: taskInput.resolvedMode,
+									message: input.message,
+									artifacts: selectedArtifacts,
+									summary: taskInput.summary,
+								}),
+								'',
+								result.message.content,
+							].join('\n'),
+							artifacts: buildResponseArtifacts(
+								taskArtifacts,
+								taskInput.includeArtifactTypes,
+								result.message.artifacts ?? [],
+							),
+						};
+
+						await updateAssistantRunRecord(db, ownerId, runId, {
+							resultMessage: nextMessage,
+							error: null,
+						});
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'response_ready',
+								messageId: nextMessage.id,
+								artifactTypes: (nextMessage.artifacts ?? []).map((artifact) => artifact.type),
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete response task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+						const messageEvent = await appendAssistantRunEventRecord(
+							db,
+							ownerId,
+							runId,
+							'message.created',
+							{
+								message: nextMessage,
+							},
+						);
+						publishAssistantRunEvent(ownerId, runId, messageEvent);
+					} else if (runningTask.type === 'verify_layout') {
+						if (runningTask.input?.kind !== 'verify_layout') {
+							throw new Error('Layout verification task is missing payload');
+						}
+						const artifacts = await listArtifactsByTypes(
+							db,
+							ownerId,
+							runId,
+							runningTask.input.requiredArtifactTypes,
+						);
+						const missingTypes = runningTask.input.requiredArtifactTypes.filter(
+							(type) => !artifacts.some((artifact) => artifact.type === type),
+						);
+
+						if (missingTypes.length > 0) {
+							throw new Error(`Layout verification failed: missing ${missingTypes.join(', ')}`);
+						}
+
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'verification',
+								verified: true,
+								details: 'Required artifacts are available for canvas placement.',
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete layout verification task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					} else if (runningTask.type === 'verify_run') {
+						if (runningTask.input?.kind !== 'verify_run') {
+							throw new Error('Run verification task is missing payload');
+						}
+						const currentRun = await getAssistantRunRecord(db, ownerId, runId);
+						if (runningTask.input.requireResultMessage && !currentRun?.resultMessage) {
+							throw new Error('Run verification failed: missing result message');
+						}
+						const artifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
+						const missingArtifacts = runningTask.input.requiredArtifactTypes.filter(
+							(type) => !artifacts.some((artifact) => artifact.type === type),
+						);
+						if (missingArtifacts.length > 0) {
+							throw new Error(`Run verification failed: missing ${missingArtifacts.join(', ')}`);
+						}
+						const tasks = await listAssistantTasksRecord(db, ownerId, runId);
+						const missingTaskTypes = runningTask.input.requiredTaskTypes.filter(
+							(type) => !tasks.some((task) => task.type === type && task.status === 'completed'),
+						);
+						if (missingTaskTypes.length > 0) {
+							throw new Error(`Run verification failed: missing ${missingTaskTypes.join(', ')}`);
+						}
+
+						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
+							status: 'completed',
+							output: {
+								kind: 'verification',
+								verified: true,
+								details: 'Run contains the required result message, tasks, and artifacts.',
+							},
+							error: null,
+						});
+						if (!completedTask) {
+							throw new Error('Failed to complete verification task');
+						}
+						await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+					}
+
+					nextTask = await getNextQueuedAssistantTaskRecord(db, ownerId, runId);
+				}
 
 				await updateAssistantRunRecord(db, ownerId, runId, {
-					resultMessage: nextMessage,
-					error: null,
-				});
-				const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
 					status: 'completed',
-					output: {
-						kind: 'response_ready',
-						messageId: nextMessage.id,
-						artifactTypes: (nextMessage.artifacts ?? []).map((artifact) => artifact.type),
-					},
 					error: null,
 				});
-				if (!completedTask) {
-					throw new Error('Failed to complete response task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-				const messageEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'message.created', {
-					message: nextMessage,
-				});
-				publishAssistantRunEvent(ownerId, runId, messageEvent);
-			} else if (runningTask.type === 'verify_layout') {
-				if (runningTask.input?.kind !== 'verify_layout') {
-					throw new Error('Layout verification task is missing payload');
-				}
-				const artifacts = await listArtifactsByTypes(
+				const completedEvent = await appendAssistantRunEventRecord(
 					db,
 					ownerId,
 					runId,
-					runningTask.input.requiredArtifactTypes,
-				);
-				const missingTypes = runningTask.input.requiredArtifactTypes.filter(
-					(type) => !artifacts.some((artifact) => artifact.type === type),
-				);
-
-				if (missingTypes.length > 0) {
-					throw new Error(`Layout verification failed: missing ${missingTypes.join(', ')}`);
-				}
-
-				const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-					status: 'completed',
-					output: {
-						kind: 'verification',
-						verified: true,
-						details: 'Required artifacts are available for canvas placement.',
+					'run.completed',
+					{
+						status: 'completed',
 					},
-					error: null,
-				});
-				if (!completedTask) {
-					throw new Error('Failed to complete layout verification task');
-				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
-			} else if (runningTask.type === 'verify_run') {
-				if (runningTask.input?.kind !== 'verify_run') {
-					throw new Error('Run verification task is missing payload');
-				}
-				const currentRun = await getAssistantRunRecord(db, ownerId, runId);
-				if (runningTask.input.requireResultMessage && !currentRun?.resultMessage) {
-					throw new Error('Run verification failed: missing result message');
-				}
-				const artifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
-				const missingArtifacts = runningTask.input.requiredArtifactTypes.filter(
-					(type) => !artifacts.some((artifact) => artifact.type === type),
 				);
-				if (missingArtifacts.length > 0) {
-					throw new Error(`Run verification failed: missing ${missingArtifacts.join(', ')}`);
-				}
-				const tasks = await listAssistantTasksRecord(db, ownerId, runId);
-				const missingTaskTypes = runningTask.input.requiredTaskTypes.filter(
-					(type) => !tasks.some((task) => task.type === type && task.status === 'completed'),
-				);
-				if (missingTaskTypes.length > 0) {
-					throw new Error(`Run verification failed: missing ${missingTaskTypes.join(', ')}`);
-				}
+				publishAssistantRunEvent(ownerId, runId, completedEvent);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : 'Assistant run failed';
+				const failingTask = await findRunningTaskOrQueuedTask(db, ownerId, runId);
 
-				const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
-					status: 'completed',
-					output: {
-						kind: 'verification',
-						verified: true,
-						details: 'Run contains the required result message, tasks, and artifacts.',
+				Sentry.captureException(error, {
+					tags: {
+						assistant_run_id: runId,
+						assistant_canvas_id: input.canvasId,
+						assistant_task_id: failingTask?.id ?? 'unknown',
 					},
-					error: null,
+					extra: {
+						contextMode: input.contextMode,
+						messageLength: input.message.length,
+						failingTaskType: failingTask?.type,
+					},
 				});
-				if (!completedTask) {
-					throw new Error('Failed to complete verification task');
+
+				if (failingTask) {
+					const failedTask = await updateAssistantTaskRecord(db, ownerId, failingTask.id, {
+						status: 'failed',
+						error: message,
+					});
+					if (failedTask) {
+						await publishTaskEvent(db, ownerId, failedTask, 'task.failed', 'failed');
+					}
 				}
-				await publishTaskEvent(db, ownerId, completedTask, 'task.completed', 'completed');
+				await updateAssistantRunRecord(db, ownerId, runId, {
+					status: 'failed',
+					error: message,
+				});
+				const failedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.failed', {
+					error: message,
+					status: 'failed',
+				});
+				publishAssistantRunEvent(ownerId, runId, failedEvent);
 			}
-
-			nextTask = await getNextQueuedAssistantTaskRecord(db, ownerId, runId);
-		}
-
-		await updateAssistantRunRecord(db, ownerId, runId, {
-			status: 'completed',
-			error: null,
-		});
-		const completedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.completed', {
-			status: 'completed',
-		});
-		publishAssistantRunEvent(ownerId, runId, completedEvent);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Assistant run failed';
-		const failingTask = await findRunningTaskOrQueuedTask(db, ownerId, runId);
-		if (failingTask) {
-			const failedTask = await updateAssistantTaskRecord(db, ownerId, failingTask.id, {
-				status: 'failed',
-				error: message,
-			});
-			if (failedTask) {
-				await publishTaskEvent(db, ownerId, failedTask, 'task.failed', 'failed');
-			}
-		}
-		await updateAssistantRunRecord(db, ownerId, runId, {
-			status: 'failed',
-			error: message,
-		});
-		const failedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.failed', {
-			error: message,
-			status: 'failed',
-		});
-		publishAssistantRunEvent(ownerId, runId, failedEvent);
-	}
+		},
+	);
 }
 
 async function findRunningTaskOrQueuedTask(
@@ -541,7 +611,11 @@ async function findRunningTaskOrQueuedTask(
 	runId: string,
 ): Promise<AssistantTask | null> {
 	const tasks = await listAssistantTasksRecord(db, ownerId, runId);
-	return tasks.find((task) => task.status === 'running') ?? tasks.find((task) => task.status === 'queued') ?? null;
+	return (
+		tasks.find((task) => task.status === 'running') ??
+		tasks.find((task) => task.status === 'queued') ??
+		null
+	);
 }
 
 async function publishTaskEvent(
@@ -693,7 +767,10 @@ export const assistantRoutes = new Hono<AppEnv>()
 			if (error instanceof Error && error.message === 'Assistant thread not found') {
 				return c.json({ error: 'Thread not found' }, 404);
 			}
-			if (error instanceof Error && error.message === 'Assistant thread does not belong to canvas') {
+			if (
+				error instanceof Error &&
+				error.message === 'Assistant thread does not belong to canvas'
+			) {
 				return c.json({ error: 'Thread does not belong to canvas' }, 409);
 			}
 			throw error;

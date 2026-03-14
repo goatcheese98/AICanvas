@@ -15,10 +15,16 @@ export type AppEnv = {
 		OPENROUTER_IMAGE_MODEL?: string;
 		VECTORIZE_ASSET_URL?: string;
 		VECTORIZE_ASSET_API_KEY?: string;
+		SENTRY_DSN?: string;
+		SENTRY_RELEASE?: string;
+		SENTRY_TRACES_SAMPLE_RATE?: string;
 		ENVIRONMENT: string;
 	};
 	Variables: {
 		user: AuthUser;
+		clientRequestId?: string;
+		requestId: string;
+		requestStartedAt: number;
 	};
 };
 
