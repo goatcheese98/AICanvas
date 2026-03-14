@@ -8,6 +8,9 @@
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ─── Global Styles ─── */
+  body { overflow-x: hidden; }
+
   /* ─── Variant Switcher ─── */
   #switcher {
     position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
@@ -36,11 +39,7 @@
      VARIANT 1 — Faithful Recreation
   ══════════════════════════════════════════════════════════════════ */
   #v1 { background: #eef0f8; font-family: 'DM Sans', sans-serif; }
-
-  .v1-header {
-    background: #fff; padding: 28px 40px 24px;
-    border-bottom: 1px solid #e8eaf2;
-  }
+  .v1-header { background: #fff; padding: 28px 40px 24px; border-bottom: 1px solid #e8eaf2; }
   .v1-header-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: flex-start; justify-content: space-between; }
   .v1-title-group { display: flex; gap: 16px; align-items: flex-start; }
   .v1-accent-bar { width: 4px; height: 52px; background: #7c6ef5; border-radius: 4px; margin-top: 2px; }
@@ -51,7 +50,6 @@
   .v1-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #7c6ef5, #a78bfa); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; }
   .v1-user-name { font-size: 14px; font-weight: 600; color: #1a1d27; }
   .v1-user-email { font-size: 12px; color: #888; }
-
   .v1-toolbar { max-width: 1200px; margin: 28px auto; padding: 0 40px; display: flex; align-items: center; gap: 12px; }
   .v1-search { flex: 1; position: relative; }
   .v1-search input { width: 100%; padding: 12px 16px 12px 42px; border-radius: 12px; border: 1px solid #e8eaf2; background: #fff; font-family: 'DM Sans', sans-serif; font-size: 14px; color: #333; outline: none; transition: border .2s; }
@@ -62,7 +60,6 @@
   .v1-filter.active { background: #1a1d27; color: #fff; }
   .v1-new-btn { padding: 10px 22px; background: #1a1d27; color: #fff; border: none; border-radius: 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; cursor: pointer; transition: all .2s; white-space: nowrap; }
   .v1-new-btn:hover { background: #2d3147; }
-
   .v1-grid { max-width: 1200px; margin: 0 auto; padding: 0 40px 60px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   .v1-card { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e8eaf2; transition: box-shadow .2s, transform .2s; }
   .v1-card:hover { box-shadow: 0 8px 32px rgba(124,110,245,.12); transform: translateY(-2px); }
@@ -82,119 +79,57 @@
      VARIANT 2 — Dark Sidebar + List View
   ══════════════════════════════════════════════════════════════════ */
   #v2 { background: #0c0e14; font-family: 'DM Sans', sans-serif; display: flex; min-height: calc(100vh - 44px); }
-
-  .v2-sidebar {
-    width: 256px; background: #10121a;
-    border-right: 1px solid rgba(255,255,255,.06);
-    display: flex; flex-direction: column;
-    position: fixed; top: 44px; left: 0; bottom: 0;
-    overflow-y: auto;
-  }
+  .v2-sidebar { width: 256px; background: #10121a; border-right: 1px solid rgba(255,255,255,.06); display: flex; flex-direction: column; position: fixed; top: 44px; left: 0; bottom: 0; overflow-y: auto; }
   .v2-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.05); margin-bottom: 8px; }
   .v2-logo-mark { display: flex; align-items: center; gap: 10px; }
-  .v2-logo-icon {
-    width: 30px; height: 30px; border-radius: 8px;
-    background: linear-gradient(135deg, #6d5ce8, #9b87f5);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 14px; flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(109,92,232,.4);
-  }
+  .v2-logo-icon { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #6d5ce8, #9b87f5); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(109,92,232,.4); }
   .v2-logo-text { font-size: 14px; font-weight: 700; color: rgba(255,255,255,.9); letter-spacing: -.2px; }
   .v2-logo-badge { font-size: 9px; font-weight: 600; letter-spacing: 1px; color: rgba(255,255,255,.3); margin-top: 1px; }
-
   .v2-nav { padding: 4px 12px; flex: 1; }
   .v2-nav-section { margin-bottom: 20px; }
   .v2-nav-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,.2); padding: 0 10px 8px; text-transform: uppercase; }
-  .v2-nav-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 9px 10px; border-radius: 9px;
-    color: rgba(255,255,255,.38); font-size: 13.5px; font-weight: 500;
-    cursor: pointer; transition: all .15s; margin-bottom: 1px;
-    position: relative;
-  }
+  .v2-nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; color: rgba(255,255,255,.38); font-size: 13.5px; font-weight: 500; cursor: pointer; transition: all .15s; margin-bottom: 1px; position: relative; }
   .v2-nav-item:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.7); }
   .v2-nav-item.active { background: rgba(109,92,232,.15); color: rgba(255,255,255,.9); }
-  .v2-nav-item.active::before {
-    content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
-    width: 3px; height: 18px; background: #7c6ef5; border-radius: 0 3px 3px 0;
-  }
+  .v2-nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: #7c6ef5; border-radius: 0 3px 3px 0; }
   .v2-nav-icon { width: 18px; height: 18px; flex-shrink: 0; opacity: .6; display: flex; align-items: center; justify-content: center; }
   .v2-nav-item.active .v2-nav-icon { opacity: 1; }
   .v2-nav-count { margin-left: auto; font-size: 11px; color: rgba(255,255,255,.2); background: rgba(255,255,255,.07); padding: 2px 7px; border-radius: 100px; font-family: 'DM Mono', monospace; }
   .v2-nav-item.active .v2-nav-count { background: rgba(109,92,232,.25); color: #9b87f5; }
-
   .v2-recents { padding: 12px; margin: 4px 0; }
   .v2-recents-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,.2); padding: 0 2px 10px; text-transform: uppercase; }
   .v2-recent-item { display: flex; align-items: center; gap: 10px; padding: 8px 8px; border-radius: 8px; cursor: pointer; transition: background .15s; }
   .v2-recent-item:hover { background: rgba(255,255,255,.04); }
   .v2-recent-dot { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; }
   .v2-recent-name { font-size: 12px; color: rgba(255,255,255,.4); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
-
-  .v2-profile {
-    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.06);
-    display: flex; align-items: center; gap: 10px; cursor: pointer;
-  }
+  .v2-profile { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .v2-profile:hover { background: rgba(255,255,255,.03); }
-  .v2-profile-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: linear-gradient(135deg, #6d5ce8, #9b87f5);
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0;
-    border: 1.5px solid rgba(109,92,232,.4);
-  }
+  .v2-profile-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #6d5ce8, #9b87f5); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; flex-shrink: 0; border: 1.5px solid rgba(109,92,232,.4); }
   .v2-profile-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.7); }
   .v2-profile-email { font-size: 11px; color: rgba(255,255,255,.25); }
   .v2-profile-chevron { margin-left: auto; color: rgba(255,255,255,.2); font-size: 12px; }
-
-  /* Main area */
   .v2-main { margin-left: 256px; flex: 1; padding: 36px 40px 60px; min-height: calc(100vh - 44px); }
   .v2-topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 36px; gap: 20px; }
   .v2-page-title { font-size: 22px; font-weight: 700; color: rgba(255,255,255,.92); letter-spacing: -.5px; }
   .v2-page-subtitle { font-size: 12px; color: rgba(255,255,255,.3); margin-top: 4px; }
   .v2-top-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-  .v2-search {
-    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-    border-radius: 10px; padding: 8px 14px;
-    display: flex; align-items: center; gap: 9px;
-    transition: border-color .2s;
-  }
+  .v2-search { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 14px; display: flex; align-items: center; gap: 9px; transition: border-color .2s; }
   .v2-search:focus-within { border-color: rgba(109,92,232,.5); background: rgba(109,92,232,.06); }
   .v2-search-icon { color: rgba(255,255,255,.25); font-size: 14px; }
   .v2-search input { background: none; border: none; outline: none; color: rgba(255,255,255,.8); font-family: 'DM Sans', sans-serif; font-size: 13px; width: 200px; }
   .v2-search input::placeholder { color: rgba(255,255,255,.2); }
-  .v2-filter-btn {
-    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-    border-radius: 10px; padding: 8px 14px; color: rgba(255,255,255,.4);
-    font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
-    display: flex; align-items: center; gap: 6px; transition: all .15s;
-  }
+  .v2-filter-btn { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 8px 14px; color: rgba(255,255,255,.4); font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all .15s; }
   .v2-filter-btn:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.7); }
-  .v2-new-btn {
-    padding: 8px 18px; background: #6d5ce8; color: #fff; border: none;
-    border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px;
-    font-weight: 600; cursor: pointer; transition: all .2s;
-    display: flex; align-items: center; gap: 7px;
-    box-shadow: 0 2px 12px rgba(109,92,232,.35);
-  }
+  .v2-new-btn { padding: 8px 18px; background: #6d5ce8; color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 7px; box-shadow: 0 2px 12px rgba(109,92,232,.35); }
   .v2-new-btn:hover { background: #5e4dd4; box-shadow: 0 4px 16px rgba(109,92,232,.5); }
-
-  /* Sort tabs */
   .v2-sort-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
   .v2-sort-tab { padding: 6px 14px; border-radius: 7px; border: none; background: none; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; color: rgba(255,255,255,.3); cursor: pointer; transition: all .15s; }
   .v2-sort-tab.active { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
   .v2-sort-tab:hover:not(.active) { color: rgba(255,255,255,.5); }
-
-  /* List */
   .v2-list-header { display: grid; grid-template-columns: 72px 1fr 160px 100px 100px; align-items: center; padding: 0 18px 10px; gap: 16px; }
   .v2-list-header-cell { font-size: 10px; font-weight: 600; letter-spacing: 1px; color: rgba(255,255,255,.2); text-transform: uppercase; }
   .v2-list { display: flex; flex-direction: column; gap: 3px; }
-  .v2-list-item {
-    display: grid; grid-template-columns: 72px 1fr 160px 100px 120px;
-    align-items: center; gap: 16px;
-    background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05);
-    border-radius: 12px; padding: 12px 18px; transition: all .15s; cursor: pointer;
-    position: relative;
-  }
+  .v2-list-item { display: grid; grid-template-columns: 72px 1fr 160px 100px 120px; align-items: center; gap: 16px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.05); border-radius: 12px; padding: 12px 18px; transition: all .15s; cursor: pointer; position: relative; }
   .v2-list-item:hover { background: rgba(255,255,255,.055); border-color: rgba(109,92,232,.2); }
   .v2-list-thumb { width: 60px; height: 42px; border-radius: 8px; flex-shrink: 0; overflow: hidden; position: relative; }
   .v2-list-thumb-inner { width: 100%; height: 100%; }
@@ -206,12 +141,7 @@
   .v2-list-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #7c6ef5; }
   .v2-list-actions { display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
   .v2-list-item:hover .v2-list-actions { opacity: 1; }
-  .v2-list-action {
-    padding: 5px 11px; border-radius: 7px;
-    border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04);
-    color: rgba(255,255,255,.45); font-family: 'DM Sans', sans-serif;
-    font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap;
-  }
+  .v2-list-action { padding: 5px 11px; border-radius: 7px; border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.04); color: rgba(255,255,255,.45); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap; }
   .v2-list-action:hover { border-color: rgba(109,92,232,.5); color: #9b87f5; background: rgba(109,92,232,.1); }
   .v2-list-action.del { border-color: rgba(239,68,68,.15); color: rgba(239,68,68,.5); }
   .v2-list-action.del:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.4); color: #f87171; }
@@ -220,13 +150,7 @@
      VARIANT 3 — Bold & Editorial
   ══════════════════════════════════════════════════════════════════ */
   #v3 { background: #f9f8f6; font-family: 'DM Sans', sans-serif; }
-
-  /* Topnav */
-  .v3-topnav {
-    background: #fff; border-bottom: 1px solid #eee;
-    padding: 0 48px; height: 56px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
+  .v3-topnav { background: #fff; border-bottom: 1px solid #eee; padding: 0 48px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
   .v3-topnav-left { display: flex; align-items: center; gap: 32px; }
   .v3-logo-text { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: #111; letter-spacing: -.3px; }
   .v3-topnav-links { display: flex; gap: 4px; }
@@ -234,22 +158,12 @@
   .v3-topnav-link:hover { color: #333; background: #f5f5f5; }
   .v3-topnav-link.active { color: #111; background: #f0f0f0; }
   .v3-topnav-right { display: flex; align-items: center; gap: 12px; }
-  .v3-topnav-search {
-    display: flex; align-items: center; gap: 8px;
-    background: #f5f5f5; border-radius: 8px; padding: 7px 12px;
-    border: 1px solid transparent; transition: all .15s;
-  }
+  .v3-topnav-search { display: flex; align-items: center; gap: 8px; background: #f5f5f5; border-radius: 8px; padding: 7px 12px; border: 1px solid transparent; transition: all .15s; }
   .v3-topnav-search:focus-within { background: #fff; border-color: #e0e0e0; }
   .v3-topnav-search input { background: none; border: none; outline: none; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #333; width: 160px; }
   .v3-topnav-search input::placeholder { color: #bbb; }
   .v3-topnav-avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 12px; cursor: pointer; }
-
-  /* Hero split */
-  .v3-hero {
-    display: grid; grid-template-columns: 1fr 1fr;
-    background: #fff; border-bottom: 1px solid #eee;
-    min-height: 240px;
-  }
+  .v3-hero { display: grid; grid-template-columns: 1fr 1fr; background: #fff; border-bottom: 1px solid #eee; min-height: 240px; }
   .v3-hero-left { padding: 52px 48px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid #eee; }
   .v3-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 3px; color: #6366f1; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
   .v3-eyebrow::before { content: ''; width: 24px; height: 2px; background: #6366f1; display: inline-block; }
@@ -269,8 +183,6 @@
   .v3-hero-card-foot { background: #fff; padding: 8px 10px; }
   .v3-hero-card-name { font-size: 11px; font-weight: 700; color: #111; }
   .v3-hero-card-date { font-size: 10px; color: #bbb; margin-top: 1px; }
-
-  /* Content area */
   .v3-content { padding: 36px 48px 80px; }
   .v3-section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .v3-section-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #bbb; text-transform: uppercase; }
@@ -292,7 +204,6 @@
   .v3-card-action:hover { border-color: #6366f1; color: #6366f1; background: #eef2ff; }
   .v3-card-action.del { color: #e57373; border-color: #fde8e8; }
   .v3-card-action.del:hover { background: #fde8e8; }
-
   .v3-fab { position: fixed; bottom: 32px; right: 32px; height: 46px; border-radius: 100px; background: #111; color: #fff; border: none; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,.2); transition: all .2s; display: flex; align-items: center; gap: 8px; padding: 0 20px; font-family: 'DM Sans', sans-serif; letter-spacing: .5px; }
   .v3-fab:hover { background: #333; transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,.25); }
 
@@ -300,7 +211,6 @@
      VARIANT 4 — Minimal Table View
   ══════════════════════════════════════════════════════════════════ */
   #v4 { background: #fff; font-family: 'DM Sans', sans-serif; }
-
   .v4-header { padding: 40px 60px 0; border-bottom: 1px solid #f0f0f0; }
   .v4-title { font-size: 22px; font-weight: 700; color: #111; letter-spacing: -.5px; }
   .v4-subtitle { font-size: 13px; color: #aaa; margin-top: 4px; }
@@ -315,7 +225,6 @@
   .v4-spacer { flex: 1; }
   .v4-new-btn { padding: 8px 18px; border: 1.5px solid #111; border-radius: 8px; background: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #111; cursor: pointer; transition: all .2s; }
   .v4-new-btn:hover { background: #111; color: #fff; }
-
   .v4-table-wrap { padding: 0 60px 60px; }
   .v4-table { width: 100%; border-collapse: collapse; }
   .v4-table th { font-size: 11px; font-weight: 600; letter-spacing: 1px; color: #bbb; text-transform: uppercase; padding: 10px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
@@ -338,7 +247,6 @@
      VARIANT 5 — Bento Grid / Magazine Layout
   ══════════════════════════════════════════════════════════════════ */
   #v5 { background: #fafaf8; font-family: 'DM Sans', sans-serif; }
-
   .v5-header { padding: 32px 48px; display: flex; align-items: center; justify-content: space-between; }
   .v5-logo { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -.5px; }
   .v5-nav { display: flex; gap: 28px; }
@@ -348,12 +256,10 @@
   .v5-new-btn { padding: 10px 22px; background: #1a1a1a; color: #fff; border: none; border-radius: 100px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .2s; }
   .v5-new-btn:hover { background: #333; }
   .v5-user-dot { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #f97316); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
-
   .v5-content { padding: 0 48px 60px; }
   .v5-section-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
   .v5-section-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: #1a1a1a; }
   .v5-section-count { font-size: 13px; color: #bbb; }
-
   .v5-bento { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: auto; gap: 16px; margin-bottom: 48px; }
   .v5-bento-card { background: #fff; border-radius: 20px; overflow: hidden; border: 1px solid #f0ede8; cursor: pointer; transition: transform .2s, box-shadow .2s; }
   .v5-bento-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,.08); }
@@ -378,35 +284,9 @@
   /* ══════════════════════════════════════════════════════════════════
      VARIANT 6 — Glassmorphism / Dark Gradient
   ══════════════════════════════════════════════════════════════════ */
-  #v6 {
-    font-family: 'DM Sans', sans-serif;
-    background: radial-gradient(ellipse at 20% 0%, #2d1b69 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 0%, #1a0a3e 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 100%, #0d1b2a 0%, transparent 60%),
-                #06060f;
-    min-height: 100vh;
-    position: relative;
-    overflow: hidden;
-  }
-  #v6::before {
-    content: '';
-    position: fixed;
-    top: 44px; left: 0; right: 0; bottom: 0;
-    background-image:
-      radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
-    background-size: 32px 32px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .v6-header {
-    position: relative; z-index: 1;
-    padding: 24px 48px;
-    background: rgba(255,255,255,.04);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    display: flex; align-items: center; justify-content: space-between;
-  }
+  #v6 { font-family: 'DM Sans', sans-serif; background: radial-gradient(ellipse at 20% 0%, #2d1b69 0%, transparent 50%), radial-gradient(ellipse at 80% 0%, #1a0a3e 0%, transparent 50%), radial-gradient(ellipse at 50% 100%, #0d1b2a 0%, transparent 60%), #06060f; min-height: 100vh; position: relative; overflow: hidden; }
+  #v6::before { content: ''; position: fixed; top: 44px; left: 0; right: 0; bottom: 0; background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 32px 32px; pointer-events: none; z-index: 0; }
+  .v6-header { position: relative; z-index: 1; padding: 24px 48px; background: rgba(255,255,255,.04); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; justify-content: space-between; }
   .v6-logo { display: flex; align-items: center; gap: 10px; }
   .v6-logo-icon { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #7c3aed, #a78bfa); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; }
   .v6-logo-text { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: rgba(255,255,255,.9); letter-spacing: -.3px; }
@@ -415,58 +295,25 @@
   .v6-nav a:hover { color: rgba(255,255,255,.8); background: rgba(255,255,255,.06); }
   .v6-nav a.active { color: rgba(255,255,255,.9); background: rgba(255,255,255,.1); }
   .v6-header-right { display: flex; align-items: center; gap: 16px; }
-  .v6-new-btn {
-    padding: 9px 22px; border-radius: 10px; background: transparent; color: #fff;
-    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer;
-    position: relative; border: 1px solid rgba(167,139,250,.5);
-    transition: all .2s;
-  }
+  .v6-new-btn { padding: 9px 22px; border-radius: 10px; background: transparent; color: #fff; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; position: relative; border: 1px solid rgba(167,139,250,.5); transition: all .2s; }
   .v6-new-btn:hover { background: rgba(124,58,237,.2); border-color: rgba(167,139,250,.8); }
   .v6-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #a78bfa); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 13px; border: 2px solid rgba(167,139,250,.4); }
-
   .v6-content { position: relative; z-index: 1; padding: 48px; }
   .v6-page-title { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1.5px; margin-bottom: 8px; }
   .v6-page-sub { font-size: 14px; color: rgba(255,255,255,.3); margin-bottom: 40px; }
-
   .v6-search-row { display: flex; gap: 12px; margin-bottom: 40px; }
-  .v6-search {
-    flex: 1; max-width: 400px;
-    background: rgba(255,255,255,.06); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,.1); border-radius: 12px;
-    padding: 10px 16px; display: flex; align-items: center; gap: 10px;
-  }
+  .v6-search { flex: 1; max-width: 400px; background: rgba(255,255,255,.06); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
   .v6-search input { background: none; border: none; outline: none; color: rgba(255,255,255,.8); font-family: 'DM Sans', sans-serif; font-size: 14px; flex: 1; }
   .v6-search input::placeholder { color: rgba(255,255,255,.25); }
   .v6-filter-chip { padding: 9px 18px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08); color: rgba(255,255,255,.4); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s; }
   .v6-filter-chip.active { background: rgba(124,58,237,.2); border-color: rgba(167,139,250,.4); color: #a78bfa; }
-
   .v6-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
-  .v6-card {
-    background: rgba(255,255,255,.05);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,.08);
-    border-radius: 20px; overflow: hidden;
-    transition: all .3s; cursor: pointer;
-  }
-  .v6-card:hover {
-    background: rgba(255,255,255,.08);
-    border-color: rgba(167,139,250,.25);
-    box-shadow: 0 0 40px rgba(124,58,237,.15);
-    transform: translateY(-3px);
-  }
+  .v6-card { background: rgba(255,255,255,.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; overflow: hidden; transition: all .3s; cursor: pointer; }
+  .v6-card:hover { background: rgba(255,255,255,.08); border-color: rgba(167,139,250,.25); box-shadow: 0 0 40px rgba(124,58,237,.15); transform: translateY(-3px); }
   .v6-card-thumb { height: 160px; position: relative; overflow: hidden; }
-  .v6-card-thumb::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.6));
-  }
+  .v6-card-thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,.6)); }
   .v6-card-glow { position: absolute; inset: 0; opacity: .6; }
-  .v6-badge {
-    position: absolute; top: 12px; left: 12px; z-index: 1;
-    padding: 4px 10px; border-radius: 6px;
-    background: rgba(255,255,255,.1); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,.15);
-    font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,.7);
-  }
+  .v6-badge { position: absolute; top: 12px; left: 12px; z-index: 1; padding: 4px 10px; border-radius: 6px; background: rgba(255,255,255,.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.15); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; color: rgba(255,255,255,.7); }
   .v6-card-body { padding: 18px 20px 20px; }
   .v6-card-date { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(255,255,255,.25); margin-bottom: 6px; letter-spacing: .5px; }
   .v6-card-title { font-size: 16px; font-weight: 700; color: rgba(255,255,255,.9); margin-bottom: 6px; }
@@ -476,6 +323,40 @@
   .v6-action:hover { border-color: rgba(167,139,250,.4); color: #a78bfa; background: rgba(124,58,237,.1); }
   .v6-action.del { border-color: rgba(239,68,68,.2); color: rgba(239,68,68,.6); }
   .v6-action.del:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.4); color: #ef4444; }
+
+  /* ══════════════════════════════════════════════════════════════════
+     VARIANT 7 — Cinematic Studio / High-End Gallery
+  ══════════════════════════════════════════════════════════════════ */
+  #v7 { background: #f8f8f7; font-family: 'DM Sans', sans-serif; color: #1a1a1a; display: flex; min-height: calc(100vh - 44px); }
+  .v7-sidebar { width: 280px; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); border-right: 1px solid rgba(0,0,0,0.05); padding: 40px 24px; display: flex; flex-direction: column; position: fixed; top: 44px; bottom: 0; }
+  .v7-logo { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 48px; display: flex; align-items: center; gap: 12px; }
+  .v7-logo-icon { width: 32px; height: 32px; background: #000; color: #fff; display: flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 18px; }
+  .v7-nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; color: #888; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); margin-bottom: 4px; }
+  .v7-nav-item:hover { background: #fff; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+  .v7-nav-item.active { background: #000; color: #fff; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+  .v7-nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: #bbb; margin: 32px 0 12px 16px; }
+  .v7-main { margin-left: 280px; flex: 1; padding: 60px 80px; }
+  .v7-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 64px; }
+  .v7-welcome-text h1 { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 900; letter-spacing: -1px; line-height: 1.1; margin-bottom: 8px; }
+  .v7-welcome-text p { color: #888; font-size: 16px; }
+  .v7-actions { display: flex; gap: 16px; }
+  .v7-btn-primary { background: #000; color: #fff; border: none; padding: 14px 28px; border-radius: 14px; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+  .v7-btn-primary:hover { transform: translateY(-2px); }
+  .v7-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 40px; }
+  .v7-card { background: #fff; border-radius: 32px; padding: 12px; transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1); border: 1px solid rgba(0,0,0,0.03); cursor: pointer; position: relative; }
+  .v7-card:hover { transform: translateY(-10px) scale(1.02); box-shadow: 0 30px 60px rgba(0,0,0,0.08); border-color: rgba(0,0,0,0.08); }
+  .v7-card-image { height: 240px; border-radius: 24px; background: #f0f0f0; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .v7-card-image img { width: 100%; height: 100%; object-fit: cover; }
+  .v7-card-content { padding: 0 12px 12px; }
+  .v7-card-tag { font-family: 'DM Mono', monospace; font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block; }
+  .v7-card-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  .v7-card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f5f5f5; padding-top: 16px; margin-top: 8px; }
+  .v7-card-date { font-size: 12px; color: #bbb; }
+  .v7-avatar-stack { display: flex; }
+  .v7-avatar { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: #eee; margin-left: -8px; }
+  .v7-avatar:first-child { margin-left: 0; }
+  @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-5px); } 100% { transform: translateY(0px); } }
+  .v7-floating-badge { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); padding: 6px 12px; border-radius: 100px; font-size: 10px; font-weight: 700; box-shadow: 0 4px 12px rgba(0,0,0,0.05); animation: float 3s ease-in-out infinite; }
 </style>
 </head>
 <body>
@@ -483,184 +364,106 @@
 <!-- ─── Variant Switcher ─── -->
 <div id="switcher">
   <div class="brand">AI CANVAS</div>
-  <button class="active" onclick="showVariant(1, this)">Variant 1</button>
+  <button onclick="showVariant(1, this)">Variant 1</button>
   <button onclick="showVariant(2, this)">Variant 2</button>
   <button onclick="showVariant(3, this)">Variant 3</button>
   <button onclick="showVariant(4, this)">Variant 4</button>
   <button onclick="showVariant(5, this)">Variant 5</button>
   <button onclick="showVariant(6, this)">Variant 6</button>
+  <button class="active" onclick="showVariant(7, this)">Variant 7</button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     VARIANT 7 — Cinematic Studio
+══════════════════════════════════════════════════════════════════ -->
+<div id="v7" class="variant active">
+  <div class="v7-sidebar">
+    <div class="v7-logo"><div class="v7-logo-icon">✦</div> AI Studio</div>
+    <div class="v7-nav-item active"><span>◎</span> All Canvases</div>
+    <div class="v7-nav-item"><span>☆</span> Favorites</div>
+    <div class="v7-nav-item"><span>⬚</span> Templates</div>
+    <div class="v7-nav-label">Projects</div>
+    <div class="v7-nav-item"><span>↳</span> Brand Identity</div>
+    <div class="v7-nav-item"><span>↳</span> Web Design</div>
+    <div style="margin-top: auto;"><div class="v7-nav-item"><span>⚙</span> Settings</div></div>
+  </div>
+  <div class="v7-main">
+    <div class="v7-header">
+      <div class="v7-welcome-text"><h1>Your Creative<br>Workspace</h1><p>Manage your AI-powered canvases with cinematic precision.</p></div>
+      <div class="v7-actions"><button class="v7-btn-primary">+ Create New</button></div>
+    </div>
+    <div class="v7-grid">
+      <div class="v7-card">
+        <div class="v7-floating-badge">RECENT</div>
+        <div class="v7-card-image" style="background: linear-gradient(45deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%);">
+          <svg viewBox="0 0 400 300" style="opacity:0.2"><circle cx="200" cy="150" r="100" fill="#fff"/><rect x="50" y="50" width="300" height="200" fill="none" stroke="#fff" stroke-width="2"/></svg>
+        </div>
+        <div class="v7-card-content">
+          <span class="v7-card-tag">Brand Strategy</span>
+          <div class="v7-card-title">Minimalist Rebrand 2026</div>
+          <div class="v7-card-footer"><div class="v7-card-date">Modified 2h ago</div><div class="v7-avatar-stack"><div class="v7-avatar" style="background: #7c6ef5;"></div><div class="v7-avatar" style="background: #a78bfa;"></div></div></div>
+        </div>
+      </div>
+      <div class="v7-card">
+        <div class="v7-card-image" style="background: linear-gradient(135deg, #8BC6EC 0%, #9599E2 100%);">
+           <svg viewBox="0 0 400 300" style="opacity:0.2"><path d="M50,250 Q200,50 350,250" fill="none" stroke="#fff" stroke-width="4"/></svg>
+        </div>
+        <div class="v7-card-content">
+          <span class="v7-card-tag">UX Research</span>
+          <div class="v7-card-title">User Journey Mapping</div>
+          <div class="v7-card-footer"><div class="v7-card-date">Modified 1d ago</div><div class="v7-avatar-stack"><div class="v7-avatar" style="background: #34d399;"></div></div></div>
+        </div>
+      </div>
+      <div class="v7-card">
+        <div class="v7-card-image" style="background: linear-gradient(62deg, #8EC5FC 0%, #E0C3FC 100%);">
+           <svg viewBox="0 0 400 300" style="opacity:0.2"><rect x="100" y="100" width="200" height="100" rx="20" fill="#fff"/></svg>
+        </div>
+        <div class="v7-card-content">
+          <span class="v7-card-tag">Architecture</span>
+          <div class="v7-card-title">System Infrastructure</div>
+          <div class="v7-card-footer"><div class="v7-card-date">Modified 3d ago</div><div class="v7-avatar-stack"><div class="v7-avatar" style="background: #f59e0b;"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
      VARIANT 1 — Faithful Recreation
 ══════════════════════════════════════════════════════════════════ -->
-<div id="v1" class="variant active">
+<div id="v1" class="variant">
   <div class="v1-header">
     <div class="v1-header-inner">
-      <div class="v1-title-group">
-        <div class="v1-accent-bar"></div>
-        <div>
-          <div class="v1-workspace-label">Canvas Workspace</div>
-          <div class="v1-page-title">My Canvases</div>
-        </div>
-      </div>
-      <div class="v1-user">
-        <div class="v1-avatar">R</div>
-        <div>
-          <div class="v1-user-name">Rohan</div>
-          <div class="v1-user-email">jasani.rohan@gmail.com</div>
-        </div>
-      </div>
+      <div class="v1-title-group"><div class="v1-accent-bar"></div><div><div class="v1-workspace-label">Canvas Workspace</div><div class="v1-page-title">My Canvases</div></div></div>
+      <div class="v1-user"><div class="v1-avatar">R</div><div><div class="v1-user-name">Rohan</div><div class="v1-user-email">jasani.rohan@gmail.com</div></div></div>
     </div>
   </div>
-
   <div class="v1-toolbar">
-    <div class="v1-search">
-      <input type="text" placeholder="Search canvases">
-    </div>
-    <div class="v1-filters">
-      <button class="v1-filter active">Recent</button>
-      <button class="v1-filter">A–Z</button>
-      <button class="v1-filter">Favorites</button>
-    </div>
+    <div class="v1-search"><input type="text" placeholder="Search canvases"></div>
+    <div class="v1-filters"><button class="v1-filter active">Recent</button><button class="v1-filter">A–Z</button><button class="v1-filter">Favorites</button></div>
     <button class="v1-new-btn">NEW CANVAS</button>
   </div>
-
   <div class="v1-grid">
-    <!-- Card 1 -->
     <div class="v1-card">
       <div class="v1-card-thumb" style="background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 100%);">
         <div class="v1-badge">PRIVATE</div>
-        <svg width="180" height="100" viewBox="0 0 180 100" style="opacity:.3;position:absolute;bottom:10px;left:10px">
-          <rect x="10" y="40" width="30" height="50" fill="#7c6ef5" rx="3"/>
-          <rect x="50" y="20" width="30" height="70" fill="#a78bfa" rx="3"/>
-          <rect x="90" y="55" width="30" height="35" fill="#7c6ef5" rx="3"/>
-          <rect x="130" y="30" width="30" height="60" fill="#a78bfa" rx="3"/>
-        </svg>
+        <svg width="180" height="100" viewBox="0 0 180 100" style="opacity:.3;position:absolute;bottom:10px;left:10px"><rect x="10" y="40" width="30" height="50" fill="#7c6ef5" rx="3"/><rect x="50" y="20" width="30" height="70" fill="#a78bfa" rx="3"/><rect x="90" y="55" width="30" height="35" fill="#7c6ef5" rx="3"/><rect x="130" y="30" width="30" height="60" fill="#a78bfa" rx="3"/></svg>
       </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED MAR 10, 1:37 A.M.</div>
-        <div class="v1-card-title">Product Roadmap Q1</div>
-        <div class="v1-card-desc">Strategic planning for Q1 product features</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
+      <div class="v1-card-body"><div class="v1-card-date">UPDATED MAR 10, 1:37 A.M.</div><div class="v1-card-title">Product Roadmap Q1</div><div class="v1-card-desc">Strategic planning for Q1 product features</div><div class="v1-card-actions"><button class="v1-action">RENAME</button><button class="v1-action">FAVORITE</button><button class="v1-action del">DELETE</button></div></div>
     </div>
-    <!-- Card 2 -->
     <div class="v1-card">
       <div class="v1-card-thumb" style="background: linear-gradient(135deg, #fff8f0 0%, #fce8d0 100%);">
         <div class="v1-badge">PRIVATE</div>
-        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.35;position:absolute;bottom:10px;left:10px">
-          <rect x="10" y="10" width="60" height="40" fill="#f59e0b" rx="4"/>
-          <rect x="80" y="10" width="70" height="20" fill="#fcd34d" rx="3"/>
-          <rect x="80" y="38" width="70" height="12" fill="#fcd34d" rx="3"/>
-          <rect x="10" y="60" width="140" height="10" fill="#f59e0b" rx="3"/>
-          <rect x="10" y="78" width="100" height="10" fill="#fcd34d" rx="3"/>
-        </svg>
+        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.35;position:absolute;bottom:10px;left:10px"><rect x="10" y="10" width="60" height="40" fill="#f59e0b" rx="4"/><rect x="80" y="10" width="70" height="20" fill="#fcd34d" rx="3"/><rect x="80" y="38" width="70" height="12" fill="#fcd34d" rx="3"/><rect x="10" y="60" width="140" height="10" fill="#f59e0b" rx="3"/><rect x="10" y="78" width="100" height="10" fill="#fcd34d" rx="3"/></svg>
       </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED MAR 7, 2:12 P.M.</div>
-        <div class="v1-card-title">User Flow Diagrams</div>
-        <div class="v1-card-desc">Login and onboarding user flows</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
+      <div class="v1-card-body"><div class="v1-card-date">UPDATED MAR 7, 2:12 P.M.</div><div class="v1-card-title">User Flow Diagrams</div><div class="v1-card-desc">Login and onboarding user flows</div><div class="v1-card-actions"><button class="v1-action">RENAME</button><button class="v1-action">FAVORITE</button><button class="v1-action del">DELETE</button></div></div>
     </div>
-    <!-- Card 3 -->
     <div class="v1-card">
       <div class="v1-card-thumb" style="background: linear-gradient(135deg, #f0fff4 0%, #d0f0e8 100%);">
         <div class="v1-badge">PRIVATE</div>
-        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.35;position:absolute;bottom:10px;left:50%;transform:translateX(-50%)">
-          <polygon points="80,10 140,90 20,90" fill="none" stroke="#10b981" stroke-width="3"/>
-          <circle cx="80" cy="50" r="20" fill="none" stroke="#34d399" stroke-width="3"/>
-          <rect x="60" y="30" width="40" height="40" fill="none" stroke="#10b981" stroke-width="2"/>
-        </svg>
+        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.35;position:absolute;bottom:10px;left:50%;transform:translateX(-50%)"><polygon points="80,10 140,90 20,90" fill="none" stroke="#10b981" stroke-width="3"/><circle cx="80" cy="50" r="20" fill="none" stroke="#34d399" stroke-width="3"/><rect x="60" y="30" width="40" height="40" fill="none" stroke="#10b981" stroke-width="2"/></svg>
       </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED MAR 7, 2:03 A.M.</div>
-        <div class="v1-card-title">Brand Identity</div>
-        <div class="v1-card-desc">Logo exploration and color palette</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
-    </div>
-    <!-- Card 4 -->
-    <div class="v1-card">
-      <div class="v1-card-thumb" style="background: linear-gradient(135deg, #fff0f8 0%, #f8d0e8 100%);">
-        <div class="v1-badge">PRIVATE</div>
-        <svg width="180" height="100" viewBox="0 0 180 100" style="opacity:.3;position:absolute;bottom:0;left:0">
-          <rect x="10" y="15" width="50" height="30" fill="#ec4899" rx="4"/>
-          <rect x="70" y="15" width="50" height="30" fill="#f472b6" rx="4"/>
-          <rect x="130" y="15" width="40" height="30" fill="#ec4899" rx="4"/>
-          <rect x="10" y="55" width="80" height="30" fill="#f472b6" rx="4"/>
-          <rect x="100" y="55" width="70" height="30" fill="#ec4899" rx="4"/>
-        </svg>
-      </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED MAR 5, 4:30 P.M.</div>
-        <div class="v1-card-title">Sprint Planning</div>
-        <div class="v1-card-desc">Team sprint board and task breakdown</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
-    </div>
-    <!-- Card 5 -->
-    <div class="v1-card">
-      <div class="v1-card-thumb" style="background: linear-gradient(135deg, #f0f8ff 0%, #d0e8ff 100%);">
-        <div class="v1-badge">PRIVATE</div>
-        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.35;position:absolute;bottom:10px;left:10px">
-          <circle cx="30" cy="30" r="18" fill="none" stroke="#3b82f6" stroke-width="2"/>
-          <circle cx="90" cy="50" r="18" fill="none" stroke="#60a5fa" stroke-width="2"/>
-          <circle cx="140" cy="25" r="14" fill="none" stroke="#3b82f6" stroke-width="2"/>
-          <line x1="48" y1="30" x2="72" y2="46" stroke="#93c5fd" stroke-width="1.5"/>
-          <line x1="108" y1="46" x2="128" y2="32" stroke="#93c5fd" stroke-width="1.5"/>
-        </svg>
-      </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED MAR 3, 11:20 A.M.</div>
-        <div class="v1-card-title">API Architecture</div>
-        <div class="v1-card-desc">Backend service diagram</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
-    </div>
-    <!-- Card 6 -->
-    <div class="v1-card">
-      <div class="v1-card-thumb" style="background: linear-gradient(135deg, #fdf8f0 0%, #f5e8d0 100%);">
-        <div class="v1-badge">PRIVATE</div>
-        <svg width="160" height="100" viewBox="0 0 160 100" style="opacity:.3;position:absolute;bottom:0;left:0">
-          <rect x="10" y="10" width="66" height="80" fill="none" stroke="#d97706" stroke-width="2" rx="4"/>
-          <rect x="84" y="10" width="66" height="38" fill="none" stroke="#f59e0b" stroke-width="2" rx="4"/>
-          <rect x="84" y="56" width="66" height="34" fill="none" stroke="#d97706" stroke-width="2" rx="4"/>
-          <rect x="20" y="22" width="46" height="6" fill="#d97706" rx="2"/>
-          <rect x="20" y="36" width="30" height="6" fill="#f59e0b" rx="2"/>
-        </svg>
-      </div>
-      <div class="v1-card-body">
-        <div class="v1-card-date">UPDATED FEB 28, 9:45 A.M.</div>
-        <div class="v1-card-title">Wireframes v2</div>
-        <div class="v1-card-desc">High-fidelity wireframes for mobile</div>
-        <div class="v1-card-actions">
-          <button class="v1-action">RENAME</button>
-          <button class="v1-action">FAVORITE</button>
-          <button class="v1-action del">DELETE</button>
-        </div>
-      </div>
+      <div class="v1-card-body"><div class="v1-card-date">UPDATED MAR 7, 2:03 A.M.</div><div class="v1-card-title">Brand Identity</div><div class="v1-card-desc">Logo exploration and color palette</div><div class="v1-card-actions"><button class="v1-action">RENAME</button><button class="v1-action">FAVORITE</button><button class="v1-action del">DELETE</button></div></div>
     </div>
   </div>
 </div>
@@ -669,238 +472,21 @@
      VARIANT 2 — Dark Sidebar + List View
 ══════════════════════════════════════════════════════════════════ -->
 <div id="v2" class="variant">
-  <!-- Sidebar -->
   <div class="v2-sidebar">
-    <div class="v2-logo">
-      <div class="v2-logo-mark">
-        <div class="v2-logo-icon">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM11 9v6M8 12h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
-        </div>
-        <div>
-          <div class="v2-logo-text">AI Canvas</div>
-          <div class="v2-logo-badge">WORKSPACE</div>
-        </div>
-      </div>
-    </div>
-
+    <div class="v2-logo"><div class="v2-logo-mark"><div class="v2-logo-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 3h4v4H3zM9 3h4v4H9zM3 9h4v4H3zM11 9v6M8 12h6" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></div><div><div class="v2-logo-text">AI Canvas</div><div class="v2-logo-badge">WORKSPACE</div></div></div></div>
     <div class="v2-nav">
       <div class="v2-nav-section">
         <div class="v2-nav-label">Main</div>
-        <div class="v2-nav-item active">
-          <span class="v2-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
-          </span>
-          My Canvases
-          <span class="v2-nav-count">6</span>
-        </div>
-        <div class="v2-nav-item">
-          <span class="v2-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.8 3.6 4 .6-2.9 2.8.7 4L8 10.4 4.4 12.5l.7-4L2.2 5.7l4-.6L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
-          </span>
-          Favorites
-          <span class="v2-nav-count">2</span>
-        </div>
-        <div class="v2-nav-item">
-          <span class="v2-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11 5a3 3 0 11-6 0 3 3 0 016 0zM1.5 14c0-3 2-4.5 6.5-4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 11l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span>
-          Shared with me
-        </div>
-      </div>
-
-      <div class="v2-nav-section">
-        <div class="v2-nav-label">Manage</div>
-        <div class="v2-nav-item">
-          <span class="v2-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2.5a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V4M13 4l-.8 9.5a.5.5 0 01-.5.5H4.3a.5.5 0 01-.5-.5L3 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </span>
-          Trash
-        </div>
-        <div class="v2-nav-item">
-          <span class="v2-nav-icon">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </span>
-          Recent Activity
-        </div>
+        <div class="v2-nav-item active"><span class="v2-nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span> My Canvases <span class="v2-nav-count">6</span></div>
+        <div class="v2-nav-item"><span class="v2-nav-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l1.8 3.6 4 .6-2.9 2.8.7 4L8 10.4 4.4 12.5l.7-4L2.2 5.7l4-.6L8 1.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg></span> Favorites <span class="v2-nav-count">2</span></div>
       </div>
     </div>
-
-    <div class="v2-recents">
-      <div class="v2-recents-label">Pinned</div>
-      <div class="v2-recent-item">
-        <div class="v2-recent-dot" style="background:linear-gradient(135deg,#6d5ce8,#9b87f5)"></div>
-        <div class="v2-recent-name">Product Roadmap Q1</div>
-      </div>
-      <div class="v2-recent-item">
-        <div class="v2-recent-dot" style="background:linear-gradient(135deg,#f59e0b,#fcd34d)"></div>
-        <div class="v2-recent-name">User Flow Diagrams</div>
-      </div>
-    </div>
-
-    <div class="v2-profile">
-      <div class="v2-profile-avatar">R</div>
-      <div style="min-width:0;flex:1">
-        <div class="v2-profile-name">Rohan Jasani</div>
-        <div class="v2-profile-email">jasani.rohan@gmail.com</div>
-      </div>
-      <div class="v2-profile-chevron">⋯</div>
-    </div>
+    <div class="v2-profile"><div class="v2-profile-avatar">R</div><div style="min-width:0;flex:1"><div class="v2-profile-name">Rohan Jasani</div><div class="v2-profile-email">jasani.rohan@gmail.com</div></div><div class="v2-profile-chevron">⋯</div></div>
   </div>
-
-  <!-- Main -->
   <div class="v2-main">
-    <div class="v2-topbar">
-      <div>
-        <div class="v2-page-title">My Canvases</div>
-        <div class="v2-page-subtitle">6 canvases · personal workspace</div>
-      </div>
-      <div class="v2-top-actions">
-        <div class="v2-search">
-          <span class="v2-search-icon">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </span>
-          <input type="text" placeholder="Search canvases...">
-        </div>
-        <button class="v2-filter-btn">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M1 3h11M3.5 6.5h6M6 10h1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Filter
-        </button>
-        <button class="v2-new-btn">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M6.5 1v11M1 6.5h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          New Canvas
-        </button>
-      </div>
-    </div>
-
-    <div class="v2-sort-tabs">
-      <button class="v2-sort-tab active">All</button>
-      <button class="v2-sort-tab">Recent</button>
-      <button class="v2-sort-tab">Favorites</button>
-      <button class="v2-sort-tab">A–Z</button>
-    </div>
-
-    <div class="v2-list-header">
-      <div class="v2-list-header-cell"></div>
-      <div class="v2-list-header-cell">Name</div>
-      <div class="v2-list-header-cell">Last Modified</div>
-      <div class="v2-list-header-cell">Status</div>
-      <div class="v2-list-header-cell"></div>
-    </div>
-
+    <div class="v2-topbar"><div><div class="v2-page-title">My Canvases</div><div class="v2-page-subtitle">6 canvases · personal workspace</div></div><div class="v2-top-actions"><div class="v2-search"><span class="v2-search-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M10 10l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span><input type="text" placeholder="Search canvases..."></div><button class="v2-new-btn">New Canvas</button></div></div>
     <div class="v2-list">
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#4f42c8,#8b7ff5)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><rect x="6" y="18" width="8" height="20" fill="#fff" rx="1"/><rect x="17" y="10" width="8" height="28" fill="#fff" rx="1"/><rect x="28" y="22" width="8" height="16" fill="#fff" rx="1"/><rect x="39" y="14" width="8" height="24" fill="#fff" rx="1"/><rect x="50" y="6" width="6" height="32" fill="#fff" rx="1"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">Product Roadmap Q1</div>
-          <div class="v2-list-desc">Strategic planning for Q1 product features</div>
-        </div>
-        <div class="v2-list-date">Mar 10 · 1:37 AM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
-
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#c27a0a,#f0b429)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><rect x="5" y="6" width="22" height="15" fill="#fff" rx="2"/><rect x="32" y="6" width="22" height="7" fill="#fff" rx="1.5"/><rect x="32" y="17" width="22" height="4" fill="#fff" rx="1.5"/><rect x="5" y="25" width="50" height="4" fill="#fff" rx="1.5"/><rect x="5" y="33" width="35" height="4" fill="#fff" rx="1.5"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">User Flow Diagrams</div>
-          <div class="v2-list-desc">Login and onboarding user flows</div>
-        </div>
-        <div class="v2-list-date">Mar 7 · 2:12 PM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
-
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#0b7a56,#22c492)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><polygon points="30,5 52,37 8,37" fill="none" stroke="#fff" stroke-width="2"/><circle cx="30" cy="22" r="8" fill="none" stroke="#fff" stroke-width="1.5"/><rect x="22" y="14" width="16" height="16" fill="none" stroke="#fff" stroke-width="1"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">Brand Identity</div>
-          <div class="v2-list-desc">Logo exploration and color palette</div>
-        </div>
-        <div class="v2-list-date">Mar 7 · 2:03 AM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
-
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#9d1a69,#e879b6)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><rect x="5" y="5" width="15" height="10" fill="#fff" rx="2"/><rect x="24" y="5" width="15" height="10" fill="#fff" rx="2"/><rect x="42" y="5" width="13" height="10" fill="#fff" rx="2"/><rect x="5" y="20" width="26" height="10" fill="#fff" rx="2"/><rect x="35" y="20" width="20" height="10" fill="#fff" rx="2"/><rect x="5" y="34" width="50" height="4" fill="#fff" rx="1"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">Sprint Planning</div>
-          <div class="v2-list-desc">Team sprint board and task breakdown</div>
-        </div>
-        <div class="v2-list-date">Mar 5 · 4:30 PM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
-
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#1a3fa8,#4f7ef5)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><circle cx="12" cy="12" r="7" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="36" cy="20" r="7" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="54" cy="10" r="5" fill="none" stroke="#fff" stroke-width="1.5"/><line x1="19" y1="12" x2="29" y2="18" stroke="#fff" stroke-width="1.5"/><line x1="43" y1="17" x2="49" y2="12" stroke="#fff" stroke-width="1.5"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">API Architecture</div>
-          <div class="v2-list-desc">Backend service diagram</div>
-        </div>
-        <div class="v2-list-date">Mar 3 · 11:20 AM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
-
-      <div class="v2-list-item">
-        <div class="v2-list-thumb">
-          <div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#92410d,#f07a30)">
-            <svg width="60" height="42" viewBox="0 0 60 42" style="opacity:.5"><rect x="5" y="4" width="22" height="30" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/><rect x="32" y="4" width="22" height="14" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/><rect x="32" y="22" width="22" height="12" fill="none" stroke="#fff" stroke-width="1.5" rx="2"/><rect x="9" y="10" width="14" height="2" fill="#fff" rx="1"/><rect x="9" y="15" width="10" height="2" fill="#fff" rx="1"/></svg>
-          </div>
-        </div>
-        <div class="v2-list-info">
-          <div class="v2-list-name">Wireframes v2</div>
-          <div class="v2-list-desc">High-fidelity wireframes for mobile</div>
-        </div>
-        <div class="v2-list-date">Feb 28 · 9:45 AM</div>
-        <div><span class="v2-list-badge"><span class="v2-list-badge-dot"></span>Private</span></div>
-        <div class="v2-list-actions">
-          <button class="v2-list-action">Rename</button>
-          <button class="v2-list-action">★</button>
-          <button class="v2-list-action del">Delete</button>
-        </div>
-      </div>
+      <div class="v2-list-item"><div class="v2-list-thumb"><div class="v2-list-thumb-inner" style="background:linear-gradient(135deg,#4f42c8,#8b7ff5)"></div></div><div class="v2-list-info"><div class="v2-list-name">Product Roadmap Q1</div><div class="v2-list-desc">Strategic planning</div></div><div class="v2-list-date">Mar 10</div><div><span class="v2-list-badge">Private</span></div></div>
     </div>
   </div>
 </div>
@@ -909,515 +495,33 @@
      VARIANT 3 — Bold & Editorial
 ══════════════════════════════════════════════════════════════════ -->
 <div id="v3" class="variant">
-  <!-- Top nav -->
-  <div class="v3-topnav">
-    <div class="v3-topnav-left">
-      <div class="v3-logo-text">✦ AI Canvas</div>
-      <div class="v3-topnav-links">
-        <a href="#" class="v3-topnav-link active">My Work</a>
-        <a href="#" class="v3-topnav-link">Shared</a>
-        <a href="#" class="v3-topnav-link">Templates</a>
-        <a href="#" class="v3-topnav-link">Trash</a>
-      </div>
-    </div>
-    <div class="v3-topnav-right">
-      <div class="v3-topnav-search">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" style="color:#bbb"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <input type="text" placeholder="Search...">
-      </div>
-      <div class="v3-topnav-avatar">R</div>
-    </div>
-  </div>
-
-  <!-- Split hero -->
-  <div class="v3-hero">
-    <div class="v3-hero-left">
-      <div class="v3-eyebrow">Canvas Workspace</div>
-      <div class="v3-headline">My<br><span>Canvases</span></div>
-      <div class="v3-sub">6 canvases · last edited today at 1:37 AM</div>
-      <div class="v3-filters-row">
-        <div class="v3-chip active">All</div>
-        <div class="v3-chip">Recent</div>
-        <div class="v3-chip">★ Favorites</div>
-        <div class="v3-chip">A–Z</div>
-      </div>
-    </div>
-    <div class="v3-hero-right">
-      <div class="v3-hero-preview">
-        <div class="v3-hero-preview-label">RECENTLY EDITED</div>
-        <div class="v3-hero-cards">
-          <div class="v3-hero-card">
-            <div class="v3-hero-card-thumb" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"></div>
-            <div class="v3-hero-card-foot">
-              <div class="v3-hero-card-name">Product Roadmap</div>
-              <div class="v3-hero-card-date">Mar 10</div>
-            </div>
-          </div>
-          <div class="v3-hero-card">
-            <div class="v3-hero-card-thumb" style="background:linear-gradient(135deg,#f59e0b,#f97316)"></div>
-            <div class="v3-hero-card-foot">
-              <div class="v3-hero-card-name">User Flows</div>
-              <div class="v3-hero-card-date">Mar 7</div>
-            </div>
-          </div>
-          <div class="v3-hero-card">
-            <div class="v3-hero-card-thumb" style="background:linear-gradient(135deg,#10b981,#06b6d4)"></div>
-            <div class="v3-hero-card-foot">
-              <div class="v3-hero-card-name">Brand Identity</div>
-              <div class="v3-hero-card-date">Mar 7</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Grid -->
-  <div class="v3-content">
-    <div class="v3-section-header">
-      <div class="v3-section-label">All Canvases</div>
-      <div class="v3-section-count">6</div>
-    </div>
-    <div class="v3-grid">
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#4f46e5,#8b5cf6)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><rect x="20" y="50" width="28" height="80" fill="#fff" rx="2"/><rect x="56" y="30" width="28" height="100" fill="#fff" rx="2"/><rect x="92" y="60" width="28" height="70" fill="#fff" rx="2"/><rect x="128" y="40" width="28" height="90" fill="#fff" rx="2"/><rect x="164" y="20" width="20" height="110" fill="#fff" rx="2"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">Product Roadmap Q1</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Mar 10, 1:37 AM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">Planning</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#d97706,#f59e0b)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><rect x="15" y="15" width="80" height="55" fill="#fff" rx="4"/><rect x="105" y="15" width="80" height="25" fill="#fff" rx="4"/><rect x="105" y="48" width="80" height="16" fill="#fff" rx="4"/><rect x="15" y="85" width="170" height="14" fill="#fff" rx="3"/><rect x="15" y="107" width="120" height="14" fill="#fff" rx="3"/><rect x="15" y="129" width="80" height="10" fill="#fff" rx="3"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">User Flow Diagrams</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Mar 7, 2:12 PM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">UX</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#059669,#10b981)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><polygon points="100,15 175,130 25,130" fill="none" stroke="#fff" stroke-width="3"/><circle cx="100" cy="80" r="28" fill="none" stroke="#fff" stroke-width="2"/><rect x="72" y="52" width="56" height="56" fill="none" stroke="#fff" stroke-width="1.5"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">Brand Identity</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Mar 7, 2:03 AM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">Design</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#be185d,#ec4899)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><rect x="10" y="15" width="55" height="38" fill="#fff" rx="4"/><rect x="73" y="15" width="55" height="38" fill="#fff" rx="4"/><rect x="136" y="15" width="50" height="38" fill="#fff" rx="4"/><rect x="10" y="62" width="85" height="38" fill="#fff" rx="4"/><rect x="103" y="62" width="83" height="38" fill="#fff" rx="4"/><rect x="10" y="108" width="176" height="28" fill="#fff" rx="4"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">Sprint Planning</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Mar 5, 4:30 PM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">Kanban</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#1d4ed8,#3b82f6)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><circle cx="35" cy="40" r="22" fill="none" stroke="#fff" stroke-width="2"/><circle cx="105" cy="75" r="22" fill="none" stroke="#fff" stroke-width="2"/><circle cx="170" cy="35" r="18" fill="none" stroke="#fff" stroke-width="2"/><line x1="57" y1="40" x2="83" y2="65" stroke="#fff" stroke-width="1.5"/><line x1="127" y1="65" x2="154" y2="42" stroke="#fff" stroke-width="1.5"/><circle cx="35" cy="110" r="14" fill="none" stroke="#fff" stroke-width="1.5"/><line x1="35" y1="62" x2="35" y2="96" stroke="#fff" stroke-width="1.5" stroke-dasharray="3 3"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">API Architecture</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Mar 3, 11:20 AM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">Diagram</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="v3-card">
-        <div class="v3-card-thumb" style="background:linear-gradient(135deg,#c2410c,#f97316)">
-          <div class="v3-card-thumb-overlay"></div>
-          <div class="v3-card-thumb-label">PRIVATE</div>
-          <svg width="200" height="150" viewBox="0 0 200 150" style="position:absolute;inset:0;opacity:.3"><rect x="15" y="12" width="80" height="126" fill="none" stroke="#fff" stroke-width="2" rx="6"/><rect x="105" y="12" width="80" height="60" fill="none" stroke="#fff" stroke-width="2" rx="6"/><rect x="105" y="82" width="80" height="56" fill="none" stroke="#fff" stroke-width="2" rx="6"/><rect x="24" y="26" width="42" height="8" fill="#fff" rx="3"/><rect x="24" y="40" width="28" height="8" fill="#fff" rx="3"/><rect x="24" y="54" width="52" height="8" fill="#fff" rx="3"/></svg>
-        </div>
-        <div class="v3-card-body">
-          <div class="v3-card-name">Wireframes v2</div>
-          <div class="v3-card-meta">
-            <span class="v3-card-date">Feb 28, 9:45 AM</span>
-            <span class="v3-card-dot"></span>
-            <span class="v3-card-tag">Mobile</span>
-          </div>
-          <div class="v3-card-actions">
-            <button class="v3-card-action">Rename</button>
-            <button class="v3-card-action">★</button>
-            <button class="v3-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <button class="v3-fab">
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    New Canvas
-  </button>
+  <div class="v3-topnav"><div class="v3-topnav-left"><div class="v3-logo-text">✦ AI Canvas</div></div><div class="v3-topnav-right"><div class="v3-topnav-avatar">R</div></div></div>
+  <div class="v3-hero"><div class="v3-hero-left"><div class="v3-eyebrow">Canvas Workspace</div><div class="v3-headline">My<br><span>Canvases</span></div></div><div class="v3-hero-right"></div></div>
+  <div class="v3-content"><div class="v3-grid"><div class="v3-card"><div class="v3-card-thumb" style="background:linear-gradient(135deg,#4f46e5,#8b5cf6)"></div><div class="v3-card-body"><div class="v3-card-name">Product Roadmap</div><div class="v3-card-actions"><button class="v3-card-action">Rename</button></div></div></div></div></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
      VARIANT 4 — Minimal Table View
 ══════════════════════════════════════════════════════════════════ -->
 <div id="v4" class="variant">
-  <div class="v4-header">
-    <div class="v4-title">Canvases</div>
-    <div class="v4-subtitle">Personal workspace · 6 items</div>
-    <div class="v4-toolbar">
-      <div class="v4-search">
-        <span style="color:#ccc;font-size:14px">⌕</span>
-        <input type="text" placeholder="Search canvases...">
-      </div>
-      <div class="v4-view-toggle">
-        <button class="v4-view-btn active" title="List">☰</button>
-        <button class="v4-view-btn" title="Grid">⊞</button>
-      </div>
-      <select class="v4-sort">
-        <option>Sort: Recent</option>
-        <option>Sort: A–Z</option>
-        <option>Sort: Oldest</option>
-      </select>
-      <div class="v4-spacer"></div>
-      <button class="v4-new-btn">+ New</button>
-    </div>
-  </div>
-
-  <div class="v4-table-wrap">
-    <table class="v4-table">
-      <thead>
-        <tr>
-          <th style="width:60px"></th>
-          <th>Name</th>
-          <th>Last Modified</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"></div></td>
-          <td><div class="v4-row-name">Product Roadmap Q1</div><div class="v4-row-desc">Strategic planning for Q1 product features</div></td>
-          <td><div class="v4-row-date">2026-03-10 01:37</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></div></td>
-          <td><div class="v4-row-name">User Flow Diagrams</div><div class="v4-row-desc">Login and onboarding user flows</div></td>
-          <td><div class="v4-row-date">2026-03-07 14:12</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#10b981,#06b6d4)"></div></td>
-          <td><div class="v4-row-name">Brand Identity</div><div class="v4-row-desc">Logo exploration and color palette</div></td>
-          <td><div class="v4-row-date">2026-03-07 02:03</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)"></div></td>
-          <td><div class="v4-row-name">Sprint Planning</div><div class="v4-row-desc">Team sprint board and task breakdown</div></td>
-          <td><div class="v4-row-date">2026-03-05 16:30</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)"></div></td>
-          <td><div class="v4-row-name">API Architecture</div><div class="v4-row-desc">Backend service diagram</div></td>
-          <td><div class="v4-row-date">2026-03-03 11:20</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-        <tr>
-          <td><div class="v4-row-thumb" style="background:linear-gradient(135deg,#f97316,#fcd34d)"></div></td>
-          <td><div class="v4-row-name">Wireframes v2</div><div class="v4-row-desc">High-fidelity wireframes for mobile</div></td>
-          <td><div class="v4-row-date">2026-02-28 09:45</div></td>
-          <td><span class="v4-status private">Private</span></td>
-          <td><div class="v4-row-actions"><button class="v4-row-action">Rename</button><button class="v4-row-action">★</button><button class="v4-row-action del">Delete</button></div></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <div class="v4-header"><div class="v4-title">Canvases</div><div class="v4-toolbar"><div class="v4-search"><input type="text" placeholder="Search..."></div><button class="v4-new-btn">+ New</button></div></div>
+  <div class="v4-table-wrap"><table class="v4-table"><thead><tr><th>Name</th><th>Modified</th><th>Status</th></tr></thead><tbody><tr><td>Product Roadmap</td><td>2026-03-10</td><td>Private</td></tr></tbody></table></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     VARIANT 5 — Bento Grid / Magazine Layout
+     VARIANT 5 — Bento Grid
 ══════════════════════════════════════════════════════════════════ -->
 <div id="v5" class="variant">
-  <div class="v5-header">
-    <div class="v5-logo">✦ AI Canvas</div>
-    <div class="v5-nav">
-      <a href="#" class="active">My Work</a>
-      <a href="#">Shared</a>
-      <a href="#">Templates</a>
-      <a href="#">Trash</a>
-    </div>
-    <div class="v5-header-actions">
-      <button class="v5-new-btn">+ New Canvas</button>
-      <div class="v5-user-dot">R</div>
-    </div>
-  </div>
-
-  <div class="v5-content">
-    <div class="v5-section-head">
-      <div class="v5-section-title">Recently Edited</div>
-      <div class="v5-section-count">6 canvases</div>
-    </div>
-    <div class="v5-bento">
-      <!-- Featured 2x2 -->
-      <div class="v5-bento-card featured">
-        <div class="v5-thumb-featured" style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 60%,#a78bfa 100%)"></div>
-        <div class="v5-card-info featured">
-          <div class="v5-card-tag">Most Recent · Mar 10</div>
-          <div class="v5-card-name large">Product Roadmap Q1</div>
-          <div class="v5-card-desc">Strategic planning for Q1 product features and engineering milestones.</div>
-          <div class="v5-card-foot">
-            <button class="v5-card-action">Rename</button>
-            <button class="v5-card-action">★ Favorite</button>
-            <button class="v5-card-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <!-- Normal 1x1 -->
-      <div class="v5-bento-card">
-        <div class="v5-thumb-normal" style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></div>
-        <div class="v5-card-info">
-          <div class="v5-card-tag">Mar 7</div>
-          <div class="v5-card-name">User Flow Diagrams</div>
-          <div class="v5-card-date">Updated Mar 7, 2:12 PM</div>
-        </div>
-      </div>
-      <!-- Normal 1x1 -->
-      <div class="v5-bento-card">
-        <div class="v5-thumb-normal" style="background:linear-gradient(135deg,#10b981,#06b6d4)"></div>
-        <div class="v5-card-info">
-          <div class="v5-card-tag">Mar 7</div>
-          <div class="v5-card-name">Brand Identity</div>
-          <div class="v5-card-date">Updated Mar 7, 2:03 AM</div>
-        </div>
-      </div>
-      <!-- Wide 2x1 -->
-      <div class="v5-bento-card wide">
-        <div class="v5-thumb-wide" style="background:linear-gradient(135deg,#ec4899,#8b5cf6)"></div>
-        <div class="v5-card-info">
-          <div class="v5-card-tag">Mar 5</div>
-          <div class="v5-card-name">Sprint Planning</div>
-          <div class="v5-card-date">Updated Mar 5, 4:30 PM</div>
-        </div>
-      </div>
-      <!-- Normal 1x1 -->
-      <div class="v5-bento-card">
-        <div class="v5-thumb-normal" style="background:linear-gradient(135deg,#3b82f6,#06b6d4)"></div>
-        <div class="v5-card-info">
-          <div class="v5-card-tag">Mar 3</div>
-          <div class="v5-card-name">API Architecture</div>
-          <div class="v5-card-date">Updated Mar 3, 11:20 AM</div>
-        </div>
-      </div>
-      <!-- Normal 1x1 -->
-      <div class="v5-bento-card">
-        <div class="v5-thumb-normal" style="background:linear-gradient(135deg,#f97316,#fcd34d)"></div>
-        <div class="v5-card-info">
-          <div class="v5-card-tag">Feb 28</div>
-          <div class="v5-card-name">Wireframes v2</div>
-          <div class="v5-card-date">Updated Feb 28, 9:45 AM</div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="v5-header"><div class="v5-logo">✦ AI Canvas</div><div class="v5-header-actions"><button class="v5-new-btn">+ New Canvas</button></div></div>
+  <div class="v5-content"><div class="v5-bento"><div class="v5-bento-card featured"><div class="v5-thumb-featured" style="background:linear-gradient(135deg,#6366f1,#8b5cf6)"></div><div class="v5-card-info featured"><div class="v5-card-name large">Product Roadmap</div></div></div></div></div>
 </div>
 
 <!-- ══════════════════════════════════════════════════════════════════
-     VARIANT 6 — Glassmorphism / Dark Gradient
+     VARIANT 6 — Glassmorphism
 ══════════════════════════════════════════════════════════════════ -->
 <div id="v6" class="variant">
-  <div class="v6-header">
-    <div class="v6-logo">
-      <div class="v6-logo-icon">✦</div>
-      <div class="v6-logo-text">AI Canvas</div>
-    </div>
-    <div class="v6-nav">
-      <a href="#" class="active">My Canvases</a>
-      <a href="#">Shared</a>
-      <a href="#">Templates</a>
-    </div>
-    <div class="v6-header-right">
-      <button class="v6-new-btn">+ New Canvas</button>
-      <div class="v6-avatar">R</div>
-    </div>
-  </div>
-
-  <div class="v6-content">
-    <div class="v6-page-title">My Canvases</div>
-    <div class="v6-page-sub">6 projects · last updated today</div>
-
-    <div class="v6-search-row">
-      <div class="v6-search">
-        <span style="color:rgba(255,255,255,.3);font-size:15px">⌕</span>
-        <input type="text" placeholder="Search canvases...">
-      </div>
-      <button class="v6-filter-chip active">Recent</button>
-      <button class="v6-filter-chip">A–Z</button>
-      <button class="v6-filter-chip">Favorites</button>
-    </div>
-
-    <div class="v6-grid">
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#4f46e5,#7c3aed,#a78bfa)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED MAR 10 · 01:37 AM</div>
-          <div class="v6-card-title">Product Roadmap Q1</div>
-          <div class="v6-card-desc">Strategic planning for Q1 product features</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#b45309,#f59e0b,#fde68a)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED MAR 7 · 02:12 PM</div>
-          <div class="v6-card-title">User Flow Diagrams</div>
-          <div class="v6-card-desc">Login and onboarding user flows</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#065f46,#10b981,#6ee7b7)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED MAR 7 · 02:03 AM</div>
-          <div class="v6-card-title">Brand Identity</div>
-          <div class="v6-card-desc">Logo exploration and color palette</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#9d174d,#ec4899,#fbcfe8)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED MAR 5 · 04:30 PM</div>
-          <div class="v6-card-title">Sprint Planning</div>
-          <div class="v6-card-desc">Team sprint board and task breakdown</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#1e40af,#3b82f6,#93c5fd)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED MAR 3 · 11:20 AM</div>
-          <div class="v6-card-title">API Architecture</div>
-          <div class="v6-card-desc">Backend service diagram</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-      <div class="v6-card">
-        <div class="v6-card-thumb">
-          <div class="v6-badge">PRIVATE</div>
-          <div class="v6-card-glow" style="background:linear-gradient(135deg,#92400e,#f97316,#fed7aa)"></div>
-        </div>
-        <div class="v6-card-body">
-          <div class="v6-card-date">UPDATED FEB 28 · 09:45 AM</div>
-          <div class="v6-card-title">Wireframes v2</div>
-          <div class="v6-card-desc">High-fidelity wireframes for mobile</div>
-          <div class="v6-card-actions">
-            <button class="v6-action">Rename</button>
-            <button class="v6-action">★</button>
-            <button class="v6-action del">Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="v6-header"><div class="v6-logo"><div class="v6-logo-icon">✦</div><div class="v6-logo-text">AI Canvas</div></div><div class="v6-header-right"><button class="v6-new-btn">+ New Canvas</button></div></div>
+  <div class="v6-content"><div class="v6-grid"><div class="v6-card"><div class="v6-card-thumb"><div class="v6-card-glow" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)"></div></div><div class="v6-card-body"><div class="v6-card-title">Product Roadmap</div></div></div></div></div>
 </div>
 
 <script>
@@ -1428,26 +532,11 @@
     btn.classList.add('active');
   }
 
-  // V1 filter tabs
-  document.querySelectorAll('.v1-filter').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.v1-filter').forEach(b => b.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-
-  // V3 chips
-  document.querySelectorAll('.v3-chip').forEach(chip => {
-    chip.addEventListener('click', function() {
-      document.querySelectorAll('.v3-chip').forEach(c => c.classList.remove('active'));
-      this.classList.add('active');
-    });
-  });
-
-  // V6 filter chips
-  document.querySelectorAll('.v6-filter-chip').forEach(chip => {
-    chip.addEventListener('click', function() {
-      document.querySelectorAll('.v6-filter-chip').forEach(c => c.classList.remove('active'));
+  // Initial setup for filter/chip interactions if needed
+  document.querySelectorAll('.v1-filter, .v3-chip, .v6-filter-chip').forEach(el => {
+    el.addEventListener('click', function() {
+      const siblings = this.parentElement.querySelectorAll(this.tagName);
+      siblings.forEach(s => s.classList.remove('active'));
       this.classList.add('active');
     });
   });

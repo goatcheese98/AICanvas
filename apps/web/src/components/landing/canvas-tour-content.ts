@@ -4,6 +4,7 @@ export interface CanvasTourGuideOverlay {
 	description: string;
 	hint: string;
 	accentColor: string;
+	surfaceOpacity: number;
 	placement: {
 		leftRem: number;
 		topRem: number;
@@ -46,6 +47,7 @@ export const canvasTourChapters: CanvasTourChapter[] = [
 				'Lecture notes, screenshots, links, and rough questions can all live on the same board before you organize them.',
 			hint: 'The board starts loose on purpose so nothing useful gets lost.',
 			accentColor: '#8b82ff',
+			surfaceOpacity: 0.9,
 			placement: {
 				leftRem: 1.2,
 				topRem: 1.2,

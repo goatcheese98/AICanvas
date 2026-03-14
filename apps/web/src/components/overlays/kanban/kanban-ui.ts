@@ -8,7 +8,7 @@ export const KANBAN_ICON_BUTTON =
 
 export const KANBAN_BUTTON_SURFACE_STYLE: CSSProperties = {
 	borderColor: 'var(--color-border)',
-	background: 'var(--color-surface-strong)',
+	backgroundColor: 'var(--color-surface-strong)',
 	backgroundImage: 'var(--kanban-sketch-control-texture)',
 	color: 'var(--color-text-secondary)',
 	boxShadow: 'var(--kanban-sketch-control-shadow)',
@@ -22,7 +22,7 @@ export function getKanbanPanelStyle(active = false): CSSProperties {
 	return {
 		...KANBAN_BUTTON_SURFACE_STYLE,
 		borderColor: 'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))',
-		background: 'color-mix(in srgb, var(--color-accent-bg) 16%, white)',
+		backgroundColor: 'color-mix(in srgb, var(--color-accent-bg) 16%, white)',
 		color: 'color-mix(in srgb, var(--color-accent-text) 24%, var(--color-text-secondary))',
 	};
 }

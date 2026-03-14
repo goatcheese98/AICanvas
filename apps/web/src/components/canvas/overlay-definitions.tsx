@@ -1,12 +1,9 @@
-import type { ReactElement } from 'react';
 import type {
 	KanbanOverlayCustomData,
 	MarkdownOverlayCustomData,
 	NewLexOverlayCustomData,
-	OverlayCustomData,
 	OverlayType,
 	PrototypeOverlayCustomData,
-	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import {
 	normalizeKanbanOverlay,
@@ -15,191 +12,22 @@ import {
 	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { OVERLAY_TYPES } from '@ai-canvas/shared/constants';
 import { MarkdownNote } from '../overlays/markdown';
 import { LexicalNote } from '../overlays/lexical';
 import { KanbanBoard } from '../overlays/kanban';
 import { PrototypeNote } from '../overlays/prototype';
 import { WebEmbed } from '../overlays/web-embed';
-
-export type TypedOverlayCanvasElement<T extends OverlayCustomData = OverlayCustomData> =
-	ExcalidrawElement & { customData: T };
-
-const normalizedOverlayElementCache = new WeakMap<
+import { bumpElementVersion } from './overlay-definition-types';
+import type {
+	OverlayCustomDataMap,
+	OverlayDefinition,
 	TypedOverlayCanvasElement,
-	TypedOverlayCanvasElement
->();
+} from './overlay-definition-types';
+import { createDefaultKanbanColumns, DEFAULT_MARKDOWN_CONTENT } from './overlay-defaults';
 
-type OverlayCustomDataMap = {
-	markdown: MarkdownOverlayCustomData;
-	newlex: NewLexOverlayCustomData;
-	kanban: KanbanOverlayCustomData;
-	'web-embed': WebEmbedOverlayCustomData;
-	prototype: PrototypeOverlayCustomData;
-};
-
-export type OverlayUpdatePayloadMap = {
-	markdown: {
-		title?: string;
-		content: string;
-		images?: Record<string, string>;
-		settings?: MarkdownOverlayCustomData['settings'];
-		editorMode?: MarkdownOverlayCustomData['editorMode'];
-		elementStyle?: {
-			backgroundColor?: string;
-			strokeColor?: string;
-			strokeWidth?: number;
-			roundness?: ExcalidrawElement['roundness'];
-		};
-	};
-	newlex: {
-		title?: string;
-		lexicalState?: string;
-		comments?: NewLexOverlayCustomData['comments'];
-	};
-	kanban: KanbanOverlayCustomData;
-	'web-embed': {
-		url: string;
-	};
-	prototype: {
-		title?: string;
-		template?: PrototypeOverlayCustomData['template'];
-		files?: PrototypeOverlayCustomData['files'];
-		dependencies?: Record<string, string>;
-		preview?: PrototypeOverlayCustomData['preview'];
-		activeFile?: string;
-		showEditor?: boolean;
-		showPreview?: boolean;
-	};
-};
-
-interface CreateOverlayElementOptions {
-	type: OverlayType;
-	x: number;
-	y: number;
-	width?: number;
-	height?: number;
-	customData?: Record<string, unknown>;
-}
-
-interface OverlayRenderProps<K extends OverlayType> {
-	element: TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
-	isSelected: boolean;
-	onChange: (payload: OverlayUpdatePayloadMap[K]) => void;
-	onEditingChange?: (isEditing: boolean) => void;
-}
-
-interface OverlayDefinition<K extends OverlayType> {
-	defaultSize: { width: number; height: number };
-	normalizeCustomData: (
-		input?: Partial<OverlayCustomDataMap[K]> | Record<string, unknown> | null,
-	) => OverlayCustomDataMap[K];
-	createCustomData: (options: CreateOverlayElementOptions) => OverlayCustomDataMap[K];
-	applyUpdate: (
-		element: TypedOverlayCanvasElement<OverlayCustomDataMap[K]>,
-		payload: OverlayUpdatePayloadMap[K],
-	) => TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
-	render: (props: OverlayRenderProps<K>) => ReactElement;
-}
-
-function bumpElementVersion<T extends ExcalidrawElement>(element: T): T {
-	return {
-		...element,
-		version: (element.version ?? 0) + 1,
-		versionNonce: Math.floor(Math.random() * 2 ** 31),
-	};
-}
-
-function createDefaultKanbanColumns(): KanbanOverlayCustomData['columns'] {
-	return [
-		{
-			id: crypto.randomUUID(),
-			title: 'To Do',
-			color: '#6965db',
-			cards: [
-				{
-					id: crypto.randomUUID(),
-					title: 'Capture the goal',
-					description: 'Write down what this board is helping you ship before you add more cards.',
-					priority: 'medium' as const,
-					labels: ['setup'],
-					checklist: [
-						{ text: 'Name the outcome', done: false },
-						{ text: 'Note the deadline', done: false },
-					],
-				},
-				{
-					id: crypto.randomUUID(),
-					title: 'List the next actions',
-					description: 'Break the work into concrete cards so the first move is obvious.',
-					priority: 'low' as const,
-					labels: ['planning'],
-					checklist: [],
-				},
-			],
-		},
-		{
-			id: crypto.randomUUID(),
-			title: 'In Progress',
-			color: '#c28a42',
-			cards: [
-				{
-					id: crypto.randomUUID(),
-					title: 'Shape the first pass',
-					description: 'Use this lane for the card you are actively moving right now.',
-					priority: 'high' as const,
-					labels: ['focus'],
-					checklist: [
-						{ text: 'Finish the rough draft', done: true },
-						{ text: 'Review the flow', done: false },
-					],
-				},
-			],
-		},
-		{
-			id: crypto.randomUUID(),
-			title: 'Done',
-			color: '#557768',
-			cards: [
-				{
-					id: crypto.randomUUID(),
-					title: 'Board ready',
-					description: 'Keep a finished card here so new boards do not feel empty.',
-					priority: 'low' as const,
-					labels: ['starter'],
-					checklist: [{ text: 'Starter template loaded', done: true }],
-				},
-			],
-		},
-	];
-}
-
-const DEFAULT_MARKDOWN_CONTENT = `# <img src="https://cdn.jsdelivr.net/gh/dcurtis/markdown-mark/svg/markdown-mark.svg" alt="Markdown icon" width="28" height="28" /> New Note
-
-Double-click to edit this note.
-
-## Bullet List
-- First list item
-- Second list item
-
-## Checklist
-- [ ] Draft the content
-- [x] Review the layout
-
-## Code Example
-\`\`\`javascript
-const example = "Hello World";
-console.log(example);
-\`\`\`
-
-## Links Table
-| Resource | Link |
-| -------- | ---- |
-| Markdown Guide | [CommonMark](https://commonmark.org/) |
-| GFM Spec | [GitHub Flavored Markdown](https://github.github.com/gfm/) |
-
-> Tip: switch between Raw, Hybrid, and Preview to explore the note.`;
+// Re-export types so existing imports still work
+export type { TypedOverlayCanvasElement, OverlayUpdatePayloadMap } from './overlay-definition-types';
 
 function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 	return JSON.stringify(value ?? []);
@@ -424,6 +252,11 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		),
 	},
 };
+
+const normalizedOverlayElementCache = new WeakMap<
+	TypedOverlayCanvasElement,
+	TypedOverlayCanvasElement
+>();
 
 export function isOverlayType(value: unknown): value is OverlayType {
 	return typeof value === 'string' && (OVERLAY_TYPES as readonly string[]).includes(value);

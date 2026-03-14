@@ -346,7 +346,7 @@ export function KanbanCardSummary({
 			<div
 				className="mt-4 h-px rounded-full"
 				style={{
-					background: 'color-mix(in srgb, var(--color-border) 88%, transparent)',
+					backgroundColor: 'color-mix(in srgb, var(--color-border) 88%, transparent)',
 					backgroundImage: 'var(--kanban-sketch-divider)',
 				}}
 			/>
@@ -380,7 +380,7 @@ export function KanbanCardSummary({
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
 							cursor: 'grab',
@@ -409,7 +409,7 @@ export function KanbanCardSummary({
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
 							boxShadow: 'var(--kanban-sketch-control-shadow)',

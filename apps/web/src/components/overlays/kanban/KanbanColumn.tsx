@@ -230,7 +230,7 @@ function KanbanColumnInner({
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
 							cursor: 'grab',
@@ -257,7 +257,7 @@ function KanbanColumnInner({
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
-							background: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
 							boxShadow: 'var(--kanban-sketch-control-shadow)',
@@ -335,7 +335,7 @@ function KanbanColumnInner({
 				style={{
 					borderRadius: `${Math.max(cardRadius, 0)}px`,
 					borderColor: KANBAN_ACCENT_BORDER,
-					background: 'color-mix(in srgb, var(--color-surface-strong) 86%, white)',
+					backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 86%, white)',
 					backgroundImage: 'var(--kanban-sketch-control-texture)',
 					color: KANBAN_ACCENT_TEXT,
 					boxShadow: '0 12px 28px -26px rgba(15,23,42,0.4)',

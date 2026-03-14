@@ -6,7 +6,6 @@ import {
 	useState,
 	type Dispatch,
 	type PointerEvent as ReactPointerEvent,
-	type ReactNode,
 	type SetStateAction,
 } from 'react';
 import { useUser } from '@clerk/clerk-react';
@@ -14,8 +13,17 @@ import { useNavigate } from '@tanstack/react-router';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
 import { AIChatPanel } from '@/components/ai-chat';
-import { getCollaborationStatusCopy, type CollaborationSessionStatus } from '@/hooks/collaboration-utils';
+import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
 import { buildOverlayInsertionScene } from './element-factories';
+import {
+	CHROME_BUTTON_BASE,
+	CHROME_BUTTON_IDLE,
+	CHROME_BUTTON_ACTIVE,
+	PanelShell,
+	PanelFrame,
+} from './canvas-chrome';
+import { CollaborationPanel } from './CollaborationPanel';
+import { ProfilePanel } from './ProfilePanel';
 
 interface CanvasUIProps {
 	canvasId: string;
@@ -32,75 +40,18 @@ interface CanvasUIProps {
 	};
 }
 
-const CHROME_BUTTON_BASE =
-	'inline-flex h-9 items-center justify-center gap-2 rounded-[8px] border px-3.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors shadow-sm';
-const CHROME_BUTTON_IDLE =
-	'border-stone-200 bg-white/96 text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
-const CHROME_BUTTON_ACTIVE = 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]';
-const CHROME_BUTTON_SUBTLE =
-	'border-stone-200 bg-stone-50/92 text-stone-600 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
-const CHROME_BUTTON_DANGER = 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100';
-
-function PanelShell({
-	title,
-	description,
-	onClose,
-	children,
-}: {
-	title: string;
-	description: string;
-	onClose: () => void;
-	children: ReactNode;
-}) {
-	return (
-		<div className="overflow-hidden rounded-[12px] border border-stone-200 bg-white shadow-xl">
-			<div className="flex items-start justify-between gap-3 border-b border-stone-200 px-4 py-3">
-				<div>
-					<div className="text-sm font-semibold text-stone-900">{title}</div>
-					<div className="mt-1 max-w-[24rem] text-xs text-stone-500">{description}</div>
-				</div>
-				<button
-					type="button"
-					onClick={onClose}
-					className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_SUBTLE} px-3 py-1.5`}
-				>
-					Close
-				</button>
-			</div>
-			{children}
-		</div>
-	);
-}
-
-function PanelFrame({
-	width,
-	className,
-	onResizeStart,
-	children,
-}: {
-	width: number;
-	className: string;
-	onResizeStart: (event: ReactPointerEvent<HTMLDivElement>) => void;
-	children: ReactNode;
-}) {
-	return (
-		<div className={className} style={{ width }}>
-			<div
-				className="absolute inset-y-8 -left-2 z-30 flex w-4 cursor-ew-resize items-center justify-center"
-				onPointerDown={onResizeStart}
-				aria-label="Resize panel"
-			>
-				<div className="h-16 w-1 rounded-[999px] bg-stone-200/90 shadow-sm" />
-			</div>
-			{children}
-		</div>
-	);
-}
-
 const MIN_PANEL_WIDTH = 280;
 const MAX_PANEL_WIDTH = 420;
 const MIN_CHAT_WIDTH = 620;
 const MAX_CHAT_WIDTH = 1080;
+
+const overlayActions: ReadonlyArray<{ type: OverlayType; label: string; description: string }> = [
+	{ type: 'markdown', label: 'Markdown', description: 'Note with formatting and images' },
+	{ type: 'newlex', label: 'Rich Text', description: 'Lexical editor with comments' },
+	{ type: 'kanban', label: 'Kanban', description: 'Board for planning work' },
+	{ type: 'web-embed', label: 'Web Embed', description: 'Inline site or prototype' },
+	{ type: 'prototype', label: 'Prototype', description: 'Live React or JS app with preview' },
+];
 
 export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 	const navigate = useNavigate();
@@ -136,14 +87,6 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
 		'You';
 	const profileEmail = user?.primaryEmailAddress?.emailAddress ?? 'Signed in';
-	const collaboratorList = Array.from(collaboration.collaborators.values()).filter((collaborator) =>
-		Boolean(collaborator.username),
-	);
-	const sessionCopy = getCollaborationStatusCopy(
-		collaboration.sessionStatus,
-		collaboratorList.length,
-		collaboration.sessionError,
-	);
 	const statusDotClass =
 		collaboration.sessionStatus === 'connected'
 			? 'bg-emerald-500'
@@ -152,13 +95,6 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					: collaboration.sessionStatus === 'error'
 						? 'bg-rose-500'
 						: 'bg-stone-300';
-	const overlayActions: Array<{ type: OverlayType; label: string; description: string }> = [
-		{ type: 'markdown', label: 'Markdown', description: 'Note with formatting and images' },
-		{ type: 'newlex', label: 'Rich Text', description: 'Lexical editor with comments' },
-		{ type: 'kanban', label: 'Kanban', description: 'Board for planning work' },
-		{ type: 'web-embed', label: 'Web Embed', description: 'Inline site or prototype' },
-		{ type: 'prototype', label: 'Prototype', description: 'Live React or JS app with preview' },
-	];
 
 	useEffect(() => {
 		if (!isInsertMenuOpen) return;
@@ -339,85 +275,17 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 						description="End-to-end encrypted room sharing through PartyKit."
 						onClose={() => setActivePanel('none')}
 					>
-						<div className="max-h-full space-y-4 overflow-auto px-4 py-4">
-							<div className="rounded-[10px] border border-stone-200 bg-stone-50 px-3 py-3">
-								<div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-									Session Status
-								</div>
-								<div className="mt-2 text-sm text-stone-900">{sessionCopy.label}</div>
-								<div className="mt-1 text-xs text-stone-500">{sessionCopy.detail}</div>
-								{collaboratorList.length > 0 ? (
-									<div className="mt-3 flex flex-wrap gap-2">
-										{collaboratorList.map((collaborator, index) => (
-											<span
-												key={`${collaborator.username ?? 'anon'}-${index}`}
-												className="rounded-[8px] bg-white px-3 py-1 text-[11px] text-stone-700"
-											>
-												{collaborator.username}
-											</span>
-										))}
-									</div>
-								) : null}
-							</div>
-
-							<div>
-								<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-									Display Name
-								</label>
-								<input
-									value={collaboration.username}
-									onChange={(event) => collaboration.setUsername(event.target.value)}
-									className="w-full rounded-[8px] border border-stone-300 px-3 py-2 text-sm text-stone-900 outline-none"
-									placeholder="Anonymous"
-								/>
-							</div>
-
-							{collaboration.roomLink ? (
-								<div>
-									<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-										Share Link
-									</label>
-									<textarea
-										readOnly
-										value={collaboration.roomLink}
-										className="min-h-24 w-full resize-none rounded-[8px] border border-stone-300 bg-stone-50 px-3 py-2 text-xs text-stone-700 outline-none"
-									/>
-								</div>
-							) : null}
-
-							<div className="flex gap-2">
-								{collaboration.isCollaborating ? (
-									<>
-										<button
-											type="button"
-											onClick={() => {
-												if (collaboration.roomLink) {
-													void navigator.clipboard.writeText(collaboration.roomLink);
-												}
-											}}
-											className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} flex-1 text-xs`}
-										>
-											Copy Link
-										</button>
-										<button
-											type="button"
-											onClick={collaboration.stopSession}
-											className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_DANGER} flex-1 text-xs`}
-										>
-											Stop
-										</button>
-									</>
-								) : (
-									<button
-										type="button"
-										onClick={() => void collaboration.startSession()}
-										className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_ACTIVE} w-full text-xs`}
-									>
-										Start Collaboration
-									</button>
-								)}
-							</div>
-						</div>
+						<CollaborationPanel
+							isCollaborating={collaboration.isCollaborating}
+							collaborators={collaboration.collaborators}
+							roomLink={collaboration.roomLink}
+							sessionError={collaboration.sessionError}
+							sessionStatus={collaboration.sessionStatus}
+							username={collaboration.username}
+							setUsername={collaboration.setUsername}
+							startSession={collaboration.startSession}
+							stopSession={collaboration.stopSession}
+						/>
 					</PanelShell>
 				</PanelFrame>
 			) : null}
@@ -433,90 +301,24 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 						description="Account details, workspace shortcuts, and quick inserts."
 						onClose={() => setActivePanel('none')}
 					>
-						<div className="max-h-[calc(100vh-9rem)] space-y-4 overflow-auto px-4 py-4">
-							<div className="flex items-center gap-3 rounded-[10px] border border-stone-200 bg-stone-50 px-4 py-4">
-								{user?.imageUrl ? (
-									<img src={user.imageUrl} alt="" className="h-12 w-12 rounded-full object-cover" />
-								) : (
-									<div className="flex h-12 w-12 items-center justify-center rounded-full bg-stone-900 text-sm font-semibold text-white">
-										{initials}
-									</div>
-								)}
-								<div className="min-w-0">
-									<div className="truncate text-sm font-semibold text-stone-900">{profileName}</div>
-									<div className="truncate text-xs text-stone-500">{profileEmail}</div>
-									<div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-										Canvas workspace
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-[10px] border border-stone-200 bg-white px-4 py-4">
-								<div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-									Quick Actions
-								</div>
-								<div className="mt-3 grid grid-cols-2 gap-2">
-									<button
-										type="button"
-										onClick={() => void navigate({ to: '/dashboard' })}
-										className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} rounded-[8px] px-3 py-3 text-left text-sm font-medium normal-case tracking-normal text-stone-800`}
-									>
-										Browse Canvases
-									</button>
-									<button
-										type="button"
-										onClick={() => {
-											setActivePanel('none');
-											setIsInsertMenuOpen(true);
-										}}
-										className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} rounded-[8px] px-3 py-3 text-left text-sm font-medium normal-case tracking-normal text-stone-800`}
-									>
-										Open Insert Menu
-									</button>
-									<button
-										type="button"
-										onClick={() => setActivePanel('collab')}
-										className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} rounded-[8px] px-3 py-3 text-left text-sm font-medium normal-case tracking-normal text-stone-800`}
-									>
-										Live Collaboration
-									</button>
-									<button
-										type="button"
-										onClick={() => setActivePanel('chat')}
-										className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} rounded-[8px] px-3 py-3 text-left text-sm font-medium normal-case tracking-normal text-stone-800`}
-									>
-										Open AI Assistant
-									</button>
-								</div>
-							</div>
-
-							<div>
-								<div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-									Available Inserts
-								</div>
-								<div className="space-y-2">
-									{overlayActions.map((action) => (
-										<button
-											key={action.type}
-											type="button"
-											onClick={() => {
-												insertOverlay(action.type);
-												setActivePanel('none');
-											}}
-											className="flex w-full items-start justify-between rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-3 text-left hover:border-[#d7dafd] hover:bg-[#f3f1ff]"
-										>
-											<div>
-												<div className="text-sm font-semibold text-stone-900">{action.label}</div>
-												<div className="mt-1 text-xs text-stone-500">{action.description}</div>
-											</div>
-											<span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-												Add
-											</span>
-										</button>
-									))}
-								</div>
-							</div>
-						</div>
+						<ProfilePanel
+							initials={initials}
+							profileName={profileName}
+							profileEmail={profileEmail}
+							userImageUrl={user?.imageUrl}
+							overlayActions={overlayActions}
+							onNavigateDashboard={() => void navigate({ to: '/dashboard' })}
+							onOpenInsertMenu={() => {
+								setActivePanel('none');
+								setIsInsertMenuOpen(true);
+							}}
+							onOpenCollaboration={() => setActivePanel('collab')}
+							onOpenChat={() => setActivePanel('chat')}
+							onInsertOverlay={(type) => {
+								insertOverlay(type);
+								setActivePanel('none');
+							}}
+						/>
 					</PanelShell>
 				</PanelFrame>
 			) : null}

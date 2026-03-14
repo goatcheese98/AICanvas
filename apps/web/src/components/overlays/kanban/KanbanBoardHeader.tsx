@@ -114,7 +114,7 @@ export function KanbanBoardHeader({
 }: KanbanBoardHeaderProps) {
 	const searchStyle: CSSProperties = {
 		borderColor: searchFocused || searchQuery ? KANBAN_ACCENT_BORDER : 'var(--color-border)',
-		background: searchFocused || searchQuery ? KANBAN_ACCENT_SURFACE : 'var(--color-surface-strong)',
+		backgroundColor: searchFocused || searchQuery ? KANBAN_ACCENT_SURFACE : 'var(--color-surface-strong)',
 		backgroundImage: 'var(--kanban-sketch-control-texture)',
 		color: searchQuery ? KANBAN_ACCENT_TEXT : 'var(--color-text-secondary)',
 		height: '2rem',
@@ -153,7 +153,7 @@ export function KanbanBoardHeader({
 					className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
 					style={{
 						borderColor: KANBAN_ACCENT_BORDER,
-						background: KANBAN_ACCENT_SURFACE,
+						backgroundColor: KANBAN_ACCENT_SURFACE,
 						backgroundImage: 'var(--kanban-sketch-control-texture)',
 						color: KANBAN_ACCENT_TEXT,
 						boxShadow: 'var(--kanban-sketch-control-shadow)',

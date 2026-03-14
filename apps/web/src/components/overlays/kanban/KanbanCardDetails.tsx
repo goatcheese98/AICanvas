@@ -46,7 +46,7 @@ export function KanbanCardDetails({
 			style={{
 				borderRadius: `${Math.max(cardRadius - 4, 0)}px`,
 				borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
-				background: 'color-mix(in srgb, var(--color-surface-strong) 94%, white)',
+				backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 94%, white)',
 				backgroundImage: 'var(--kanban-sketch-card-texture)',
 				transitionDuration: 'var(--kanban-motion-duration)',
 			}}

@@ -227,7 +227,7 @@ export function KanbanBoardContainer({
 								style={{
 									borderRadius: `${Math.max(controlRadius, 0)}px`,
 									borderColor: 'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))',
-									background: 'color-mix(in srgb, var(--color-surface-strong) 72%, white)',
+									backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 72%, white)',
 									backgroundImage: 'var(--kanban-sketch-control-texture)',
 									color: 'color-mix(in srgb, var(--color-accent-text) 24%, var(--color-text-secondary))',
 									boxShadow: 'var(--kanban-sketch-control-shadow)',

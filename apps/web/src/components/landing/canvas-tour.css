@@ -252,41 +252,46 @@
 	width: min(16rem, calc(100vw - 3rem));
 }
 
-.canvas-tour-intro-shell::before {
-	content: '';
+.canvas-tour-intro-outline {
 	position: absolute;
-	inset: -3px;
-	border-radius: 26px;
-	padding: 2px;
-	background:
-		conic-gradient(
-			from 0deg,
-			transparent 0deg,
-			color-mix(in srgb, var(--overlay-accent, #8b82ff) 18%, transparent) 42deg,
-			color-mix(in srgb, var(--overlay-accent, #8b82ff) 74%, white 6%) 90deg,
-			color-mix(in srgb, var(--overlay-accent, #8b82ff) 16%, transparent) 132deg,
-			transparent 190deg,
-			transparent 360deg
-		);
-	-webkit-mask:
-		linear-gradient(#fff 0 0) content-box,
-		linear-gradient(#fff 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	animation: canvas-tour-overlay-spin 7s linear infinite;
+	inset: -6px;
+	width: calc(100% + 12px);
+	height: calc(100% + 12px);
+	overflow: visible;
+	pointer-events: none;
 }
 
-.canvas-tour-intro-trail {
-	position: absolute;
-	inset: -10px;
-	border-radius: 30px;
-	background:
-		radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--overlay-accent, #8b82ff) 28%, white 14%), transparent 48%),
-		radial-gradient(circle at 80% 75%, color-mix(in srgb, var(--overlay-accent, #8b82ff) 18%, white 10%), transparent 50%);
-	opacity: 0.8;
-	filter: blur(10px);
-	animation: canvas-tour-overlay-pulse 4.8s ease-in-out infinite;
-	pointer-events: none;
+.canvas-tour-intro-outline-base,
+.canvas-tour-intro-outline-runner {
+	fill: none;
+	vector-effect: non-scaling-stroke;
+}
+
+.canvas-tour-intro-outline-base {
+	stroke: color-mix(in srgb, var(--overlay-accent, #8b82ff) 34%, white 26%);
+	stroke-width: 2.2;
+	opacity: 0.72;
+}
+
+.canvas-tour-intro-outline-runner {
+	stroke: color-mix(in srgb, var(--overlay-accent, #8b82ff) 82%, white 8%);
+	stroke-width: 3;
+	stroke-linecap: round;
+	stroke-dasharray: 11 89;
+	opacity: 0.92;
+	filter:
+		drop-shadow(0 0 6px color-mix(in srgb, var(--overlay-accent, #8b82ff) 54%, transparent))
+		drop-shadow(0 0 12px color-mix(in srgb, var(--overlay-accent, #8b82ff) 28%, transparent));
+}
+
+.canvas-tour-intro-outline-runner-a {
+	stroke-dashoffset: 0;
+	animation: canvas-tour-outline-dash-forward 8.8s linear infinite;
+}
+
+.canvas-tour-intro-outline-runner-b {
+	stroke-dashoffset: -50;
+	animation: canvas-tour-outline-dash-reverse 8.8s linear infinite;
 }
 
 .canvas-tour-intro-card {
@@ -294,7 +299,7 @@
 	padding: 0.9rem 0.95rem 0.95rem;
 	border: 1px solid rgba(31, 36, 48, 0.08);
 	border-radius: 22px;
-	background: rgba(255, 255, 255, 0.9);
+	background: rgba(255, 255, 255, var(--overlay-surface-opacity, 0.9));
 	box-shadow: 0 18px 36px rgba(31, 36, 48, 0.08);
 	backdrop-filter: blur(10px);
 }
@@ -366,15 +371,19 @@
 .canvas-tour-layout-panel {
 	position: absolute;
 	top: 1.25rem;
+	bottom: 1.25rem;
 	right: 1.2rem;
 	z-index: 7;
-	width: min(22rem, calc(100vw - 3rem));
+	width: min(31rem, calc(100vw - 3rem));
+	overflow-y: auto;
+	overscroll-behavior: contain;
 	padding: 0.95rem;
 	border: 1px solid rgba(31, 36, 48, 0.1);
 	border-radius: 22px;
 	background: rgba(255, 255, 255, 0.95);
 	box-shadow: 0 16px 36px rgba(31, 36, 48, 0.1);
 	backdrop-filter: blur(12px);
+	scrollbar-gutter: stable;
 }
 
 .canvas-tour-layout-panel-header {
@@ -456,10 +465,45 @@
 	gap: 0.6rem;
 }
 
+.canvas-tour-layout-editor {
+	display: grid;
+	grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+	gap: 1rem;
+	align-items: start;
+}
+
+.canvas-tour-layout-control-column {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.canvas-tour-layout-placement-header {
+	display: grid;
+	gap: 0.55rem;
+}
+
+.canvas-tour-layout-preset-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
+.canvas-tour-layout-nudge {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.45rem;
+}
+
 .canvas-tour-layout-overlay-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	gap: 0.55rem;
+}
+
+.canvas-tour-layout-range {
+	padding: 0;
+	border: 0 !important;
+	background: transparent !important;
 }
 
 .canvas-tour-layout-stats {
@@ -524,26 +568,23 @@
 	color: #5450c7;
 }
 
-@keyframes canvas-tour-overlay-spin {
-	from {
-		transform: rotate(0deg);
+@keyframes canvas-tour-outline-dash-forward {
+	0% {
+		stroke-dashoffset: 0;
 	}
 
-	to {
-		transform: rotate(360deg);
+	100% {
+		stroke-dashoffset: -100;
 	}
 }
 
-@keyframes canvas-tour-overlay-pulse {
-	0%,
-	100% {
-		opacity: 0.52;
-		transform: scale(0.985);
+@keyframes canvas-tour-outline-dash-reverse {
+	0% {
+		stroke-dashoffset: -50;
 	}
 
-	50% {
-		opacity: 0.9;
-		transform: scale(1.015);
+	100% {
+		stroke-dashoffset: 50;
 	}
 }
 
@@ -659,11 +700,14 @@
 	}
 
 	.canvas-tour-layout-panel {
-		width: min(21rem, calc(100vw - 2.4rem));
+		width: min(22rem, calc(100vw - 2.4rem));
 	}
 
+	.canvas-tour-layout-editor,
 	.canvas-tour-layout-stats,
 	.canvas-tour-layout-mode-toggle,
+	.canvas-tour-layout-preset-grid,
+	.canvas-tour-layout-nudge,
 	.canvas-tour-layout-overlay-grid {
 		grid-template-columns: 1fr;
 	}
