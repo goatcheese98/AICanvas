@@ -2,18 +2,14 @@ import { useCallback, useRef } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
+import type { AppState, BinaryFiles, ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types';
 import { useAppStore } from '@/stores/store';
 
 interface CanvasCoreProps {
 	canvasId: string;
 	onSaveNeeded?: (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => void;
 	onSceneChange?: (elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => void;
-	initialData?: {
-		elements: readonly ExcalidrawElement[];
-		appState?: AppState;
-		files?: BinaryFiles;
-	};
+	initialData?: ExcalidrawInitialDataState;
 	onPointerUpdate?: (payload: {
 		pointer: { x: number; y: number };
 		button: 'down' | 'up';
