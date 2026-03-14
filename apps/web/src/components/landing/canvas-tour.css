@@ -275,13 +275,10 @@
 
 .canvas-tour-intro-outline-runner {
 	stroke: color-mix(in srgb, var(--overlay-accent, #8b82ff) 82%, white 8%);
-	stroke-width: 3;
+	stroke-width: 2.4;
 	stroke-linecap: round;
-	stroke-dasharray: 11 89;
-	opacity: 0.92;
-	filter:
-		drop-shadow(0 0 6px color-mix(in srgb, var(--overlay-accent, #8b82ff) 54%, transparent))
-		drop-shadow(0 0 12px color-mix(in srgb, var(--overlay-accent, #8b82ff) 28%, transparent));
+	stroke-dasharray: 8 92;
+	opacity: 0.94;
 }
 
 .canvas-tour-intro-outline-runner-a {
@@ -512,6 +509,10 @@
 	gap: 0.55rem;
 }
 
+.canvas-tour-layout-stats-compact {
+	grid-template-columns: 1fr;
+}
+
 .canvas-tour-layout-stat {
 	display: grid;
 	gap: 0.18rem;
@@ -533,6 +534,7 @@
 	font-size: 0.86rem;
 	font-weight: 600;
 	color: #273142;
+	line-height: 1.35;
 }
 
 .canvas-tour-layout-mode-toggle {

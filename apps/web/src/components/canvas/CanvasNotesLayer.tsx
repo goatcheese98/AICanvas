@@ -94,10 +94,7 @@ function OverlayItem({
 	const [isEditing, setIsEditing] = useState(false);
 	const isEditingRef = useRef(false);
 	const type = element.customData.type;
-	const normalizedElement = useMemo(
-		() => normalizeOverlayElement(type, element),
-		[element, type],
-	);
+	const normalizedElement = normalizeOverlayElement(type, element);
 	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
 	const containerStyle = useMemo(
 		() =>
@@ -164,7 +161,7 @@ export function CanvasNotesLayer() {
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
-			const { elements: currentElements, excalidrawApi } = useAppStore.getState();
+			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
 			let didChange = false;
@@ -181,6 +178,7 @@ export function CanvasNotesLayer() {
 			if (!didChange) return;
 
 			excalidrawApi.updateScene({ elements: nextElements });
+			setElements(nextElements);
 		},
 		[],
 	);

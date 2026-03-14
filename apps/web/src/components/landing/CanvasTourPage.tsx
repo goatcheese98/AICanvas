@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { CanvasNotesLayer } from '@/components/canvas/CanvasNotesLayer';
@@ -35,6 +35,38 @@ function getChapterById(
 	return canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? fallback;
 }
 
+type OverlayPlacementPreset = 'top-left' | 'top-center' | 'top-right' | 'bottom-left';
+
+type OverlayPlacementBounds = {
+	leftMinRem: number;
+	leftMaxRem: number;
+	topMinRem: number;
+	topMaxRem: number;
+	widthMinRem: number;
+	widthMaxRem: number;
+};
+
+type OverlaySafeArea = {
+	leftPx: number;
+	topPx: number;
+	rightPx: number;
+	bottomPx: number;
+	widthPx: number;
+	heightPx: number;
+};
+
+const OVERLAY_LEFT_MARGIN_REM = 1.2;
+const OVERLAY_TOP_MARGIN_REM = 1.2;
+const OVERLAY_RIGHT_MARGIN_REM = 1.2;
+const OVERLAY_BOTTOM_MARGIN_REM = 1.2;
+const OVERLAY_MIN_WIDTH_REM = 11;
+const OVERLAY_DEFAULT_HEIGHT_REM = 22;
+const OVERLAY_MAX_WIDTH_REM = 26;
+
+function clamp(value: number, min: number, max: number) {
+	return Math.min(Math.max(value, min), max);
+}
+
 export function CanvasTourPage() {
 	const imageId = TOUR_IMAGE_FILE_ID;
 	const activeChapter = canvasTourChapters[0];
@@ -68,6 +100,10 @@ export function CanvasTourPage() {
 	const [overlayDraft, setOverlayDraft] = useState<CanvasTourGuideOverlay>(
 		initialRegisteredScene?.overlay ?? defaultOverlay,
 	);
+	const layoutPanelRef = useRef<HTMLDivElement | null>(null);
+	const overlayShellRef = useRef<HTMLDivElement | null>(null);
+	const [overlayShellHeightPx, setOverlayShellHeightPx] = useState(0);
+	const [stageViewportSize, setStageViewportSize] = useState({ widthPx: 0, heightPx: 0 });
 	const resolveChapter = (sceneId: string) => getChapterById(sceneId, activeChapter);
 
 	const getDefaultSceneForId = (sceneId: string): RegisteredTourSceneSnapshot => {
@@ -114,6 +150,50 @@ export function CanvasTourPage() {
 			getRegisteredSceneForId(registrySceneId)?.overlay ?? resolveChapter(registrySceneId).overlay;
 		setOverlayDraft(nextOverlay);
 	}, [registeredSceneLibrary, registrySceneId]);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		const root = document.documentElement;
+		const stageNode = stageViewportRef.current;
+		if (!stageNode) return;
+
+		const measure = () => {
+			const rect = stageNode.getBoundingClientRect();
+			setStageViewportSize({
+				widthPx: rect.width,
+				heightPx: rect.height,
+			});
+		};
+
+		measure();
+		if (typeof ResizeObserver === 'undefined') {
+			window.addEventListener('resize', measure);
+			return () => window.removeEventListener('resize', measure);
+		}
+		const observer = new ResizeObserver(() => measure());
+		observer.observe(stageNode);
+		observer.observe(root);
+		return () => observer.disconnect();
+	}, [stageViewportRef]);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		const shellNode = overlayShellRef.current;
+		if (!shellNode) {
+			setOverlayShellHeightPx(0);
+			return;
+		}
+
+		const measure = () => setOverlayShellHeightPx(shellNode.getBoundingClientRect().height);
+		measure();
+		if (typeof ResizeObserver === 'undefined') {
+			window.addEventListener('resize', measure);
+			return () => window.removeEventListener('resize', measure);
+		}
+		const observer = new ResizeObserver(() => measure());
+		observer.observe(shellNode);
+		return () => observer.disconnect();
+	}, [isGuideMode, isRegistryOpen, registrySceneId, overlayDraft, guideOverlay]);
 
 	const resetDemo = () => {
 		setExploreSessionSnapshot(null);
@@ -294,7 +374,7 @@ export function CanvasTourPage() {
 	const applyOverlayDraft = () => {
 		if (registrySceneId === activeChapter.id) {
 			setGuideOverlay(overlayDraft);
-			setDevCaptureStatus('Applied overlay draft to the active guide scene.');
+			setDevCaptureStatus('Overlay draft is now live on the active scene.');
 			return;
 		}
 		setDevCaptureStatus('Overlay draft updated. Save it to register this scene.');
@@ -320,6 +400,89 @@ export function CanvasTourPage() {
 	const showRegistryControls = IS_DEV && !isGuideMode;
 	const selectedRegistryChapter = resolveChapter(registrySceneId);
 	const selectedRegisteredScene = getRegisteredSceneForId(registrySceneId);
+	const visibleOverlay =
+		!isGuideMode && isRegistryOpen && registrySceneId === activeChapter.id
+			? overlayDraft
+			: guideOverlay;
+	const rootFontSizePx =
+		typeof window === 'undefined'
+			? 16
+			: Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+	const overlayHeightPx =
+		overlayShellHeightPx > 0 ? overlayShellHeightPx : OVERLAY_DEFAULT_HEIGHT_REM * rootFontSizePx;
+	const layoutPanelWidthPx =
+		showRegistryControls && isRegistryOpen && layoutPanelRef.current
+			? layoutPanelRef.current.getBoundingClientRect().width
+			: 0;
+	const buildSafeArea = (reserveLayoutPanel: boolean): OverlaySafeArea => {
+		const leftPx = OVERLAY_LEFT_MARGIN_REM * rootFontSizePx;
+		const topPx = OVERLAY_TOP_MARGIN_REM * rootFontSizePx;
+		const rightInsetPx =
+			(reserveLayoutPanel ? layoutPanelWidthPx + 20 : 0) +
+			OVERLAY_RIGHT_MARGIN_REM * rootFontSizePx;
+		const bottomInsetPx = OVERLAY_BOTTOM_MARGIN_REM * rootFontSizePx;
+		const rightPx = Math.max(leftPx, stageViewportSize.widthPx - rightInsetPx);
+		const bottomPx = Math.max(topPx + 120, stageViewportSize.heightPx - bottomInsetPx);
+		return {
+			leftPx,
+			topPx,
+			rightPx,
+			bottomPx,
+			widthPx: Math.max(0, rightPx - leftPx),
+			heightPx: Math.max(0, bottomPx - topPx),
+		};
+	};
+	const guideSafeArea = buildSafeArea(false);
+	const editorSafeArea = buildSafeArea(showRegistryControls && isRegistryOpen);
+	const overlayPlacementBounds: OverlayPlacementBounds = {
+		leftMinRem: OVERLAY_LEFT_MARGIN_REM,
+		leftMaxRem: Math.max(
+			OVERLAY_LEFT_MARGIN_REM,
+			(guideSafeArea.rightPx - OVERLAY_MIN_WIDTH_REM * rootFontSizePx) / rootFontSizePx,
+		),
+		topMinRem: OVERLAY_TOP_MARGIN_REM,
+		topMaxRem: Math.max(
+			OVERLAY_TOP_MARGIN_REM,
+			(guideSafeArea.bottomPx - overlayHeightPx) / rootFontSizePx,
+		),
+		widthMinRem: OVERLAY_MIN_WIDTH_REM,
+		widthMaxRem: Math.max(
+			OVERLAY_MIN_WIDTH_REM,
+			Math.min(OVERLAY_MAX_WIDTH_REM, guideSafeArea.widthPx / rootFontSizePx),
+		),
+	};
+	const clampOverlayPlacement = (
+		placement: CanvasTourGuideOverlay['placement'],
+		area: OverlaySafeArea,
+	) => {
+		const widthRem = clamp(
+			placement.widthRem,
+			OVERLAY_MIN_WIDTH_REM,
+			Math.max(OVERLAY_MIN_WIDTH_REM, Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx)),
+		);
+		const widthPx = widthRem * rootFontSizePx;
+		const maxLeftRem = Math.max(
+			OVERLAY_LEFT_MARGIN_REM,
+			(area.rightPx - widthPx) / rootFontSizePx,
+		);
+		const maxTopRem = Math.max(
+			OVERLAY_TOP_MARGIN_REM,
+			(area.bottomPx - overlayHeightPx) / rootFontSizePx,
+		);
+		return {
+			leftRem: clamp(placement.leftRem, OVERLAY_LEFT_MARGIN_REM, maxLeftRem),
+			topRem: clamp(placement.topRem, OVERLAY_TOP_MARGIN_REM, maxTopRem),
+			widthRem,
+		};
+	};
+	const guidePlacement = clampOverlayPlacement(visibleOverlay.placement, guideSafeArea);
+	const previewPlacement = clampOverlayPlacement(guidePlacement, editorSafeArea);
+	const previewShiftXRem = previewPlacement.leftRem - guidePlacement.leftRem;
+	const previewShiftYRem = previewPlacement.topRem - guidePlacement.topRem;
+	const displayedPlacement =
+		!isGuideMode && isRegistryOpen && registrySceneId === activeChapter.id
+			? previewPlacement
+			: guidePlacement;
 	const updateOverlayDraft = (
 		patch: Partial<Omit<CanvasTourGuideOverlay, 'placement'>> & {
 			placement?: Partial<CanvasTourGuideOverlay['placement']>;
@@ -339,8 +502,10 @@ export function CanvasTourPage() {
 	) => {
 		const normalizedValue =
 			key === 'widthRem'
-				? Math.max(11, Math.min(26, value))
-				: Math.max(0.5, Math.min(24, value));
+				? clamp(value, overlayPlacementBounds.widthMinRem, overlayPlacementBounds.widthMaxRem)
+				: key === 'leftRem'
+					? clamp(value, overlayPlacementBounds.leftMinRem, overlayPlacementBounds.leftMaxRem)
+					: clamp(value, overlayPlacementBounds.topMinRem, overlayPlacementBounds.topMaxRem);
 		updateOverlayDraft({
 			placement: {
 				[key]: normalizedValue,
@@ -353,30 +518,43 @@ export function CanvasTourPage() {
 	) => {
 		updateOverlayPlacement(key, overlayDraft.placement[key] + delta);
 	};
-	const applyOverlayPreset = (
-		preset: 'top-left' | 'top-center' | 'top-right' | 'bottom-left',
-	) => {
-		switch (preset) {
-			case 'top-left':
-				updateOverlayDraft({ placement: { leftRem: 1.2, topRem: 1.2, widthRem: 16 } });
-				break;
-			case 'top-center':
-				updateOverlayDraft({ placement: { leftRem: 18, topRem: 1.2, widthRem: 17 } });
-				break;
-			case 'top-right':
-				updateOverlayDraft({ placement: { leftRem: 33, topRem: 1.2, widthRem: 16 } });
-				break;
-			case 'bottom-left':
-				updateOverlayDraft({ placement: { leftRem: 1.2, topRem: 20, widthRem: 16 } });
-				break;
-		}
+	const applyOverlayPreset = (preset: OverlayPlacementPreset) => {
+		const targetWidthRem =
+			preset === 'top-center'
+				? clamp(17, overlayPlacementBounds.widthMinRem, overlayPlacementBounds.widthMaxRem)
+				: clamp(16, overlayPlacementBounds.widthMinRem, overlayPlacementBounds.widthMaxRem);
+		const targetWidthPx = targetWidthRem * rootFontSizePx;
+		const leftEdgeRem = guideSafeArea.leftPx / rootFontSizePx;
+		const rightEdgeRem = Math.max(
+			OVERLAY_LEFT_MARGIN_REM,
+			(guideSafeArea.rightPx - targetWidthPx) / rootFontSizePx,
+		);
+		const centeredLeftRem = clamp(
+			(guideSafeArea.leftPx + (guideSafeArea.widthPx - targetWidthPx) / 2) / rootFontSizePx,
+			overlayPlacementBounds.leftMinRem,
+			overlayPlacementBounds.leftMaxRem,
+		);
+		const topEdgeRem = guideSafeArea.topPx / rootFontSizePx;
+		const bottomEdgeRem = Math.max(
+			OVERLAY_TOP_MARGIN_REM,
+			(guideSafeArea.bottomPx - overlayHeightPx) / rootFontSizePx,
+		);
+		const nextPlacement =
+			preset === 'top-left'
+				? { leftRem: leftEdgeRem, topRem: topEdgeRem, widthRem: targetWidthRem }
+				: preset === 'top-center'
+					? { leftRem: centeredLeftRem, topRem: topEdgeRem, widthRem: targetWidthRem }
+					: preset === 'top-right'
+						? { leftRem: rightEdgeRem, topRem: topEdgeRem, widthRem: targetWidthRem }
+						: { leftRem: leftEdgeRem, topRem: bottomEdgeRem, widthRem: targetWidthRem };
+		updateOverlayDraft({ placement: clampOverlayPlacement(nextPlacement, guideSafeArea) });
 	};
 	const introOverlayStyle = {
-		'--overlay-accent': guideOverlay.accentColor,
-		'--overlay-surface-opacity': guideOverlay.surfaceOpacity.toString(),
-		left: `${guideOverlay.placement.leftRem}rem`,
-		top: `${guideOverlay.placement.topRem}rem`,
-		width: `min(${guideOverlay.placement.widthRem}rem, calc(100vw - 3rem))`,
+		'--overlay-accent': visibleOverlay.accentColor,
+		'--overlay-surface-opacity': visibleOverlay.surfaceOpacity.toString(),
+		left: `${displayedPlacement.leftRem}rem`,
+		top: `${displayedPlacement.topRem}rem`,
+		width: `${displayedPlacement.widthRem}rem`,
 	} as CSSProperties;
 
 	return (
@@ -463,8 +641,8 @@ export function CanvasTourPage() {
 					<CanvasNotesLayer />
 					{isGuideMode ? <div className="canvas-tour-interaction-mask" aria-hidden="true" /> : null}
 
-					{isGuideMode ? (
-						<div className="canvas-tour-intro-shell" style={introOverlayStyle}>
+					{isGuideMode || (showRegistryControls && isRegistryOpen && registrySceneId === activeChapter.id) ? (
+						<div ref={overlayShellRef} className="canvas-tour-intro-shell" style={introOverlayStyle}>
 							<svg
 								className="canvas-tour-intro-outline"
 								viewBox="0 0 100 100"
@@ -502,10 +680,10 @@ export function CanvasTourPage() {
 								/>
 							</svg>
 							<div className="canvas-tour-intro-card">
-								<p className="canvas-tour-intro-label">{guideOverlay.label}</p>
-								<h2 className="canvas-tour-intro-title">{guideOverlay.title}</h2>
-								<p className="canvas-tour-intro-copy">{guideOverlay.description}</p>
-								<p className="canvas-tour-intro-hint">{guideOverlay.hint}</p>
+								<p className="canvas-tour-intro-label">{visibleOverlay.label}</p>
+								<h2 className="canvas-tour-intro-title">{visibleOverlay.title}</h2>
+								<p className="canvas-tour-intro-copy">{visibleOverlay.description}</p>
+								<p className="canvas-tour-intro-hint">{visibleOverlay.hint}</p>
 							</div>
 						</div>
 					) : null}
@@ -527,6 +705,17 @@ export function CanvasTourPage() {
 							devCaptureStatus={devCaptureStatus}
 							liveCamera={liveCamera}
 							overlayDraft={overlayDraft}
+							overlayPlacementBounds={overlayPlacementBounds}
+							overlayPlacementMeta={{
+								guideWidthRem: guideSafeArea.widthPx / rootFontSizePx,
+								guideHeightRem: guideSafeArea.heightPx / rootFontSizePx,
+								editorWidthRem: editorSafeArea.widthPx / rootFontSizePx,
+								editorHeightRem: editorSafeArea.heightPx / rootFontSizePx,
+								panelAwarePreview:
+									Math.abs(previewShiftXRem) > 0.05 || Math.abs(previewShiftYRem) > 0.05,
+								previewShiftXRem,
+								previewShiftYRem,
+							}}
 							registryCaptureMode={registryCaptureMode}
 							registrySceneId={registrySceneId}
 							selectedRegisteredScene={selectedRegisteredScene}
@@ -543,6 +732,7 @@ export function CanvasTourPage() {
 							restoreRegisteredLayout={restoreRegisteredLayout}
 							copyRegisteredLayout={copyRegisteredLayout}
 							clearRegisteredLayout={clearRegisteredLayout}
+							ref={layoutPanelRef}
 						/>
 					) : null}
 				</div>

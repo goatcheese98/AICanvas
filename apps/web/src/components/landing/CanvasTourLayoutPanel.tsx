@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import type { CanvasTourChapter, CanvasTourGuideOverlay } from './canvas-tour-content';
 import type { RegisteredTourSceneSnapshot } from './canvas-tour-registry';
 import type { CameraTarget } from './useCanvasTourSceneController';
@@ -7,6 +8,23 @@ interface CanvasTourLayoutPanelProps {
 	devCaptureStatus: string | null;
 	liveCamera: CameraTarget;
 	overlayDraft: CanvasTourGuideOverlay;
+	overlayPlacementBounds: {
+		leftMinRem: number;
+		leftMaxRem: number;
+		topMinRem: number;
+		topMaxRem: number;
+		widthMinRem: number;
+		widthMaxRem: number;
+	};
+	overlayPlacementMeta: {
+		guideWidthRem: number;
+		guideHeightRem: number;
+		editorWidthRem: number;
+		editorHeightRem: number;
+		panelAwarePreview: boolean;
+		previewShiftXRem: number;
+		previewShiftYRem: number;
+	};
 	registryCaptureMode: 'full' | 'camera' | 'elements';
 	registrySceneId: string;
 	selectedRegisteredScene: RegisteredTourSceneSnapshot | null;
@@ -37,11 +55,13 @@ interface CanvasTourLayoutPanelProps {
 	clearRegisteredLayout: () => void;
 }
 
-export function CanvasTourLayoutPanel({
+export const CanvasTourLayoutPanel = forwardRef<HTMLDivElement, CanvasTourLayoutPanelProps>(function CanvasTourLayoutPanel({
 	canvasTourChapters,
 	devCaptureStatus,
 	liveCamera,
 	overlayDraft,
+	overlayPlacementBounds,
+	overlayPlacementMeta,
 	registryCaptureMode,
 	registrySceneId,
 	selectedRegisteredScene,
@@ -58,9 +78,9 @@ export function CanvasTourLayoutPanel({
 	restoreRegisteredLayout,
 	copyRegisteredLayout,
 	clearRegisteredLayout,
-}: CanvasTourLayoutPanelProps) {
+}, ref) {
 	return (
-		<div className="canvas-tour-layout-panel">
+		<div ref={ref} className="canvas-tour-layout-panel">
 			<div className="canvas-tour-layout-panel-header">
 				<p className="canvas-tour-layout-panel-kicker">Layout tools</p>
 				<p className="canvas-tour-layout-panel-copy">
@@ -178,6 +198,10 @@ export function CanvasTourLayoutPanel({
 					<div className="canvas-tour-layout-control-column">
 						<div className="canvas-tour-layout-placement-header">
 							<p className="canvas-tour-layout-section-title">Overlay placement</p>
+							<p className="canvas-tour-layout-help">
+								Guide placement uses the full presentation viewport. Preview stays inside an
+								editor-safe area when layout tools are open.
+							</p>
 							<div className="canvas-tour-layout-preset-grid">
 								<button type="button" className="canvas-tour-reset" onClick={() => applyOverlayPreset('top-left')}>
 									Top left
@@ -207,14 +231,32 @@ export function CanvasTourLayoutPanel({
 								Right
 							</button>
 						</div>
+						<div className="canvas-tour-layout-stats canvas-tour-layout-stats-compact">
+							<div className="canvas-tour-layout-stat">
+								<span>Guide safe area</span>
+								<strong>{`${overlayPlacementMeta.guideWidthRem.toFixed(1)}rem x ${overlayPlacementMeta.guideHeightRem.toFixed(1)}rem`}</strong>
+							</div>
+							<div className="canvas-tour-layout-stat">
+								<span>Editor safe area</span>
+								<strong>{`${overlayPlacementMeta.editorWidthRem.toFixed(1)}rem x ${overlayPlacementMeta.editorHeightRem.toFixed(1)}rem`}</strong>
+							</div>
+							<div className="canvas-tour-layout-stat">
+								<span>Preview shift</span>
+								<strong>
+									{overlayPlacementMeta.panelAwarePreview
+										? `${overlayPlacementMeta.previewShiftXRem.toFixed(1)}rem, ${overlayPlacementMeta.previewShiftYRem.toFixed(1)}rem`
+										: 'None'}
+								</strong>
+							</div>
+						</div>
 						<div className="canvas-tour-layout-overlay-grid">
 							<label className="canvas-tour-layout-field">
 								<span>Left</span>
 								<input
 									className="canvas-tour-layout-range"
 									type="range"
-									min="0.5"
-									max="24"
+									min={overlayPlacementBounds.leftMinRem}
+									max={overlayPlacementBounds.leftMaxRem}
 									step="0.1"
 									value={overlayDraft.placement.leftRem}
 									onChange={(event) => updateOverlayPlacement('leftRem', Number(event.target.value))}
@@ -231,8 +273,8 @@ export function CanvasTourLayoutPanel({
 								<input
 									className="canvas-tour-layout-range"
 									type="range"
-									min="0.5"
-									max="24"
+									min={overlayPlacementBounds.topMinRem}
+									max={overlayPlacementBounds.topMaxRem}
 									step="0.1"
 									value={overlayDraft.placement.topRem}
 									onChange={(event) => updateOverlayPlacement('topRem', Number(event.target.value))}
@@ -249,8 +291,8 @@ export function CanvasTourLayoutPanel({
 								<input
 									className="canvas-tour-layout-range"
 									type="range"
-									min="11"
-									max="26"
+									min={overlayPlacementBounds.widthMinRem}
+									max={overlayPlacementBounds.widthMaxRem}
 									step="0.1"
 									value={overlayDraft.placement.widthRem}
 									onChange={(event) => updateOverlayPlacement('widthRem', Number(event.target.value))}
@@ -331,4 +373,4 @@ export function CanvasTourLayoutPanel({
 			{devCaptureStatus ? <p className="canvas-tour-layout-status">{devCaptureStatus}</p> : null}
 		</div>
 	);
-}
+});

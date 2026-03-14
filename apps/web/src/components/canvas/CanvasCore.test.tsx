@@ -136,4 +136,71 @@ describe('CanvasCore', () => {
 			unsubscribe();
 		}
 	});
+
+	it('syncs live scene snapshots during active pointer interactions so overlays can track drag motion', () => {
+		const onPointerUpdate = vi.fn();
+
+		render(<CanvasCore canvasId="canvas-1" onPointerUpdate={onPointerUpdate} />);
+
+		expect(latestExcalidrawProps).not.toBeNull();
+
+		const liveElements = [
+			{
+				id: 'overlay-1',
+				type: 'rectangle',
+				x: 240,
+				y: 180,
+				width: 420,
+				height: 300,
+				angle: 0,
+			},
+		] as unknown as readonly ExcalidrawElement[];
+		const liveAppState = {
+			scrollX: -90,
+			scrollY: 36,
+			selectedElementIds: { 'overlay-1': true },
+			zoom: { value: 1.2 },
+		};
+		const liveFiles = {
+			fileA: { id: 'fileA', mimeType: 'image/png' },
+		};
+		const stableApi = {
+			refresh: vi.fn(),
+			getSceneElements: () => liveElements,
+			getAppState: () => liveAppState,
+			getFiles: () => liveFiles,
+		} as never;
+
+		act(() => {
+			(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+		});
+
+		act(() => {
+			(
+				latestExcalidrawProps?.onPointerUpdate as (payload: {
+					pointer: { x: number; y: number };
+					button: 'down' | 'up';
+					pointersMap: Map<number, Readonly<{ x: number; y: number }>>;
+				}) => void
+			)({
+				pointer: { x: 320, y: 240 },
+				button: 'down',
+				pointersMap: new Map([[1, { x: 320, y: 240 }]]),
+			});
+		});
+
+		const state = useAppStore.getState();
+
+		expect(onPointerUpdate).toHaveBeenCalledWith({
+			pointer: { x: 320, y: 240 },
+			button: 'down',
+			pointersMap: new Map([[1, { x: 320, y: 240 }]]),
+		});
+		expect(state.elements).toEqual(liveElements);
+		expect(state.elements).not.toBe(liveElements);
+		expect(state.appState).toEqual(liveAppState);
+		expect(state.appState).not.toBe(liveAppState);
+		expect(state.files).toEqual(liveFiles);
+		expect(state.files).not.toBe(liveFiles);
+	});
 });

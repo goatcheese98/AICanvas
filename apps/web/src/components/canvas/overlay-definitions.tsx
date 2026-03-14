@@ -253,11 +253,6 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	},
 };
 
-const normalizedOverlayElementCache = new WeakMap<
-	TypedOverlayCanvasElement,
-	TypedOverlayCanvasElement
->();
-
 export function isOverlayType(value: unknown): value is OverlayType {
 	return typeof value === 'string' && (OVERLAY_TYPES as readonly string[]).includes(value);
 }
@@ -270,18 +265,10 @@ export function normalizeOverlayElement<K extends OverlayType>(
 	type: K,
 	element: TypedOverlayCanvasElement,
 ): TypedOverlayCanvasElement<OverlayCustomDataMap[K]> {
-	const cached = normalizedOverlayElementCache.get(element);
-	if (cached) {
-		return cached as TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
-	}
-
-	const normalizedElement = {
+	return {
 		...element,
 		customData: getOverlayDefinition(type).normalizeCustomData(
 			element.customData as unknown as Partial<OverlayCustomDataMap[K]>,
 		),
 	} as TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
-
-	normalizedOverlayElementCache.set(element, normalizedElement as TypedOverlayCanvasElement);
-	return normalizedElement;
 }

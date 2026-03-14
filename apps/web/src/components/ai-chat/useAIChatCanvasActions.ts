@@ -1,0 +1,79 @@
+import { useCallback, useState } from 'react';
+import type { ExcalidrawImperativeAPI, BinaryFiles } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type {
+	AssistantInsertionState,
+	AssistantPatchApplyState,
+	MarkdownPatchReviewState,
+} from './ai-chat-types';
+import { useAIChatPatchActions } from './useAIChatPatchActions';
+import { useAIChatInsertionActions } from './useAIChatInsertionActions';
+
+export function useAIChatCanvasActions({
+	excalidrawApi,
+	elements,
+	selectedElementIds,
+	setElements,
+	setFiles,
+	setChatError,
+}: {
+	excalidrawApi: ExcalidrawImperativeAPI | null;
+	elements: readonly ExcalidrawElement[];
+	selectedElementIds: Record<string, boolean>;
+	setElements: (elements: readonly ExcalidrawElement[]) => void;
+	setFiles: (files: BinaryFiles) => void;
+	setChatError: (error: string | null) => void;
+}) {
+	const [assistantPatchStates, setAssistantPatchStates] = useState<
+		Record<string, AssistantPatchApplyState>
+	>({});
+	const [assistantInsertionStates, setAssistantInsertionStates] = useState<
+		Record<string, AssistantInsertionState>
+	>({});
+	const [markdownPatchReviewStates, setMarkdownPatchReviewStates] = useState<
+		Record<string, MarkdownPatchReviewState>
+	>({});
+
+	const updateMarkdownPatchAcceptedHunks = useCallback(
+		(artifactKey: string, acceptedHunkIds: string[]) => {
+			setMarkdownPatchReviewStates((current) => ({
+				...current,
+				[artifactKey]: {
+					acceptedHunkIds: [...acceptedHunkIds],
+				},
+			}));
+		},
+		[],
+	);
+
+	const patchActions = useAIChatPatchActions({
+		excalidrawApi,
+		setElements,
+		setChatError,
+		assistantPatchStates,
+		setAssistantPatchStates,
+	});
+
+	const insertionActions = useAIChatInsertionActions({
+		excalidrawApi,
+		elements,
+		selectedElementIds,
+		setElements,
+		setFiles,
+		setChatError,
+		assistantInsertionStates,
+		setAssistantInsertionStates,
+	});
+
+	return {
+		assistantPatchStates,
+		setAssistantPatchStates,
+		assistantInsertionStates,
+		setAssistantInsertionStates,
+		markdownPatchReviewStates,
+		setMarkdownPatchReviewStates,
+		updateMarkdownPatchAcceptedHunks,
+		...patchActions,
+		...insertionActions,
+	};
+}

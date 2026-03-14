@@ -63,3 +63,15 @@ Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
 		return canvasContextStub;
 	},
 });
+
+class ResizeObserverStub {
+	observe() {}
+	unobserve() {}
+	disconnect() {}
+}
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
+	configurable: true,
+	writable: true,
+	value: ResizeObserverStub,
+});

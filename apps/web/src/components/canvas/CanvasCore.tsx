@@ -41,6 +41,21 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 	const setFiles = useAppStore((s) => s.setFiles);
 	const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
 
+	const syncLiveSceneFromApi = useCallback(() => {
+		const api = apiRef.current;
+		if (!api) {
+			return;
+		}
+
+		const elementSnapshot = createElementsSnapshot(api.getSceneElements());
+		const appStateSnapshot = createAppStateSnapshot(api.getAppState());
+		const filesSnapshot = createFilesSnapshot(api.getFiles());
+
+		setElements(elementSnapshot);
+		setAppState(appStateSnapshot);
+		setFiles(filesSnapshot);
+	}, [setAppState, setElements, setFiles]);
+
 	const handleApiReady = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
 			if (apiRef.current === api) {
@@ -67,12 +82,27 @@ export function CanvasCore({ canvasId, onSaveNeeded, onSceneChange, onPointerUpd
 		[setElements, setAppState, setFiles, onSaveNeeded, onSceneChange],
 	);
 
+	const handlePointerUpdate = useCallback(
+		(payload: {
+			pointer: { x: number; y: number };
+			button: 'down' | 'up';
+			pointersMap: Map<number, Readonly<{ x: number; y: number }>>;
+		}) => {
+			const hasActivePointers = payload.button === 'down' || payload.pointersMap.size > 0;
+			if (hasActivePointers) {
+				syncLiveSceneFromApi();
+			}
+			onPointerUpdate?.(payload);
+		},
+		[onPointerUpdate, syncLiveSceneFromApi],
+	);
+
 	return (
 		<div className="h-full w-full">
 			<Excalidraw
 				excalidrawAPI={handleApiReady}
 				onChange={handleChange}
-				onPointerUpdate={onPointerUpdate}
+				onPointerUpdate={handlePointerUpdate}
 				UIOptions={{
 					canvasActions: {
 						loadScene: false,

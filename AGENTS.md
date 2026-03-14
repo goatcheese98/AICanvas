@@ -1,6 +1,6 @@
 # AI Canvas
 
-This file intentionally mirrors `AGENTS.md` so Claude and Codex receive the same project guidance. Keep both files aligned unless a tool-specific difference is genuinely useful.
+This file intentionally mirrors `CLAUDE.md` so Codex and Claude receive the same project guidance. Keep both files aligned unless a tool-specific difference is genuinely useful.
 
 AI Canvas is a standalone collaborative canvas application built on Excalidraw with a custom overlay system for rich content (markdown notes, kanban boards, code editors, web embeds, prototypes). It is its own product with its own foundation — not a port or fork of another project.
 
@@ -131,8 +131,8 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 
 ## Documentation Index
 
-- `CLAUDE.md` — this file (project orientation, patterns, rules for Claude)
-- `AGENTS.md` — mirrored project orientation for Codex and other agent tooling
+- `AGENTS.md` — this file (project orientation, patterns, rules for Codex and other agent tooling)
+- `CLAUDE.md` — mirrored project orientation for Claude
 - `apps/web/CLAUDE.md` — frontend SPA patterns (components, state, styling, testing)
 - `apps/api/CLAUDE.md` — API patterns (routes, middleware, database, auth)
 - `packages/shared/CLAUDE.md` — shared package rules (schemas, types, constants)

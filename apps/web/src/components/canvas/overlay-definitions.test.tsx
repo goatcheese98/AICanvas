@@ -42,13 +42,14 @@ function createMarkdownOverlay(
 }
 
 describe('normalizeOverlayElement', () => {
-	it('returns the same normalized object for the same element instance', () => {
+	it('returns a fresh normalized object for each call so in-place element mutation cannot stale the overlay layer', () => {
 		const element = createMarkdownOverlay();
 
 		const first = normalizeOverlayElement('markdown', element);
 		const second = normalizeOverlayElement('markdown', element);
 
-		expect(first).toBe(second);
+		expect(first).not.toBe(second);
+		expect(second.customData).not.toBe(first.customData);
 	});
 
 	it('returns a new normalized object for a new element instance', () => {
@@ -62,5 +63,23 @@ describe('normalizeOverlayElement', () => {
 
 		expect(first).not.toBe(second);
 		expect(second.customData.content).toBe('Updated content');
+	});
+
+	it('reflects in-place mutations on the same element instance', () => {
+		const element = createMarkdownOverlay();
+		const first = normalizeOverlayElement('markdown', element);
+
+		(element as any).x = 320;
+		(element as any).customData = {
+			...element.customData,
+			content: 'Changed while dragging',
+		};
+
+		const second = normalizeOverlayElement('markdown', element);
+
+		expect(second.x).toBe(320);
+		expect(second.customData.content).toBe('Changed while dragging');
+		expect(first.x).toBe(100);
+		expect(first.customData.content).toBe('Hello');
 	});
 });
