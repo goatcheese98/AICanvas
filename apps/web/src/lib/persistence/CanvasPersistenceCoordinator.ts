@@ -1,9 +1,20 @@
 import { captureBrowserException } from '@/lib/observability';
 
+export type PersistedCanvasElement = Record<string, unknown> & {
+	id?: string;
+	version?: number;
+	versionNonce?: number;
+	isDeleted?: boolean;
+	customData?: Record<string, unknown>;
+};
+
+export type PersistedCanvasAppState = Record<string, unknown>;
+export type PersistedCanvasFiles = Record<string, unknown>;
+
 export interface CanvasData {
-	elements: any[];
-	appState: Record<string, any>;
-	files: Record<string, any> | null;
+	elements: PersistedCanvasElement[];
+	appState: PersistedCanvasAppState;
+	files: PersistedCanvasFiles | null;
 }
 
 export interface PersistenceState {
@@ -149,23 +160,28 @@ export class CanvasPersistenceCoordinator {
 		);
 	}
 
+	private stripImagesFromElement(element: PersistedCanvasElement): PersistedCanvasElement {
+		const images = element.customData?.images;
+		if (!images || typeof images !== 'object' || Object.keys(images).length === 0) {
+			return element;
+		}
+
+		return {
+			...element,
+			customData: {
+				...element.customData,
+				images: {},
+			},
+		};
+	}
+
 	private stripMarkdownImages(canvasData: CanvasData): CanvasData {
-		const elements = canvasData.elements.map((el: any) => {
-			if (el.customData?.images && Object.keys(el.customData.images).length > 0) {
-				return { ...el, customData: { ...el.customData, images: {} } };
-			}
-			return el;
-		});
+		const elements = canvasData.elements.map((element) => this.stripImagesFromElement(element));
 		return { ...canvasData, elements };
 	}
 
 	private stripAllImages(canvasData: CanvasData): CanvasData {
-		const elements = canvasData.elements.map((el: any) => {
-			if (el.customData?.images) {
-				return { ...el, customData: { ...el.customData, images: {} } };
-			}
-			return el;
-		});
+		const elements = canvasData.elements.map((element) => this.stripImagesFromElement(element));
 		return { ...canvasData, elements, files: {} };
 	}
 

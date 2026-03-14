@@ -1,10 +1,3 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { reconcileElements } from '@excalidraw/excalidraw';
-import type { AppState } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/shared/types';
-import { captureBrowserException } from '@/lib/observability';
-import { useAppStore } from '@/stores/store';
 import {
 	decryptData,
 	encryptData,
@@ -12,17 +5,25 @@ import {
 	generateEncryptionKey,
 	importKey,
 } from '@/lib/collab/encryption';
+import { captureBrowserException } from '@/lib/observability';
+import { useAppStore } from '@/stores/store';
+import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/shared/types';
+import { reconcileElements } from '@excalidraw/excalidraw';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+	type CollaborationSessionStatus,
 	buildRoomHash,
 	buildRoomLink,
-	getReconnectDelayMs,
 	getPartykitHost,
 	getPartykitWebSocketUrl,
+	getReconnectDelayMs,
 	getSelectedElementIds,
 	parseRoomHash,
 	readStoredUsername,
-	type CollaborationSessionStatus,
 } from './collaboration-utils';
+import { useResettableTimeout } from './useResettableTimeout';
 
 const SCENE_THROTTLE_MS = 100;
 const CURSOR_THROTTLE_MS = 50;
@@ -116,8 +117,8 @@ function getSessionCollaboratorColor(): CollaboratorColor {
 
 function useThrottledCallback<A extends unknown[]>(fn: (...args: A) => void, ms: number) {
 	const lastRef = useRef(0);
-	const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const fnRef = useRef(fn);
+	const { schedule, clear } = useResettableTimeout();
 	fnRef.current = fn;
 
 	return useCallback(
@@ -125,24 +126,19 @@ function useThrottledCallback<A extends unknown[]>(fn: (...args: A) => void, ms:
 			const now = Date.now();
 			if (now - lastRef.current >= ms) {
 				lastRef.current = now;
-				if (timerRef.current) {
-					clearTimeout(timerRef.current);
-					timerRef.current = null;
-				}
+				clear();
 				fnRef.current(...args);
 			} else {
-				if (timerRef.current) clearTimeout(timerRef.current);
-				timerRef.current = setTimeout(
+				schedule(
 					() => {
 						lastRef.current = Date.now();
-						timerRef.current = null;
 						fnRef.current(...args);
 					},
 					ms - (now - lastRef.current),
 				);
 			}
 		},
-		[ms],
+		[clear, ms, schedule],
 	);
 }
 
@@ -443,7 +439,7 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			setSessionError(null);
 			setSessionStatus(isReconnect ? 'reconnecting' : 'connecting');
 
-			const host = getPartykitHost();
+			const host = getPartykitHost(import.meta.env.VITE_PARTYKIT_HOST);
 			const ws = new WebSocket(getPartykitWebSocketUrl(roomId, host));
 			wsRef.current = ws;
 

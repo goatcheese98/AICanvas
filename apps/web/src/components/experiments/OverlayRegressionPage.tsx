@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '@excalidraw/excalidraw/index.css';
 import type { AppState } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { CanvasCore } from '@/components/canvas/CanvasCore';
@@ -42,6 +43,21 @@ function getOverlayReferenceStyle(
 
 function createZoom(value: number) {
 	return { value: value as never };
+}
+
+function syncStoreFromApi(excalidrawApi: ExcalidrawImperativeAPI) {
+	const { setAppState, setElements, setFiles } = useAppStore.getState();
+	setElements([...excalidrawApi.getSceneElements()]);
+	setAppState({
+		...excalidrawApi.getAppState(),
+		selectedElementIds: { ...(excalidrawApi.getAppState().selectedElementIds ?? {}) },
+		zoom:
+			excalidrawApi.getAppState().zoom &&
+			typeof excalidrawApi.getAppState().zoom === 'object'
+				? { ...excalidrawApi.getAppState().zoom }
+				: excalidrawApi.getAppState().zoom,
+	});
+	setFiles({ ...excalidrawApi.getFiles() });
 }
 
 function createSeedElement(
@@ -115,6 +131,19 @@ function getInsertedOverlayCenter(type: OverlayType, sequence: number) {
 	}
 
 	return { x: 1080, y: 640 + sequence * 120 };
+}
+
+function resizeOverlayElement(
+	element: ExcalidrawElement,
+	nextSize: { width: number; height: number },
+) {
+	return {
+		...element,
+		width: nextSize.width,
+		height: nextSize.height,
+		version: element.version + 1,
+		versionNonce: element.versionNonce + 1,
+	};
 }
 
 function OverlayReferenceLayer() {
@@ -233,8 +262,40 @@ export function OverlayRegressionPage() {
 			zoom: createZoom(value),
 		};
 		excalidrawApi.updateScene({ appState: nextAppState });
-		useAppStore.getState().setAppState(nextAppState);
+		syncStoreFromApi(excalidrawApi);
 		setZoomLabel(`${Math.round(value * 100)}%`);
+	};
+
+	const panViewport = (deltaX: number, deltaY: number) => {
+		if (!excalidrawApi) return;
+		const currentAppState = excalidrawApi.getAppState();
+		excalidrawApi.updateScene({
+			appState: {
+				...currentAppState,
+				scrollX: (currentAppState.scrollX ?? 0) + deltaX,
+				scrollY: (currentAppState.scrollY ?? 0) + deltaY,
+			},
+		});
+		syncStoreFromApi(excalidrawApi);
+	};
+
+	const resizeSeedOverlays = () => {
+		if (!excalidrawApi) return;
+		const currentElements = excalidrawApi.getSceneElements();
+		const nextElements = currentElements.map((element) => {
+			if (element.id === 'regression-markdown') {
+				return resizeOverlayElement(element, { width: 680, height: 620 });
+			}
+
+			if (element.id === 'regression-kanban') {
+				return resizeOverlayElement(element, { width: 980, height: 640 });
+			}
+
+			return element;
+		});
+
+		excalidrawApi.updateScene({ elements: nextElements });
+		syncStoreFromApi(excalidrawApi);
 	};
 
 	const resetScene = () => {
@@ -243,8 +304,7 @@ export function OverlayRegressionPage() {
 			elements: seedScene.elements,
 			appState: seedScene.appState,
 		});
-		useAppStore.getState().setElements(seedScene.elements);
-		useAppStore.getState().setAppState(seedScene.appState);
+		syncStoreFromApi(excalidrawApi);
 		insertionCountRef.current = {
 			markdown: 0,
 			kanban: 0,
@@ -310,8 +370,7 @@ export function OverlayRegressionPage() {
 			elements: nextElements,
 			appState: nextAppState,
 		});
-		useAppStore.getState().setElements(nextElements);
-		useAppStore.getState().setAppState(nextAppState);
+		syncStoreFromApi(excalidrawApi);
 		setLastInsertedIds((current) => ({
 			...current,
 			[type]: overlayId,
@@ -360,6 +419,22 @@ export function OverlayRegressionPage() {
 					className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-800"
 				>
 					Insert Kanban
+				</button>
+				<button
+					type="button"
+					data-testid="overlay-regression-pan-view"
+					onClick={() => panViewport(160, 45)}
+					className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-800"
+				>
+					Pan View
+				</button>
+				<button
+					type="button"
+					data-testid="overlay-regression-resize-seeds"
+					onClick={resizeSeedOverlays}
+					className="rounded-md border border-stone-300 px-3 py-2 text-sm font-medium text-stone-800"
+				>
+					Resize Seeds
 				</button>
 				<div
 					className="rounded-md bg-stone-100 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-500"

@@ -139,3 +139,6 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - `ARCHITECTURE.md` — tech stack decisions and rationale
 - `docs/overlay-authoring-pattern.md` — overlay composition specification
 - `docs/assistant-v2-architecture.md` — next-generation assistant architecture
+- `docs/observability.md` — current logging, tracing, and Sentry setup
+- `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan
+- `docs/deployment-runbook.md` — repo setup and CI/CD requirements for deployment

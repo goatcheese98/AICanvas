@@ -9,6 +9,21 @@ export const MARKDOWN_IMAGE_SCHEME = 'image://';
 
 const objectUrlCache = new Map<string, string>();
 
+type ExcalidrawClipboardImageElement = {
+	type?: string;
+	fileId?: string;
+};
+
+type ExcalidrawClipboardFile = {
+	dataURL?: string;
+};
+
+type ExcalidrawClipboardPayload = {
+	type?: string;
+	elements?: ExcalidrawClipboardImageElement[];
+	files?: Record<string, ExcalidrawClipboardFile>;
+};
+
 function createImageId() {
 	return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 }
@@ -46,10 +61,12 @@ function dataUrlToObjectUrl(dataUrl: string): string {
 function extractExcalidrawDataUrl(text: string): string | null {
 	if (!text.includes('"excalidraw/clipboard"')) return null;
 	try {
-		const parsed = JSON.parse(text);
-		if (parsed?.type !== 'excalidraw/clipboard') return null;
-		const imageElement = (parsed.elements ?? []).find((candidate: any) => candidate.type === 'image' && candidate.fileId);
-		const file = parsed.files?.[imageElement?.fileId];
+		const parsed = JSON.parse(text) as ExcalidrawClipboardPayload;
+		if (parsed.type !== 'excalidraw/clipboard') return null;
+		const imageElement = parsed.elements?.find(
+			(candidate) => candidate.type === 'image' && typeof candidate.fileId === 'string',
+		);
+		const file = imageElement?.fileId ? parsed.files?.[imageElement.fileId] : undefined;
 		return typeof file?.dataURL === 'string' ? file.dataURL : null;
 	} catch {
 		return text.match(/"dataURL"\s*:\s*"(data:image[^"]+)"/)?.[1]?.replace(/\\\//g, '/') ?? null;

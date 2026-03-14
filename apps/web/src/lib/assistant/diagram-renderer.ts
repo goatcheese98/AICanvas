@@ -1,3 +1,6 @@
+import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
+import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
+
 export type D2RenderVariant = 'default' | 'sketch' | 'ascii';
 
 export interface DiagramSvgRenderResult {
@@ -13,6 +16,8 @@ type D2Engine = {
 	}>;
 	render: (diagram: unknown, options?: unknown) => Promise<string>;
 };
+
+type SvgExportAppState = Partial<Omit<AppState, 'offsetTop' | 'offsetLeft'>>;
 
 let d2EnginePromise: Promise<D2Engine> | undefined;
 
@@ -35,8 +40,9 @@ async function getD2Engine(): Promise<D2Engine> {
 	}
 }
 
-function toSceneCompatibleElements(elements: unknown[]): any[] {
-	return (elements as Array<Record<string, any>>).map((raw) => {
+function toSceneCompatibleElements(elements: unknown[]): ExcalidrawElementSkeleton[] {
+	const rawElements = elements as ReadonlyArray<Record<string, unknown>>;
+	return rawElements.map((raw) => {
 		const element = raw ?? {};
 		const isText = element.type === 'text';
 		const textValue = typeof element.text === 'string' ? element.text : '';
@@ -59,31 +65,41 @@ function toSceneCompatibleElements(elements: unknown[]): any[] {
 					? fallbackTextHeight
 					: 100;
 		const normalized: Record<string, unknown> = {
-			type: element.type ?? 'rectangle',
-			x: element.x ?? 0,
-			y: element.y ?? 0,
+			type: typeof element.type === 'string' ? element.type : 'rectangle',
+			x: typeof element.x === 'number' ? element.x : 0,
+			y: typeof element.y === 'number' ? element.y : 0,
 			width,
 			height,
-			id: element.id ?? `diagram_${Math.random().toString(36).slice(2, 10)}`,
-			angle: element.angle ?? 0,
-			strokeColor: element.strokeColor ?? (isText ? '#111827' : '#000000'),
-			backgroundColor: element.backgroundColor ?? 'transparent',
-			fillStyle: element.fillStyle ?? (isText ? 'solid' : 'hachure'),
-			strokeWidth: element.strokeWidth ?? 1,
-			strokeStyle: element.strokeStyle ?? 'solid',
-			roughness: element.roughness ?? (isText ? 0 : 1),
-			opacity: element.opacity ?? 100,
-			roundness: element.roundness ?? null,
-			seed: element.seed ?? Math.floor(Math.random() * 100000),
-			version: element.version ?? 1,
-			versionNonce: element.versionNonce ?? Date.now(),
-			isDeleted: element.isDeleted ?? false,
+			id:
+				typeof element.id === 'string'
+					? element.id
+					: `diagram_${Math.random().toString(36).slice(2, 10)}`,
+			angle: typeof element.angle === 'number' ? element.angle : 0,
+			strokeColor:
+				typeof element.strokeColor === 'string'
+					? element.strokeColor
+					: isText
+						? '#111827'
+						: '#000000',
+			backgroundColor:
+				typeof element.backgroundColor === 'string' ? element.backgroundColor : 'transparent',
+			fillStyle: typeof element.fillStyle === 'string' ? element.fillStyle : isText ? 'solid' : 'hachure',
+			strokeWidth: typeof element.strokeWidth === 'number' ? element.strokeWidth : 1,
+			strokeStyle: typeof element.strokeStyle === 'string' ? element.strokeStyle : 'solid',
+			roughness: typeof element.roughness === 'number' ? element.roughness : isText ? 0 : 1,
+			opacity: typeof element.opacity === 'number' ? element.opacity : 100,
+			roundness: typeof element.roundness === 'object' || element.roundness === null ? element.roundness : null,
+			seed: typeof element.seed === 'number' ? element.seed : Math.floor(Math.random() * 100000),
+			version: typeof element.version === 'number' ? element.version : 1,
+			versionNonce:
+				typeof element.versionNonce === 'number' ? element.versionNonce : Date.now(),
+			isDeleted: typeof element.isDeleted === 'boolean' ? element.isDeleted : false,
 			groupIds: Array.isArray(element.groupIds) ? element.groupIds : [],
-			frameId: element.frameId ?? null,
-			boundElements: element.boundElements ?? null,
-			updated: element.updated ?? Date.now(),
-			link: element.link ?? null,
-			locked: element.locked ?? false,
+			frameId: typeof element.frameId === 'string' || element.frameId === null ? element.frameId : null,
+			boundElements: Array.isArray(element.boundElements) || element.boundElements === null ? element.boundElements : null,
+			updated: typeof element.updated === 'number' ? element.updated : Date.now(),
+			link: typeof element.link === 'string' || element.link === null ? element.link : null,
+			locked: typeof element.locked === 'boolean' ? element.locked : false,
 		};
 
 		if (isText) {
@@ -93,13 +109,17 @@ function toSceneCompatibleElements(elements: unknown[]): any[] {
 			normalized.fontSize = fontSize;
 			normalized.fontFamily =
 				typeof element.fontFamily === 'number' ? element.fontFamily : 3;
-			normalized.textAlign = element.textAlign ?? 'left';
-			normalized.verticalAlign = element.verticalAlign ?? 'top';
+			normalized.textAlign = typeof element.textAlign === 'string' ? element.textAlign : 'left';
+			normalized.verticalAlign =
+				typeof element.verticalAlign === 'string' ? element.verticalAlign : 'top';
 			normalized.lineHeight =
 				typeof element.lineHeight === 'number' ? element.lineHeight : 1.25;
 			normalized.baseline =
 				typeof element.baseline === 'number' ? element.baseline : Math.round(fontSize * 1.2);
-			normalized.containerId = element.containerId ?? null;
+			normalized.containerId =
+				typeof element.containerId === 'string' || element.containerId === null
+					? element.containerId
+					: null;
 		} else {
 			if (typeof element.text === 'string') normalized.text = element.text;
 			if (typeof element.fontSize === 'number') normalized.fontSize = element.fontSize;
@@ -113,28 +133,30 @@ function toSceneCompatibleElements(elements: unknown[]): any[] {
 			normalized.customData = element.customData;
 		}
 
-		return normalized;
+		return normalized as ExcalidrawElementSkeleton;
 	});
 }
 
 async function exportElementsToSvgMarkup(
 	elements: unknown[],
-	files?: Record<string, unknown>,
+	files?: BinaryFiles,
 ): Promise<string> {
 	const { exportToSvg, convertToExcalidrawElements } = await import('@excalidraw/excalidraw');
-	const normalized = convertToExcalidrawElements(toSceneCompatibleElements(elements) as any);
+	const normalized = convertToExcalidrawElements(toSceneCompatibleElements(elements));
 
 	if (normalized.length === 0) {
 		throw new Error('No drawable elements were generated');
 	}
 
+	const exportAppState: SvgExportAppState = {
+		exportBackground: true,
+		exportWithDarkMode: false,
+		viewBackgroundColor: '#ffffff',
+	};
+
 	const svg = await exportToSvg({
 		elements: normalized,
-		appState: {
-			exportBackground: true,
-			exportWithDarkMode: false,
-			viewBackgroundColor: '#ffffff',
-		} as any,
+		appState: exportAppState,
 		files: files ?? {},
 	});
 

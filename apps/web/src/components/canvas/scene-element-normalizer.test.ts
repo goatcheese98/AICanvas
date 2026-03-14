@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { normalizeSceneElement } from './scene-element-normalizer';
 
 describe('scene-element-normalizer', () => {
@@ -11,7 +12,7 @@ describe('scene-element-normalizer', () => {
 			width: 300,
 			height: 200,
 			customData: { type: 'kanban', title: 'Board', columns: [] },
-		} as any);
+		} as unknown as ExcalidrawElement);
 
 		expect(normalized.groupIds).toEqual([]);
 		expect(normalized.boundElements).toBeNull();

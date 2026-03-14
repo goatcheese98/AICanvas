@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const isCI = Boolean(process.env.CI);
+
 export default defineConfig({
 	testDir: './e2e',
 	timeout: 30_000,
@@ -7,7 +9,7 @@ export default defineConfig({
 		timeout: 5_000,
 	},
 	use: {
-		baseURL: 'http://127.0.0.1:5173',
+		baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173',
 		trace: 'on-first-retry',
 		video: 'retain-on-failure',
 		screenshot: 'only-on-failure',
@@ -15,10 +17,10 @@ export default defineConfig({
 	},
 	projects: [
 		{
-			name: 'chrome',
+			name: isCI ? 'chromium' : 'chrome',
 			use: {
 				...devices['Desktop Chrome'],
-				channel: 'chrome',
+				...(isCI ? { browserName: 'chromium' as const } : { channel: 'chrome' as const }),
 			},
 		},
 	],

@@ -21,6 +21,7 @@ import {
 	type CanvasData,
 } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
+import { syncAppStoreFromExcalidraw } from './excalidraw-store-sync';
 import { normalizeSceneElements } from './scene-element-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
@@ -294,12 +295,13 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				);
 				const remoteFiles = toBinaryFiles(files);
 				excalidrawApi.updateScene({
-					elements: remoteData.elements,
+					elements: normalizeSceneElements(remoteData.elements as ExcalidrawElement[]),
 					appState: toSceneUpdateAppState(remoteData.appState),
 				});
 				if (Object.keys(remoteFiles).length > 0) {
 					excalidrawApi.addFiles(toBinaryFileList(remoteFiles));
 				}
+				syncAppStoreFromExcalidraw(excalidrawApi);
 				latestSceneRef.current = remoteData;
 			} else if (localSnapshot) {
 				const localData = buildPersistedCanvasData(
@@ -309,12 +311,13 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				);
 				const localFiles = toBinaryFiles(localData.files);
 				excalidrawApi.updateScene({
-					elements: localData.elements,
+					elements: normalizeSceneElements(localData.elements as ExcalidrawElement[]),
 					appState: toSceneUpdateAppState(localData.appState),
 				});
 				if (Object.keys(localFiles).length > 0) {
 					excalidrawApi.addFiles(toBinaryFileList(localFiles));
 				}
+				syncAppStoreFromExcalidraw(excalidrawApi);
 				latestSceneRef.current = localData;
 			}
 

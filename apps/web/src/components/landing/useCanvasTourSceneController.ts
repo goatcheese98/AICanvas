@@ -7,6 +7,11 @@ import type {
 	ExcalidrawImperativeAPI,
 } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import {
+	cloneExcalidrawAppState,
+	syncAppStoreFromExcalidraw,
+	updateSceneAndSyncAppStore,
+} from '@/components/canvas/excalidraw-store-sync';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { useAppStore } from '@/stores/store';
 
@@ -59,14 +64,7 @@ interface ApplySceneSnapshotOptions {
 }
 
 function cloneAppState(appState: Partial<AppState>): Partial<AppState> {
-	return {
-		...appState,
-		selectedElementIds: { ...(appState.selectedElementIds ?? {}) },
-		zoom:
-			appState.zoom && typeof appState.zoom === 'object'
-				? { ...appState.zoom }
-				: appState.zoom,
-	};
+	return cloneExcalidrawAppState(appState);
 }
 
 function getCollaborators(): Map<string, Collaborator> {
@@ -229,12 +227,14 @@ export function useCanvasTourSceneController({
 				appState: nextAppState as never,
 				collaborators: getCollaborators() as never,
 			});
-			if (imageFileData) {
-				api.addFiles([imageFileData]);
+			const filesToAdd = [
+				...Object.values(snapshot.files),
+				...(imageFileData ? [imageFileData] : []),
+			];
+			if (filesToAdd.length > 0) {
+				api.addFiles(filesToAdd);
 			}
-			setElements(snapshot.elements);
-			setAppState(nextAppState);
-			setFiles(snapshot.files);
+			syncAppStoreFromExcalidraw(api);
 			const nextCamera = createCameraFromAppState(nextAppState);
 			cameraRef.current = nextCamera;
 			setLiveCamera(nextCamera);
@@ -373,8 +373,7 @@ export function useCanvasTourSceneController({
 			const nextAppState = {
 				...getViewportAppState(cameraRef.current, viewportSize.width, viewportSize.height),
 			};
-			excalidrawApiRef.current.updateScene({ appState: nextAppState });
-			setAppState(nextAppState);
+			updateSceneAndSyncAppStore(excalidrawApiRef.current, { appState: nextAppState });
 		}
 	}, [isGuideMode, setAppState, viewportSize.height, viewportSize.width]);
 
@@ -409,7 +408,7 @@ export function useCanvasTourSceneController({
 			return;
 		}
 
-		api.updateScene({
+		updateSceneAndSyncAppStore(api, {
 			elements: initialSurfaceData.elements,
 			appState: initialSurfaceData.appState as never,
 		});
@@ -455,11 +454,10 @@ export function useCanvasTourSceneController({
 				...getViewportAppState(nextCamera, viewportSize.width, viewportSize.height),
 			};
 
-			api.updateScene({
+			updateSceneAndSyncAppStore(api, {
 				appState: nextAppState,
 				collaborators: getCollaborators() as never,
 			});
-			setAppState(nextAppState);
 
 			if (progress < 1) {
 				animationFrameRef.current = requestAnimationFrame(tick);

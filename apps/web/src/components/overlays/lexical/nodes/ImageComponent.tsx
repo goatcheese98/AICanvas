@@ -84,6 +84,13 @@ export default function ImageComponent({
 	const [editor] = useLexicalComposerContext();
 	const [isLoadError, setIsLoadError] = useState(false);
 	const isResizingRef = useRef(false);
+	const resizeCleanupRef = useRef<(() => void) | null>(null);
+
+	const clearResizeListeners = useCallback(() => {
+		isResizingRef.current = false;
+		resizeCleanupRef.current?.();
+		resizeCleanupRef.current = null;
+	}, []);
 
 	const isInNodeSelection = useMemo(
 		() =>
@@ -127,6 +134,8 @@ export default function ImageComponent({
 		[clearSelection, editor, isSelected],
 	);
 
+	useEffect(() => clearResizeListeners, [clearResizeListeners]);
+
 	const onHandlePointerDown = useCallback(
 		(event: React.PointerEvent) => {
 			event.preventDefault();
@@ -145,6 +154,7 @@ export default function ImageComponent({
 				scale,
 			};
 
+			clearResizeListeners();
 			isResizingRef.current = true;
 
 			const onMove = (moveEvent: PointerEvent) => {
@@ -158,21 +168,23 @@ export default function ImageComponent({
 			};
 
 			const onUp = () => {
-				isResizingRef.current = false;
 				const finalWidth = Math.round(parseFloat(img.style.width) || img.offsetWidth);
 				const finalHeight = Math.round(parseFloat(img.style.height) || img.offsetHeight);
 				editor.update(() => {
 					const node = $getNodeByKey(nodeKey);
 					if ($isImageNode(node)) node.setWidthAndHeight(finalWidth, finalHeight);
 				});
+				clearResizeListeners();
+			};
+
+			resizeCleanupRef.current = () => {
 				document.removeEventListener('pointermove', onMove);
 				document.removeEventListener('pointerup', onUp);
 			};
-
 			document.addEventListener('pointermove', onMove);
 			document.addEventListener('pointerup', onUp);
 		},
-		[editor, nodeKey],
+		[clearResizeListeners, editor, nodeKey],
 	);
 
 	const imageStyle: React.CSSProperties = {

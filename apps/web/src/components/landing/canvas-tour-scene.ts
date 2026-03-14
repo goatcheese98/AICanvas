@@ -527,7 +527,7 @@ function createCanvasImageElement(input: {
 		updated: Date.now(),
 		link: null,
 		locked: false,
-		index: `a${Date.now()}` as any,
+		index: `a${Date.now()}` as ExcalidrawElement['index'],
 	} as const;
 }
 
@@ -790,7 +790,7 @@ export function createCanvasTourScene(imageId: string): DemoScene {
 			),
 		createFreeText(DEFAULT_TOUR_SCENE_STATE.lectureClipLabel),
 		createCanvasImageElement({
-			fileId: imageId as any,
+			fileId: imageId as BinaryFileData['id'],
 			...DEFAULT_TOUR_SCENE_STATE.lectureClipImage,
 		}),
 		createFreeText(DEFAULT_TOUR_SCENE_STATE.ragFlowLabel),

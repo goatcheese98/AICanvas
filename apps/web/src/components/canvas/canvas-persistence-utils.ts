@@ -1,13 +1,18 @@
 import { sanitizePersistedCanvasAppState } from '@/hooks/collaboration-utils';
-import type { CanvasData } from '@/lib/persistence/CanvasPersistenceCoordinator';
+import type {
+	CanvasData,
+	PersistedCanvasAppState,
+	PersistedCanvasElement,
+	PersistedCanvasFiles,
+} from '@/lib/persistence/CanvasPersistenceCoordinator';
 
 type QueryStatus = 'pending' | 'error' | 'success';
 type FetchStatus = 'fetching' | 'paused' | 'idle';
 
 export function buildPersistedCanvasData(
-	elements: readonly unknown[],
-	appState: Record<string, unknown> | null | undefined,
-	files: Record<string, unknown> | null | undefined,
+	elements: readonly PersistedCanvasElement[],
+	appState: PersistedCanvasAppState | null | undefined,
+	files: PersistedCanvasFiles | null | undefined,
 ): CanvasData {
 	return {
 		elements: [...elements],

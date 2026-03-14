@@ -37,6 +37,7 @@ import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontal
 import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
 import { $createParagraphNode } from 'lexical';
 import { $getSelectionStyleValueForProperty, $patchStyleText, $setBlocksType } from '@lexical/selection';
+import { useResettableTimeout } from '@/hooks/useResettableTimeout';
 import { INSERT_EQUATION_COMMAND } from './plugins/EquationPlugin';
 import { INSERT_IMAGE_COMMAND, openImageFilePicker } from './plugins/ImagesPlugin';
 
@@ -322,6 +323,7 @@ export function LexicalToolbar({
 	const [equationValue, setEquationValue] = useState('');
 	const [equationInline, setEquationInline] = useState(true);
 	const [markdownCopied, setMarkdownCopied] = useState(false);
+	const { schedule: scheduleCopiedReset } = useResettableTimeout();
 
 	const textColorRef = useRef<HTMLButtonElement>(null);
 	const highlightRef = useRef<HTMLButtonElement>(null);
@@ -468,10 +470,10 @@ export function LexicalToolbar({
 			const markdown = $convertToMarkdownString(TRANSFORMERS);
 			void navigator.clipboard.writeText(markdown).then(() => {
 				setMarkdownCopied(true);
-				setTimeout(() => setMarkdownCopied(false), 1800);
+				scheduleCopiedReset(() => setMarkdownCopied(false), 1800);
 			});
 		});
-	}, [editor]);
+	}, [editor, scheduleCopiedReset]);
 
 	const applyTextTransform = useCallback(
 		(transform: 'uppercase' | 'lowercase' | 'capitalize') => {

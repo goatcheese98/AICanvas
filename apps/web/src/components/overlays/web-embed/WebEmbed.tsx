@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -39,6 +39,12 @@ export function WebEmbed({
 	const [pipPosition, setPipPosition] = useState(() => getDefaultPipPosition(viewport));
 	const onEditingChangeRef = useRef(onEditingChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
+	const pipDragCleanupRef = useRef<(() => void) | null>(null);
+
+	const clearPipDragListeners = useCallback(() => {
+		pipDragCleanupRef.current?.();
+		pipDragCleanupRef.current = null;
+	}, []);
 
 	useEffect(() => {
 		onEditingChangeRef.current = onEditingChange;
@@ -65,13 +71,20 @@ export function WebEmbed({
 
 	useEffect(
 		() => () => {
+			clearPipDragListeners();
 			if (lastReportedEditingRef.current) {
 				onEditingChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
 		},
-		[],
+		[clearPipDragListeners],
 	);
+
+	useEffect(() => {
+		if (viewMode !== 'pip') {
+			clearPipDragListeners();
+		}
+	}, [clearPipDragListeners, viewMode]);
 
 	useEffect(() => {
 		const onResize = () => {
@@ -88,6 +101,40 @@ export function WebEmbed({
 	const canRenderIframe = Boolean(previewUrl && !enhanced.warning);
 	const embeddable = previewUrl ? isKnownEmbeddable(previewUrl) : false;
 	const pipDimensions = getPipDimensions(viewport.width);
+
+	const handlePipMouseDown = useCallback(
+		(event: React.MouseEvent<HTMLDivElement>) => {
+			const start = { x: event.clientX, y: event.clientY };
+			const origin = pipPosition;
+
+			clearPipDragListeners();
+
+			const handleMove = (moveEvent: MouseEvent) => {
+				setPipPosition(
+					clampPipPosition(
+						{
+							x: origin.x + (moveEvent.clientX - start.x),
+							y: origin.y + (moveEvent.clientY - start.y),
+						},
+						viewport,
+					),
+				);
+			};
+
+			const handleUp = () => {
+				clearPipDragListeners();
+			};
+
+			pipDragCleanupRef.current = () => {
+				window.removeEventListener('mousemove', handleMove);
+				window.removeEventListener('mouseup', handleUp);
+			};
+
+			window.addEventListener('mousemove', handleMove);
+			window.addEventListener('mouseup', handleUp);
+		},
+		[clearPipDragListeners, pipPosition, viewport],
+	);
 
 	const frame = (
 		<OverlaySurface element={element} isSelected={isSelected} className="flex h-full flex-col">
@@ -207,30 +254,7 @@ export function WebEmbed({
 			>
 				<div
 					className="h-full cursor-move"
-					onMouseDown={(event) => {
-						const start = { x: event.clientX, y: event.clientY };
-						const origin = pipPosition;
-
-						const handleMove = (moveEvent: MouseEvent) => {
-							setPipPosition(
-								clampPipPosition(
-									{
-										x: origin.x + (moveEvent.clientX - start.x),
-										y: origin.y + (moveEvent.clientY - start.y),
-									},
-									viewport,
-								),
-							);
-						};
-
-						const handleUp = () => {
-							window.removeEventListener('mousemove', handleMove);
-							window.removeEventListener('mouseup', handleUp);
-						};
-
-						window.addEventListener('mousemove', handleMove);
-						window.addEventListener('mouseup', handleUp);
-					}}
+					onMouseDown={handlePipMouseDown}
 				>
 					{frame}
 				</div>

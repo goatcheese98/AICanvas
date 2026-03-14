@@ -16,6 +16,7 @@ import { useAppStore } from '@/stores/store';
 import { AIChatPanel } from '@/components/ai-chat';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
 import { buildOverlayInsertionScene } from './element-factories';
+import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
 import {
 	CHROME_BUTTON_BASE,
 	CHROME_BUTTON_IDLE,
@@ -186,7 +187,7 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		}
 
 		const sceneUpdate = buildOverlayInsertionScene(type, elements, appState);
-		excalidrawApi.updateScene({
+		updateSceneAndSyncAppStore(excalidrawApi, {
 			elements: sceneUpdate.elements,
 			appState: sceneUpdate.appState as AppState,
 		});

@@ -1,0 +1,163 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+  deploy-api:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    needs: validate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Deploy API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 17ca93f20835664505fe44e9d514c34e
+          workingDirectory: apps/api
+          command: >-
+            deploy
+            --var ENVIRONMENT:production
+            --var SENTRY_RELEASE:${{ github.sha }}
+            --var SENTRY_TRACES_SAMPLE_RATE:${{ vars.SENTRY_TRACES_SAMPLE_RATE || '0.1' }}
+          secrets: |
+            CLERK_SECRET_KEY
+        env:
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    needs: validate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Build Web App
+        working-directory: apps/web
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          VITE_PARTYKIT_HOST: ${{ vars.VITE_PARTYKIT_HOST }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          VITE_SENTRY_ENVIRONMENT: ${{ vars.VITE_SENTRY_ENVIRONMENT || 'production' }}
+          VITE_SENTRY_RELEASE: ${{ github.sha }}
+          VITE_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.VITE_SENTRY_TRACES_SAMPLE_RATE || '0.1' }}
+          VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE: ${{ vars.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE || '0.02' }}
+          VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE: ${{ vars.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE || '1.0' }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_RELEASE: ${{ github.sha }}
+        run: bun run build
+
+      - name: Deploy Web App to Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: 17ca93f20835664505fe44e9d514c34e
+          workingDirectory: apps/web
+          command: >-
+            pages deploy dist
+            --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }}
+            --branch=main
+
+  deploy-partykit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    needs: validate
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Deploy PartyKit
+        working-directory: workers/partykit
+        env:
+          PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
+          PARTYKIT_TEAM: ${{ vars.PARTYKIT_TEAM }}
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+        run: npx partykit deploy -c partykit.json
+
+  smoke-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    needs:
+      - deploy-api
+      - deploy-web
+      - deploy-partykit
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Run smoke checks
+        env:
+          DEPLOY_API_URL: ${{ vars.DEPLOY_API_URL }}
+          DEPLOY_PARTYKIT_HOST: ${{ vars.DEPLOY_PARTYKIT_HOST }}
+          DEPLOY_WEB_URL: ${{ vars.DEPLOY_WEB_URL }}
+        run: bun run smoke:deploy

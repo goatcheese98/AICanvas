@@ -1,5 +1,5 @@
-import { hc } from 'hono/client';
 import type { AppType } from '@ai-canvas/api';
+import type { JoinWaitlist, JoinWaitlistResponse } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifactRecord,
 	AssistantRun,
@@ -7,12 +7,21 @@ import type {
 	AssistantTask,
 	AssistantThread,
 } from '@ai-canvas/shared/types';
-import type { JoinWaitlist, JoinWaitlistResponse } from '@ai-canvas/shared/schemas';
+import { hc } from 'hono/client';
 import {
 	addObservabilityBreadcrumb,
 	captureBrowserException,
 	getSentryTraceHeaders,
 } from './observability';
+
+function normalizeApiBaseUrl(value: string | undefined): string {
+	return (value ?? '').trim().replace(/\/+$/, '');
+}
+
+function toApiUrl(path: string): string {
+	const normalizedBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL);
+	return normalizedBaseUrl ? `${normalizedBaseUrl}${path}` : path;
+}
 
 function createClientRequestId() {
 	return typeof crypto.randomUUID === 'function'
@@ -60,7 +69,7 @@ export async function getRequiredAuthHeaders(
 	};
 }
 
-export const api = hc<AppType>('/', {
+export const api = hc<AppType>(normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL) || '/', {
 	fetch: observedFetch,
 });
 
@@ -123,7 +132,7 @@ export async function streamAssistantRunEvents(
 	headers: Record<string, string>,
 	onEvent: (event: AssistantRunEvent) => void,
 ): Promise<void> {
-	const response = await observedFetch(`/api/assistant/runs/${runId}/events`, {
+	const response = await observedFetch(toApiUrl(`/api/assistant/runs/${runId}/events`), {
 		headers,
 	});
 
@@ -163,9 +172,10 @@ export async function fetchAssistantThreads(
 	canvasId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantThread[]> {
-	const response = await observedFetch(`/api/assistant/threads?canvasId=${encodeURIComponent(canvasId)}`, {
-		headers,
-	});
+	const response = await observedFetch(
+		toApiUrl(`/api/assistant/threads?canvasId=${encodeURIComponent(canvasId)}`),
+		{ headers },
+	);
 	return readJsonOrThrow<AssistantThread[]>(
 		response,
 		`Assistant thread fetch failed with status ${response.status}`,
@@ -176,7 +186,7 @@ export async function createAssistantThread(
 	input: { canvasId: string; title?: string },
 	headers: Record<string, string>,
 ): Promise<AssistantThread> {
-	const response = await observedFetch('/api/assistant/threads', {
+	const response = await observedFetch(toApiUrl('/api/assistant/threads'), {
 		method: 'POST',
 		headers: {
 			...headers,
@@ -194,7 +204,7 @@ export async function deleteAssistantThread(
 	threadId: string,
 	headers: Record<string, string>,
 ): Promise<void> {
-	const response = await observedFetch(`/api/assistant/threads/${threadId}`, {
+	const response = await observedFetch(toApiUrl(`/api/assistant/threads/${threadId}`), {
 		method: 'DELETE',
 		headers,
 	});
@@ -208,15 +218,18 @@ export async function fetchAssistantRun(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantRun> {
-	const response = await observedFetch(`/api/assistant/runs/${runId}`, { headers });
-	return readJsonOrThrow<AssistantRun>(response, `Assistant run fetch failed with status ${response.status}`);
+	const response = await observedFetch(toApiUrl(`/api/assistant/runs/${runId}`), { headers });
+	return readJsonOrThrow<AssistantRun>(
+		response,
+		`Assistant run fetch failed with status ${response.status}`,
+	);
 }
 
 export async function fetchAssistantRunTasks(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantTask[]> {
-	const response = await observedFetch(`/api/assistant/runs/${runId}/tasks`, { headers });
+	const response = await observedFetch(toApiUrl(`/api/assistant/runs/${runId}/tasks`), { headers });
 	return readJsonOrThrow<AssistantTask[]>(
 		response,
 		`Assistant task fetch failed with status ${response.status}`,
@@ -227,7 +240,9 @@ export async function fetchAssistantRunArtifacts(
 	runId: string,
 	headers: Record<string, string>,
 ): Promise<AssistantArtifactRecord[]> {
-	const response = await observedFetch(`/api/assistant/runs/${runId}/artifacts`, { headers });
+	const response = await observedFetch(toApiUrl(`/api/assistant/runs/${runId}/artifacts`), {
+		headers,
+	});
 	return readJsonOrThrow<AssistantArtifactRecord[]>(
 		response,
 		`Assistant artifact fetch failed with status ${response.status}`,
@@ -235,7 +250,7 @@ export async function fetchAssistantRunArtifacts(
 }
 
 export async function joinWaitlist(input: JoinWaitlist): Promise<JoinWaitlistResponse> {
-	const response = await observedFetch('/api/waitlist', {
+	const response = await observedFetch(toApiUrl('/api/waitlist'), {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',

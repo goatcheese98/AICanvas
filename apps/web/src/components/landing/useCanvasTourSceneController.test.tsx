@@ -67,6 +67,7 @@ function createMockApi() {
 		}),
 		setActiveTool: vi.fn(),
 		addFiles: vi.fn(),
+		getSceneElements: vi.fn(() => state.elements),
 		getSceneElementsIncludingDeleted: vi.fn(() => state.elements),
 		getAppState: vi.fn(() => state.appState),
 		getFiles: vi.fn(() => state.files),

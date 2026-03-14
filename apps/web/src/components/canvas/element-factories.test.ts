@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import type { KanbanOverlayCustomData, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
 import { buildOverlayInsertionScene, createOverlayCustomData, getOverlayDefaults } from './element-factories';
 
 const DEFAULT_MARKDOWN_CONTENT = `# <img src="https://cdn.jsdelivr.net/gh/dcurtis/markdown-mark/svg/markdown-mark.svg" alt="Markdown icon" width="28" height="28" /> New Note
@@ -116,7 +118,8 @@ describe('element-factories', () => {
 			showPreview: true,
 			dependencies: {},
 		});
-		expect((data as any).files['/App.jsx']).toBeDefined();
+		const prototypeData = data as PrototypeOverlayCustomData;
+		expect(prototypeData.files['/App.jsx']).toBeDefined();
 	});
 
 	it('returns expected overlay defaults', () => {
@@ -142,14 +145,14 @@ describe('element-factories', () => {
 					y: 0,
 					width: 10,
 					height: 10,
-				} as any,
+				} as unknown as ExcalidrawElement,
 			],
 			{
 				scrollX: -100,
 				scrollY: -50,
 				width: 1000,
 				height: 800,
-				zoom: { value: 2 as any },
+				zoom: { value: 2 } as AppState['zoom'],
 			},
 		);
 

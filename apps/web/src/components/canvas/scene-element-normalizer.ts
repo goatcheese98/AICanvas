@@ -6,7 +6,7 @@ export function normalizeSceneElement<T extends ExcalidrawElement>(element: T): 
 		index:
 			'index' in element && typeof (element as ExcalidrawElement & { index?: string }).index === 'string'
 				? (element as ExcalidrawElement & { index?: string }).index!
-				: ('a0' as any),
+				: ('a0' as ExcalidrawElement['index']),
 		angle: typeof element.angle === 'number' ? element.angle : 0,
 		strokeColor: element.strokeColor ?? '#000000',
 		backgroundColor: element.backgroundColor ?? '#ffffff',

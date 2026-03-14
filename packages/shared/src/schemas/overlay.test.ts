@@ -114,7 +114,9 @@ describe('overlay schemas', () => {
 	it('normalizes kanban overlay payloads and fills defaults', () => {
 		const normalized = normalizeKanbanOverlay({
 			title: 'Roadmap',
-			columns: [{ title: 'Todo', cards: [{ title: 'Ship it' }] }] as any,
+			columns: [{ title: 'Todo', cards: [{ title: 'Ship it' }] }] as NonNullable<
+				Parameters<typeof normalizeKanbanOverlay>[0]
+			>['columns'],
 		});
 
 		expect(normalized).toMatchObject({

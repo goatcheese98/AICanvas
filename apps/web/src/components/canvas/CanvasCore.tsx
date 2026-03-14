@@ -4,6 +4,11 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawInitialDataState } from '@excalidraw/excalidraw/types';
 import { useAppStore } from '@/stores/store';
+import {
+	cloneExcalidrawAppState,
+	cloneExcalidrawElements,
+	cloneExcalidrawFiles,
+} from './excalidraw-store-sync';
 
 interface CanvasCoreProps {
 	canvasId: string;
@@ -15,25 +20,6 @@ interface CanvasCoreProps {
 		button: 'down' | 'up';
 		pointersMap: Map<number, Readonly<{ x: number; y: number }>>;
 	}) => void;
-}
-
-function createElementsSnapshot(elements: readonly ExcalidrawElement[]) {
-	return [...elements];
-}
-
-function createAppStateSnapshot(appState: AppState) {
-	return {
-		...appState,
-		selectedElementIds: { ...(appState?.selectedElementIds ?? {}) },
-		zoom:
-			appState?.zoom && typeof appState.zoom === 'object'
-				? { ...appState.zoom }
-				: appState?.zoom,
-	};
-}
-
-function createFilesSnapshot(files: BinaryFiles) {
-	return files && typeof files === 'object' ? { ...files } : files;
 }
 
 export function CanvasCore({
@@ -55,9 +41,9 @@ export function CanvasCore({
 			return;
 		}
 
-		const elementSnapshot = createElementsSnapshot(api.getSceneElements());
-		const appStateSnapshot = createAppStateSnapshot(api.getAppState());
-		const filesSnapshot = createFilesSnapshot(api.getFiles());
+		const elementSnapshot = cloneExcalidrawElements(api.getSceneElements());
+		const appStateSnapshot = cloneExcalidrawAppState(api.getAppState());
+		const filesSnapshot = cloneExcalidrawFiles(api.getFiles());
 
 		setElements(elementSnapshot);
 		setAppState(appStateSnapshot);
@@ -77,9 +63,9 @@ export function CanvasCore({
 
 	const handleChange = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
-			const elementSnapshot = createElementsSnapshot(elements);
-			const appStateSnapshot = createAppStateSnapshot(appState);
-			const filesSnapshot = createFilesSnapshot(files);
+			const elementSnapshot = cloneExcalidrawElements(elements);
+			const appStateSnapshot = cloneExcalidrawAppState(appState);
+			const filesSnapshot = cloneExcalidrawFiles(files);
 
 			setElements(elementSnapshot);
 			setAppState(appStateSnapshot);

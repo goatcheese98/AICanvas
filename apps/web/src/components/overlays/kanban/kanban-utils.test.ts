@@ -66,7 +66,9 @@ describe('kanban-utils', () => {
 		const normalized = normalizeKanbanBoard({
 			type: 'kanban',
 			title: 'Board',
-			columns: [{ id: 'todo', title: 'Todo' } as any],
+			columns: [{ id: 'todo', title: 'Todo' }] as NonNullable<
+				Parameters<typeof normalizeKanbanBoard>[0]
+			>['columns'],
 		});
 
 		expect(normalized.columns).toHaveLength(1);

@@ -1,0 +1,72 @@
+name: Overlay Browser Regression
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web/**'
+      - 'packages/shared/**'
+      - 'package.json'
+      - 'bun.lock'
+      - '.github/workflows/overlay-browser-regression.yml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: overlay-browser-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  overlay-browser-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: Install Playwright Browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Web App
+        working-directory: apps/web
+        run: |
+          bun run dev -- --host 127.0.0.1 --port 4173 > /tmp/overlay-browser-regression.log 2>&1 &
+          for i in {1..60}; do
+            if curl -sf http://127.0.0.1:4173 > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/overlay-browser-regression.log
+          exit 1
+
+      - name: Typecheck Web App
+        run: bunx --bun tsc --noEmit -p apps/web/tsconfig.json
+
+      - name: Run Overlay Browser Regression
+        working-directory: apps/web
+        env:
+          CI: 'true'
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+        run: bun run test:e2e:overlay
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: overlay-browser-regression-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results

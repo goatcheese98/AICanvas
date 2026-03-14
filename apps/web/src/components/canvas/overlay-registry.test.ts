@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { TypedOverlayCanvasElement } from './overlay-definition-types';
 import {
 	applyOverlayUpdateByType,
 	collectOverlayElements,
@@ -30,7 +32,7 @@ describe('overlay-registry', () => {
 				height: 100,
 				angle: 0,
 			},
-		] as any;
+		] as unknown as ExcalidrawElement[];
 
 		const overlays = collectOverlayElements(elements);
 
@@ -67,7 +69,7 @@ describe('overlay-registry', () => {
 					content: 'live',
 				},
 			},
-		] as any;
+		] as unknown as ExcalidrawElement[];
 
 		const overlays = collectOverlayElements(elements);
 
@@ -91,7 +93,7 @@ describe('overlay-registry', () => {
 				content: 'old',
 				images: { a: 'b' },
 			},
-		} as any;
+		} as unknown as TypedOverlayCanvasElement;
 
 		const updated = applyOverlayUpdateByType('markdown', element, {
 			content: 'new',
@@ -132,7 +134,7 @@ describe('overlay-registry', () => {
 					autoHideToolbar: false,
 				},
 			},
-		} as any;
+		} as unknown as TypedOverlayCanvasElement;
 
 		const updated = applyOverlayUpdateByType('markdown', element, {
 			content: 'styled',
@@ -172,7 +174,7 @@ describe('overlay-registry', () => {
 				title: 'Old',
 				columns: [],
 			},
-		} as any;
+		} as unknown as TypedOverlayCanvasElement;
 
 		const updated = applyOverlayUpdateByType('kanban', element, {
 			type: 'kanban',
@@ -220,7 +222,7 @@ describe('overlay-registry', () => {
 				showEditor: true,
 				showPreview: true,
 			},
-		} as any;
+		} as unknown as TypedOverlayCanvasElement;
 
 		const updated = applyOverlayUpdateByType('prototype', element, {
 			title: 'Prototype v2',

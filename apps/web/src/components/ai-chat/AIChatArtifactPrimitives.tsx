@@ -3,6 +3,7 @@ import {
 	PANEL_BUTTON,
 	PANEL_BUTTON_IDLE,
 } from './ai-chat-constants';
+import { useResettableTimeout } from '@/hooks/useResettableTimeout';
 import { writeToClipboard } from './ai-chat-helpers';
 
 export function CopyButton({
@@ -17,6 +18,7 @@ export function CopyButton({
 	onCopied?: () => void;
 }) {
 	const [status, setStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
+	const { schedule } = useResettableTimeout();
 
 	return (
 		<button
@@ -26,10 +28,10 @@ export function CopyButton({
 					await writeToClipboard(value);
 					setStatus('copied');
 					onCopied?.();
-					window.setTimeout(() => setStatus('idle'), 1400);
+					schedule(() => setStatus('idle'), 1400);
 				} catch {
 					setStatus('failed');
-					window.setTimeout(() => setStatus('idle'), 1600);
+					schedule(() => setStatus('idle'), 1600);
 				}
 			}}
 			className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE} ${className}`.trim()}

@@ -117,7 +117,7 @@ export function createOverlayElementDraft(
 
 	return normalizeSceneElement({
 		id: crypto.randomUUID(),
-		index: `a${Date.now()}` as any,
+		index: `a${Date.now()}` as ExcalidrawElement['index'],
 		type: 'rectangle',
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,

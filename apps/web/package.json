@@ -3,14 +3,15 @@
 	"version": "0.0.1",
 	"private": true,
 	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc -b && vite build",
-		"preview": "vite preview",
-		"typecheck": "tsc --noEmit",
-		"test": "vitest run",
-		"test:e2e": "playwright test"
-	},
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:overlay": "playwright test e2e/overlay-drag-lock.spec.ts"
+  },
 	"dependencies": {
 		"@ai-canvas/shared": "workspace:*",
 		"@clerk/clerk-react": "^5.18.0",

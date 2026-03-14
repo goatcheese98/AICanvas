@@ -1,2 +1,13 @@
 CLERK_SECRET_KEY=sk_test_xxx
 ANTHROPIC_API_KEY=sk-ant-xxx
+# Optional
+# OPENROUTER_API_KEY=
+# OPENROUTER_API_BASE_URL=https://openrouter.ai/api/v1
+# OPENROUTER_TEXT_MODEL=anthropic/claude-3.7-sonnet
+# OPENROUTER_TOOL_MODEL=openai/gpt-4.1
+# OPENROUTER_IMAGE_MODEL=google/gemini-2.5-flash-image-preview
+# VECTORIZE_ASSET_URL=https://your-vectorize-service.example.com/run
+# VECTORIZE_ASSET_API_KEY=
+# SENTRY_DSN=
+# SENTRY_RELEASE=local-dev
+# SENTRY_TRACES_SAMPLE_RATE=1.0

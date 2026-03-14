@@ -8,10 +8,6 @@ async function getBounds(locator: Locator): Promise<Bounds> {
 	return box as Bounds;
 }
 
-function expectClose(actual: number, expected: number, tolerance = 6) {
-	expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance);
-}
-
 async function readInsertedId(page: Page, testId: string, prefix: string) {
 	const text = (await page.getByTestId(testId).textContent()) ?? '';
 	const value = text.replace(prefix, '').trim();
@@ -25,13 +21,21 @@ async function expectLocked(page: Page, overlayId: string, tolerance = 6) {
 	await expect(overlay).toBeVisible();
 	await expect(reference).toBeVisible();
 
-	const overlayBox = await getBounds(overlay);
-	const referenceBox = await getBounds(reference);
-
-	expectClose(overlayBox.x, referenceBox.x, tolerance);
-	expectClose(overlayBox.y, referenceBox.y, tolerance);
-	expectClose(overlayBox.width, referenceBox.width, tolerance);
-	expectClose(overlayBox.height, referenceBox.height, tolerance);
+	await expect
+		.poll(
+			async () => {
+				const overlayBox = await getBounds(overlay);
+				const referenceBox = await getBounds(reference);
+				return (
+					Math.abs(overlayBox.x - referenceBox.x) <= tolerance &&
+					Math.abs(overlayBox.y - referenceBox.y) <= tolerance &&
+					Math.abs(overlayBox.width - referenceBox.width) <= tolerance &&
+					Math.abs(overlayBox.height - referenceBox.height) <= tolerance
+				);
+			},
+			{ timeout: 1_500 },
+		)
+		.toBe(true);
 }
 
 async function dragFromCenter(page: Page, overlayId: string, deltaX: number, deltaY: number) {
@@ -116,5 +120,49 @@ test.describe('overlay drag lock regression', () => {
 
 		await dragFromCenter(page, insertedKanbanId, -120, 80);
 		await expectLocked(page, insertedKanbanId);
+	});
+
+	test('overlays stay locked to live references while the viewport is panned', async ({
+		page,
+	}) => {
+		await page.goto('/experiments/overlay-regression');
+		await expect(page.getByTestId('overlay-regression-api-state')).toHaveText('API: ready');
+
+		const markdownBefore = await getBounds(page.getByTestId('overlay-item-regression-markdown'));
+		const kanbanBefore = await getBounds(page.getByTestId('overlay-item-regression-kanban'));
+
+		await page.getByTestId('overlay-regression-pan-view').click();
+
+		await expectLocked(page, 'regression-markdown');
+		await expectLocked(page, 'regression-kanban');
+
+		const markdownAfter = await getBounds(page.getByTestId('overlay-item-regression-markdown'));
+		const kanbanAfter = await getBounds(page.getByTestId('overlay-item-regression-kanban'));
+
+		expect(Math.abs(markdownAfter.x - markdownBefore.x)).toBeGreaterThan(20);
+		expect(Math.abs(kanbanAfter.x - kanbanBefore.x)).toBeGreaterThan(20);
+	});
+
+	test('overlays stay locked to live references after seeded overlays are resized', async ({
+		page,
+	}) => {
+		await page.goto('/experiments/overlay-regression');
+		await expect(page.getByTestId('overlay-regression-api-state')).toHaveText('API: ready');
+
+		const markdownBefore = await getBounds(page.getByTestId('overlay-item-regression-markdown'));
+		const kanbanBefore = await getBounds(page.getByTestId('overlay-item-regression-kanban'));
+
+		await page.getByTestId('overlay-regression-resize-seeds').click();
+
+		await expectLocked(page, 'regression-markdown');
+		await expectLocked(page, 'regression-kanban');
+
+		const markdownAfter = await getBounds(page.getByTestId('overlay-item-regression-markdown'));
+		const kanbanAfter = await getBounds(page.getByTestId('overlay-item-regression-kanban'));
+
+		expect(Math.abs(markdownAfter.width - markdownBefore.width)).toBeGreaterThan(40);
+		expect(Math.abs(markdownAfter.height - markdownBefore.height)).toBeGreaterThan(40);
+		expect(Math.abs(kanbanAfter.width - kanbanBefore.width)).toBeGreaterThan(40);
+		expect(Math.abs(kanbanAfter.height - kanbanBefore.height)).toBeGreaterThan(40);
 	});
 });

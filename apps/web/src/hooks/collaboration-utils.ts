@@ -30,15 +30,29 @@ export function buildRoomLink(baseUrl: string, roomId: string, keyBase64: string
 	return `${baseUrl}${buildRoomHash(roomId, keyBase64)}`;
 }
 
+function normalizePartykitHost(value: string): string {
+	const trimmed = value.trim();
+	if (!trimmed) return trimmed;
+
+	try {
+		const url = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+		return url.host;
+	} catch {
+		return trimmed.replace(/\/+$/, '');
+	}
+}
+
 export function getPartykitHost(envHost?: string): string {
-	if (envHost && envHost.trim().length > 0) return envHost;
+	if (envHost && envHost.trim().length > 0) return normalizePartykitHost(envHost);
 	if (typeof window === 'undefined') return 'localhost:1999';
-	return window.location.hostname === 'localhost' ? 'localhost:1999' : 'localhost:1999';
+	const isLocalHost =
+		window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+	return isLocalHost ? 'localhost:1999' : window.location.host;
 }
 
 export function getPartykitWebSocketUrl(roomId: string, host: string, secure?: boolean): string {
 	const protocol =
-		secure ?? (typeof window !== 'undefined' ? window.location.protocol === 'https:' : false)
+		(secure ?? (typeof window !== 'undefined' ? window.location.protocol === 'https:' : false))
 			? 'wss'
 			: 'ws';
 	return `${protocol}://${host}/parties/main/${roomId}`;
@@ -77,7 +91,6 @@ export function getCollaborationStatusCopy(
 				label: 'Connection error',
 				detail: sessionError || 'Could not join the collaboration room.',
 			};
-		case 'idle':
 		default:
 			return {
 				label: 'Not connected',
