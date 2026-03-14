@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExperimentsCanvasTourRouteImport } from './routes/experiments.canvas-tour'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
@@ -29,6 +30,11 @@ const AppRoute = AppRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExperimentsCanvasTourRoute = ExperimentsCanvasTourRouteImport.update({
+  id: '/experiments/canvas-tour',
+  path: '/experiments/canvas-tour',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
+  '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -71,6 +78,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AppDashboardRoute
   '/login': typeof AuthLoginRoute
   '/signup': typeof AuthSignupRoute
+  '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -82,6 +90,7 @@ export interface FileRoutesById {
   '/_app/dashboard': typeof AppDashboardRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/signup': typeof AuthSignupRoute
+  '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/_app/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
@@ -92,6 +101,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/signup'
+    | '/experiments/canvas-tour'
     | '/canvas/$id'
     | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/signup'
+    | '/experiments/canvas-tour'
     | '/canvas/$id'
     | '/canvas/$id/prototype/$prototypeId'
   id:
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '/_app/dashboard'
     | '/_auth/login'
     | '/_auth/signup'
+    | '/experiments/canvas-tour'
     | '/_app/canvas/$id'
     | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ExperimentsCanvasTourRoute: typeof ExperimentsCanvasTourRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/experiments/canvas-tour': {
+      id: '/experiments/canvas-tour'
+      path: '/experiments/canvas-tour'
+      fullPath: '/experiments/canvas-tour'
+      preLoaderRoute: typeof ExperimentsCanvasTourRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth/signup': {
@@ -221,6 +241,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ExperimentsCanvasTourRoute: ExperimentsCanvasTourRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

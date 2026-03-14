@@ -1,5 +1,5 @@
 import { createStarterKanbanColumns as createSharedStarterKanbanColumns, normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
-import type { KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import type { KanbanCard, KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const MAX_HISTORY_ENTRIES = 100;
 
@@ -15,11 +15,36 @@ export function createStarterKanbanColumns(): KanbanColumn[] {
 	return createSharedStarterKanbanColumns();
 }
 
+export function createKanbanCard(): KanbanCard {
+	return {
+		id: crypto.randomUUID(),
+		title: 'New card',
+		description: '',
+		priority: 'medium',
+		labels: [],
+		checklist: [],
+	};
+}
+
+export function createKanbanColumn(index: number): KanbanColumn {
+	const palette = ['#6965db', '#c28a42', '#557768', '#b35b55'];
+	return {
+		id: crypto.randomUUID(),
+		title: 'New Column',
+		color: palette[index % palette.length],
+		cards: [createKanbanCard()],
+	};
+}
+
 export function cloneKanbanBoard(board: KanbanOverlayCustomData): KanbanOverlayCustomData {
 	if (typeof structuredClone === 'function') {
 		return structuredClone(board);
 	}
 	return JSON.parse(JSON.stringify(board)) as KanbanOverlayCustomData;
+}
+
+export function serializeKanbanBoard(board: KanbanOverlayCustomData) {
+	return JSON.stringify(board);
 }
 
 export function normalizeKanbanBoard(board: Partial<KanbanOverlayCustomData> | null | undefined): KanbanOverlayCustomData {

@@ -16,6 +16,25 @@ describe('overlay schemas', () => {
 		expect(
 			normalizeMarkdownSettings({
 				font: 'Mono',
+				fontSize: 0,
+				background: '#fff',
+				lineHeight: 0.5,
+				inlineCodeColor: '#ff0000',
+				showEmptyLines: false,
+				autoHideToolbar: true,
+			}),
+		).toEqual({
+			font: 'Mono',
+			fontSize: 8,
+			background: '#fff',
+			lineHeight: 1.2,
+			inlineCodeColor: '#ff0000',
+			showEmptyLines: false,
+			autoHideToolbar: true,
+		});
+		expect(
+			normalizeMarkdownSettings({
+				font: 'Mono',
 				fontSize: 999,
 				background: '#fff',
 				lineHeight: 0.5,

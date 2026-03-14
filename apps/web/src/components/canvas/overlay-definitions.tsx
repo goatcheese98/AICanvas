@@ -26,6 +26,11 @@ import { WebEmbed } from '../overlays/web-embed';
 export type TypedOverlayCanvasElement<T extends OverlayCustomData = OverlayCustomData> =
 	ExcalidrawElement & { customData: T };
 
+const normalizedOverlayElementCache = new WeakMap<
+	TypedOverlayCanvasElement,
+	TypedOverlayCanvasElement
+>();
+
 type OverlayCustomDataMap = {
 	markdown: MarkdownOverlayCustomData;
 	newlex: NewLexOverlayCustomData;
@@ -44,6 +49,8 @@ export type OverlayUpdatePayloadMap = {
 		elementStyle?: {
 			backgroundColor?: string;
 			strokeColor?: string;
+			strokeWidth?: number;
+			roundness?: ExcalidrawElement['roundness'];
 		};
 	};
 	newlex: {
@@ -200,7 +207,7 @@ function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 
 const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	markdown: {
-		defaultSize: { width: 400, height: 300 },
+		defaultSize: { width: 400, height: 450 },
 		normalizeCustomData: (input) => normalizeMarkdownOverlay(input as Partial<MarkdownOverlayCustomData>),
 		createCustomData: (options) =>
 			normalizeMarkdownOverlay({
@@ -241,8 +248,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				...(payload.elementStyle?.strokeColor !== undefined
 					? { strokeColor: payload.elementStyle.strokeColor }
 					: {}),
+				...(payload.elementStyle?.strokeWidth !== undefined
+					? { strokeWidth: payload.elementStyle.strokeWidth }
+					: {}),
+				...(payload.elementStyle?.roundness !== undefined
+					? { roundness: payload.elementStyle.roundness }
+					: {}),
 				customData: nextCustomData,
-			});
+			}) as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 		},
 		render: ({ element, isSelected, onChange, onEditingChange }) => (
 			<MarkdownNote
@@ -424,10 +437,18 @@ export function normalizeOverlayElement<K extends OverlayType>(
 	type: K,
 	element: TypedOverlayCanvasElement,
 ): TypedOverlayCanvasElement<OverlayCustomDataMap[K]> {
-	return {
+	const cached = normalizedOverlayElementCache.get(element);
+	if (cached) {
+		return cached as TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
+	}
+
+	const normalizedElement = {
 		...element,
 		customData: getOverlayDefinition(type).normalizeCustomData(
 			element.customData as unknown as Partial<OverlayCustomDataMap[K]>,
 		),
 	} as TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
+
+	normalizedOverlayElementCache.set(element, normalizedElement as TypedOverlayCanvasElement);
+	return normalizedElement;
 }

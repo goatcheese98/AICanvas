@@ -7,7 +7,7 @@ export const MARKDOWN_SYSTEM_FONT_STACK =
 
 export const DEFAULT_MARKDOWN_NOTE_SETTINGS = {
 	font: 'Nunito, "Segoe UI Emoji", sans-serif',
-	fontSize: 15,
+	fontSize: 8,
 	background: '#ffffff',
 	lineHeight: 1.65,
 	inlineCodeColor: '#334155',
@@ -22,7 +22,7 @@ export const markdownNoteSettingsSchema = z.object({
 	fontSize: z
 		.coerce
 		.number()
-		.transform((value) => Math.min(28, Math.max(12, value)))
+		.transform((value) => Math.min(28, Math.max(8, value)))
 		.default(DEFAULT_MARKDOWN_NOTE_SETTINGS.fontSize),
 	background: z
 		.string()

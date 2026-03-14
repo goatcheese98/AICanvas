@@ -40,6 +40,9 @@ describe('element-factories', () => {
 			type: 'markdown',
 			title: 'Markdown',
 			content: DEFAULT_MARKDOWN_CONTENT,
+			settings: {
+				fontSize: 8,
+			},
 		});
 	});
 
@@ -117,7 +120,7 @@ describe('element-factories', () => {
 	});
 
 	it('returns expected overlay defaults', () => {
-		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 300 });
+		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 450 });
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
 		expect(getOverlayDefaults('kanban')).toEqual({ width: 1050, height: 900 });
 		expect(getOverlayDefaults('web-embed')).toEqual({ width: 640, height: 480 });
@@ -155,9 +158,9 @@ describe('element-factories', () => {
 		expect(result.elements[1]).toMatchObject({
 			id: '11111111-1111-1111-1111-111111111111',
 			x: 150,
-			y: 100,
+			y: 25,
 			width: 400,
-			height: 300,
+			height: 450,
 		});
 		expect(result.appState).toEqual({
 			selectedElementIds: { '11111111-1111-1111-1111-111111111111': true },

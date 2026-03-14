@@ -30,9 +30,9 @@ const HYBRID_BUTTON =
 const HYBRID_BUTTON_IDLE =
 	'border-stone-300 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 const HYBRID_ICON_BUTTON =
-	'inline-flex h-7 w-7 items-center justify-center rounded-[6px] text-stone-500 transition-colors';
+	'inline-flex h-6 w-6 items-center justify-center rounded-[6px] text-stone-500 transition-colors';
 const HYBRID_INSERT_BUTTON =
-	'absolute left-1/2 z-10 inline-flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-[999px] border border-stone-200 bg-white text-stone-500 opacity-0 shadow-sm transition group-hover:opacity-100 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
+	'absolute left-1/2 z-10 inline-flex h-6 w-6 -translate-x-1/2 items-center justify-center rounded-[999px] border border-stone-200 bg-white text-stone-500 opacity-0 shadow-sm transition group-hover:opacity-100 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 
 export function MarkdownHybridEditor({
 	content,
@@ -145,8 +145,8 @@ export function MarkdownHybridEditor({
 	};
 
 	return (
-		<div className="h-full overflow-auto px-4 py-4">
-			<div className="space-y-3">
+		<div className="h-full overflow-auto px-3 py-3">
+			<div className="space-y-1.5">
 				{visibleBlocks.map((block) => {
 					const isEditing = editingBlockId === block.id;
 					const isSelected = selectedBlockIds.has(block.id);
@@ -168,7 +168,7 @@ export function MarkdownHybridEditor({
 								setDropTargetBlockId((current) => (current === block.id ? null : current));
 							}}
 							onDrop={(event) => handleDrop(event, block.id)}
-							className={`group relative rounded-[10px] border pr-12 transition ${
+							className={`group relative rounded-[8px] border pr-10 transition ${
 								isEditing
 									? 'border-indigo-300 bg-white shadow-sm'
 									: isSelected
@@ -183,7 +183,7 @@ export function MarkdownHybridEditor({
 									aria-label="Insert empty line above"
 									title="Insert empty line above"
 									onClick={() => insertEmptyBlock(block.id, 'before')}
-									className={`${HYBRID_INSERT_BUTTON} -top-3.5`}
+									className={`${HYBRID_INSERT_BUTTON} -top-3`}
 								>
 									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 										<path d="M12 5v14" />
@@ -191,11 +191,11 @@ export function MarkdownHybridEditor({
 									</svg>
 								</button>
 								{dropTargetBlockId === block.id ? (
-									<div className="pointer-events-none absolute inset-x-3 -top-1 z-20">
+									<div className="pointer-events-none absolute inset-x-2.5 -top-0.5 z-20">
 										<div className="h-[3px] rounded-[999px] bg-[#4d55cc] shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
 									</div>
 								) : null}
-								<div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-[8px] border border-stone-200 bg-white/95 p-[2px] opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+								<div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-[8px] border border-stone-200 bg-white/95 p-[2px] opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
 								<button
 									type="button"
 									title="Copy block"
@@ -269,7 +269,7 @@ export function MarkdownHybridEditor({
 												setEditingDraft('');
 											}
 										}}
-										className="min-h-28 w-full resize-none border-0 bg-transparent p-4 text-stone-900 outline-none"
+										className="min-h-16 w-full resize-none border-0 bg-transparent px-3 py-2 text-stone-900 outline-none"
 										style={{
 											fontFamily: settings.font,
 											fontSize: `${settings.fontSize}px`,
@@ -297,14 +297,14 @@ export function MarkdownHybridEditor({
 									className="block w-full text-left"
 								>
 									{block.type === 'empty' ? (
-										<div className="p-4 text-sm italic text-stone-300">Empty line</div>
+										<div className="px-3 py-1.5 text-[12px] italic text-stone-300">Empty line</div>
 									) : (
 										<MarkdownRenderer
 											content={block.rawContent}
 											images={images}
 											settings={settings}
 											onCheckboxToggle={(lineIndex) => onCheckboxToggle(block.startLine + lineIndex)}
-											className="p-4"
+											className="px-3 py-2"
 										/>
 									)}
 								</button>
@@ -314,7 +314,7 @@ export function MarkdownHybridEditor({
 									aria-label="Insert empty line below"
 									title="Insert empty line below"
 									onClick={() => insertEmptyBlock(block.id, 'after')}
-									className={`${HYBRID_INSERT_BUTTON} -bottom-3.5`}
+									className={`${HYBRID_INSERT_BUTTON} -bottom-3`}
 								>
 									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
 										<path d="M12 5v14" />

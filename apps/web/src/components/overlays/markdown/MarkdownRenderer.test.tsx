@@ -5,7 +5,7 @@ import { MarkdownRenderer, normalizeDisplayMath } from './MarkdownRenderer';
 
 const TEST_MARKDOWN_SETTINGS: MarkdownNoteSettings = {
 	font: 'Nunito, "Segoe UI Emoji", sans-serif',
-	fontSize: 15,
+	fontSize: 8,
 	background: '#ffffff',
 	lineHeight: 1.65,
 	inlineCodeColor: '#7c3aed',
@@ -61,6 +61,78 @@ describe('MarkdownRenderer', () => {
 		expect(list?.className).toContain('text-stone-700');
 		expect(tableHeader?.className).toContain('text-stone-700');
 		expect(tableCell?.className).toContain('text-stone-700');
+	});
+
+	it('scales headings relative to the configured base font size', () => {
+		const { container } = render(
+			<MarkdownRenderer
+				content={`# Title
+
+## Subtitle
+
+Body copy.`}
+				settings={{
+					...TEST_MARKDOWN_SETTINGS,
+					fontSize: 10,
+				}}
+			/>,
+		);
+
+		const root = container.firstElementChild as HTMLElement | null;
+		const headingOne = container.querySelector('h1') as HTMLElement | null;
+		const headingTwo = container.querySelector('h2') as HTMLElement | null;
+
+		expect(root?.style.fontSize).toBe('10px');
+		expect(headingOne?.style.fontSize).toBe('2em');
+		expect(headingTwo?.style.fontSize).toBe('1.6em');
+	});
+
+	it('scales structural preview UI like checkboxes and tables with the note size', () => {
+		const { container } = render(
+			<MarkdownRenderer
+				content={`- [ ] Draft
+
+| A | B |
+| - | - |
+| 1 | 2 |`}
+				settings={{
+					...TEST_MARKDOWN_SETTINGS,
+					fontSize: 10,
+				}}
+			/>,
+		);
+
+		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement | null;
+		const tableHeader = container.querySelector('th') as HTMLElement | null;
+
+		expect(checkbox?.style.width).toBe('1.05em');
+		expect(checkbox?.style.height).toBe('1.05em');
+		expect(tableHeader?.style.padding).toBe('0.7em 0.95em');
+	});
+
+	it('keeps loose bullet lists compact when there is no heading above them', () => {
+		const { container } = render(
+			<MarkdownRenderer
+				content={`Double-click to edit this note.
+
+- First list item
+
+- Second list item`}
+				settings={TEST_MARKDOWN_SETTINGS}
+			/>,
+		);
+
+		const list = container.querySelector('ul') as HTMLUListElement | null;
+		const listItemParagraphs = Array.from(container.querySelectorAll('li > p')) as HTMLElement[];
+
+		expect(list).not.toBeNull();
+		expect(list?.style.marginTop).toBe('0px');
+		expect(listItemParagraphs).toHaveLength(2);
+		expect(
+			listItemParagraphs.every((paragraph) =>
+				paragraph.getAttribute('style')?.includes('var(--markdown-paragraph-margin-bottom, 0.85em)'),
+			),
+		).toBe(true);
 	});
 
 	it('renders raw html images with explicit sizing inline', () => {

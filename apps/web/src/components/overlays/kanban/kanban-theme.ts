@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 export const KANBAN_ACCENT_SURFACE_SOFT = 'color-mix(in srgb, var(--color-accent-bg) 10%, white)';
 export const KANBAN_ACCENT_SURFACE = 'color-mix(in srgb, var(--color-accent-bg) 16%, white)';
 export const KANBAN_ACCENT_SURFACE_STRONG = 'color-mix(in srgb, var(--color-accent-bg) 24%, white)';
@@ -119,6 +121,10 @@ export function clampKanbanFontSize(value?: number) {
 	return Math.min(KANBAN_FONT_SIZE_RANGE.max, Math.max(KANBAN_FONT_SIZE_RANGE.min, value));
 }
 
+function clamp(value: number, min: number, max: number) {
+	return Math.min(max, Math.max(min, value));
+}
+
 export function getKanbanBackgroundTheme(themeId?: string) {
 	return (
 		KANBAN_BACKGROUND_THEMES.find((theme) => theme.id === themeId) ??
@@ -128,6 +134,64 @@ export function getKanbanBackgroundTheme(themeId?: string) {
 
 export function getKanbanFontOption(fontId?: string) {
 	return KANBAN_FONT_OPTIONS.find((font) => font.id === fontId) ?? KANBAN_FONT_OPTIONS[0];
+}
+
+export function getKanbanSketchVariables(roughness?: number, freezeForResize = false): CSSProperties {
+	const intensity = clamp((typeof roughness === 'number' ? roughness : 0) / 4, 0, 1);
+	const textureAlpha = (0.012 + intensity * 0.032).toFixed(3);
+	const highlightAlpha = (0.016 + intensity * 0.02).toFixed(3);
+	const dividerAlpha = (0.065 + intensity * 0.085).toFixed(3);
+	const cardEchoAlpha = (0.05 + intensity * 0.06).toFixed(3);
+	const controlEchoAlpha = (0.035 + intensity * 0.05).toFixed(3);
+	const edgeSoftAlpha = (0.08 + intensity * 0.12).toFixed(3);
+	const edgeStrongAlpha = (0.12 + intensity * 0.14).toFixed(3);
+	const cardTextureSpacing = (14 - intensity * 3).toFixed(2);
+	const controlTextureSpacing = (18 - intensity * 4).toFixed(2);
+	const cardTilt = (-7 - intensity * 7).toFixed(2);
+	const crossTilt = (86 + intensity * 5).toFixed(2);
+	const edgeOffset = (0.55 + intensity * 0.75).toFixed(2);
+	const edgeOffsetAlt = (0.35 + intensity * 0.55).toFixed(2);
+	const edgeTilt = (-0.18 - intensity * 0.45).toFixed(2);
+	const edgeTiltAlt = (0.14 + intensity * 0.34).toFixed(2);
+
+	return {
+		'--kanban-sketch-intensity': `${intensity}`,
+		'--kanban-sketch-card-texture':
+			intensity > 0 && !freezeForResize
+				? [
+						`repeating-linear-gradient(${cardTilt}deg, rgba(15, 23, 42, ${textureAlpha}) 0 1px, transparent 1px ${cardTextureSpacing}px)`,
+						`repeating-linear-gradient(${crossTilt}deg, rgba(255, 255, 255, ${highlightAlpha}) 0 1px, transparent 1px ${(
+							Number(cardTextureSpacing) + 2.5
+						).toFixed(2)}px)`,
+				  ].join(', ')
+				: 'none',
+		'--kanban-sketch-control-texture':
+			intensity > 0 && !freezeForResize
+				? `repeating-linear-gradient(${(-12 - intensity * 8).toFixed(2)}deg, rgba(15, 23, 42, ${(
+						Number(textureAlpha) * 0.85
+					).toFixed(3)}) 0 1px, transparent 1px ${controlTextureSpacing}px)`
+				: 'none',
+		'--kanban-sketch-divider':
+			intensity > 0 && !freezeForResize
+				? `linear-gradient(90deg, rgba(15, 23, 42, ${dividerAlpha}) 0%, rgba(15, 23, 42, ${(
+						Number(dividerAlpha) * 0.34
+					).toFixed(3)}) 48%, rgba(15, 23, 42, ${dividerAlpha}) 100%)`
+				: 'none',
+		'--kanban-sketch-card-shadow':
+			intensity > 0 && !freezeForResize
+				? `${(0.75 + intensity * 0.9).toFixed(2)}px ${(1.25 + intensity * 1.15).toFixed(2)}px 0 rgba(15, 23, 42, ${cardEchoAlpha})`
+				: 'none',
+		'--kanban-sketch-control-shadow':
+			intensity > 0 && !freezeForResize
+				? `${(0.55 + intensity * 0.6).toFixed(2)}px ${(0.95 + intensity * 0.8).toFixed(2)}px 0 rgba(15, 23, 42, ${controlEchoAlpha})`
+				: 'none',
+		'--kanban-sketch-edge-soft': `rgba(15, 23, 42, ${edgeSoftAlpha})`,
+		'--kanban-sketch-edge-strong': `rgba(15, 23, 42, ${edgeStrongAlpha})`,
+		'--kanban-sketch-edge-offset': freezeForResize ? '0px' : `${edgeOffset}px`,
+		'--kanban-sketch-edge-offset-alt': freezeForResize ? '0px' : `${edgeOffsetAlt}px`,
+		'--kanban-sketch-edge-tilt': freezeForResize ? '0deg' : `${edgeTilt}deg`,
+		'--kanban-sketch-edge-tilt-alt': freezeForResize ? '0deg' : `${edgeTiltAlt}deg`,
+	} as CSSProperties;
 }
 
 /**

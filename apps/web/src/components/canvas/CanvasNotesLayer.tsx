@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
@@ -59,7 +59,7 @@ interface OverlayContentProps {
 	onEditingChange: (isEditing: boolean) => void;
 }
 
-function OverlayContent({
+const OverlayContent = memo(function OverlayContent({
 	element,
 	isSelected,
 	onChange,
@@ -72,7 +72,7 @@ function OverlayContent({
 		onChange: onChange as never,
 		onEditingChange,
 	});
-}
+});
 
 interface OverlayItemProps {
 	element: TypedOverlayCanvasElement;
@@ -92,13 +92,21 @@ function OverlayItem({
 	updateOverlayElement,
 }: OverlayItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
+	const isEditingRef = useRef(false);
 	const type = element.customData.type;
-	const normalizedElement = normalizeOverlayElement(type, element);
+	const normalizedElement = useMemo(
+		() => normalizeOverlayElement(type, element),
+		[element, type],
+	);
 	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
-	const containerStyle = getOverlayContainerStyle(
-		normalizedElement,
-		appState,
-		getOverlayZIndex(isSelected, isEditing, stackIndex),
+	const containerStyle = useMemo(
+		() =>
+			getOverlayContainerStyle(
+				normalizedElement,
+				appState,
+				getOverlayZIndex(isSelected, isEditing, stackIndex),
+			),
+		[appState, isEditing, isSelected, normalizedElement, stackIndex],
 	);
 	const interactionEnabled = isSelected;
 	const handleChange = useCallback(
@@ -107,6 +115,11 @@ function OverlayItem({
 		},
 		[normalizedElement.id, type, updateOverlayElement],
 	);
+	const handleEditingChange = useCallback((nextIsEditing: boolean) => {
+		if (isEditingRef.current === nextIsEditing) return;
+		isEditingRef.current = nextIsEditing;
+		setIsEditing(nextIsEditing);
+	}, []);
 
 	return (
 		<div
@@ -121,7 +134,7 @@ function OverlayItem({
 					element={normalizedElement}
 					isSelected={isSelected}
 					onChange={handleChange as never}
-					onEditingChange={setIsEditing}
+					onEditingChange={handleEditingChange}
 				/>
 			</div>
 		</div>
