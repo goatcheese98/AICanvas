@@ -13,7 +13,7 @@ import { CanvasCore } from './CanvasCore';
 import { CanvasUI } from './CanvasUI';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
 import { useAppStore } from '@/stores/store';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useCollaboration } from '@/hooks/useCollaboration';
 import { captureBrowserException } from '@/lib/observability';
 import {
@@ -144,7 +144,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				});
 
 				const headers = await getRequiredAuthHeaders(getToken);
-				const response = await fetch(`/api/canvas/${canvasId}/thumbnail`, {
+				const response = await fetch(toApiUrl(`/api/canvas/${canvasId}/thumbnail`), {
 					method: 'POST',
 					headers: {
 						...headers,
