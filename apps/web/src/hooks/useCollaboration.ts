@@ -5,7 +5,7 @@ import {
 	generateEncryptionKey,
 	importKey,
 } from '@/lib/collab/encryption';
-import { captureBrowserException } from '@/lib/observability';
+import { addObservabilityBreadcrumb, captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
 import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/shared/types';
 import { reconcileElements } from '@excalidraw/excalidraw';
@@ -339,6 +339,14 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			try {
 				msg = JSON.parse(event.data as string) as ServerToClientMessage;
 			} catch {
+				addObservabilityBreadcrumb(
+					'collaboration.message_parse_failed',
+					{
+						roomId: roomIdRef.current,
+					},
+					'warning',
+					'collaboration',
+				);
 				return;
 			}
 
@@ -381,6 +389,15 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 						const decrypted = await decryptData(msg.payload, msg.iv, key);
 						decryptedPayload = JSON.parse(decrypted) as BroadcastPayload;
 					} catch {
+						addObservabilityBreadcrumb(
+							'collaboration.message_decrypt_failed',
+							{
+								roomId: roomIdRef.current,
+								messageType: msg.type,
+							},
+							'warning',
+							'collaboration',
+						);
 						break;
 					}
 
@@ -461,6 +478,15 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			};
 
 			ws.onerror = () => {
+				addObservabilityBreadcrumb(
+					'collaboration.socket_error',
+					{
+						roomId,
+						attempt: reconnectAttemptRef.current,
+					},
+					'warning',
+					'collaboration',
+				);
 				setSessionError('Could not reach the collaboration server.');
 			};
 
@@ -588,7 +614,16 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		setSessionError(null);
 		importKey(parsed.keyBase64)
 			.then((key) => connect(parsed.roomId, key, parsed.keyBase64))
-			.catch(() => {
+			.catch((error) => {
+				captureBrowserException(error, {
+					tags: {
+						area: 'collaboration',
+						action: 'import_room_key',
+					},
+					extra: {
+						roomId: parsed.roomId,
+					},
+				});
 				const message =
 					'Could not join collaboration room — the link appears to be invalid or corrupted.';
 				setSessionStatus('error');

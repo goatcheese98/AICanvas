@@ -13,6 +13,7 @@ import {
 	loadThumbnailFromR2,
 	deleteCanvasFromR2,
 } from '../lib/storage/canvas-storage';
+import { logApiEvent } from '../lib/observability';
 import type { AppEnv } from '../types';
 
 const canvasSelect = {
@@ -108,11 +109,17 @@ export const canvasRoutes = new Hono<AppEnv>()
 				})
 				.returning(canvasSelect);
 
+			logApiEvent('info', 'canvas.created', { userId: user.id, canvasId: id });
 			return c.json(withVersionedThumbnailUrl(canvas), 201);
 		} catch (error) {
 			if (isUniqueCanvasTitleError(error)) {
 				return c.json({ error: 'You already have a canvas with that name.' }, 409);
 			}
+			logApiEvent('error', 'canvas.create_failed', {
+				userId: user.id,
+				canvasId: id,
+				message: error instanceof Error ? error.message : String(error),
+			});
 			throw error;
 		}
 	})
@@ -234,6 +241,11 @@ export const canvasRoutes = new Hono<AppEnv>()
 			if (isUniqueCanvasTitleError(error)) {
 				return c.json({ error: 'You already have a canvas with that name.' }, 409);
 			}
+			logApiEvent('error', 'canvas.update_failed', {
+				userId: user.id,
+				canvasId: id,
+				message: error instanceof Error ? error.message : String(error),
+			});
 			throw error;
 		}
 	})
@@ -261,6 +273,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 			.set({ updatedAt: new Date(), version: canvas.version + 1 })
 			.where(eq(canvases.id, id));
 
+		logApiEvent('info', 'canvas.saved', { userId: user.id, canvasId: id });
 		return c.json({ success: true });
 	})
 
@@ -279,6 +292,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 		await deleteCanvasFromR2(c.env.R2, user.id, id);
 		await db.delete(canvases).where(eq(canvases.id, id));
 
+		logApiEvent('info', 'canvas.deleted', { userId: user.id, canvasId: id });
 		return c.json({ success: true });
 	})
 

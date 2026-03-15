@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
 import { getRequiredAuthHeaders } from '@/lib/api';
+import { captureBrowserException } from '@/lib/observability';
 
 interface CanvasPreviewThumbnailProps {
 	canvasId: string;
@@ -21,20 +22,34 @@ export function CanvasPreviewThumbnail({
 		queryKey: ['canvas-thumbnail', canvasId, thumbnailUrl],
 		enabled: Boolean(thumbnailUrl),
 		queryFn: async () => {
-			const headers = await getRequiredAuthHeaders(getToken);
-			const response = await fetch(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`, {
-				headers,
-			});
+			try {
+				const headers = await getRequiredAuthHeaders(getToken);
+				const response = await fetch(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`, {
+					headers,
+				});
 
-			if (response.status === 404) {
-				return null;
+				if (response.status === 404) {
+					return null;
+				}
+
+				if (!response.ok) {
+					throw new Error(await response.text());
+				}
+
+				return response.blob();
+			} catch (error) {
+				captureBrowserException(error, {
+					tags: {
+						area: 'canvas.thumbnail',
+						action: 'load_preview',
+					},
+					extra: {
+						canvasId,
+						thumbnailUrl,
+					},
+				});
+				throw error;
 			}
-
-			if (!response.ok) {
-				throw new Error(await response.text());
-			}
-
-			return response.blob();
 		},
 		staleTime: 1000 * 60 * 5,
 	});

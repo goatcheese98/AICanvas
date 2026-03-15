@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 import type { CanvasSavePayload } from '@ai-canvas/shared/types';
+import { logApiEvent } from '../observability';
 
 const CANVAS_PREFIX = 'canvases';
 
@@ -21,9 +22,19 @@ export async function saveCanvasToR2(
 	const key = canvasKey(userId, canvasId);
 	const body = JSON.stringify(payload);
 
-	await r2.put(key, body, {
-		httpMetadata: { contentType: 'application/json' },
-	});
+	try {
+		await r2.put(key, body, {
+			httpMetadata: { contentType: 'application/json' },
+		});
+	} catch (err) {
+		logApiEvent('error', 'r2.canvas_put_failed', {
+			userId,
+			canvasId,
+			key,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
 
 	return key;
 }
@@ -34,11 +45,20 @@ export async function loadCanvasFromR2(
 	canvasId: string,
 ): Promise<CanvasSavePayload | null> {
 	const key = canvasKey(userId, canvasId);
-	const object = await r2.get(key);
 
-	if (!object) return null;
-
-	return object.json<CanvasSavePayload>();
+	try {
+		const object = await r2.get(key);
+		if (!object) return null;
+		return object.json<CanvasSavePayload>();
+	} catch (err) {
+		logApiEvent('error', 'r2.canvas_get_failed', {
+			userId,
+			canvasId,
+			key,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
 }
 
 export async function saveThumbnailToR2(
@@ -49,9 +69,19 @@ export async function saveThumbnailToR2(
 ): Promise<string> {
 	const key = thumbnailKey(userId, canvasId);
 
-	await r2.put(key, data, {
-		httpMetadata: { contentType: 'image/png', cacheControl: 'public, max-age=31536000' },
-	});
+	try {
+		await r2.put(key, data, {
+			httpMetadata: { contentType: 'image/png', cacheControl: 'public, max-age=31536000' },
+		});
+	} catch (err) {
+		logApiEvent('error', 'r2.thumbnail_put_failed', {
+			userId,
+			canvasId,
+			key,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
 
 	return key;
 }
@@ -71,5 +101,15 @@ export async function deleteCanvasFromR2(
 	canvasId: string,
 ): Promise<void> {
 	const keys = [canvasKey(userId, canvasId), thumbnailKey(userId, canvasId)];
-	await Promise.all(keys.map((key) => r2.delete(key)));
+
+	try {
+		await Promise.all(keys.map((key) => r2.delete(key)));
+	} catch (err) {
+		logApiEvent('error', 'r2.canvas_delete_failed', {
+			userId,
+			canvasId,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
 }

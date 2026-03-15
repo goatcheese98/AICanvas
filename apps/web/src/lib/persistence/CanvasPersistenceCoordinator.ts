@@ -1,4 +1,8 @@
-import { captureBrowserException } from '@/lib/observability';
+import {
+	addObservabilityBreadcrumb,
+	captureBrowserException,
+	captureBrowserMessage,
+} from '@/lib/observability';
 
 export type PersistedCanvasElement = Record<string, unknown> & {
 	id?: string;
@@ -82,6 +86,18 @@ export class CanvasPersistenceCoordinator {
 
 			if (data.version !== STORAGE_VERSION) {
 				console.warn('Canvas version mismatch, clearing');
+				captureBrowserMessage('Canvas persistence version mismatch', {
+					level: 'warning',
+					tags: {
+						area: 'canvas.persistence',
+						action: 'version_mismatch',
+					},
+					extra: {
+						canvasId,
+						storedVersion: data.version,
+						expectedVersion: STORAGE_VERSION,
+					},
+				});
 				localStorage.removeItem(this.getStorageKey(canvasId));
 				localStorage.removeItem(STORAGE_KEY_PREFIX);
 				return null;
@@ -235,6 +251,15 @@ export class CanvasPersistenceCoordinator {
 			persist(this.stripMarkdownImages(canvasData));
 			markSaved();
 			console.warn('localStorage quota: saved without markdown inline images (safe in cloud)');
+			addObservabilityBreadcrumb(
+				'canvas.persistence.quota_fallback_markdown_images_removed',
+				{
+					canvasId,
+					elementCount: canvasData.elements.length,
+				},
+				'warning',
+				'canvas.persistence',
+			);
 			return;
 		} catch {
 			/* try next level */
@@ -245,6 +270,15 @@ export class CanvasPersistenceCoordinator {
 			persist(this.stripAllImages(canvasData));
 			markSaved();
 			console.warn('localStorage quota: saved without any images (safe in cloud storage)');
+			addObservabilityBreadcrumb(
+				'canvas.persistence.quota_fallback_all_images_removed',
+				{
+					canvasId,
+					elementCount: canvasData.elements.length,
+				},
+				'warning',
+				'canvas.persistence',
+			);
 			return;
 		} catch {
 			/* fall through */

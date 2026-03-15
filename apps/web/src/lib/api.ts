@@ -46,13 +46,18 @@ async function observedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 		headers: observedHeaders,
 	});
 	const serverRequestId = response.headers.get('x-request-id') ?? undefined;
-	addObservabilityBreadcrumb('api.request', {
-		url: typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url,
-		method: init.method ?? 'GET',
-		status: response.status,
-		serverRequestId,
-		clientRequestId: observedHeaders['x-client-request-id'],
-	});
+	addObservabilityBreadcrumb(
+		'api.request',
+		{
+			url: typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url,
+			method: init.method ?? 'GET',
+			status: response.status,
+			serverRequestId,
+			clientRequestId: observedHeaders['x-client-request-id'],
+		},
+		'info',
+		'api',
+	);
 	return response;
 }
 
@@ -129,6 +134,14 @@ function parseSseEvent(rawEvent: string): AssistantRunEvent | null {
 	try {
 		return JSON.parse(dataLine) as AssistantRunEvent;
 	} catch {
+		addObservabilityBreadcrumb(
+			'assistant.sse.parse_failed',
+			{
+				payloadLength: dataLine.length,
+			},
+			'warning',
+			'assistant',
+		);
 		return null;
 	}
 }

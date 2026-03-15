@@ -47,6 +47,7 @@ import {
 	loadAssistantAssetFromR2,
 	saveAssistantAssetToR2,
 } from '../lib/storage/assistant-asset-storage';
+import { logApiEvent } from '../lib/observability';
 
 interface StoredAssistantAssetContent {
 	kind: 'stored_asset';
@@ -142,6 +143,12 @@ async function executeAssistantRun(
 			Sentry.setTag('assistant.context_mode', input.contextMode);
 
 			await updateAssistantRunRecord(db, ownerId, runId, { status: 'running' });
+			logApiEvent('info', 'assistant.run.started', {
+				runId,
+				canvasId: input.canvasId,
+				userId: ownerId,
+				contextMode: input.contextMode,
+			});
 			const startedEvent = await appendAssistantRunEventRecord(db, ownerId, runId, 'run.started', {
 				status: 'running',
 			});
@@ -551,6 +558,11 @@ async function executeAssistantRun(
 					nextTask = await getNextQueuedAssistantTaskRecord(db, ownerId, runId);
 				}
 
+				logApiEvent('info', 'assistant.run.completed', {
+					runId,
+					canvasId: input.canvasId,
+					userId: ownerId,
+				});
 				await updateAssistantRunRecord(db, ownerId, runId, {
 					status: 'completed',
 					error: null,
@@ -569,6 +581,14 @@ async function executeAssistantRun(
 				const message = error instanceof Error ? error.message : 'Assistant run failed';
 				const failingTask = await findRunningTaskOrQueuedTask(db, ownerId, runId);
 
+				logApiEvent('error', 'assistant.run.failed', {
+					runId,
+					canvasId: input.canvasId,
+					userId: ownerId,
+					taskId: failingTask?.id,
+					taskType: failingTask?.type,
+					message,
+				});
 				Sentry.captureException(error, {
 					tags: {
 						assistant_run_id: runId,
@@ -657,11 +677,17 @@ export const assistantRoutes = new Hono<AppEnv>()
 
 		try {
 			const thread = await createAssistantThreadRecord(db, ownerId, { canvasId, title });
+			logApiEvent('info', 'assistant.thread.created', { userId: ownerId, canvasId, threadId: thread.id });
 			return c.json(thread, 201);
 		} catch (error) {
 			if (error instanceof Error && error.message === 'Canvas not found') {
 				return c.json({ error: 'Canvas not found' }, 404);
 			}
+			logApiEvent('error', 'assistant.thread_create_failed', {
+				userId: ownerId,
+				canvasId,
+				message: error instanceof Error ? error.message : String(error),
+			});
 			throw error;
 		}
 	})
@@ -747,6 +773,12 @@ export const assistantRoutes = new Hono<AppEnv>()
 				if (error instanceof Error && error.message === 'Canvas context not found') {
 					return c.json({ error: 'Canvas not found' }, 404);
 				}
+				logApiEvent('error', 'assistant.context_snapshot_failed', {
+					userId: ownerId,
+					canvasId,
+					contextMode,
+					message: error instanceof Error ? error.message : String(error),
+				});
 				throw error;
 			}
 		}
@@ -773,6 +805,12 @@ export const assistantRoutes = new Hono<AppEnv>()
 			) {
 				return c.json({ error: 'Thread does not belong to canvas' }, 409);
 			}
+			logApiEvent('error', 'assistant.run_create_failed', {
+				userId: ownerId,
+				canvasId,
+				threadId,
+				message: error instanceof Error ? error.message : String(error),
+			});
 			throw error;
 		}
 		const planningTask = await createAssistantTaskRecord(db, ownerId, {
@@ -812,6 +850,7 @@ export const assistantRoutes = new Hono<AppEnv>()
 				prototypeContext,
 			}),
 		);
+		logApiEvent('info', 'assistant.run.queued', { userId: ownerId, canvasId, threadId, runId: run.id });
 		return c.json(
 			{
 				runId: run.id,

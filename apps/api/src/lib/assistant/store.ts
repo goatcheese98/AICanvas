@@ -19,6 +19,7 @@ import type {
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { Database } from '../db/client';
+import { logApiEvent } from '../observability';
 import {
 	assistantArtifacts,
 	assistantRunEvents,
@@ -42,6 +43,13 @@ function normalizeThreadTitle(title?: string): string {
 	return normalized && normalized.length > 0 ? normalized : 'New chat';
 }
 
+function logParseFailure(field: string, err: unknown) {
+	logApiEvent('warn', 'store.json_parse_failed', {
+		field,
+		message: err instanceof Error ? err.message : String(err),
+	});
+}
+
 function parseMessage(value: string | null): AssistantMessage | undefined {
 	if (!value) {
 		return undefined;
@@ -49,7 +57,8 @@ function parseMessage(value: string | null): AssistantMessage | undefined {
 
 	try {
 		return JSON.parse(value) as AssistantMessage;
-	} catch {
+	} catch (err) {
+		logParseFailure('message', err);
 		return undefined;
 	}
 }
@@ -61,7 +70,8 @@ function parseMessageHistory(value: string | null): AssistantMessage[] | undefin
 
 	try {
 		return JSON.parse(value) as AssistantMessage[];
-	} catch {
+	} catch (err) {
+		logParseFailure('messageHistory', err);
 		return undefined;
 	}
 }
@@ -73,7 +83,8 @@ function parsePrototypeContext(value: string | null): PrototypeOverlayCustomData
 
 	try {
 		return JSON.parse(value) as PrototypeOverlayCustomData;
-	} catch {
+	} catch (err) {
+		logParseFailure('prototypeContext', err);
 		return undefined;
 	}
 }
@@ -85,7 +96,8 @@ function parseStringArray(value: string | null): string[] | undefined {
 
 	try {
 		return JSON.parse(value) as string[];
-	} catch {
+	} catch (err) {
+		logParseFailure('stringArray', err);
 		return undefined;
 	}
 }
@@ -97,7 +109,8 @@ function parseContextSnapshot(value: string | null): AssistantContextSnapshot | 
 
 	try {
 		return JSON.parse(value) as AssistantContextSnapshot;
-	} catch {
+	} catch (err) {
+		logParseFailure('contextSnapshot', err);
 		return undefined;
 	}
 }
@@ -109,7 +122,8 @@ function parseEventData(value: string | null): AssistantRunEvent['data'] | undef
 
 	try {
 		return JSON.parse(value) as AssistantRunEvent['data'];
-	} catch {
+	} catch (err) {
+		logParseFailure('eventData', err);
 		return undefined;
 	}
 }
@@ -121,7 +135,8 @@ function parseTaskInput(value: string | null): AssistantTaskInput | undefined {
 
 	try {
 		return JSON.parse(value) as AssistantTaskInput;
-	} catch {
+	} catch (err) {
+		logParseFailure('taskInput', err);
 		return undefined;
 	}
 }
@@ -133,7 +148,8 @@ function parseTaskOutput(value: string | null): AssistantTaskOutput | undefined 
 
 	try {
 		return JSON.parse(value) as AssistantTaskOutput;
-	} catch {
+	} catch (err) {
+		logParseFailure('taskOutput', err);
 		return undefined;
 	}
 }

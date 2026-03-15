@@ -64,6 +64,10 @@ interface CaptureOptions {
 	extra?: Record<string, unknown>;
 }
 
+interface CaptureMessageOptions extends CaptureOptions {
+	level?: Sentry.SeverityLevel;
+}
+
 export function captureBrowserException(error: unknown, options: CaptureOptions = {}) {
 	if (!isSentryEnabled()) {
 		return;
@@ -82,17 +86,38 @@ export function captureBrowserException(error: unknown, options: CaptureOptions 
 	});
 }
 
+export function captureBrowserMessage(message: string, options: CaptureMessageOptions = {}) {
+	if (!isSentryEnabled()) {
+		return;
+	}
+
+	Sentry.withScope((scope) => {
+		scope.setLevel(options.level ?? 'warning');
+
+		for (const [key, value] of Object.entries(options.tags ?? {})) {
+			scope.setTag(key, value);
+		}
+
+		for (const [key, value] of Object.entries(options.extra ?? {})) {
+			scope.setExtra(key, value);
+		}
+
+		Sentry.captureMessage(message);
+	});
+}
+
 export function addObservabilityBreadcrumb(
 	message: string,
 	data: Record<string, unknown>,
 	level: Sentry.SeverityLevel = 'info',
+	category = 'app',
 ) {
 	if (!isSentryEnabled()) {
 		return;
 	}
 
 	Sentry.addBreadcrumb({
-		category: 'api',
+		category,
 		message,
 		level,
 		data,

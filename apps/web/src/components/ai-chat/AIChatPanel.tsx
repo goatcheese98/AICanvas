@@ -12,6 +12,7 @@ import { AIChatComposer } from './AIChatComposer';
 import { useAIChatThreads } from './useAIChatThreads';
 import { useAIChatCanvasActions } from './useAIChatCanvasActions';
 import { useAIChatRunController } from './useAIChatRunController';
+import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
 
 export function AIChatPanel({ canvasId }: { canvasId: string }) {
@@ -162,6 +163,15 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			setRunProgress(null);
 			setInput('');
 		} catch (error) {
+			captureBrowserException(error, {
+				tags: {
+					area: 'ai_chat',
+					action: 'create_thread',
+				},
+				extra: {
+					canvasId,
+				},
+			});
 			setChatError(error instanceof Error ? error.message : 'Failed to create thread');
 		}
 	};
@@ -174,6 +184,16 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 				setInput('');
 			}
 		} catch (error) {
+			captureBrowserException(error, {
+				tags: {
+					area: 'ai_chat',
+					action: 'delete_thread',
+				},
+				extra: {
+					canvasId,
+					threadId,
+				},
+			});
 			setChatError(error instanceof Error ? error.message : 'Failed to delete thread');
 		}
 	};

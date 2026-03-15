@@ -16,6 +16,7 @@ import {
 	streamAssistantRunEvents,
 } from '@/lib/api';
 import { renderCodeArtifactToSvg } from '@/lib/assistant/diagram-renderer';
+import { captureBrowserException } from '@/lib/observability';
 import {
 	applyAssistantRunEvent,
 	createAssistantRunProgress,
@@ -183,6 +184,16 @@ export function useAIChatRunController({
 					}
 				} catch (error) {
 					if (!cancelled) {
+						captureBrowserException(error, {
+							tags: {
+								area: 'ai_chat',
+								action: 'auto_insert_artifact',
+							},
+							extra: {
+								artifactKey,
+								artifactType: artifact.type,
+							},
+						});
 						setChatError(
 							error instanceof Error ? error.message : 'Failed to insert artifact onto the canvas',
 						);
@@ -337,6 +348,17 @@ export function useAIChatRunController({
 					appendMessageToThread(ensuredThread.id, event.data.message);
 				}
 				if (event.type === 'run.failed') {
+					captureBrowserException(new Error(event.data?.error ?? 'Assistant run failed'), {
+						tags: {
+							area: 'ai_chat',
+							action: 'run_failed_event',
+						},
+						extra: {
+							canvasId,
+							runId: created.runId,
+							contextMode: effectiveContextMode,
+						},
+					});
 					setChatError(event.data?.error ?? 'Assistant run failed');
 				}
 			});
@@ -357,6 +379,19 @@ export function useAIChatRunController({
 					: current,
 			);
 		} catch (error) {
+			captureBrowserException(error, {
+				tags: {
+					area: 'ai_chat',
+					action: 'send_message',
+				},
+				extra: {
+					canvasId,
+					contextMode: effectiveContextMode,
+					hasCurrentThread: Boolean(currentThread),
+					messageLength: text.length,
+					selectedElementCount: requestSelectedIds.length,
+				},
+			});
 			setChatError(error instanceof Error ? error.message : 'Assistant request failed');
 		} finally {
 			setIsChatLoading(false);

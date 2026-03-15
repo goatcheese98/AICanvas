@@ -6,6 +6,7 @@ import {
 	fetchAssistantThreads,
 	getRequiredAuthHeaders,
 } from '@/lib/api';
+import { captureBrowserException } from '@/lib/observability';
 
 export function useAIChatThreads({
 	canvasId,
@@ -57,6 +58,15 @@ export function useAIChatThreads({
 				setChatError(null);
 			} catch (error) {
 				if (!cancelled) {
+					captureBrowserException(error, {
+						tags: {
+							area: 'ai_chat',
+							action: 'load_threads',
+						},
+						extra: {
+							canvasId,
+						},
+					});
 					setChatError(error instanceof Error ? error.message : 'Failed to load assistant threads');
 				}
 			} finally {
