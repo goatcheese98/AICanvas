@@ -111,6 +111,18 @@
 	transform: translateY(-1px);
 }
 
+.landing-window-nav-cta {
+	border: 1px solid rgba(31, 36, 48, 0.1);
+	background: rgba(255, 255, 255, 0.92);
+	color: var(--landing-text);
+}
+
+.landing-window-nav-cta:hover {
+	background: rgba(31, 36, 48, 0.92);
+	border-color: rgba(31, 36, 48, 0.92);
+	color: #ffffff;
+}
+
 .landing-story-frame {
 	position: relative;
 	padding: 1.3rem;

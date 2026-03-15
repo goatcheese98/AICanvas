@@ -111,7 +111,16 @@ export function LandingPage() {
 							<a className="landing-link landing-window-nav-link" href="#waitlist">
 								Waitlist
 							</a>
-							<a className="landing-link landing-window-nav-link" href={landingContent.scene.secondaryHref}>
+							<a
+								className="landing-link landing-window-nav-link"
+								href="/experiments/canvas-tour"
+							>
+								Experimental demo
+							</a>
+							<a
+								className="landing-link landing-window-nav-link landing-window-nav-cta"
+								href={landingContent.scene.secondaryHref}
+							>
 								{landingContent.scene.secondaryLabel}
 							</a>
 						</nav>

@@ -9,9 +9,9 @@
   },
   "dependencies": {
     "partykit": "^0.0.115",
-    "partysocket": "^1.0.3"
+    "partysocket": "^1.1.16"
   },
   "devDependencies": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3"
   }
 }

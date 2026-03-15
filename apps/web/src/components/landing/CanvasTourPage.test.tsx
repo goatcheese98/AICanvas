@@ -53,6 +53,7 @@ describe('CanvasTourPage', () => {
 
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
 		expect(screen.getByRole('link', { name: /back to landing/i }).getAttribute('href')).toBe('/');
+		expect(screen.getByRole('link', { name: /^sign in$/i }).getAttribute('href')).toBe('/login');
 		expect(
 			screen.getByRole('heading', {
 				name: /start with what you already have/i,

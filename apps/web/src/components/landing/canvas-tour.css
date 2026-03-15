@@ -78,6 +78,11 @@
 	color: var(--tour-muted);
 }
 
+.canvas-tour-stage-cta {
+	color: var(--tour-text);
+	text-decoration: none;
+}
+
 .canvas-tour-toggle {
 	display: inline-flex;
 	align-items: center;

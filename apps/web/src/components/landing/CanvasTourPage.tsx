@@ -605,6 +605,9 @@ export function CanvasTourPage() {
 						<a className="canvas-tour-stage-link" href="/">
 							Back to landing
 						</a>
+						<a className="canvas-tour-reset canvas-tour-stage-cta" href="/login">
+							Sign in
+						</a>
 					</div>
 				</div>
 
