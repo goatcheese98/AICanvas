@@ -1,17 +1,25 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	createAssistantThread,
 	deleteAssistantThread,
 	fetchAssistantThreads,
 	getRequiredAuthHeaders,
 	joinWaitlist,
+	toApiUrl,
 } from './api';
 
 const originalFetch = globalThis.fetch;
 
+beforeEach(() => {
+	// Ensure .env.local VITE_API_BASE_URL does not interfere with URL assertions.
+	// Individual toApiUrl tests override this stub as needed.
+	vi.stubEnv('VITE_API_BASE_URL', '');
+});
+
 afterEach(() => {
 	globalThis.fetch = originalFetch;
 	vi.restoreAllMocks();
+	vi.unstubAllEnvs();
 });
 
 describe('getRequiredAuthHeaders', () => {
@@ -140,6 +148,34 @@ describe('waitlist api helper', () => {
 					source: 'landing-hero',
 				}),
 			}),
+		);
+	});
+});
+
+describe('toApiUrl', () => {
+	it('returns the path as-is when no API base URL is configured', () => {
+		vi.stubEnv('VITE_API_BASE_URL', '');
+
+		expect(toApiUrl('/api/canvas/abc/thumbnail')).toBe('/api/canvas/abc/thumbnail');
+	});
+
+	it('prepends the configured API base URL to the path', () => {
+		// Regression: thumbnail upload and fetch previously used raw relative paths
+		// (e.g. fetch('/api/canvas/:id/thumbnail')). In production, VITE_API_BASE_URL
+		// points to api.roopstudio.com, so relative paths hit the Pages origin instead
+		// of the Worker, causing 405 errors. All API calls must go through toApiUrl().
+		vi.stubEnv('VITE_API_BASE_URL', 'https://api.roopstudio.com');
+
+		expect(toApiUrl('/api/canvas/abc/thumbnail')).toBe(
+			'https://api.roopstudio.com/api/canvas/abc/thumbnail',
+		);
+	});
+
+	it('strips trailing slashes from the base URL before joining', () => {
+		vi.stubEnv('VITE_API_BASE_URL', 'https://api.roopstudio.com/');
+
+		expect(toApiUrl('/api/canvas/abc/thumbnail')).toBe(
+			'https://api.roopstudio.com/api/canvas/abc/thumbnail',
 		);
 	});
 });
