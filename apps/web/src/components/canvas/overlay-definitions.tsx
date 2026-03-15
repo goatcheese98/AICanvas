@@ -170,6 +170,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		render: ({ element, isSelected, onChange, onEditingChange }) => (
 			<KanbanBoard
 				element={element}
+				mode={isSelected ? 'live' : 'preview'}
 				isSelected={isSelected}
 				onChange={(_elementId, data) => onChange(data)}
 				onEditingChange={onEditingChange}
