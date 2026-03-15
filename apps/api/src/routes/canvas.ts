@@ -148,7 +148,9 @@ export const canvasRoutes = new Hono<AppEnv>()
 		await saveThumbnailToR2(c.env.R2, user.id, id, body);
 
 		const thumbnailUrl = `/api/canvas/${id}/thumbnail`;
-		await db.update(canvases).set({ thumbnailUrl }).where(eq(canvases.id, id));
+		// Also update updatedAt so the versioned thumbnail URL (?v=<timestamp>) changes,
+		// which busts the CanvasPreviewThumbnail React Query cache on the dashboard.
+		await db.update(canvases).set({ thumbnailUrl, updatedAt: new Date() }).where(eq(canvases.id, id));
 
 		return c.json({ thumbnailUrl });
 	})

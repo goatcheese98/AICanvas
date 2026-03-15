@@ -86,6 +86,13 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
+.excalidraw {
+	/* Bump interactive canvas (selection handles, live drawing previews) above
+	   HTML overlay divs which sit at z-index: 2. The static canvas remains at
+	   --zIndex-canvas: 1, so overlay HTML still renders over finished shapes. */
+	--zIndex-interactiveCanvas: 3;
+}
+
 .excalidraw .App-menu_bottom {
 	justify-content: flex-start;
 	gap: 0.75rem;
