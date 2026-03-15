@@ -125,7 +125,7 @@ export function KanbanBoardHeader({
 
 	return (
 		<div
-			className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b px-3 py-2.5"
+			className="grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b px-5 py-3"
 			style={{
 				borderColor: borderTone,
 				background: headerBackground,
@@ -143,7 +143,7 @@ export function KanbanBoardHeader({
 						}
 					}}
 					maxLength={120}
-					className="min-w-0 w-full border-0 bg-transparent text-[15px] font-semibold outline-none"
+					className="min-w-0 w-full border-0 bg-transparent text-[16px] font-semibold outline-none"
 					style={{ color: 'var(--color-text-primary)', fontFamily: 'inherit' }}
 				/>
 			</div>

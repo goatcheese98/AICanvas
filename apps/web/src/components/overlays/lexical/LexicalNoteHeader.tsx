@@ -10,7 +10,7 @@ interface LexicalNoteHeaderProps {
 	isSelected: boolean;
 	isEditing: boolean;
 	commentsPanelOpen: boolean;
-	openThreadCount: number;
+	commentCount: number;
 	elementWidth: number;
 	onTitleChange: (value: string) => void;
 	onCommitTitle: () => void;
@@ -26,7 +26,7 @@ export function LexicalNoteHeader({
 	isSelected,
 	isEditing,
 	commentsPanelOpen,
-	openThreadCount,
+	commentCount,
 	elementWidth,
 	onTitleChange,
 	onCommitTitle,
@@ -42,6 +42,7 @@ export function LexicalNoteHeader({
 			(commentsPanelOpen
 				? MIN_EXPANDED_EDITOR_WITH_COMMENTS_WIDTH
 				: MIN_EXPANDED_EDITOR_WIDTH);
+	const shouldShowCommentsToggle = commentsPanelOpen || commentCount > 0;
 
 	return (
 		<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-stone-200/90 bg-transparent px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">
@@ -83,17 +84,19 @@ export function LexicalNoteHeader({
 						Expand
 					</button>
 				) : null}
-				<button
-					type="button"
-					className={`rounded-[8px] border px-2.5 py-1 text-[10px] transition-colors ${
-						commentsPanelOpen
-							? 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]'
-							: 'border-stone-200 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]'
-					}`}
-					onClick={onToggleCommentsPanel}
-				>
-					{openThreadCount} comments
-				</button>
+				{shouldShowCommentsToggle ? (
+					<button
+						type="button"
+						className={`rounded-[8px] border px-2.5 py-1 text-[10px] transition-colors ${
+							commentsPanelOpen
+								? 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]'
+								: 'border-stone-200 bg-white text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]'
+						}`}
+						onClick={onToggleCommentsPanel}
+					>
+						{commentCount} comments
+					</button>
+				) : null}
 				{isSelected ? (
 					<button
 						type="button"

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { type MouseEvent, useCallback, useRef } from 'react';
 import { useAppStore } from '@/stores/store';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { LexicalDebugPanel } from './LexicalDebugPanel';
@@ -55,7 +55,6 @@ export function LexicalNoteContainer({
 		addReply,
 		updateThread,
 		orderedComments,
-		openThreadCount,
 	} = useLexicalNoteState({
 		element,
 		isSelected,
@@ -83,6 +82,17 @@ export function LexicalNoteContainer({
 		excalidrawApi.updateScene({ elements: nextElements });
 	}, [commentsPanelOpen, element.id, element.width, excalidrawApi]);
 
+	const handlePreviewDoubleClick = useCallback(
+		(event: MouseEvent<HTMLDivElement>) => {
+			if (!isSelected || isEditing) return;
+			event.preventDefault();
+			event.stopPropagation();
+			window.getSelection()?.removeAllRanges();
+			setIsEditing(true);
+		},
+		[isEditing, isSelected, setIsEditing],
+	);
+
 	return (
 		<OverlaySurface
 			element={element}
@@ -99,7 +109,7 @@ export function LexicalNoteContainer({
 				isSelected={isSelected}
 				isEditing={isEditing}
 				commentsPanelOpen={commentsPanelOpen}
-				openThreadCount={openThreadCount}
+				commentCount={orderedComments.length}
 				elementWidth={element.width}
 				onTitleChange={handleTitleChange}
 				onCommitTitle={commitTitle}
@@ -112,8 +122,9 @@ export function LexicalNoteContainer({
 			/>
 
 			<div
+				data-testid="lexical-note-body"
 				className="min-h-0 flex flex-1 bg-transparent"
-				onDoubleClick={() => isSelected && setIsEditing(true)}
+				onDoubleClick={handlePreviewDoubleClick}
 			>
 				<div className="min-w-0 flex-1">
 					<LexicalEditor

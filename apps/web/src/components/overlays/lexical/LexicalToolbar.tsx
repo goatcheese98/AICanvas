@@ -525,7 +525,7 @@ export function LexicalToolbar({
 				gap: 1,
 				padding: '5px 10px',
 				borderBottom: '1px solid #e7e5e4',
-				background: 'linear-gradient(180deg, rgba(250,250,249,0.98) 0%, rgba(245,245,244,0.95) 100%)',
+				background: 'transparent',
 				overflowX: 'auto',
 				overflowY: 'visible',
 				flexShrink: 0,

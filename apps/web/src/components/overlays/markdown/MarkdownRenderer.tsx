@@ -1,4 +1,5 @@
 import {
+	memo,
 	useEffect,
 	useMemo,
 	useState,
@@ -40,6 +41,8 @@ const BLOCK_SPACING = '0.95em';
 const COMPACT_SPACING = '0.55em';
 const CELL_PADDING = '0.7em 0.95em';
 const CHECKBOX_SIZE = '1.05em';
+const REMARK_PLUGINS = [remarkMath, remarkGfm];
+const REHYPE_PLUGINS = [rehypeRaw, rehypeKatex];
 const HEADING_STYLES = {
 	h1: { fontSize: '2em', lineHeight: 1.1, gap: '0.5em', marginBottom: '0.5em' },
 	h2: { fontSize: '1.6em', lineHeight: 1.18, marginTop: '1.2em', marginBottom: '0.55em' },
@@ -163,7 +166,7 @@ function MarkdownImage({ src, alt, width, height, inlineSized, props }: Markdown
 	);
 }
 
-export function MarkdownRenderer({
+export const MarkdownRenderer = memo(function MarkdownRenderer({
 	content,
 	images,
 	settings,
@@ -397,8 +400,8 @@ export function MarkdownRenderer({
 	return (
 		<div className={className ? `${className} text-stone-700` : 'text-stone-700'} style={typographyStyle}>
 			<ReactMarkdown
-				remarkPlugins={[remarkMath, remarkGfm]}
-				rehypePlugins={[rehypeRaw, rehypeKatex]}
+				remarkPlugins={REMARK_PLUGINS}
+				rehypePlugins={REHYPE_PLUGINS}
 				urlTransform={markdownUrlTransform}
 				components={components}
 			>
@@ -406,4 +409,4 @@ export function MarkdownRenderer({
 			</ReactMarkdown>
 		</div>
 	);
-}
+});

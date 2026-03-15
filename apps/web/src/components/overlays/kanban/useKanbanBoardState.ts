@@ -68,6 +68,7 @@ export function useKanbanBoardState({
 	const undoStackRef = useRef<KanbanOverlayCustomData[]>([]);
 	const redoStackRef = useRef<KanbanOverlayCustomData[]>([]);
 	const boardRef = useRef(board);
+	const boardTitleDraftRef = useRef(boardTitleDraft);
 	const onChangeRef = useRef(onChange);
 	const onEditingChangeRef = useRef(onEditingChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
@@ -79,6 +80,10 @@ export function useKanbanBoardState({
 	useEffect(() => {
 		boardRef.current = board;
 	}, [board]);
+
+	useEffect(() => {
+		boardTitleDraftRef.current = boardTitleDraft;
+	}, [boardTitleDraft]);
 
 	useEffect(() => {
 		onChangeRef.current = onChange;
@@ -140,31 +145,6 @@ export function useKanbanBoardState({
 		onEditingChangeRef.current?.(isSelected);
 	}, [isSelected]);
 
-	useEffect(
-		() => () => {
-			if (resizeSettleTimeoutRef.current !== null) {
-				window.clearTimeout(resizeSettleTimeoutRef.current);
-			}
-			if (lastReportedEditingRef.current) {
-				onEditingChangeRef.current?.(false);
-				lastReportedEditingRef.current = false;
-			}
-		},
-		[],
-	);
-
-	useEffect(() => {
-		if (isSelected) return;
-		setShowSettings(false);
-		setPendingDeleteColumnId(null);
-	}, [isSelected]);
-
-	useEffect(() => {
-		if (!pendingDeleteColumnId) return;
-		if (board.columns.some((column) => column.id === pendingDeleteColumnId)) return;
-		setPendingDeleteColumnId(null);
-	}, [board.columns, pendingDeleteColumnId]);
-
 	const persistBoard = useCallback(
 		(currentBoard: KanbanOverlayCustomData, nextBoard: KanbanOverlayCustomData, withHistory: boolean) => {
 			const normalized = normalizeKanbanBoard(nextBoard);
@@ -187,6 +167,33 @@ export function useKanbanBoardState({
 			persistBoard(currentBoard, nextBoard, Boolean(options?.history));
 		},
 		[persistBoard],
+	);
+
+	const flushBoardTitleDraft = useCallback(() => {
+		const nextTitle = boardTitleDraftRef.current;
+		const currentBoard = boardRef.current;
+		if (nextTitle.trim().length === 0 || nextTitle === currentBoard.title) return;
+
+		const nextBoard = normalizeKanbanBoard({
+			...currentBoard,
+			title: nextTitle,
+		});
+		boardRef.current = nextBoard;
+		onChangeRef.current(element.id, nextBoard);
+	}, [element.id]);
+
+	useEffect(
+		() => () => {
+			flushBoardTitleDraft();
+			if (resizeSettleTimeoutRef.current !== null) {
+				window.clearTimeout(resizeSettleTimeoutRef.current);
+			}
+			if (lastReportedEditingRef.current) {
+				onEditingChangeRef.current?.(false);
+				lastReportedEditingRef.current = false;
+			}
+		},
+		[flushBoardTitleDraft],
 	);
 
 	const handleUndo = useCallback(() => {
@@ -218,13 +225,27 @@ export function useKanbanBoardState({
 	}, [element.id]);
 
 	const commitBoardTitle = useCallback(() => {
-		if (boardTitleDraft.trim().length === 0) {
+		const nextTitle = boardTitleDraftRef.current;
+		if (nextTitle.trim().length === 0) {
 			setBoardTitleDraft(boardRef.current.title);
 			return;
 		}
-		if (boardTitleDraft === boardRef.current.title) return;
-		updateBoard((currentBoard) => ({ ...currentBoard, title: boardTitleDraft }), { history: false });
-	}, [boardTitleDraft, updateBoard]);
+		flushBoardTitleDraft();
+	}, [flushBoardTitleDraft]);
+
+	useEffect(() => {
+		if (!isSelected) {
+			flushBoardTitleDraft();
+			setShowSettings(false);
+			setPendingDeleteColumnId(null);
+		}
+	}, [flushBoardTitleDraft, isSelected]);
+
+	useEffect(() => {
+		if (!pendingDeleteColumnId) return;
+		if (board.columns.some((column) => column.id === pendingDeleteColumnId)) return;
+		setPendingDeleteColumnId(null);
+	}, [board.columns, pendingDeleteColumnId]);
 
 	const handleColumnChange = useCallback(
 		(columnId: string, updates: Partial<KanbanOverlayCustomData['columns'][number]>) => {
