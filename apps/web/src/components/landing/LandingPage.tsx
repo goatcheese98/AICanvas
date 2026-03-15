@@ -117,52 +117,41 @@ export function LandingPage() {
 						</nav>
 					</header>
 
-					<div className="landing-story-grid">
-						<aside className="landing-sidebar">
-							<div className="landing-sidebar-panel">
-								<p className="landing-scene-label">{landingContent.scene.label}</p>
-								<h1 className="landing-display">{landingContent.scene.title}</h1>
-								<p className="landing-subtitle">{landingContent.scene.description}</p>
-								<div className="landing-hero-actions">
-									<a className="landing-button landing-button-primary" href={landingContent.scene.primaryHref}>
-										{landingContent.scene.primaryLabel}
-									</a>
-									<a
-										className="landing-button landing-button-secondary"
-										href={landingContent.scene.secondaryHref}
-									>
-										{landingContent.scene.secondaryLabel}
-									</a>
-								</div>
-
-								<div className="landing-proof-grid" aria-label="Product proof points">
-									{landingContent.proof.map((proof) => (
-										<div key={proof.label} className="landing-proof-card">
-											<strong>{proof.value}</strong>
-											<span>{proof.label}</span>
+					<div className="landing-story-frame">
+						<div className="landing-stage-sticky">
+								<aside className="landing-sidebar">
+									<div className="landing-sidebar-panel">
+										<p className="landing-scene-label">{landingContent.scene.label}</p>
+										<h1 className="landing-display">{landingContent.scene.title}</h1>
+										<p className="landing-subtitle">{landingContent.scene.description}</p>
+										<div className="landing-hero-actions">
+											<a className="landing-button landing-button-primary" href={landingContent.scene.primaryHref}>
+												{landingContent.scene.primaryLabel}
+											</a>
+											<a
+												className="landing-button landing-button-secondary"
+												href={landingContent.scene.secondaryHref}
+											>
+												{landingContent.scene.secondaryLabel}
+											</a>
 										</div>
-									))}
-								</div>
+										<div className="landing-sidebar-note">
+											<p>Capture, organize, plan, and polish without leaving the same surface.</p>
+										</div>
+										<div className="landing-stage-pips" aria-label="Canvas tour progress">
+											{landingStoryChapters.map((chapter) => (
+												<span
+													key={chapter.id}
+													data-active={chapter.id === activeChapter.id ? 'true' : undefined}
+													title={chapter.label}
+												/>
+											))}
+										</div>
+										<p className="landing-scroll-hint">Scroll to move through the board.</p>
+									</div>
+								</aside>
 
-								<div className="landing-progress-list" aria-label="Story chapters">
-									{landingStoryChapters.map((chapter) => (
-										<a
-											key={chapter.id}
-											aria-current={chapter.id === activeChapter.id ? 'true' : undefined}
-											className="landing-progress-link"
-											data-active={chapter.id === activeChapter.id ? 'true' : undefined}
-											href={`#${chapter.id}`}
-										>
-											<span>{chapter.eyebrow}</span>
-											<strong>{chapter.label}</strong>
-										</a>
-									))}
-								</div>
-							</div>
-						</aside>
-
-						<div className="landing-canvas-column">
-							<div className="landing-canvas-sticky">
+							<div className="landing-canvas-column">
 								<LandingCanvasScene
 									activeChapter={activeChapter}
 									boardStyle={boardStyle}
@@ -171,7 +160,7 @@ export function LandingPage() {
 							</div>
 						</div>
 
-						<div className="landing-rail">
+						<div className="landing-scroll-track" aria-hidden="true">
 							{landingStoryChapters.map((chapter, index) => (
 								<section
 									key={chapter.id}
@@ -179,30 +168,19 @@ export function LandingPage() {
 									ref={(node) => {
 										sectionRefs.current[index] = node;
 									}}
-									className="landing-rail-card"
-									data-active={chapter.id === activeChapter.id ? 'true' : undefined}
+									className="landing-scroll-step"
 									data-chapter-id={chapter.id}
 								>
-									<p className="landing-rail-label">{chapter.eyebrow}</p>
-									<h2 className="landing-rail-title">{chapter.title}</h2>
-									<p className="landing-rail-copy">{chapter.description}</p>
-									<p className="landing-rail-detail">{chapter.detail}</p>
-									<ul className="landing-rail-list">
-										{chapter.bullets.map((bullet) => (
-											<li key={bullet}>{bullet}</li>
-										))}
-									</ul>
-									<div className="landing-rail-metric">
-										<span>{chapter.metricLabel}</span>
-										<strong>{chapter.metricValue}</strong>
-									</div>
+									<span>{chapter.label}</span>
 								</section>
 							))}
+						</div>
 
-							<section id="waitlist" className="landing-rail-card landing-rail-card-form">
-								<p className="landing-rail-label">Final chapter</p>
-								<h2 className="landing-rail-title">{landingContent.waitlist.title}</h2>
-								<p className="landing-rail-copy">{landingContent.waitlist.description}</p>
+						<section id="waitlist" className="landing-waitlist-section">
+							<div className="landing-waitlist-card">
+								<p className="landing-rail-label">Early access</p>
+								<h2 className="landing-waitlist-title">{landingContent.waitlist.title}</h2>
+								<p className="landing-waitlist-copy">{landingContent.waitlist.description}</p>
 								<form
 									aria-label="Landing waitlist form"
 									className="landing-waitlist-form"
@@ -249,10 +227,10 @@ export function LandingPage() {
 										</p>
 									) : null}
 								</form>
+							</div>
 							</section>
 						</div>
-					</div>
-				</section>
+					</section>
 			</main>
 		</div>
 	);

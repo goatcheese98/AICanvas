@@ -343,10 +343,10 @@ export function LandingCanvasScene({
 
 			<div className="landing-canvas-hud">
 				<div>
-					<p>{activeChapter.label}</p>
+					<p>{activeChapter.eyebrow}</p>
 					<h2>{activeChapter.title}</h2>
+					<span>{activeChapter.description}</span>
 				</div>
-				<strong>{activeChapter.metricValue}</strong>
 			</div>
 
 			<div className="landing-canvas-viewport">
@@ -356,10 +356,7 @@ export function LandingCanvasScene({
 			</div>
 
 			<div className="landing-canvas-footer">
-				<div>
-					<span className="landing-canvas-footer-label">{activeChapter.metricLabel}</span>
-					<p>{activeChapter.detail}</p>
-				</div>
+				<span className="landing-canvas-footer-label">{activeChapter.label}</span>
 				<div className="landing-canvas-pips" aria-hidden="true">
 					{chapters.map((chapter) => (
 						<span key={chapter.id} data-active={chapter.id === activeChapter.id ? 'true' : undefined} />

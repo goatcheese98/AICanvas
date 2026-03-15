@@ -41,7 +41,7 @@
 	box-shadow:
 		0 28px 70px rgba(31, 36, 48, 0.1),
 		0 1px 0 rgba(255, 255, 255, 0.72) inset;
-	overflow: clip;
+	overflow: visible;
 }
 
 .landing-window-bar {
@@ -111,12 +111,19 @@
 	transform: translateY(-1px);
 }
 
-.landing-story-grid {
-	display: grid;
-	grid-template-columns: minmax(18rem, 24rem) minmax(34rem, 1fr) minmax(19rem, 24rem);
-	gap: 1.4rem;
+.landing-story-frame {
+	position: relative;
 	padding: 1.3rem;
+}
+
+.landing-stage-sticky {
+	position: sticky;
+	top: 1.2rem;
+	display: grid;
+	grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+	gap: 1.4rem;
 	align-items: start;
+	min-height: calc(100vh - 7rem);
 }
 
 .landing-sidebar,
@@ -126,14 +133,14 @@
 
 .landing-sidebar-panel,
 .landing-canvas-sticky {
-	position: sticky;
-	top: 1.2rem;
+	position: static;
 }
 
 .landing-sidebar-panel {
 	display: grid;
-	gap: 1.5rem;
+	gap: 1.2rem;
 	padding: 1rem 0.2rem 1rem 0.3rem;
+	max-width: 24rem;
 }
 
 .landing-scene-label,
@@ -177,6 +184,42 @@
 	gap: 0.8rem;
 }
 
+.landing-sidebar-note {
+	padding: 0.95rem 1rem;
+	border: 1px solid rgba(31, 36, 48, 0.08);
+	border-radius: 20px;
+	background: rgba(255, 255, 255, 0.72);
+}
+
+.landing-sidebar-note p,
+.landing-scroll-hint {
+	margin: 0;
+	color: var(--landing-muted);
+	font-size: 0.95rem;
+	line-height: 1.55;
+}
+
+.landing-stage-pips {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.landing-stage-pips span {
+	width: 0.56rem;
+	height: 0.56rem;
+	border-radius: 999px;
+	background: rgba(31, 36, 48, 0.12);
+	transition:
+		transform 180ms ease,
+		background-color 180ms ease;
+}
+
+.landing-stage-pips span[data-active='true'] {
+	transform: scale(1.32);
+	background: var(--landing-accent);
+}
+
 .landing-button {
 	display: inline-flex;
 	align-items: center;
@@ -216,73 +259,6 @@
 	border-color: var(--landing-border);
 	background: rgba(255, 255, 255, 0.92);
 	color: var(--landing-text);
-}
-
-.landing-proof-grid {
-	display: grid;
-	gap: 0.85rem;
-}
-
-.landing-proof-card {
-	display: grid;
-	gap: 0.18rem;
-	padding: 1rem;
-	border: 1px solid rgba(31, 36, 48, 0.08);
-	border-radius: 22px;
-	background:
-		linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 244, 238, 0.76));
-	box-shadow: 0 12px 24px rgba(31, 36, 48, 0.04);
-}
-
-.landing-proof-card strong {
-	font-size: 1.35rem;
-	font-weight: 700;
-	letter-spacing: -0.05em;
-}
-
-.landing-proof-card span {
-	color: var(--landing-muted);
-	font-size: 0.9rem;
-	line-height: 1.45;
-}
-
-.landing-progress-list {
-	display: grid;
-	gap: 0.55rem;
-}
-
-.landing-progress-link {
-	display: grid;
-	gap: 0.18rem;
-	padding: 0.9rem 0.95rem;
-	border: 1px solid transparent;
-	border-radius: 18px;
-	background: transparent;
-	transition:
-		background-color 180ms ease,
-		border-color 180ms ease,
-		transform 180ms ease;
-}
-
-.landing-progress-link span {
-	color: var(--landing-soft);
-	font-size: 0.67rem;
-	font-weight: 700;
-	letter-spacing: 0.16em;
-	text-transform: uppercase;
-}
-
-.landing-progress-link strong {
-	font-size: 0.98rem;
-	font-weight: 650;
-	letter-spacing: -0.03em;
-}
-
-.landing-progress-link[data-active='true'] {
-	border-color: rgba(51, 71, 214, 0.12);
-	background: rgba(255, 255, 255, 0.74);
-	box-shadow: 0 10px 24px rgba(31, 36, 48, 0.05);
-	transform: translateX(3px);
 }
 
 .landing-canvas-shell {
@@ -405,17 +381,13 @@
 
 .landing-canvas-hud {
 	position: absolute;
-	left: 1rem;
 	right: 1rem;
-	top: 4.6rem;
+	top: 4.8rem;
 	z-index: 4;
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 1rem;
-	padding: 0.9rem 1rem;
+	width: min(20rem, calc(100% - 2rem));
+	padding: 0.9rem 0.95rem;
 	border: 1px solid rgba(31, 36, 48, 0.08);
-	border-radius: 20px;
+	border-radius: 18px;
 	background: rgba(255, 255, 255, 0.76);
 	backdrop-filter: blur(14px);
 	box-shadow: 0 14px 30px rgba(31, 36, 48, 0.06);
@@ -433,26 +405,18 @@
 
 .landing-canvas-hud h2 {
 	margin: 0.45rem 0 0;
-	max-width: 28rem;
-	font-size: 1.2rem;
+	font-size: 1.05rem;
 	font-weight: 700;
 	letter-spacing: -0.04em;
-	line-height: 1.08;
+	line-height: 1.12;
 }
 
-.landing-canvas-hud strong {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-height: 2.6rem;
-	padding: 0.65rem 0.9rem;
-	border-radius: 999px;
-	background: rgba(51, 71, 214, 0.08);
-	color: var(--landing-accent);
-	font-size: 0.76rem;
-	font-weight: 700;
-	letter-spacing: 0.06em;
-	text-align: center;
+.landing-canvas-hud span {
+	display: block;
+	margin-top: 0.45rem;
+	color: var(--landing-muted);
+	font-size: 0.88rem;
+	line-height: 1.45;
 }
 
 .landing-canvas-viewport {
@@ -1016,36 +980,27 @@
 .landing-canvas-footer {
 	position: absolute;
 	left: 1rem;
-	right: 1rem;
 	bottom: 1rem;
 	z-index: 4;
 	display: flex;
-	align-items: flex-end;
-	justify-content: space-between;
-	gap: 1rem;
-	padding: 1rem 1.05rem;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.8rem 0.95rem;
 	border: 1px solid rgba(31, 36, 48, 0.08);
-	border-radius: 22px;
+	border-radius: 999px;
 	background: rgba(255, 255, 255, 0.8);
 	backdrop-filter: blur(14px);
 	box-shadow: 0 14px 30px rgba(31, 36, 48, 0.06);
 }
 
 .landing-canvas-footer-label {
-	display: inline-block;
+	display: inline-flex;
+	align-items: center;
 	font-size: 0.66rem;
 	font-weight: 700;
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	color: var(--landing-soft);
-}
-
-.landing-canvas-footer p {
-	margin: 0.38rem 0 0;
-	max-width: 27rem;
-	font-size: 0.92rem;
-	line-height: 1.55;
-	color: var(--landing-muted);
 }
 
 .landing-canvas-pips {
@@ -1070,10 +1025,54 @@
 	background: var(--landing-accent);
 }
 
-.landing-rail {
-	display: grid;
-	gap: 1rem;
+.landing-scroll-track {
+	width: 1px;
+	margin-left: auto;
 	padding-top: 0.2rem;
+}
+
+.landing-scroll-step {
+	display: block;
+	width: 1px;
+	height: 82vh;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.landing-scroll-step span {
+	display: block;
+}
+
+.landing-waitlist-section {
+	padding: 0 1.3rem 1.6rem;
+}
+
+.landing-waitlist-card {
+	max-width: 34rem;
+	margin: 0 auto;
+	padding: 1.4rem;
+	border: 1px solid var(--landing-border);
+	border-radius: 28px;
+	background:
+		linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 246, 240, 0.88));
+	box-shadow:
+		0 18px 36px rgba(31, 36, 48, 0.06),
+		0 1px 0 rgba(255, 255, 255, 0.82) inset;
+}
+
+.landing-waitlist-title {
+	margin: 0.4rem 0 0;
+	font-size: 2.2rem;
+	font-weight: 700;
+	letter-spacing: -0.06em;
+	line-height: 0.95;
+}
+
+.landing-waitlist-copy {
+	margin: 1rem 0 0;
+	color: var(--landing-muted);
+	font-size: 1rem;
+	line-height: 1.65;
 }
 
 .landing-rail-card {
@@ -1285,8 +1284,8 @@
 }
 
 @media (max-width: 1500px) {
-	.landing-story-grid {
-		grid-template-columns: minmax(17rem, 22rem) minmax(30rem, 1fr) minmax(18rem, 22rem);
+	.landing-stage-sticky {
+		grid-template-columns: minmax(17rem, 22rem) minmax(30rem, 1fr);
 	}
 
 	.landing-canvas-shell {
@@ -1295,34 +1294,23 @@
 }
 
 @media (max-width: 1220px) {
-	.landing-story-grid {
-		grid-template-columns: 1fr;
-	}
-
+	.landing-stage-sticky,
 	.landing-sidebar-panel,
 	.landing-canvas-sticky {
 		position: static;
 	}
 
-	.landing-proof-grid {
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+	.landing-stage-sticky {
+		grid-template-columns: 1fr;
+		min-height: auto;
 	}
 
 	.landing-canvas-shell {
 		height: min(72vh, 42rem);
 	}
 
-	.landing-rail {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		align-items: stretch;
-	}
-
-	.landing-rail-card {
-		min-height: auto;
-	}
-
-	.landing-rail-card-form {
-		grid-column: 1 / -1;
+	.landing-scroll-track {
+		display: none;
 	}
 }
 
@@ -1338,11 +1326,6 @@
 
 	.landing-window-nav {
 		flex-wrap: wrap;
-	}
-
-	.landing-proof-grid,
-	.landing-rail {
-		grid-template-columns: 1fr;
 	}
 
 	.landing-display {
@@ -1361,13 +1344,11 @@
 
 	.landing-canvas-hud {
 		top: 4.2rem;
-		flex-direction: column;
-		align-items: flex-start;
+		width: auto;
 	}
 
 	.landing-canvas-footer {
-		flex-direction: column;
-		align-items: flex-start;
+		right: auto;
 	}
 
 	.landing-toolbar {
@@ -1417,7 +1398,7 @@
 		border-radius: 22px;
 	}
 
-	.landing-rail-title {
-		font-size: 1.62rem;
+	.landing-waitlist-title {
+		font-size: 1.72rem;
 	}
 }

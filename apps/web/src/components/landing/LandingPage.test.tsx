@@ -18,13 +18,9 @@ describe('LandingPage', () => {
 			}),
 		).toBeTruthy();
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
-		expect(screen.getAllByText(/capture fragments before they disappear/i).length).toBeGreaterThan(0);
-		expect(
-			screen.getAllByText(/build context next to the idea, not in another tool/i).length,
-		).toBeGreaterThan(0);
-		expect(
-			screen.getAllByText(/shape momentum with boards, timelines, and next steps/i).length,
-		).toBeGreaterThan(0);
+		expect(screen.getByText(/capture fragments before they disappear/i)).toBeTruthy();
+		expect(screen.getByText(/scroll to move through the board/i)).toBeTruthy();
+		expect(screen.getByText(/join the waitlist for the first roopstudio release/i)).toBeTruthy();
 		expect(screen.getByRole('form', { name: /landing waitlist form/i })).toBeTruthy();
 		expect(screen.getByLabelText(/work email/i)).toBeTruthy();
 		expect(screen.getByRole('button', { name: /request access/i })).toBeTruthy();

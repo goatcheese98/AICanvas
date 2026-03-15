@@ -1,17 +1,10 @@
+import path from 'node:path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
-import { defineConfig, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig, loadEnv } from 'vite';
 import { configDefaults } from 'vitest/config';
-import path from 'node:path';
-
-const roughJsEntry = path.resolve(
-	__dirname,
-	'../../node_modules/.bun/node_modules/roughjs/bin/rough.js',
-);
-const reactEntry = path.resolve(__dirname, '../../node_modules/.bun/node_modules/react');
-const reactDomEntry = path.resolve(__dirname, '../../node_modules/.bun/node_modules/react-dom');
 
 function manualChunks(id: string) {
 	if (!id.includes('node_modules')) return;
@@ -48,19 +41,12 @@ function manualChunks(id: string) {
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
 	const releaseName = env.VITE_SENTRY_RELEASE || env.SENTRY_RELEASE;
-	const shouldUploadSourcemaps = Boolean(env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT);
+	const shouldUploadSourcemaps = Boolean(
+		env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT,
+	);
 
 	return {
 		plugins: [
-			{
-				name: 'resolve-roughjs-bin',
-				enforce: 'pre',
-				resolveId(source) {
-					if (source === 'roughjs/bin/rough') {
-						return roughJsEntry;
-					}
-				},
-			},
 			TanStackRouterVite({ routesDirectory: './src/routes' }),
 			react(),
 			tailwindcss(),
@@ -87,12 +73,7 @@ export default defineConfig(({ mode }) => {
 		],
 		resolve: {
 			dedupe: ['react', 'react-dom'],
-			alias: [
-				{ find: '@', replacement: path.resolve(__dirname, './src') },
-				{ find: 'react', replacement: reactEntry },
-				{ find: 'react-dom', replacement: reactDomEntry },
-				{ find: 'roughjs/bin/rough', replacement: roughJsEntry },
-			],
+			alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
 		},
 		server: {
 			port: 5173,
