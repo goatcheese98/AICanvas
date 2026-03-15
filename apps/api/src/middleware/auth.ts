@@ -33,9 +33,10 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 
 	try {
 		const authorizedParties = getAuthorizedParties(c.env);
+		const jwtKey = c.env.CLERK_JWT_KEY?.trim() || undefined;
 		const session = await verifyToken(token, {
 			secretKey: c.env.CLERK_SECRET_KEY,
-			jwtKey: c.env.CLERK_JWT_KEY,
+			...(jwtKey ? { jwtKey } : {}),
 			...(authorizedParties.length > 0 ? { authorizedParties } : {}),
 		});
 
