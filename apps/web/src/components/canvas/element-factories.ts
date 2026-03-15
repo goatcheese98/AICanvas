@@ -117,7 +117,11 @@ export function createOverlayElementDraft(
 
 	return normalizeSceneElement({
 		id: crypto.randomUUID(),
-		index: `a${Date.now()}` as ExcalidrawElement['index'],
+		// Use 'a0' as a safe placeholder; Excalidraw's syncInvalidIndices will assign
+		// a proper unique fractional key when the element is added via updateScene.
+		// We previously used `a${Date.now()}` which produced invalid keys like
+		// `a1773614343380` that break generateKeyBetween when inserting native shapes.
+		index: 'a0' as ExcalidrawElement['index'],
 		type: 'rectangle',
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,
