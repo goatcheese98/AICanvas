@@ -19,8 +19,7 @@ describe('LandingPage', () => {
 		).toBeTruthy();
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
 		expect(screen.getByText(/capture fragments before they disappear/i)).toBeTruthy();
-		expect(screen.getByText(/scroll to move through the board/i)).toBeTruthy();
-		expect(screen.getByText(/join the waitlist for the first roopstudio release/i)).toBeTruthy();
+		expect(screen.getByText(/join the waitlist/i)).toBeTruthy();
 		expect(screen.getByRole('form', { name: /landing waitlist form/i })).toBeTruthy();
 		expect(screen.getByLabelText(/work email/i)).toBeTruthy();
 		expect(screen.getByRole('button', { name: /request access/i })).toBeTruthy();
@@ -33,9 +32,6 @@ describe('LandingPage', () => {
 
 		expect(screen.getByRole('link', { name: /join waitlist/i }).getAttribute('href')).toBe('#waitlist');
 		expect(screen.getAllByRole('link', { name: /^sign in$/i })[0]?.getAttribute('href')).toBe('/login');
-		expect(
-			within(navigation).getByRole('link', { name: /experimental demo/i }).getAttribute('href'),
-		).toBe('/experiments/canvas-tour');
 		expect(within(navigation).getByRole('link', { name: /canvas story/i }).getAttribute('href')).toBe(
 			'#capture',
 		);

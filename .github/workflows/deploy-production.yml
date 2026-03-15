@@ -5,6 +5,22 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: Deploy everything or a single surface
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - api
+          - web
+          - partykit
+      run_validate:
+        description: Run validate before deploy
+        required: true
+        default: true
+        type: boolean
 
 concurrency:
   group: deploy-production
@@ -18,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
+    if: ${{ github.event_name == 'push' || github.event.inputs.run_validate == 'true' }}
 
     steps:
       - name: Checkout
@@ -26,8 +43,19 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Restore Bun and Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Typecheck
         run: bun run typecheck
@@ -43,6 +71,14 @@ jobs:
     timeout-minutes: 20
     environment: production
     needs: validate
+    if: >-
+      ${{
+        always() &&
+        (github.event_name == 'push' ||
+          github.event.inputs.deploy_target == 'all' ||
+          github.event.inputs.deploy_target == 'api') &&
+        (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+      }}
 
     steps:
       - name: Checkout
@@ -51,8 +87,19 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Restore Bun and Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Sync API secrets
         working-directory: apps/api
@@ -70,6 +117,7 @@ jobs:
         run: >-
           npx wrangler deploy
           --var ENVIRONMENT:production
+          --var CLERK_PUBLISHABLE_KEY:${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
           --var CORS_ALLOWED_ORIGINS:https://roopstudio.com,https://www.roopstudio.com,http://localhost:5173,http://127.0.0.1:5173
           --var SENTRY_RELEASE:${{ github.sha }}
           --var SENTRY_TRACES_SAMPLE_RATE:${{ vars.SENTRY_TRACES_SAMPLE_RATE || '0.1' }}
@@ -79,6 +127,14 @@ jobs:
     timeout-minutes: 20
     environment: production
     needs: validate
+    if: >-
+      ${{
+        always() &&
+        (github.event_name == 'push' ||
+          github.event.inputs.deploy_target == 'all' ||
+          github.event.inputs.deploy_target == 'web') &&
+        (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+      }}
 
     steps:
       - name: Checkout
@@ -87,8 +143,19 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Restore Bun and Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Build Web App
         working-directory: apps/web
@@ -124,6 +191,14 @@ jobs:
     timeout-minutes: 15
     environment: production
     needs: validate
+    if: >-
+      ${{
+        always() &&
+        (github.event_name == 'push' ||
+          github.event.inputs.deploy_target == 'all' ||
+          github.event.inputs.deploy_target == 'partykit') &&
+        (needs.validate.result == 'success' || needs.validate.result == 'skipped')
+      }}
 
     steps:
       - name: Checkout
@@ -132,8 +207,19 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Restore Bun and Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Deploy PartyKit
         working-directory: workers/partykit
@@ -151,6 +237,14 @@ jobs:
       - deploy-api
       - deploy-web
       - deploy-partykit
+    if: >-
+      ${{
+        always() &&
+        (github.event_name == 'push' || github.event.inputs.deploy_target == 'all') &&
+        (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped') &&
+        (needs.deploy-web.result == 'success' || needs.deploy-web.result == 'skipped') &&
+        (needs.deploy-partykit.result == 'success' || needs.deploy-partykit.result == 'skipped')
+      }}
 
     steps:
       - name: Checkout
@@ -158,6 +252,17 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Restore Bun and Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            .turbo
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
 
       - name: Run smoke checks
         env:

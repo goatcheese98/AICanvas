@@ -141,26 +141,22 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 			scale: 0.78,
 		},
 	},
-	{
-		id: 'review',
-		eyebrow: 'Chapter 05',
-		label: 'Review loop',
-		title: 'Review in context with collaborators and prompts nearby',
-		description:
-			'Feedback, approvals, and AI-assisted edits happen next to the work itself, so iteration stays grounded in the full board.',
-		detail:
-			'Instead of scattered comments and disconnected docs, the team sees the chain from note to decision to final output.',
-		metricLabel: 'Review mode',
-		metricValue: 'Context-rich collaboration',
-		bullets: [
-			'Leave comments beside prototypes, code, and planning lanes.',
-			'Run edits or summaries without leaving the board context.',
-			'Keep the feedback loop spatial, visible, and easy to revisit.',
-		],
-		camera: {
-			x: -2740,
-			y: -160,
-			scale: 0.76,
-		},
-	},
 ];
+
+export const landingWaitlistChapter: LandingStoryChapter = {
+	id: 'waitlist',
+	eyebrow: 'Final step',
+	label: 'Join waitlist',
+	title: 'See the final invite card on the same board',
+	description:
+		'The same canvas that holds the work can also hold the final call to action when you are ready to join.',
+	detail: 'Pan to the access card without leaving the demo frame.',
+	metricLabel: 'Waitlist',
+	metricValue: 'Access inside the canvas',
+	bullets: [],
+	camera: {
+		x: -2300,
+		y: -120,
+		scale: 0.88,
+	},
+};

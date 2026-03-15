@@ -17,6 +17,8 @@ import { Route as ExperimentsCanvasTourRouteImport } from './routes/experiments.
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
+import { Route as AuthSignupSsoCallbackRouteImport } from './routes/_auth/signup.sso-callback'
+import { Route as AuthLoginSsoCallbackRouteImport } from './routes/_auth/login.sso-callback'
 import { Route as AppCanvasIdRouteImport } from './routes/_app/canvas.$id'
 import { Route as AppCanvasIdPrototypePrototypeIdRouteImport } from './routes/_app/canvas.$id.prototype.$prototypeId'
 
@@ -59,6 +61,16 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AuthSignupSsoCallbackRoute = AuthSignupSsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => AuthSignupRoute,
+} as any)
+const AuthLoginSsoCallbackRoute = AuthLoginSsoCallbackRouteImport.update({
+  id: '/sso-callback',
+  path: '/sso-callback',
+  getParentRoute: () => AuthLoginRoute,
+} as any)
 const AppCanvasIdRoute = AppCanvasIdRouteImport.update({
   id: '/canvas/$id',
   path: '/canvas/$id',
@@ -74,21 +86,25 @@ const AppCanvasIdPrototypePrototypeIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AppDashboardRoute
-  '/login': typeof AuthLoginRoute
-  '/signup': typeof AuthSignupRoute
+  '/login': typeof AuthLoginRouteWithChildren
+  '/signup': typeof AuthSignupRouteWithChildren
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
+  '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AppDashboardRoute
-  '/login': typeof AuthLoginRoute
-  '/signup': typeof AuthSignupRoute
+  '/login': typeof AuthLoginRouteWithChildren
+  '/signup': typeof AuthSignupRouteWithChildren
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
+  '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesById {
@@ -97,11 +113,13 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
-  '/_auth/login': typeof AuthLoginRoute
-  '/_auth/signup': typeof AuthSignupRoute
+  '/_auth/login': typeof AuthLoginRouteWithChildren
+  '/_auth/signup': typeof AuthSignupRouteWithChildren
   '/experiments/canvas-tour': typeof ExperimentsCanvasTourRoute
   '/experiments/overlay-regression': typeof ExperimentsOverlayRegressionRoute
   '/_app/canvas/$id': typeof AppCanvasIdRouteWithChildren
+  '/_auth/login/sso-callback': typeof AuthLoginSsoCallbackRoute
+  '/_auth/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRouteTypes {
@@ -114,6 +132,8 @@ export interface FileRouteTypes {
     | '/experiments/canvas-tour'
     | '/experiments/overlay-regression'
     | '/canvas/$id'
+    | '/login/sso-callback'
+    | '/signup/sso-callback'
     | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -124,6 +144,8 @@ export interface FileRouteTypes {
     | '/experiments/canvas-tour'
     | '/experiments/overlay-regression'
     | '/canvas/$id'
+    | '/login/sso-callback'
+    | '/signup/sso-callback'
     | '/canvas/$id/prototype/$prototypeId'
   id:
     | '__root__'
@@ -136,6 +158,8 @@ export interface FileRouteTypes {
     | '/experiments/canvas-tour'
     | '/experiments/overlay-regression'
     | '/_app/canvas/$id'
+    | '/_auth/login/sso-callback'
+    | '/_auth/signup/sso-callback'
     | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
 }
@@ -205,6 +229,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_auth/signup/sso-callback': {
+      id: '/_auth/signup/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/signup/sso-callback'
+      preLoaderRoute: typeof AuthSignupSsoCallbackRouteImport
+      parentRoute: typeof AuthSignupRoute
+    }
+    '/_auth/login/sso-callback': {
+      id: '/_auth/login/sso-callback'
+      path: '/sso-callback'
+      fullPath: '/login/sso-callback'
+      preLoaderRoute: typeof AuthLoginSsoCallbackRouteImport
+      parentRoute: typeof AuthLoginRoute
+    }
     '/_app/canvas/$id': {
       id: '/_app/canvas/$id'
       path: '/canvas/$id'
@@ -246,14 +284,38 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface AuthLoginRouteChildren {
+  AuthLoginSsoCallbackRoute: typeof AuthLoginSsoCallbackRoute
+}
+
+const AuthLoginRouteChildren: AuthLoginRouteChildren = {
+  AuthLoginSsoCallbackRoute: AuthLoginSsoCallbackRoute,
+}
+
+const AuthLoginRouteWithChildren = AuthLoginRoute._addFileChildren(
+  AuthLoginRouteChildren,
+)
+
+interface AuthSignupRouteChildren {
+  AuthSignupSsoCallbackRoute: typeof AuthSignupSsoCallbackRoute
+}
+
+const AuthSignupRouteChildren: AuthSignupRouteChildren = {
+  AuthSignupSsoCallbackRoute: AuthSignupSsoCallbackRoute,
+}
+
+const AuthSignupRouteWithChildren = AuthSignupRoute._addFileChildren(
+  AuthSignupRouteChildren,
+)
+
 interface AuthRouteChildren {
-  AuthLoginRoute: typeof AuthLoginRoute
-  AuthSignupRoute: typeof AuthSignupRoute
+  AuthLoginRoute: typeof AuthLoginRouteWithChildren
+  AuthSignupRoute: typeof AuthSignupRouteWithChildren
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
-  AuthLoginRoute: AuthLoginRoute,
-  AuthSignupRoute: AuthSignupRoute,
+  AuthLoginRoute: AuthLoginRouteWithChildren,
+  AuthSignupRoute: AuthSignupRouteWithChildren,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

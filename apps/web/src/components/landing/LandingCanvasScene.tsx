@@ -1,10 +1,16 @@
-import type { CSSProperties, ReactNode } from 'react';
+import type { FormEventHandler, CSSProperties, ReactNode } from 'react';
 import type { LandingStoryChapter } from './landing-content';
 
 type LandingCanvasSceneProps = {
 	activeChapter: LandingStoryChapter;
+	activeProgressChapterId: string;
 	boardStyle: CSSProperties;
 	chapters: LandingStoryChapter[];
+	email: string;
+	waitlistMessage: string | null;
+	waitlistStatus: 'idle' | 'submitting' | 'success' | 'error';
+	onEmailChange: (value: string) => void;
+	onWaitlistSubmit: FormEventHandler<HTMLFormElement>;
 };
 
 function ToolbarIcon({ children, viewBox = '0 0 24 24' }: { children: ReactNode; viewBox?: string }) {
@@ -21,6 +27,47 @@ function ToolbarIcon({ children, viewBox = '0 0 24 24' }: { children: ReactNode;
 			viewBox={viewBox}
 		>
 			{children}
+		</svg>
+	);
+}
+
+function BoardLogo({
+	kind,
+}: {
+	kind: 'figma' | 'notion' | 'loom';
+}) {
+	if (kind === 'figma') {
+		return (
+			<svg aria-hidden="true" className="landing-logo-svg" viewBox="0 0 24 24">
+				<rect x="5" y="2.5" width="6.8" height="6.8" rx="3.2" fill="#f24e1e" />
+				<rect x="5" y="9.6" width="6.8" height="6.8" rx="3.2" fill="#a259ff" />
+				<rect x="5" y="16.7" width="6.8" height="6.8" rx="3.2" fill="#0acf83" />
+				<rect x="12.2" y="2.5" width="6.8" height="6.8" rx="3.2" fill="#ff7262" />
+				<circle cx="15.6" cy="13" r="3.4" fill="#1abcfe" />
+			</svg>
+		);
+	}
+
+	if (kind === 'notion') {
+		return (
+			<svg aria-hidden="true" className="landing-logo-svg" viewBox="0 0 24 24">
+				<path
+					d="M5.8 5.2 14.7 4.6c2-.1 2.5 0 3 .4l1.7 1.3c.7.5.9.8.9 1.4v10.7c0 .7-.2 1.1-.9 1.1l-10.3.6c-.6 0-.9-.1-1.2-.5l-2-2.6c-.4-.5-.5-.8-.5-1.3V6.4c0-.7.2-1 1.1-1.2Z"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="1.7"
+				/>
+				<path d="M9.4 9.1v7.3m0-7.3 4.9 7.2V9.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+			</svg>
+		);
+	}
+
+	return (
+		<svg aria-hidden="true" className="landing-logo-svg" viewBox="0 0 24 24">
+			<circle cx="9" cy="8.2" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
+			<circle cx="15.2" cy="8.2" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
+			<circle cx="9" cy="15.8" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
+			<circle cx="15.2" cy="15.8" r="3.1" fill="none" stroke="currentColor" strokeWidth="1.7" />
 		</svg>
 	);
 }
@@ -123,20 +170,35 @@ function CanvasToolbar() {
 	);
 }
 
-function CanvasBoard() {
+function CanvasBoard({
+	email,
+	waitlistMessage,
+	waitlistStatus,
+	onEmailChange,
+	onWaitlistSubmit,
+	activeChapterId,
+}: {
+	email: string;
+	waitlistMessage: string | null;
+	waitlistStatus: 'idle' | 'submitting' | 'success' | 'error';
+	onEmailChange: (value: string) => void;
+	onWaitlistSubmit: FormEventHandler<HTMLFormElement>;
+	activeChapterId: string;
+}) {
 	return (
 		<>
 			<div className="landing-board-marker landing-board-marker-capture">rough capture</div>
 			<div className="landing-board-marker landing-board-marker-research">research wall</div>
 			<div className="landing-board-marker landing-board-marker-plan">planning lane</div>
 			<div className="landing-board-marker landing-board-marker-polish">polished outputs</div>
-			<div className="landing-board-marker landing-board-marker-review">review loop</div>
 			<div className="landing-board-marker landing-board-marker-waitlist">early access</div>
 
 			<div className="landing-board-track landing-board-track-main" />
 			<div className="landing-board-track landing-board-track-side" />
 			<div className="landing-board-orb landing-board-orb-a" />
 			<div className="landing-board-orb landing-board-orb-b" />
+			<div className="landing-board-dots landing-board-dots-a" />
+			<div className="landing-board-dots landing-board-dots-b" />
 
 			<article className="landing-board-card landing-board-cluster-card">
 				<div className="landing-card-topline">
@@ -149,22 +211,65 @@ function CanvasBoard() {
 					structure.
 				</p>
 				<div className="landing-cluster-grid" aria-hidden="true">
-					<div className="landing-cluster-thumb landing-cluster-thumb-photo" />
+					<div className="landing-cluster-thumb landing-cluster-thumb-photo">
+						<span>Onboarding screenshot</span>
+					</div>
 					<div className="landing-sticky-note" data-tone="mint">
-						Study questions
+						<strong>Study questions</strong>
+						<small>What blocks the first session?</small>
 					</div>
 					<div className="landing-sticky-note" data-tone="gold">
-						UI ideas
+						<strong>UI ideas</strong>
+						<small>Keep evidence docked beside drafts</small>
 					</div>
 					<div className="landing-sticky-note" data-tone="sky">
-						Research clips
+						<strong>Research clips</strong>
+						<small>3 call excerpts worth revisiting</small>
 					</div>
 					<div className="landing-sticky-note" data-tone="peach">
-						Next steps
+						<strong>Next steps</strong>
+						<small>Summarize friction, map options</small>
 					</div>
-					<div className="landing-cluster-thumb landing-cluster-thumb-image" />
+					<div className="landing-cluster-thumb landing-cluster-thumb-voice">
+						<p>Voice memo</p>
+						<span>"Need one place for notes + plan."</span>
+					</div>
 				</div>
 			</article>
+
+			<article className="landing-board-card landing-board-links-card">
+				<div className="landing-card-topline">
+					<span className="landing-chip landing-chip-soft">Links</span>
+					<span className="landing-meta">Quick saves</span>
+				</div>
+				<div className="landing-links-list" aria-hidden="true">
+					<span>loom.com/share/onboarding-friction</span>
+					<span>docs.google.com/research-synthesis</span>
+					<span>figma.com/file/new-first-run-flow</span>
+				</div>
+				<div className="landing-board-source-badges" aria-hidden="true">
+					<div className="landing-board-logo-chip">
+						<BoardLogo kind="loom" />
+						<span>Loom</span>
+					</div>
+					<div className="landing-board-logo-chip">
+						<BoardLogo kind="figma" />
+						<span>Figma</span>
+					</div>
+					<div className="landing-board-logo-chip">
+						<BoardLogo kind="notion" />
+						<span>Notion</span>
+					</div>
+				</div>
+			</article>
+
+			<div className="landing-board-links-arrow" aria-hidden="true">
+				<svg viewBox="0 0 220 120">
+					<path d="M18 100c22-32 64-51 113-58" />
+					<path d="m123 31 20 9-18 12" />
+				</svg>
+				<span>saved sources</span>
+			</div>
 
 			<article className="landing-board-card landing-board-note-card">
 				<div className="landing-card-topline">
@@ -221,6 +326,23 @@ function CanvasBoard() {
 				</div>
 			</article>
 
+			<article className="landing-board-card landing-board-signal-card">
+				<div className="landing-card-topline">
+					<span className="landing-chip">Snapshot</span>
+					<span className="landing-meta">Signal check</span>
+				</div>
+				<div className="landing-signal-meter" aria-hidden="true">
+					<div>
+						<strong>Setup friction</strong>
+						<span>High signal</span>
+					</div>
+					<div>
+						<strong>Context switching</strong>
+						<span>Repeated complaint</span>
+					</div>
+				</div>
+			</article>
+
 			<article className="landing-board-card landing-board-kanban-card">
 				<div className="landing-card-topline">
 					<span className="landing-chip">Kanban</span>
@@ -259,6 +381,34 @@ function CanvasBoard() {
 				</div>
 			</article>
 
+			<article className="landing-board-card landing-board-decision-card">
+				<div className="landing-card-topline">
+					<span className="landing-chip landing-chip-soft">Decision</span>
+					<span className="landing-meta">Working direction</span>
+				</div>
+				<p className="landing-decision-text">
+					Keep capture, research, and planning visible together instead of forcing a handoff.
+				</p>
+			</article>
+
+			<div className="landing-board-plan-flow" aria-hidden="true">
+				<div className="landing-board-flow-shape landing-board-flow-shape-rect">
+					<span>collect</span>
+				</div>
+				<div className="landing-board-flow-shape landing-board-flow-shape-diamond">
+					<span>shape</span>
+				</div>
+				<div className="landing-board-flow-shape landing-board-flow-shape-ellipse">
+					<span>ship</span>
+				</div>
+				<svg className="landing-board-flow-connector" viewBox="0 0 340 120">
+					<path d="M40 58h106" />
+					<path d="M196 58h92" />
+					<path d="m136 50 12 8-12 8" />
+					<path d="m278 50 12 8-12 8" />
+				</svg>
+			</div>
+
 			<article className="landing-board-card landing-board-doc-card">
 				<div className="landing-card-topline">
 					<span className="landing-chip">Brief</span>
@@ -289,53 +439,58 @@ function CanvasBoard() {
 				</div>
 			</article>
 
-			<article className="landing-board-card landing-board-review-card">
-				<div className="landing-card-topline">
-					<span className="landing-chip">Review</span>
-					<span className="landing-meta">Feedback in context</span>
-				</div>
-				<div className="landing-review-thread" aria-hidden="true">
-					<div className="landing-comment-pill">Jess: tighten the problem statement</div>
-					<div className="landing-comment-pill landing-comment-pill-soft">
-						Brie: this aligns with the interview evidence
-					</div>
-					<div className="landing-comment-pill landing-comment-pill-accent">
-						AI: summarize launch risks
-					</div>
-				</div>
-			</article>
-
-			<article className="landing-board-card landing-board-ai-card">
-				<div className="landing-card-topline">
-					<span className="landing-chip landing-chip-soft">Prompt</span>
-					<span className="landing-meta">Inline support</span>
-				</div>
-				<div className="landing-ai-console" aria-hidden="true">
-					<p>/summarize the strongest signals from this board</p>
-					<span>Response pulls from notes, research, and planning blocks in view.</span>
-				</div>
-			</article>
-
-			<article className="landing-board-card landing-board-waitlist-card" aria-hidden="true">
+			<form
+				aria-label="Landing waitlist form"
+				className="landing-board-card landing-board-waitlist-card"
+				data-active={activeChapterId === 'waitlist' ? 'true' : undefined}
+				onSubmit={onWaitlistSubmit}
+			>
 				<div className="landing-card-topline">
 					<span className="landing-chip">Waitlist</span>
 					<span className="landing-meta">Opening access</span>
 				</div>
-				<h2 className="landing-card-title">RoopStudio early access</h2>
-				<p className="landing-card-copy">Join the list to see this workflow come together on a real canvas.</p>
-				<div className="landing-fake-form">
-					<span>name@company.com</span>
-					<strong>Request access</strong>
-				</div>
-			</article>
+				<h2 className="landing-card-title">Join the waitlist</h2>
+				<p className="landing-card-copy">Get early access when RoopStudio opens its first release wave.</p>
+				<label className="landing-board-form-label" htmlFor="landing-board-email">
+					Work email
+				</label>
+				<input
+					id="landing-board-email"
+					autoComplete="email"
+					className="landing-board-input"
+					name="email"
+					onChange={(event) => onEmailChange(event.target.value)}
+					placeholder="name@company.com"
+					type="email"
+					value={email}
+				/>
+				<button
+					className="landing-board-submit"
+					disabled={waitlistStatus === 'submitting'}
+					type="submit"
+				>
+					{waitlistStatus === 'submitting' ? 'Requesting...' : 'Request access'}
+				</button>
+				{waitlistMessage ? (
+					<p className="landing-board-message" data-status={waitlistStatus}>
+						{waitlistMessage}
+					</p>
+				) : null}
+			</form>
 		</>
 	);
 }
 
 export function LandingCanvasScene({
 	activeChapter,
+	activeProgressChapterId,
 	boardStyle,
 	chapters,
+	email,
+	waitlistMessage,
+	waitlistStatus,
+	onEmailChange,
+	onWaitlistSubmit,
 }: LandingCanvasSceneProps) {
 	return (
 		<div className="landing-canvas-shell">
@@ -351,7 +506,14 @@ export function LandingCanvasScene({
 
 			<div className="landing-canvas-viewport">
 				<div className="landing-canvas-board" style={boardStyle}>
-					<CanvasBoard />
+					<CanvasBoard
+						activeChapterId={activeChapter.id}
+						email={email}
+						onEmailChange={onEmailChange}
+						onWaitlistSubmit={onWaitlistSubmit}
+						waitlistMessage={waitlistMessage}
+						waitlistStatus={waitlistStatus}
+					/>
 				</div>
 			</div>
 
@@ -359,7 +521,10 @@ export function LandingCanvasScene({
 				<span className="landing-canvas-footer-label">{activeChapter.label}</span>
 				<div className="landing-canvas-pips" aria-hidden="true">
 					{chapters.map((chapter) => (
-						<span key={chapter.id} data-active={chapter.id === activeChapter.id ? 'true' : undefined} />
+						<span
+							key={chapter.id}
+							data-active={chapter.id === activeProgressChapterId ? 'true' : undefined}
+						/>
 					))}
 				</div>
 			</div>

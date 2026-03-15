@@ -64,9 +64,15 @@ export async function getRequiredAuthHeaders(
 		throw new Error('Sign in is required to access this resource.');
 	}
 
-	return {
+	const headers: Record<string, string> = {
 		Authorization: `Bearer ${token}`,
 	};
+
+	if (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+		headers['x-clerk-publishable-key'] = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+	}
+
+	return headers;
 }
 
 export const api = hc<AppType>(normalizeApiBaseUrl(import.meta.env.VITE_API_BASE_URL) || '/', {

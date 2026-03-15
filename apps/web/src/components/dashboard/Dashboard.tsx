@@ -1,9 +1,10 @@
 import { useUser } from '@clerk/clerk-react';
 import { CanvasLibrary } from './CanvasLibrary';
+import { DashboardProfileMenu } from './DashboardProfileMenu';
 
 export function Dashboard() {
 	const { user } = useUser();
-	const displayName = user?.firstName || user?.fullName || user?.username || 'Workspace';
+	const displayName = user?.fullName || user?.firstName || user?.username || 'Workspace';
 	const email = user?.primaryEmailAddress?.emailAddress ?? 'Signed in';
 	const initials =
 		user?.fullName
@@ -29,21 +30,12 @@ export function Dashboard() {
 								</h1>
 							</div>
 
-							<div className="flex items-center gap-3 rounded-[12px] border border-[var(--color-border)] bg-white/72 px-2.5 py-2 pr-4">
-								{user?.imageUrl ? (
-									<img src={user.imageUrl} alt="" className="h-10 w-10 rounded-[10px] object-cover" />
-								) : (
-									<div className="flex h-10 w-10 items-center justify-center rounded-[10px] bg-[var(--color-accent-bg)] text-xs font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
-										{initials}
-									</div>
-								)}
-								<div className="min-w-0">
-									<div className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
-										{displayName}
-									</div>
-									<div className="truncate text-xs text-[var(--color-text-secondary)]">{email}</div>
-								</div>
-							</div>
+							<DashboardProfileMenu
+								displayName={displayName}
+								email={email}
+								imageUrl={user?.imageUrl}
+								initials={initials}
+							/>
 						</div>
 					</div>
 				</header>

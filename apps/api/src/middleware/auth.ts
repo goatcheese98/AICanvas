@@ -1,36 +1,112 @@
 import { createMiddleware } from 'hono/factory';
 import { createClerkClient, verifyToken } from '@clerk/backend';
+import { eq } from 'drizzle-orm';
 import { createDb } from '../lib/db/client';
-import { applySentryUserContext } from '../lib/observability';
+import { users } from '../lib/db/schema';
+import { applySentryUserContext, logApiEvent } from '../lib/observability';
 import { buildAuthUser } from '../lib/auth/build-auth-user';
 import { syncAuthenticatedUser } from '../lib/auth/sync-user';
 import type { AppEnv } from '../types';
+import type { AuthUser } from '../types';
+
+function getAuthorizedParties(bindings: AppEnv['Bindings']) {
+	return (bindings.CLERK_AUTHORIZED_PARTIES ?? '')
+		.split(',')
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+}
+
+function getBearerToken(authHeader: string | undefined) {
+	if (!authHeader?.startsWith('Bearer ')) {
+		return null;
+	}
+
+	return authHeader.slice('Bearer '.length).trim() || null;
+}
 
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
-	const clerk = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
-	const authHeader = c.req.header('Authorization');
+	const token = getBearerToken(c.req.header('Authorization'));
 
-	if (!authHeader?.startsWith('Bearer ')) {
+	if (!token) {
 		return c.json({ error: 'Unauthorized' }, 401);
 	}
 
-	const token = authHeader.slice(7);
-
 	try {
+		const authorizedParties = getAuthorizedParties(c.env);
 		const session = await verifyToken(token, {
 			secretKey: c.env.CLERK_SECRET_KEY,
+			jwtKey: c.env.CLERK_JWT_KEY,
+			...(authorizedParties.length > 0 ? { authorizedParties } : {}),
 		});
-		const clerkUser = await clerk.users.getUser(session.sub);
-		const user = buildAuthUser(clerkUser);
+
+		if (!session.sub) {
+			return c.json({ error: 'Unauthorized' }, 401);
+		}
+
 		const db = createDb(c.env.DB);
 
-		await syncAuthenticatedUser(db, user);
+		// Check if the user already exists in D1. For returning users this avoids
+		// a Clerk API call on every request, which is both faster and more resilient.
+		const existingRows = await db
+			.select()
+			.from(users)
+			.where(eq(users.id, session.sub))
+			.limit(1);
+
+		let user: AuthUser;
+
+		if (existingRows[0]) {
+			// Returning user — use the locally stored profile.
+			const row = existingRows[0];
+			user = {
+				id: row.id,
+				email: row.email,
+				name: row.name,
+				avatarUrl: row.avatarUrl ?? undefined,
+			};
+		} else {
+			// New user — fetch their profile from Clerk and sync to D1.
+			const clerk = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
+			let clerkUser;
+			try {
+				clerkUser = await clerk.users.getUser(session.sub);
+			} catch (err) {
+				logApiEvent('error', 'auth.clerk_user_fetch_failed', {
+					sub: session.sub,
+					message: err instanceof Error ? err.message : String(err),
+				});
+				return c.json({ error: 'Authentication failed' }, 500);
+			}
+
+			user = buildAuthUser(clerkUser);
+
+			try {
+				await syncAuthenticatedUser(db, user);
+			} catch (err) {
+				logApiEvent('error', 'auth.sync_user_failed', {
+					userId: user.id,
+					message: err instanceof Error ? err.message : String(err),
+				});
+				return c.json({ error: 'Authentication failed' }, 500);
+			}
+		}
 
 		c.set('user', user);
 		applySentryUserContext(user);
 
 		await next();
-	} catch {
-		return c.json({ error: 'Invalid token' }, 401);
+	} catch (err) {
+		// TokenVerificationError (from @clerk/backend) always has a `reason` property.
+		if (err instanceof Error && 'reason' in err) {
+			logApiEvent('warn', 'auth.token_verification_failed', {
+				reason: (err as Record<string, unknown>).reason,
+				message: err.message,
+			});
+			return c.json({ error: 'Invalid token' }, 401);
+		}
+		logApiEvent('error', 'auth.unexpected_error', {
+			message: err instanceof Error ? err.message : String(err),
+		});
+		return c.json({ error: 'Authentication failed' }, 500);
 	}
 });

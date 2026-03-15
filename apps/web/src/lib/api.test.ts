@@ -18,9 +18,11 @@ describe('getRequiredAuthHeaders', () => {
 	it('returns a bearer token header', async () => {
 		const headers = await getRequiredAuthHeaders(vi.fn().mockResolvedValue('test-token'));
 
-		expect(headers).toEqual({
-			Authorization: 'Bearer test-token',
-		});
+		expect(headers).toEqual(
+			expect.objectContaining({
+				Authorization: 'Bearer test-token',
+			}),
+		);
 	});
 
 	it('throws when no token is available', async () => {

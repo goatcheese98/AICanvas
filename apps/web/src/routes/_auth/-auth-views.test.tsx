@@ -2,11 +2,13 @@
 
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { AuthRedirectCallbackPage } from './-oauth-callback-view';
 import { LoginPage } from './-login-view';
 import { SignupPage } from './-signup-view';
 
 const signInSpy = vi.fn();
 const signUpSpy = vi.fn();
+const authRedirectCallbackSpy = vi.fn();
 
 vi.mock('@clerk/clerk-react', () => ({
 	SignIn: (props: Record<string, unknown>) => {
@@ -16,6 +18,10 @@ vi.mock('@clerk/clerk-react', () => ({
 	SignUp: (props: Record<string, unknown>) => {
 		signUpSpy(props);
 		return <div data-testid="mock-sign-up" />;
+	},
+	AuthenticateWithRedirectCallback: (props: Record<string, unknown>) => {
+		authRedirectCallbackSpy(props);
+		return <div data-testid="mock-auth-redirect-callback" />;
 	},
 }));
 
@@ -46,6 +52,20 @@ describe('auth views', () => {
 				signInUrl: '/login',
 				fallbackRedirectUrl: '/dashboard',
 				signInFallbackRedirectUrl: '/dashboard',
+			}),
+		);
+	});
+
+	it('routes auth callbacks through Clerk and returns to the dashboard', () => {
+		render(<AuthRedirectCallbackPage />);
+
+		expect(authRedirectCallbackSpy).toHaveBeenCalledOnce();
+		expect(authRedirectCallbackSpy.mock.calls[0]?.[0]).toEqual(
+			expect.objectContaining({
+				signInUrl: '/login',
+				signUpUrl: '/signup',
+				signInFallbackRedirectUrl: '/dashboard',
+				signUpFallbackRedirectUrl: '/dashboard',
 			}),
 		);
 	});

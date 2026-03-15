@@ -5,6 +5,9 @@ export type AppEnv = {
 		DB: D1Database;
 		R2: R2Bucket;
 		CLERK_SECRET_KEY: string;
+		CLERK_PUBLISHABLE_KEY?: string;
+		CLERK_JWT_KEY?: string;
+		CLERK_AUTHORIZED_PARTIES?: string;
 		ANTHROPIC_API_KEY?: string;
 		ANTHROPIC_API_BASE_URL?: string;
 		ANTHROPIC_TEXT_MODEL?: string;
