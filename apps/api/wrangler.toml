@@ -31,7 +31,7 @@ ENVIRONMENT = "development"
 [[d1_databases]]
 binding = "DB"
 database_name = "ai-canvas-db"
-database_id = "placeholder-replace-with-actual-id"
+database_id = "fd841335-ff7a-4d9f-92e8-97102d4b0621"
 migrations_dir = "drizzle"
 
 [[r2_buckets]]

@@ -19,6 +19,18 @@ vi.mock('@excalidraw/excalidraw', async () => {
 				const ready = props.excalidrawAPI as ((api: unknown) => void) | undefined;
 				ready?.({
 					addFiles: vi.fn(),
+					getAppState: vi.fn(() => ({
+						activeTool: { type: 'selection' },
+						height: 900,
+						scrollX: 0,
+						scrollY: 0,
+						selectedElementIds: {},
+						viewBackgroundColor: '#f7f8fb',
+						width: 1440,
+						zoom: { value: 1 },
+					})),
+					getFiles: vi.fn(() => ({})),
+					getSceneElements: vi.fn(() => []),
 					setActiveTool: vi.fn(),
 					updateScene: vi.fn(),
 				});
