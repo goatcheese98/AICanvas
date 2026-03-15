@@ -1,5 +1,6 @@
 CLERK_SECRET_KEY=sk_test_xxx
 ANTHROPIC_API_KEY=sk-ant-xxx
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://roopstudio.com,https://www.roopstudio.com
 # Optional
 # OPENROUTER_API_KEY=
 # OPENROUTER_API_BASE_URL=https://openrouter.ai/api/v1

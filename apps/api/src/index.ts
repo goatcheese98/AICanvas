@@ -11,15 +11,33 @@ import { userRoutes } from './routes/user';
 import { waitlistRoutes } from './routes/waitlist';
 import type { AppEnv } from './types';
 
+const DEFAULT_ALLOWED_ORIGINS = [
+	'http://localhost:5173',
+	'http://127.0.0.1:5173',
+	'https://roopstudio.com',
+	'https://www.roopstudio.com',
+];
+
+function getAllowedOrigins(bindings: AppEnv['Bindings']) {
+	const configuredOrigins = bindings.CORS_ALLOWED_ORIGINS?.split(',')
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+
+	return configuredOrigins && configuredOrigins.length > 0
+		? configuredOrigins
+		: DEFAULT_ALLOWED_ORIGINS;
+}
+
 const app = new Hono<AppEnv>()
 	.use('*', requestContext)
 	.use('*', logger())
 	.use(
 		'*',
-		cors({
-			origin: ['http://localhost:5173'],
-			credentials: true,
-		}),
+		async (c, next) =>
+			cors({
+				origin: getAllowedOrigins(c.env),
+				credentials: true,
+			})(c, next),
 	)
 	.route('/api/canvas', canvasRoutes)
 	.route('/api/assistant', assistantRoutes)

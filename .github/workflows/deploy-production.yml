@@ -70,6 +70,7 @@ jobs:
         run: >-
           npx wrangler deploy
           --var ENVIRONMENT:production
+          --var CORS_ALLOWED_ORIGINS:https://roopstudio.com,https://www.roopstudio.com,http://localhost:5173,http://127.0.0.1:5173
           --var SENTRY_RELEASE:${{ github.sha }}
           --var SENTRY_TRACES_SAMPLE_RATE:${{ vars.SENTRY_TRACES_SAMPLE_RATE || '0.1' }}
 

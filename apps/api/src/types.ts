@@ -18,6 +18,7 @@ export type AppEnv = {
 		SENTRY_DSN?: string;
 		SENTRY_RELEASE?: string;
 		SENTRY_TRACES_SAMPLE_RATE?: string;
+		CORS_ALLOWED_ORIGINS?: string;
 		ENVIRONMENT: string;
 	};
 	Variables: {
