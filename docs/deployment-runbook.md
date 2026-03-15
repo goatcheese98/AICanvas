@@ -40,9 +40,10 @@ The repository currently names that project in:
 
 ### 3. Configure Cloudflare runtime secrets for the API
 
-The deploy workflow currently syncs:
+The deploy workflow syncs these secrets to the Worker on every deploy:
 
 - `CLERK_SECRET_KEY`
+- `CLERK_JWT_KEY`
 
 Other private runtime values can be managed one of two ways:
 
@@ -58,10 +59,12 @@ Configure these GitHub secrets before enabling the production deploy workflow:
 | Secret | Used by | Purpose |
 |---|---|---|
 | `CLOUDFLARE_API_TOKEN` | API + Pages deploy | Authenticates Wrangler in CI |
-| `CLERK_SECRET_KEY` | API Worker | Clerk backend auth |
-| `VITE_CLERK_PUBLISHABLE_KEY` | Web build | Clerk frontend auth |
+| `CLERK_SECRET_KEY` | API Worker | Clerk backend auth (production `sk_live_...`) |
+| `CLERK_JWT_KEY` | API Worker | Clerk JWKS public key for local token verification |
 | `PARTYKIT_TOKEN` | PartyKit deploy | Authenticates PartyKit CLI |
 | `PARTYKIT_LOGIN` | PartyKit deploy | PartyKit account/login identifier |
+
+Note: `VITE_CLERK_PUBLISHABLE_KEY` is a **variable** (not a secret) and is used for both the web build and the Worker's `CLERK_PUBLISHABLE_KEY` var. It should be the production publishable key (`pk_live_...`).
 
 The Cloudflare account ID is already wired into the deploy workflow for this repository.
 
@@ -172,10 +175,18 @@ Before the first live deployment:
 2. create the Worker, D1 database, and R2 bucket
 3. update `apps/api/wrangler.toml` with the real resource IDs and names
 4. create the PartyKit project and note its production host
-5. set the GitHub secrets and variables listed above
-6. run the production workflow manually once
-7. verify smoke checks pass
-8. confirm Sentry receives browser and Worker events
+5. complete the Clerk production instance setup (DNS records, Google OAuth) — see `docs/auth-setup.md`
+6. set the GitHub secrets and variables listed above
+7. run the production workflow manually once
+8. **apply D1 migrations to production** — this is not done by the deploy workflow:
+   ```sh
+   npx wrangler d1 migrations apply ai-canvas-db --remote
+   ```
+   Skipping this step causes `Authentication failed` (500) on every request.
+9. verify smoke checks pass
+10. confirm Sentry receives browser and Worker events
+
+The D1 migration step (8) must also be repeated whenever new migration files are generated.
 
 ## Rollback Guidance
 

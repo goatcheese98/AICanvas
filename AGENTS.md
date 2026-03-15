@@ -29,6 +29,12 @@ bun run db:generate        # generate Drizzle migrations
 bun run db:migrate         # run Drizzle migrations against local D1
 ```
 
+**Production D1 migrations** are not applied automatically by the deploy workflow. Run this manually after generating new migrations or on first deploy:
+
+```sh
+npx wrangler d1 migrations apply ai-canvas-db --remote
+```
+
 Run a single package: `bun run test --filter=@ai-canvas/web`
 
 ## Code Style
@@ -142,3 +148,4 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - `docs/observability.md` — current logging, tracing, and Sentry setup
 - `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan
 - `docs/deployment-runbook.md` — repo setup and CI/CD requirements for deployment
+- `docs/auth-setup.md` — Clerk authentication setup for local dev and production (DNS, OAuth, secrets, migrations)
