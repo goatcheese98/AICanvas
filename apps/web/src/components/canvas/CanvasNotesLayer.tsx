@@ -9,11 +9,7 @@ import {
 } from 'react';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
-import {
-	applyOverlayUpdateByType,
-	collectOverlayElements,
-	getOverlayZIndex,
-} from './overlay-registry';
+import { applyOverlayUpdateByType, collectOverlayElements } from './overlay-registry';
 import {
 	getOverlayDefinition,
 	normalizeOverlayElement,
@@ -54,7 +50,6 @@ const OverlayContent = memo(function OverlayContent({
 
 interface OverlayItemProps {
 	element: TypedOverlayCanvasElement;
-	stackIndex: number;
 	isSelected: boolean;
 	onRegisterRef: (id: string, el: HTMLDivElement) => void;
 	onUnregisterRef: (id: string) => void;
@@ -68,7 +63,6 @@ interface OverlayItemProps {
 const OverlayItem = memo(
 	function OverlayItem({
 		element,
-		stackIndex,
 		isSelected,
 		onRegisterRef,
 		onUnregisterRef,
@@ -77,6 +71,11 @@ const OverlayItem = memo(
 		const [isEditing, setIsEditing] = useState(false);
 		const isEditingRef = useRef(false);
 		const divRef = useRef<HTMLDivElement>(null);
+		// Expose editing state as a data attribute so the rAF loop can read it without
+		// a React re-render — the loop uses this to keep editing overlays in front.
+		useEffect(() => {
+			if (divRef.current) divRef.current.dataset.editing = String(isEditing);
+		}, [isEditing]);
 
 		const type = element.customData.type;
 		const normalizedElement = useMemo(
@@ -91,8 +90,6 @@ const OverlayItem = memo(
 			onRegisterRef(normalizedElement.id, el);
 			return () => onUnregisterRef(normalizedElement.id);
 		}, [normalizedElement.id, onRegisterRef, onUnregisterRef]);
-
-		const zIndex = getOverlayZIndex(isSelected, isEditing, stackIndex);
 
 		const handleChange = useCallback(
 			(payload: OverlayUpdatePayloadMap[typeof type]) => {
@@ -122,7 +119,10 @@ const OverlayItem = memo(
 					height: normalizedElement.height,
 					transform: normalizedElement.angle ? `rotate(${normalizedElement.angle}rad)` : undefined,
 					transformOrigin: 'center center',
-					zIndex,
+					// z-index is computed and patched every rAF frame based on scene order:
+					// 0  → behind static canvas (native shapes cover the overlay)
+					// 2  → above static canvas (no native element is higher in scene order)
+					// 10 → above interactive canvas (selected or editing)
 					pointerEvents: isSelected ? 'auto' : 'none',
 				}}
 			>
@@ -139,7 +139,6 @@ const OverlayItem = memo(
 	},
 	(prev, next) =>
 		prev.element === next.element &&
-		prev.stackIndex === next.stackIndex &&
 		prev.isSelected === next.isSelected &&
 		prev.onRegisterRef === next.onRegisterRef &&
 		prev.onUnregisterRef === next.onUnregisterRef &&
@@ -182,22 +181,63 @@ export function CanvasNotesLayer() {
 			const container = viewportRef.current;
 
 			if (api && container) {
-				const { scrollX, scrollY, zoom } = api.getAppState();
+				const { scrollX, scrollY, zoom, selectedElementIds } = api.getAppState();
 				// Single transform covers all overlays — no per-element scroll math.
 				container.style.transform = `scale(${zoom.value}) translate(${scrollX}px, ${scrollY}px)`;
 
-				// Patch each registered overlay to its live canvas position.
+				const allElements = api.getSceneElements();
+				const itemRefs = itemRefsRef.current;
+
+				// Build a set of overlay IDs for O(1) lookup when computing z-index.
+				const overlayIds = new Set(itemRefs.keys());
+
+				// Build a position map: element id → index in scene order.
+				const scenePos = new Map<string, number>();
+				for (let i = 0; i < allElements.length; i++) {
+					scenePos.set(allElements[i].id, i);
+				}
+
+				// Patch each registered overlay to its live canvas position and z-index.
 				// This is what eliminates the drag desync: we read from Excalidraw's
 				// internal state (which is updated synchronously during drag) rather
 				// than waiting for React to re-render.
-				for (const el of api.getSceneElements()) {
-					const itemEl = itemRefsRef.current.get(el.id);
+				for (const el of allElements) {
+					const itemEl = itemRefs.get(el.id);
 					if (!itemEl) continue;
 					itemEl.style.left = `${el.x}px`;
 					itemEl.style.top = `${el.y}px`;
 					itemEl.style.width = `${el.width}px`;
 					itemEl.style.height = `${el.height}px`;
 					itemEl.style.transform = el.angle ? `rotate(${el.angle}rad)` : '';
+
+					// Z-index: derive from scene order so native shapes can appear above overlays.
+					// The Excalidraw static canvas is transparent (viewBackgroundColor = 'transparent')
+					// so overlays at z-index 0 are visible through the canvas between shapes, while
+					// canvas-drawn shapes paint over them wherever a shape overlaps.
+					const isSelected = selectedElementIds[el.id] === true;
+					const isEditing = itemEl.dataset.editing === 'true';
+
+					let zIndex: number;
+					if (isSelected || isEditing) {
+						// Editing/selected overlays always stay in front of everything.
+						zIndex = 10;
+					} else {
+						// Check if any non-overlay, non-deleted element appears after this overlay
+						// in scene order (i.e., is "in front" of it).
+						const myPos = scenePos.get(el.id) ?? -1;
+						let hasNativeAbove = false;
+						for (let i = myPos + 1; i < allElements.length; i++) {
+							const candidate = allElements[i];
+							if (!candidate.isDeleted && !overlayIds.has(candidate.id)) {
+								hasNativeAbove = true;
+								break;
+							}
+						}
+						// 0 → behind static canvas (native shapes cover the overlay where drawn)
+						// 2 → above static canvas (z-index: 1) but below interactive canvas (z-index: 3)
+						zIndex = hasNativeAbove ? 0 : 2;
+					}
+					itemEl.style.zIndex = String(zIndex);
 				}
 			}
 
@@ -243,7 +283,7 @@ export function CanvasNotesLayer() {
 	);
 
 	return (
-		<div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
+		<div className="pointer-events-none absolute inset-0 overflow-hidden">
 			{/*
 			 * Viewport-transform container: sits in canvas-space (top-left = canvas origin).
 			 * The rAF loop applies scale + translate here, so all children are automatically
@@ -258,11 +298,10 @@ export function CanvasNotesLayer() {
 					transformOrigin: '0 0',
 				}}
 			>
-				{overlayElements.map((element, stackIndex) => (
+				{overlayElements.map((element) => (
 					<OverlayItem
 						key={element.id}
 						element={element}
-						stackIndex={stackIndex}
 						isSelected={selectedElementIds[element.id] === true}
 						onRegisterRef={onRegisterRef}
 						onUnregisterRef={onUnregisterRef}
