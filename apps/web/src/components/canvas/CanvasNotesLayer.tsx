@@ -165,26 +165,28 @@ export function CanvasNotesLayer() {
 		excalidrawApiRef.current = excalidrawApi;
 	}, [excalidrawApi]);
 
-	// viewportRef: the single container that receives the viewport transform.
 	// itemRefsRef: map of element id → overlay div, for per-element DOM patching.
-	const viewportRef = useRef<HTMLDivElement>(null);
 	const itemRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
 	const rafRef = useRef<number>(0);
 
 	// The rAF loop — runs every frame, independent of React's render cycle.
-	// It applies scroll/zoom as a CSS transform on the container (eliminating the
-	// coordinate math that React used to do) and patches each overlay's position
-	// directly from the live Excalidraw scene (handling drag without lag).
+	//
+	// Each overlay item is positioned in SCREEN SPACE (pixels from the canvas viewport
+	// top-left corner), computed from live Excalidraw state each frame. This removes
+	// drag/pan/zoom desync while keeping each item's z-index in the global stacking
+	// context so native shapes can appear above or below overlays correctly.
+	//
+	// We intentionally avoid using a CSS-transform container here because applying
+	// `transform` to a parent creates a stacking context that traps child z-indices
+	// inside it — preventing individual overlay items from competing with the
+	// Excalidraw canvas (z-index: 1) and interactive canvas (z-index: 3).
 	useLayoutEffect(() => {
 		function syncPositions() {
 			const api = excalidrawApiRef.current;
-			const container = viewportRef.current;
 
-			if (api && container) {
+			if (api) {
 				const { scrollX, scrollY, zoom, selectedElementIds } = api.getAppState();
-				// Single transform covers all overlays — no per-element scroll math.
-				container.style.transform = `scale(${zoom.value}) translate(${scrollX}px, ${scrollY}px)`;
-
+				const z = zoom.value;
 				const allElements = api.getSceneElements();
 				const itemRefs = itemRefsRef.current;
 
@@ -197,17 +199,18 @@ export function CanvasNotesLayer() {
 					scenePos.set(allElements[i].id, i);
 				}
 
-				// Patch each registered overlay to its live canvas position and z-index.
-				// This is what eliminates the drag desync: we read from Excalidraw's
-				// internal state (which is updated synchronously during drag) rather
-				// than waiting for React to re-render.
+				// Patch each registered overlay to its live screen-space position and z-index.
+				// Reading from api.getSceneElements() / api.getAppState() gives the live state
+				// that Excalidraw mutates in-place during drag — no React re-render needed.
+				// Screen X = (canvas.x + scrollX) * zoom, matching how Excalidraw projects
+				// canvas coordinates to screen coordinates.
 				for (const el of allElements) {
 					const itemEl = itemRefs.get(el.id);
 					if (!itemEl) continue;
-					itemEl.style.left = `${el.x}px`;
-					itemEl.style.top = `${el.y}px`;
-					itemEl.style.width = `${el.width}px`;
-					itemEl.style.height = `${el.height}px`;
+					itemEl.style.left = `${(el.x + scrollX) * z}px`;
+					itemEl.style.top = `${(el.y + scrollY) * z}px`;
+					itemEl.style.width = `${el.width * z}px`;
+					itemEl.style.height = `${el.height * z}px`;
 					itemEl.style.transform = el.angle ? `rotate(${el.angle}rad)` : '';
 
 					// Z-index: derive from scene order so native shapes can appear above overlays.
@@ -284,31 +287,16 @@ export function CanvasNotesLayer() {
 
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden">
-			{/*
-			 * Viewport-transform container: sits in canvas-space (top-left = canvas origin).
-			 * The rAF loop applies scale + translate here, so all children are automatically
-			 * positioned relative to the canvas coordinate system.
-			 */}
-			<div
-				ref={viewportRef}
-				style={{
-					position: 'absolute',
-					top: 0,
-					left: 0,
-					transformOrigin: '0 0',
-				}}
-			>
-				{overlayElements.map((element) => (
-					<OverlayItem
-						key={element.id}
-						element={element}
-						isSelected={selectedElementIds[element.id] === true}
-						onRegisterRef={onRegisterRef}
-						onUnregisterRef={onUnregisterRef}
-						updateOverlayElement={updateOverlayElement}
-					/>
-				))}
-			</div>
+			{overlayElements.map((element) => (
+				<OverlayItem
+					key={element.id}
+					element={element}
+					isSelected={selectedElementIds[element.id] === true}
+					onRegisterRef={onRegisterRef}
+					onUnregisterRef={onUnregisterRef}
+					updateOverlayElement={updateOverlayElement}
+				/>
+			))}
 		</div>
 	);
 }
