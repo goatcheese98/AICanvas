@@ -88,8 +88,9 @@ body {
 
 .excalidraw {
 	/* Bump interactive canvas (selection handles, live drawing previews) above
-	   HTML overlay divs which sit at z-index: 2. The static canvas remains at
-	   --zIndex-canvas: 1, so overlay HTML still renders over finished shapes. */
+	   HTML overlay divs which sit at z-index: 2. When a native shape is selected
+	   it is rendered on the interactive canvas (z-index: 3) and visually appears
+	   above the overlay, while the overlay content remains visible. */
 	--zIndex-interactiveCanvas: 3;
 }
 

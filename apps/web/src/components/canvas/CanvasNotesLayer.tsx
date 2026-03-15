@@ -46,7 +46,7 @@ const OverlayContent = memo(function OverlayContent({
 
 // ─── OverlayItem ─────────────────────────────────────────────────────────────
 // Position (left/top/width/height) is set imperatively by the rAF loop.
-// React only controls z-index, pointer-events, and overlay content.
+// React only controls pointer-events and overlay content.
 
 interface OverlayItemProps {
 	element: TypedOverlayCanvasElement;
@@ -119,10 +119,6 @@ const OverlayItem = memo(
 					height: normalizedElement.height,
 					transform: normalizedElement.angle ? `rotate(${normalizedElement.angle}rad)` : undefined,
 					transformOrigin: 'center center',
-					// z-index is computed and patched every rAF frame based on scene order:
-					// 0  → behind static canvas (native shapes cover the overlay)
-					// 2  → above static canvas (no native element is higher in scene order)
-					// 10 → above interactive canvas (selected or editing)
 					pointerEvents: isSelected ? 'auto' : 'none',
 				}}
 			>
@@ -146,10 +142,10 @@ const OverlayItem = memo(
 );
 
 // ─── CanvasNotesLayer ─────────────────────────────────────────────────────────
-// Renders a single viewport-transform container in canvas space.
+// Positions overlay items in screen space each frame via a rAF loop.
 // A requestAnimationFrame loop reads live state from excalidrawApi and patches
-// the container transform + each element's position directly — no React renders
-// are triggered during pan, zoom, or drag.
+// each item's position directly — no React renders are triggered during pan,
+// zoom, or drag.
 
 export function CanvasNotesLayer() {
 	const elements = useAppStore((s) => s.elements);
@@ -190,15 +186,6 @@ export function CanvasNotesLayer() {
 				const allElements = api.getSceneElements();
 				const itemRefs = itemRefsRef.current;
 
-				// Build a set of overlay IDs for O(1) lookup when computing z-index.
-				const overlayIds = new Set(itemRefs.keys());
-
-				// Build a position map: element id → index in scene order.
-				const scenePos = new Map<string, number>();
-				for (let i = 0; i < allElements.length; i++) {
-					scenePos.set(allElements[i].id, i);
-				}
-
 				// Patch each registered overlay to its live screen-space position and z-index.
 				// Reading from api.getSceneElements() / api.getAppState() gives the live state
 				// that Excalidraw mutates in-place during drag — no React re-render needed.
@@ -213,34 +200,22 @@ export function CanvasNotesLayer() {
 					itemEl.style.height = `${el.height * z}px`;
 					itemEl.style.transform = el.angle ? `rotate(${el.angle}rad)` : '';
 
-					// Z-index: derive from scene order so native shapes can appear above overlays.
-					// The Excalidraw static canvas is transparent (viewBackgroundColor = 'transparent')
-					// so overlays at z-index 0 are visible through the canvas between shapes, while
-					// canvas-drawn shapes paint over them wherever a shape overlaps.
+					// Z-index:
+					// 10 → selected or editing overlay — above interactive canvas (z-index: 3)
+					//  2 → all other overlays — above static canvas (z-index: 1), below
+					//      interactive canvas (z-index: 3).
+					//
+					// We never use z-index: 0 (behind static canvas). Although the static canvas
+					// runs with viewBackgroundColor: 'transparent', canvas-drawn pixels (shapes,
+					// fills) are opaque and would hide the overlay's HTML content. Keeping all
+					// overlays at z-index ≥ 2 ensures text and content are always visible.
+					//
+					// When a native shape is SELECTED, Excalidraw moves it to the interactive
+					// canvas (z-index: 3), so it visually renders above the overlay (z-index: 2)
+					// without hiding the overlay content.
 					const isSelected = selectedElementIds[el.id] === true;
 					const isEditing = itemEl.dataset.editing === 'true';
-
-					let zIndex: number;
-					if (isSelected || isEditing) {
-						// Editing/selected overlays always stay in front of everything.
-						zIndex = 10;
-					} else {
-						// Check if any non-overlay, non-deleted element appears after this overlay
-						// in scene order (i.e., is "in front" of it).
-						const myPos = scenePos.get(el.id) ?? -1;
-						let hasNativeAbove = false;
-						for (let i = myPos + 1; i < allElements.length; i++) {
-							const candidate = allElements[i];
-							if (!candidate.isDeleted && !overlayIds.has(candidate.id)) {
-								hasNativeAbove = true;
-								break;
-							}
-						}
-						// 0 → behind static canvas (native shapes cover the overlay where drawn)
-						// 2 → above static canvas (z-index: 1) but below interactive canvas (z-index: 3)
-						zIndex = hasNativeAbove ? 0 : 2;
-					}
-					itemEl.style.zIndex = String(zIndex);
+					itemEl.style.zIndex = String((isSelected || isEditing) ? 10 : 2);
 				}
 			}
 
