@@ -107,7 +107,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 17ca93f20835664505fe44e9d514c34e
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-        run: printf '%s' "$CLERK_SECRET_KEY" | npx wrangler secret put CLERK_SECRET_KEY
+          CLERK_JWT_KEY: ${{ secrets.CLERK_JWT_KEY }}
+        run: |
+          printf '%s' "$CLERK_SECRET_KEY" | npx wrangler secret put CLERK_SECRET_KEY
+          printf '%s' "$CLERK_JWT_KEY" | npx wrangler secret put CLERK_JWT_KEY
 
       - name: Deploy API Worker
         working-directory: apps/api
