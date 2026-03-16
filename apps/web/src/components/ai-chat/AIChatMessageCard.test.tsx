@@ -1,10 +1,76 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { useAuth } from '@clerk/clerk-react';
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
+import * as api from '@/lib/api';
 import { MessageCard } from './AIChatMessageCard';
 
+vi.mock('@clerk/clerk-react', () => ({
+	useAuth: vi.fn(),
+}));
+
+vi.mock('@/lib/api', async (importOriginal) => {
+	const original = await importOriginal<typeof import('@/lib/api')>();
+	return {
+		...original,
+		getRequiredAuthHeaders: vi.fn(),
+		fetchAssistantArtifactAsset: vi.fn(),
+	};
+});
+
 describe('AIChatMessageCard', () => {
+	it('renders an inline preview for stored image artifacts without auto-inserting them', async () => {
+		const createObjectURL = vi.fn(() => 'blob:preview-image');
+		const revokeObjectURL = vi.fn();
+		Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+		Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
+			Authorization: 'Bearer test-token',
+		});
+		vi.mocked(api.fetchAssistantArtifactAsset).mockResolvedValue({
+			blob: new Blob(['preview'], { type: 'image/png' }),
+			mimeType: 'image/png',
+		});
+
+		const artifact: AssistantArtifact = {
+			type: 'image',
+			content: JSON.stringify({
+				kind: 'stored_asset',
+				r2Key: 'assistant-assets/run-1/image.png',
+				mimeType: 'image/png',
+				provider: 'cloudflare',
+				artifactId: 'artifact-1',
+				runId: 'run-1',
+			}),
+		};
+		const message: AssistantMessage = {
+			id: 'assistant-image-1',
+			role: 'assistant',
+			content: 'Here is the generated image.',
+			artifacts: [artifact],
+			createdAt: '2026-03-15T10:00:00.000Z',
+		};
+		const onInsertArtifact = vi.fn();
+
+		render(<MessageCard message={message} onInsertArtifact={onInsertArtifact} />);
+
+		await waitFor(() => {
+			expect(screen.getByAltText('Generated asset preview').getAttribute('src')).toBe(
+				'blob:preview-image',
+			);
+		});
+		expect(screen.getByRole('button', { name: 'Insert Image' })).toBeTruthy();
+	});
+
 	it('renders markdown artifacts and forwards insert actions', () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
 		const artifact: AssistantArtifact = {
 			type: 'markdown',
 			content: '# Build plan',
@@ -29,6 +95,10 @@ describe('AIChatMessageCard', () => {
 	});
 
 	it('offers inline markdown insertion for assistant messages without structured artifacts', () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
 		const onInsertMarkdown = vi.fn();
 		const message: AssistantMessage = {
 			id: 'assistant-2',

@@ -3,7 +3,7 @@ import type { AppEnv } from '../../types';
 export interface GeneratedImageAsset {
 	bytes: ArrayBuffer;
 	mimeType: string;
-	provider: 'openrouter';
+	provider: 'cloudflare' | 'openrouter';
 	model: string;
 	prompt: string;
 	revisedPrompt?: string;
@@ -35,6 +35,10 @@ function getOpenRouterBaseUrl(bindings: AppEnv['Bindings']): string {
 	return bindings.OPENROUTER_API_BASE_URL ?? 'https://openrouter.ai/api/v1';
 }
 
+function getCloudflareImageModel(bindings: AppEnv['Bindings']): string {
+	return bindings.CLOUDFLARE_IMAGE_MODEL ?? '@cf/black-forest-labs/flux-2-klein-4b';
+}
+
 function ensureFetchOk(response: Response, fallback: string): Promise<Response> {
 	if (response.ok) {
 		return Promise.resolve(response);
@@ -50,6 +54,53 @@ function ensureFetchOk(response: Response, fallback: string): Promise<Response> 
 		});
 }
 
+async function generateCloudflareImageAsset(
+	bindings: AppEnv['Bindings'],
+	input: {
+		prompt: string;
+		style: 'image' | 'sketch';
+	},
+): Promise<GeneratedImageAsset> {
+	if (!bindings.AI) {
+		throw new Error('AI binding is not configured for Cloudflare image generation');
+	}
+
+	const form = new FormData();
+	form.append('prompt', input.prompt);
+	form.append('width', '1024');
+	form.append('height', '1024');
+	form.append('steps', input.style === 'sketch' ? '12' : '20');
+
+	// Workers AI expects multipart payloads for this model.
+	const serializedForm = new Response(form);
+	const formBody = serializedForm.body ?? (await serializedForm.arrayBuffer());
+	const contentType = serializedForm.headers.get('content-type') ?? 'multipart/form-data';
+
+	const payload = (await bindings.AI.run(
+		getCloudflareImageModel(bindings) as Parameters<Ai['run']>[0],
+		{
+			multipart: {
+				body: formBody,
+				contentType,
+			},
+		} as unknown as Parameters<Ai['run']>[1],
+	)) as {
+		image?: string;
+	};
+
+	if (!payload.image) {
+		throw new Error('Cloudflare image generation returned no image payload');
+	}
+
+	return {
+		bytes: toArrayBuffer(decodeBase64(payload.image)),
+		mimeType: 'image/png',
+		provider: 'cloudflare',
+		model: getCloudflareImageModel(bindings),
+		prompt: input.prompt,
+	};
+}
+
 export async function generateImageAsset(
 	bindings: AppEnv['Bindings'],
 	input: {
@@ -57,8 +108,12 @@ export async function generateImageAsset(
 		style: 'image' | 'sketch';
 	},
 ): Promise<GeneratedImageAsset> {
+	if (bindings.AI) {
+		return generateCloudflareImageAsset(bindings, input);
+	}
+
 	if (!bindings.OPENROUTER_API_KEY) {
-		throw new Error('OPENROUTER_API_KEY is not configured for image generation');
+		throw new Error('AI binding or OPENROUTER_API_KEY must be configured for image generation');
 	}
 
 	const response = await fetch(`${getOpenRouterBaseUrl(bindings)}/chat/completions`, {

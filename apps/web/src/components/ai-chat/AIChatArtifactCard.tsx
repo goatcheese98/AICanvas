@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import type { AssistantArtifact, CanvasElement } from '@ai-canvas/shared/types';
-import { describeAssistantArtifact } from './assistant-artifacts';
+import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
+import { describeAssistantArtifact, parseStoredAssistantAssetContent } from './assistant-artifacts';
 import {
 	PANEL_BUTTON,
 	PANEL_BUTTON_DANGER,
@@ -15,6 +18,77 @@ import type {
 	DiagramInsertInput,
 	MarkdownPatchReviewState,
 } from './ai-chat-types';
+
+function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
+	const { getToken, isSignedIn } = useAuth();
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+
+	useEffect(() => {
+		const storedAsset = parseStoredAssistantAssetContent(artifact.content);
+		if (!isSignedIn || !storedAsset?.artifactId || !storedAsset.runId) {
+			setPreviewUrl(null);
+			setStatus('idle');
+			return;
+		}
+		const runId = storedAsset.runId;
+		const artifactId = storedAsset.artifactId;
+
+		let cancelled = false;
+		let objectUrl: string | null = null;
+		setStatus('loading');
+
+		void (async () => {
+			try {
+				const headers = await getRequiredAuthHeaders(async () => (await getToken?.()) ?? null);
+				const { blob } = await fetchAssistantArtifactAsset(
+					runId,
+					artifactId,
+					headers,
+				);
+				if (cancelled) {
+					return;
+				}
+
+				objectUrl = URL.createObjectURL(blob);
+				setPreviewUrl(objectUrl);
+				setStatus('ready');
+			} catch {
+				if (!cancelled) {
+					setPreviewUrl(null);
+					setStatus('error');
+				}
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+			if (objectUrl) {
+				URL.revokeObjectURL(objectUrl);
+			}
+		};
+	}, [artifact.content, getToken, isSignedIn]);
+
+	if (status === 'idle') {
+		return null;
+	}
+
+	return (
+		<div className="mb-3 overflow-hidden rounded-[10px] border border-stone-200 bg-white">
+			{previewUrl ? (
+				<img
+					src={previewUrl}
+					alt="Generated asset preview"
+					className="block max-h-64 w-full object-contain"
+				/>
+			) : (
+				<div className="flex h-40 items-center justify-center text-[11px] text-stone-500">
+					{status === 'error' ? 'Preview unavailable' : 'Loading preview...'}
+				</div>
+			)}
+		</div>
+	);
+}
 
 export function ArtifactCard({
 	artifact,
@@ -197,13 +271,71 @@ export function ArtifactCard({
 		case 'image':
 			return (
 				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-600">
+					<StoredAssetPreview artifact={artifact} />
 					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Image" compact />
+					{onInsertArtifact ? (
+						<div className="mt-3 flex flex-wrap gap-2">
+							{insertionState?.status === 'inserted' ? (
+								<>
+									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+										Inserted Onto Canvas
+									</div>
+									{onUndoInsertedArtifact ? (
+										<button
+											type="button"
+											onClick={() => onUndoInsertedArtifact(artifactKey)}
+											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+										>
+											Undo Insert
+										</button>
+									) : null}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => onInsertArtifact(artifactKey, artifact)}
+									className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+								>
+									Insert Image
+								</button>
+							)}
+						</div>
+					) : null}
 				</div>
 			);
 		case 'image-vector':
 			return (
 				<div className="rounded-[10px] border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-900">
+					<StoredAssetPreview artifact={artifact} />
 					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Vector Asset" compact />
+					{onInsertArtifact ? (
+						<div className="mt-3 flex flex-wrap gap-2">
+							{insertionState?.status === 'inserted' ? (
+								<>
+									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
+										Inserted Onto Canvas
+									</div>
+									{onUndoInsertedArtifact ? (
+										<button
+											type="button"
+											onClick={() => onUndoInsertedArtifact(artifactKey)}
+											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
+										>
+											Undo Insert
+										</button>
+									) : null}
+								</>
+							) : (
+								<button
+									type="button"
+									onClick={() => onInsertArtifact(artifactKey, artifact)}
+									className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+								>
+									Insert Vector
+								</button>
+							)}
+						</div>
+					) : null}
 				</div>
 			);
 		case 'layout-plan':

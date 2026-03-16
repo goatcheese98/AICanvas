@@ -28,7 +28,9 @@ type PlannerRequest = Pick<
 	| 'prototypeContext'
 	| 'contextSnapshot'
 	| 'selectedElementIds'
->;
+> & {
+	vectorizationEnabled?: boolean;
+};
 
 function getSelectedContexts(request: PlannerRequest) {
 	return request.contextSnapshot?.selectedContexts ?? [];
@@ -86,14 +88,36 @@ function buildTaskTitle(mode: GenerationMode): string {
 	}
 }
 
-function buildImagePipelineTasks(mode: GenerationMode): PlannedAssistantTask[] {
-	return [
+function buildImagePipelineTasks(
+	mode: GenerationMode,
+	options?: { vectorizationEnabled?: boolean },
+): PlannedAssistantTask[] {
+	const vectorizationEnabled = (options?.vectorizationEnabled ?? false) && mode === 'sketch';
+	const includeArtifactTypes: AssistantArtifact['type'][] = vectorizationEnabled
+		? ['image', 'image-vector']
+		: ['image'];
+	const requiredArtifactTypes: AssistantArtifact['type'][] = vectorizationEnabled
+		? ['image', 'image-vector']
+		: ['image'];
+	const requiredTaskTypes: AssistantTaskType[] = vectorizationEnabled
+		? ['generate_image', 'vectorize_asset', 'generate_response']
+		: ['generate_image', 'generate_response'];
+	const summary = vectorizationEnabled
+		? 'Generated a sketch preview with an optional vector version ready to insert.'
+		: mode === 'sketch'
+			? 'Generated a sketch preview ready to insert.'
+			: 'Generated an image preview ready to insert.';
+
+	const tasks: PlannedAssistantTask[] = [
 		{
 			type: 'generate_image',
 			title: mode === 'sketch' ? 'Generate sketch source image' : 'Generate source image',
 			input: createImageGenerationInput('', mode as Extract<GenerationMode, 'image' | 'sketch'>),
 		},
-		{
+	];
+
+	if (vectorizationEnabled) {
+		tasks.push({
 			type: 'vectorize_asset',
 			title: 'Vectorize generated asset',
 			input: {
@@ -101,46 +125,18 @@ function buildImagePipelineTasks(mode: GenerationMode): PlannedAssistantTask[] {
 				sourceArtifactType: 'image',
 				outputTitle: 'Vectorized generated asset',
 			},
-		},
-		{
-			type: 'create_markdown_overlay',
-			title: 'Create markdown overlay draft',
-			input: {
-				kind: 'create_markdown_overlay',
-				resolvedMode: mode,
-				sourceArtifactTypes: ['image', 'image-vector'],
-				title: 'Generated asset markdown brief',
-			},
-		},
-		{
-			type: 'place_canvas_artifact',
-			title: 'Build placement plan',
-			input: {
-				kind: 'place_canvas_artifact',
-				targetArtifactTypes: ['image-vector', 'markdown'],
-				title: 'Canvas placement plan',
-				strategy: 'avoid-overlap',
-			},
-		},
+		});
+	}
+
+	tasks.push(
 		{
 			type: 'generate_response',
 			title: buildTaskTitle(mode),
 			input: {
 				kind: 'generate_response',
 				resolvedMode: mode,
-				includeArtifactTypes: ['image', 'image-vector', 'markdown', 'layout-plan'],
-				summary:
-					mode === 'sketch'
-						? 'Prepared a sketch asset pipeline with supporting canvas context.'
-						: 'Prepared an image asset pipeline with supporting canvas context.',
-			},
-		},
-		{
-			type: 'verify_layout',
-			title: 'Verify layout plan',
-			input: {
-				kind: 'verify_layout',
-				requiredArtifactTypes: ['image-vector', 'markdown', 'layout-plan'],
+				includeArtifactTypes,
+				summary,
 			},
 		},
 		{
@@ -148,19 +144,14 @@ function buildImagePipelineTasks(mode: GenerationMode): PlannedAssistantTask[] {
 			title: 'Verify generated output',
 			input: {
 				kind: 'verify_run',
-				requiredTaskTypes: [
-					'generate_image',
-					'vectorize_asset',
-					'create_markdown_overlay',
-					'place_canvas_artifact',
-					'generate_response',
-					'verify_layout',
-				],
-				requiredArtifactTypes: ['image', 'image-vector', 'markdown', 'layout-plan'],
+				requiredTaskTypes,
+				requiredArtifactTypes,
 				requireResultMessage: true,
 			},
 		},
-	];
+	);
+
+	return tasks;
 }
 
 function buildDiagramTasks(mode: Extract<GenerationMode, 'mermaid' | 'd2'>): PlannedAssistantTask[] {
@@ -211,13 +202,16 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 
 	const imageTasks =
 		resolvedMode === 'image' || resolvedMode === 'sketch'
-			? buildImagePipelineTasks(resolvedMode).map((task) =>
+			? buildImagePipelineTasks(resolvedMode, {
+					vectorizationEnabled: request.vectorizationEnabled,
+				}).map((task) =>
 					task.type === 'generate_image'
 						? {
 								...task,
 								input: createImageGenerationInput(
 									request.message,
 									resolvedMode as Extract<GenerationMode, 'image' | 'sketch'>,
+									request.history,
 								),
 						  }
 						: task,

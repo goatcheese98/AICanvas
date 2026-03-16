@@ -46,7 +46,7 @@ describe('assistant planner', () => {
 		expect(plan.tasks[0]?.title).toBe('Generate Kanban operations');
 	});
 
-	it('plans a multi-step image pipeline for image requests', () => {
+	it('plans a raster-only image pipeline when vectorization is unavailable', () => {
 		const plan = planAssistantRun({
 			message: 'create a hero illustration for this idea',
 			contextMode: 'all',
@@ -55,16 +55,88 @@ describe('assistant planner', () => {
 		expect(plan.resolvedMode).toBe('image');
 		expect(plan.tasks.map((task) => task.type)).toEqual([
 			'generate_image',
-			'vectorize_asset',
-			'create_markdown_overlay',
-			'place_canvas_artifact',
 			'generate_response',
-			'verify_layout',
 			'verify_run',
 		]);
 		expect(plan.tasks[0]?.input).toMatchObject({
 			kind: 'generate_image',
 			style: 'image',
+		});
+	});
+
+	it('plans a vectorized image pipeline when vectorization is enabled', () => {
+		const plan = planAssistantRun({
+			message: 'create a hero illustration for this idea',
+			contextMode: 'all',
+			vectorizationEnabled: true,
+		});
+
+		expect(plan.resolvedMode).toBe('image');
+		expect(plan.tasks.map((task) => task.type)).toEqual([
+			'generate_image',
+			'generate_response',
+			'verify_run',
+		]);
+		expect(plan.tasks[1]?.input).toMatchObject({
+			kind: 'generate_response',
+			includeArtifactTypes: ['image'],
+		});
+	});
+
+	it('only enables vectorization for sketch runs', () => {
+		const plan = planAssistantRun({
+			message: 'make a whiteboard sketch of the checkout flow',
+			contextMode: 'all',
+			vectorizationEnabled: true,
+		});
+
+		expect(plan.resolvedMode).toBe('sketch');
+		expect(plan.tasks.map((task) => task.type)).toEqual([
+			'generate_image',
+			'vectorize_asset',
+			'generate_response',
+			'verify_run',
+		]);
+		expect(plan.tasks[1]?.input).toMatchObject({
+			kind: 'vectorize_asset',
+			sourceArtifactType: 'image',
+		});
+	});
+
+	it('reuses the prior image prompt for image refinements', () => {
+		const plan = planAssistantRun({
+			message: "Let's do it with a beach boardwalk combo.",
+			contextMode: 'selected',
+			history: [
+				{
+					id: 'assistant-image-1',
+					role: 'assistant',
+					content: 'Generated image preview',
+					generationMode: 'image',
+					artifacts: [
+						{
+							type: 'image',
+							content: JSON.stringify({
+								kind: 'stored_asset',
+								r2Key: 'assistant-assets/run-1/pelican.png',
+								mimeType: 'image/png',
+								provider: 'cloudflare',
+								prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+							}),
+						},
+					],
+					createdAt: new Date().toISOString(),
+				},
+			],
+		});
+
+		expect(plan.resolvedMode).toBe('image');
+		expect(plan.tasks[0]?.input).toMatchObject({
+			kind: 'generate_image',
+			prompt: expect.stringContaining('pelican riding a bicycle'),
+		});
+		expect(plan.tasks[0]?.input).toMatchObject({
+			prompt: expect.stringContaining('beach boardwalk combo'),
 		});
 	});
 

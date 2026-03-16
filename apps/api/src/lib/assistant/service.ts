@@ -118,12 +118,45 @@ function isDiagramFollowUpRequest(message: string): boolean {
 	);
 }
 
+function getLastMediaGenerationMode(
+	history: AssistantServiceInput['history'],
+): Extract<GenerationMode, 'image' | 'sketch'> | null {
+	if (!Array.isArray(history)) {
+		return null;
+	}
+
+	for (const message of [...history].reverse()) {
+		if (message.role !== 'assistant') {
+			continue;
+		}
+
+		if (message.generationMode === 'image' || message.generationMode === 'sketch') {
+			return message.generationMode;
+		}
+	}
+
+	return null;
+}
+
+function isImageFollowUpRequest(message: string): boolean {
+	return /\b(background|lighting|style|color|palette|scene|setting|composition|pose|expression|outfit|add|remove|change|adjust|update|refine|improve|variation|version|another|different|with|without|make it|keep the|same subject|same image|proceed|go ahead|do it|yes|yep|let's do|lets do|try that)\b/.test(
+		message,
+	);
+}
+
 export function resolveGenerationMode(input: AssistantServiceInput): GenerationMode {
 	if (input.generationMode) {
 		return input.generationMode;
 	}
 
 	const message = input.message.toLowerCase();
+	const hasExplicitImageIntent =
+		/\b(generate|create|make|render|design)\s+(?:an?\s+)?(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\b/.test(
+			message,
+		) ||
+		/\b(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\s+of\b/.test(
+			message,
+		);
 
 	if (/\bd2\b/.test(message)) {
 		return 'd2';
@@ -147,6 +180,10 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 		return 'sketch';
 	}
 
+	if (hasExplicitImageIntent) {
+		return 'image';
+	}
+
 	if (
 		/(prototype|protoype|prototype|propotype|mockup|landing page|landing-page|react app|dashboard ui|ui prototype|build a component|build a page|vanilla js|vanilla javascript|html css|jsx|tsx)/.test(message) ||
 		(Boolean(input.prototypeContext) &&
@@ -164,6 +201,11 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 	const lastDiagramArtifact = getLastDiagramArtifact(input.history);
 	if (lastDiagramArtifact && isDiagramFollowUpRequest(message)) {
 		return lastDiagramArtifact.mode;
+	}
+
+	const lastMediaGenerationMode = getLastMediaGenerationMode(input.history);
+	if (lastMediaGenerationMode && isImageFollowUpRequest(message)) {
+		return lastMediaGenerationMode;
 	}
 
 	return 'chat';
@@ -2669,7 +2711,7 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 					'',
 					`Request: ${sentenceCase(input.message)}`,
 					'',
-					'The executor can attach generated assets, markdown context, and placement guidance to this response.',
+					'The executor can attach a generated asset that stays in chat until you choose to insert it.',
 				].join('\n'),
 			};
 		case 'prototype':

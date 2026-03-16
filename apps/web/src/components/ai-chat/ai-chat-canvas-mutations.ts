@@ -9,6 +9,7 @@ import type {
 } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { getViewportSceneCenter } from '@/components/canvas/element-factories';
 import {
 	getSelectedSceneBounds,
@@ -16,6 +17,15 @@ import {
 } from './ai-chat-canvas';
 import { clonePatchCustomData } from './ai-chat-helpers';
 import type { AssistantInsertionState } from './ai-chat-types';
+
+export function restoreCanvasSelectionState(excalidrawApi: ExcalidrawImperativeAPI) {
+	const setActiveTool = (
+		excalidrawApi as ExcalidrawImperativeAPI & {
+			setActiveTool?: (tool: { type: 'selection'; locked: false }) => void;
+		}
+	).setActiveTool;
+	setActiveTool?.({ type: 'selection', locked: false });
+}
 
 export function updateOverlayElementById({
 	excalidrawApi,
@@ -67,7 +77,7 @@ export function updateOverlayElementById({
 	}
 
 	excalidrawApi.updateScene({ elements: nextElements });
-	setElements(nextElements);
+	syncAppStoreFromExcalidraw(excalidrawApi);
 	return previousCustomData;
 }
 
@@ -130,10 +140,13 @@ export function applyInsertedElements({
 	excalidrawApi.updateScene({
 		elements: nextElements,
 		appState: {
+			isCropping: false,
+			croppingElementId: null,
 			selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
 		},
 	});
-	setElements(nextElements);
+	restoreCanvasSelectionState(excalidrawApi);
+	syncAppStoreFromExcalidraw(excalidrawApi);
 	return {
 		status: 'inserted',
 		insertedElementIds,
@@ -163,9 +176,12 @@ export function removeInsertedArtifactFromScene({
 	excalidrawApi.updateScene({
 		elements: nextElements,
 		appState: {
+			isCropping: false,
+			croppingElementId: null,
 			selectedElementIds: {},
 		},
 	});
-	setElements(nextElements);
+	restoreCanvasSelectionState(excalidrawApi);
+	syncAppStoreFromExcalidraw(excalidrawApi);
 	setFiles(nextFiles);
 }

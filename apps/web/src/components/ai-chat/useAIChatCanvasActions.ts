@@ -10,6 +10,7 @@ import { useAIChatPatchActions } from './useAIChatPatchActions';
 import { useAIChatInsertionActions } from './useAIChatInsertionActions';
 
 export function useAIChatCanvasActions({
+	getToken,
 	excalidrawApi,
 	elements,
 	selectedElementIds,
@@ -17,6 +18,7 @@ export function useAIChatCanvasActions({
 	setFiles,
 	setChatError,
 }: {
+	getToken: () => Promise<string | null>;
 	excalidrawApi: ExcalidrawImperativeAPI | null;
 	elements: readonly ExcalidrawElement[];
 	selectedElementIds: Record<string, boolean>;
@@ -55,6 +57,7 @@ export function useAIChatCanvasActions({
 	});
 
 	const insertionActions = useAIChatInsertionActions({
+		getToken,
 		excalidrawApi,
 		elements,
 		selectedElementIds,

@@ -2,10 +2,26 @@ import type {
 	AssistantArtifact,
 	AssistantArtifactRecord,
 	AssistantContextMode,
+	AssistantMessage,
 	AssistantTaskInput,
 	GenerationMode,
 } from '@ai-canvas/shared/types';
 import { generateAssistantResponse } from './service';
+
+interface StoredAssistantAssetContent {
+	kind: 'stored_asset';
+	r2Key: string;
+	mimeType: string;
+	provider: string;
+	model?: string;
+	prompt?: string;
+	revisedPrompt?: string;
+	tool?: string;
+	byteSize?: number;
+	sourceArtifactId?: string;
+	artifactId?: string;
+	runId?: string;
+}
 
 function uniqueArtifacts(artifacts: AssistantArtifact[]): AssistantArtifact[] {
 	const seen = new Set<string>();
@@ -19,20 +35,90 @@ function uniqueArtifacts(artifacts: AssistantArtifact[]): AssistantArtifact[] {
 	});
 }
 
+function enrichStoredArtifactContent(artifact: AssistantArtifactRecord): string {
+	if (artifact.type !== 'image' && artifact.type !== 'image-vector') {
+		return artifact.content;
+	}
+
+	try {
+		const parsed = JSON.parse(artifact.content) as StoredAssistantAssetContent;
+		if (parsed.kind !== 'stored_asset') {
+			return artifact.content;
+		}
+
+		return JSON.stringify({
+			...parsed,
+			artifactId: artifact.id,
+			runId: artifact.runId,
+		});
+	} catch {
+		return artifact.content;
+	}
+}
+
 function summarizeRequest(message: string): string {
 	return message.trim().replace(/\s+/g, ' ').slice(0, 120) || 'assistant request';
+}
+
+function stripImagePromptPrefix(prompt: string): string {
+	return prompt
+		.replace(/^create a polished image for:\s*/i, '')
+		.replace(/^create a loose whiteboard sketch for:\s*/i, '')
+		.trim();
+}
+
+function getLastImagePrompt(
+	history: AssistantMessage[] | undefined,
+): string | null {
+	if (!Array.isArray(history)) {
+		return null;
+	}
+
+	for (const message of [...history].reverse()) {
+		for (const artifact of [...(message.artifacts ?? [])].reverse()) {
+			if (artifact.type !== 'image' && artifact.type !== 'image-vector') {
+				continue;
+			}
+
+			try {
+				const parsed = JSON.parse(artifact.content) as StoredAssistantAssetContent;
+				const prompt = parsed.revisedPrompt ?? parsed.prompt;
+				if (parsed.kind === 'stored_asset' && typeof prompt === 'string' && prompt.trim().length > 0) {
+					return stripImagePromptPrefix(prompt);
+				}
+			} catch {
+				continue;
+			}
+		}
+	}
+
+	return null;
+}
+
+function isPureConfirmationMessage(message: string): boolean {
+	return /^(proceed|go ahead|do it|yes|yep|sure|okay|ok)$/i.test(message.trim());
 }
 
 export function createImageGenerationInput(
 	message: string,
 	mode: Extract<GenerationMode, 'image' | 'sketch'>,
+	history?: AssistantMessage[],
 ): Extract<AssistantTaskInput, { kind: 'generate_image' }> {
+	const summarizedMessage = summarizeRequest(message);
+	const previousPrompt = getLastImagePrompt(history);
+	const promptBody =
+		previousPrompt && !/^(create|generate|make|render|design)\b/i.test(summarizedMessage)
+			? isPureConfirmationMessage(summarizedMessage)
+				? previousPrompt
+				: `${previousPrompt}. Update it with this change: ${summarizedMessage}`
+			: summarizedMessage;
+
 	return {
 		kind: 'generate_image',
 		prompt:
 			mode === 'sketch'
-				? `Create a loose whiteboard sketch for: ${summarizeRequest(message)}`
-				: `Create a polished image for: ${summarizeRequest(message)}`,
+				? `Create a loose whiteboard sketch for: ${promptBody}`
+				: `Create a polished image for: ${promptBody}`,
 		style: mode,
 		outputTitle: mode === 'sketch' ? 'Generated sketch source image' : 'Generated source image',
 	};
@@ -44,34 +130,6 @@ export async function buildMarkdownOverlayArtifact(params: {
 	mode: GenerationMode;
 	artifacts: AssistantArtifactRecord[];
 }): Promise<{ title: string; content: string }> {
-	if (params.mode === 'image' || params.mode === 'sketch') {
-		const imageArtifact = params.artifacts.find((artifact) => artifact.type === 'image');
-		const vectorArtifact = params.artifacts.find((artifact) => artifact.type === 'image-vector');
-		const lines = [
-			'# Generated Asset Brief',
-			'',
-			`Request: ${summarizeRequest(params.message)}`,
-			...(params.contextMode !== 'none'
-			? [`Context: ${params.contextMode === 'selected' ? 'Selected elements' : 'Whole canvas'}`]
-			: []),
-		];
-
-		if (imageArtifact) {
-			lines.push('', `Source image: ${imageArtifact.title}`);
-		}
-
-		if (vectorArtifact) {
-			lines.push(`Vectorized asset: ${vectorArtifact.title}`);
-		}
-
-		lines.push('', 'Placement intent: keep the markdown brief adjacent to the generated asset.');
-
-		return {
-			title: 'Generated asset markdown brief',
-			content: lines.join('\n'),
-		};
-	}
-
 	const result = await generateAssistantResponse({
 		message: params.message,
 		contextMode: params.contextMode,
@@ -142,7 +200,7 @@ export function buildResponseArtifacts(
 		.filter((artifact) => includeArtifactTypes.includes(artifact.type))
 		.map<AssistantArtifact>((artifact) => ({
 			type: artifact.type,
-			content: artifact.content,
+			content: enrichStoredArtifactContent(artifact),
 		}));
 
 	return uniqueArtifacts([...serviceArtifacts, ...persisted]);
@@ -160,10 +218,6 @@ export function buildResponseSummary(params: {
 		for (const artifact of params.artifacts) {
 			lines.push(`- ${artifact.title}`);
 		}
-	}
-
-	if (params.mode === 'image' || params.mode === 'sketch') {
-		lines.push('', 'The run prepared an asset brief and placement plan alongside the generated media.');
 	}
 
 	if (params.mode === 'prototype') {

@@ -177,6 +177,7 @@ async function executeAssistantRun(
 							history: input.history,
 							contextSnapshot: input.contextSnapshot,
 							prototypeContext: input.prototypeContext,
+							vectorizationEnabled: Boolean(bindings.VECTORIZE_ASSET_URL),
 						});
 
 						for (const task of plan.tasks) {
@@ -898,6 +899,42 @@ export const assistantRoutes = new Hono<AppEnv>()
 
 		const artifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
 		return c.json(artifacts);
+	})
+
+	.get('/runs/:runId/artifacts/:artifactId/asset', async (c) => {
+		const ownerId = c.get('user').id;
+		const runId = c.req.param('runId');
+		const artifactId = c.req.param('artifactId');
+		const db = createDb(c.env.DB);
+		const run = await getAssistantRunRecord(db, ownerId, runId);
+
+		if (!run) {
+			return c.json({ error: 'Run not found' }, 404);
+		}
+
+		const artifact = (await listAssistantArtifactsRecord(db, ownerId, runId)).find(
+			(candidate) => candidate.id === artifactId,
+		);
+		if (!artifact) {
+			return c.json({ error: 'Artifact not found' }, 404);
+		}
+
+		const storedAsset = parseStoredAssistantAssetContent(artifact.content);
+		if (!storedAsset) {
+			return c.json({ error: 'Artifact has no stored asset' }, 400);
+		}
+
+		const object = await loadAssistantAssetFromR2(c.env.R2, storedAsset.r2Key);
+		if (!object) {
+			return c.json({ error: 'Stored asset not found' }, 404);
+		}
+
+		return new Response(object.body, {
+			headers: {
+				'Content-Type': storedAsset.mimeType,
+				'Cache-Control': 'private, max-age=3600',
+			},
+		});
 	})
 
 	.get('/runs/:runId/events', async (c) => {

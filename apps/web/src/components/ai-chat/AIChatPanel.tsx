@@ -62,6 +62,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 	);
 
 	const canvasActions = useAIChatCanvasActions({
+		getToken,
 		excalidrawApi,
 		elements,
 		selectedElementIds,
@@ -113,13 +114,9 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		appendMessageToThread,
 		latestPendingPatchArtifacts,
 		assistantPatchStates: canvasActions.assistantPatchStates,
-		assistantInsertionStates: canvasActions.assistantInsertionStates,
 		applyAssistantPatch: canvasActions.applyAssistantPatch,
 		getPrototypeContextForRequest: canvasActions.getPrototypeContextForRequest,
 		appendLocalAssistantMessage,
-		insertArtifactOnCanvas: canvasActions.insertArtifactOnCanvas,
-		insertRenderedDiagramOnCanvas: canvasActions.insertRenderedDiagramOnCanvas,
-		rememberInsertionState: canvasActions.rememberInsertionState,
 	});
 
 	useEffect(() => {

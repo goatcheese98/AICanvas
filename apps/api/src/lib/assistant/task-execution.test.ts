@@ -3,39 +3,20 @@ import {
 	buildMarkdownOverlayArtifact,
 	buildPlacementPlanArtifact,
 	buildResponseArtifacts,
+	buildResponseSummary,
 } from './task-execution';
 
 describe('assistant task execution helpers', () => {
-	it('builds an image markdown brief from generated artifacts', async () => {
+	it('builds a generic markdown overlay for non-image modes', async () => {
 		const artifact = await buildMarkdownOverlayArtifact({
-			message: 'create a launch poster',
+			message: 'diagram the auth flow',
 			contextMode: 'all',
-			mode: 'image',
-			artifacts: [
-				{
-					id: 'artifact-image',
-					runId: 'run-1',
-					taskId: 'task-1',
-					type: 'image',
-					title: 'Generated source image',
-					content: 'Prompt: create a launch poster',
-					createdAt: '2026-03-07T00:00:00.000Z',
-				},
-				{
-					id: 'artifact-vector',
-					runId: 'run-1',
-					taskId: 'task-2',
-					type: 'image-vector',
-					title: 'Vectorized generated asset',
-					content: 'Vectorized asset derived from generated source image',
-					createdAt: '2026-03-07T00:00:01.000Z',
-				},
-			],
+			mode: 'mermaid',
+			artifacts: [],
 		});
 
-		expect(artifact.title).toBe('Generated asset markdown brief');
-		expect(artifact.content).toContain('# Generated Asset Brief');
-		expect(artifact.content).toContain('Vectorized asset: Vectorized generated asset');
+		expect(artifact.title).toBe('Generated markdown overlay');
+		expect(artifact.content).toContain('# Mermaid Draft');
 	});
 
 	it('builds an avoid-overlap placement plan', () => {
@@ -77,5 +58,56 @@ describe('assistant task execution helpers', () => {
 		);
 
 		expect(artifacts).toEqual([{ type: 'markdown', content: '# Mermaid Draft' }]);
+	});
+
+	it('adds downloadable identifiers to stored image artifacts in responses', () => {
+		const artifacts = buildResponseArtifacts(
+			[
+				{
+					id: 'artifact-image',
+					runId: 'run-1',
+					taskId: 'task-1',
+					type: 'image',
+					title: 'Generated source image',
+					content: JSON.stringify({
+						kind: 'stored_asset',
+						r2Key: 'assistant-assets/run-1/image.png',
+						mimeType: 'image/png',
+						provider: 'cloudflare',
+					}),
+					createdAt: '2026-03-07T00:00:00.000Z',
+				},
+			],
+			['image'],
+		);
+
+		expect(JSON.parse(artifacts[0]?.content ?? '{}')).toMatchObject({
+			artifactId: 'artifact-image',
+			runId: 'run-1',
+			mimeType: 'image/png',
+		});
+	});
+
+	it('keeps image summaries focused on the generated asset only', () => {
+		const summary = buildResponseSummary({
+			mode: 'image',
+			message: 'create an image of a bus',
+			summary: 'Generated an image preview ready to insert.',
+			artifacts: [
+				{
+					id: 'artifact-image',
+					runId: 'run-1',
+					taskId: 'task-1',
+					type: 'image',
+					title: 'Generated source image',
+					content: '{}',
+					createdAt: '2026-03-07T00:00:00.000Z',
+				},
+			],
+		});
+
+		expect(summary).toContain('Generated an image preview ready to insert.');
+		expect(summary).not.toContain('asset brief');
+		expect(summary).not.toContain('placement plan');
 	});
 });

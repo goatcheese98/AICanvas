@@ -416,6 +416,13 @@ describe('assistant service', () => {
 			}),
 		).toBe('prototype');
 
+		expect(
+			resolveGenerationMode({
+				message: 'Can you create an image of a beautiful landing page?',
+				contextMode: 'selected',
+			}),
+		).toBe('image');
+
 		const result = await generateAssistantResponse({
 			message: 'diagram the auth flow for this canvas',
 			contextMode: 'all',
@@ -442,6 +449,64 @@ describe('assistant service', () => {
 				],
 			}),
 		).toBe('d2');
+	});
+
+	it('keeps image follow-ups on the image generation path', () => {
+		expect(
+			resolveGenerationMode({
+				message: 'I would like there to be a better background for this',
+				contextMode: 'selected',
+				history: [
+					{
+						id: 'assistant-image-1',
+						role: 'assistant',
+						content: 'Generated image preview',
+						generationMode: 'image',
+						artifacts: [
+							{
+								type: 'image',
+								content: JSON.stringify({
+									kind: 'stored_asset',
+									r2Key: 'assistant-assets/run-1/pelican.png',
+									mimeType: 'image/png',
+									provider: 'cloudflare',
+									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+								}),
+							},
+						],
+						createdAt: new Date().toISOString(),
+					},
+				],
+			}),
+		).toBe('image');
+
+		expect(
+			resolveGenerationMode({
+				message: "Let's do it with a beach boardwalk combo.",
+				contextMode: 'selected',
+				history: [
+					{
+						id: 'assistant-image-1',
+						role: 'assistant',
+						content: 'Generated image preview',
+						generationMode: 'image',
+						artifacts: [
+							{
+								type: 'image',
+								content: JSON.stringify({
+									kind: 'stored_asset',
+									r2Key: 'assistant-assets/run-1/pelican.png',
+									mimeType: 'image/png',
+									provider: 'cloudflare',
+									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+								}),
+							},
+						],
+						createdAt: new Date().toISOString(),
+					},
+				],
+			}),
+		).toBe('image');
 	});
 
 	it('builds diagram edit prompts from the previous diagram source', async () => {

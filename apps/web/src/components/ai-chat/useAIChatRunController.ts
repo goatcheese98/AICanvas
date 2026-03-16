@@ -15,7 +15,6 @@ import {
 	getRequiredAuthHeaders,
 	streamAssistantRunEvents,
 } from '@/lib/api';
-import { renderCodeArtifactToSvg } from '@/lib/assistant/diagram-renderer';
 import { captureBrowserException } from '@/lib/observability';
 import {
 	applyAssistantRunEvent,
@@ -24,11 +23,9 @@ import {
 	type AssistantRunProgress,
 } from './run-progress';
 import { AFFIRMATIVE_PATCH_REPLY, NEGATIVE_PATCH_REPLY } from './ai-chat-constants';
-import { buildArtifactKey, buildConversationHistory } from './ai-chat-helpers';
+import { buildConversationHistory } from './ai-chat-helpers';
 import { getSelectedElementIdsFromMap, shouldConfirmSelectionForPrompt } from './selection-context';
-import { getDiagramArtifactSource } from './assistant-artifacts';
 import type {
-	AssistantInsertionState,
 	AssistantPatchApplyState,
 	PatchArtifactDescriptor,
 	PendingSelectionConfirmation,
@@ -51,13 +48,9 @@ export function useAIChatRunController({
 	appendMessageToThread,
 	latestPendingPatchArtifacts,
 	assistantPatchStates,
-	assistantInsertionStates,
 	applyAssistantPatch,
 	getPrototypeContextForRequest,
 	appendLocalAssistantMessage,
-	insertArtifactOnCanvas,
-	insertRenderedDiagramOnCanvas,
-	rememberInsertionState,
 }: {
 	canvasId: string;
 	getToken: () => Promise<string | null>;
@@ -75,7 +68,6 @@ export function useAIChatRunController({
 	appendMessageToThread: (threadId: string, message: AssistantMessage) => void;
 	latestPendingPatchArtifacts: PatchArtifactDescriptor[];
 	assistantPatchStates: Record<string, AssistantPatchApplyState>;
-	assistantInsertionStates: Record<string, AssistantInsertionState>;
 	applyAssistantPatch: (
 		artifactKey: string,
 		artifact: AssistantArtifact,
@@ -86,18 +78,6 @@ export function useAIChatRunController({
 		effectiveContextMode: AssistantContextMode,
 	) => PrototypeOverlayCustomData | undefined;
 	appendLocalAssistantMessage: (content: string) => void;
-	insertArtifactOnCanvas: (artifact: AssistantArtifact) => Promise<AssistantInsertionState | null>;
-	insertRenderedDiagramOnCanvas: (input: {
-		title: string;
-		svgMarkup: string;
-		width: number;
-		height: number;
-		diagram: {
-			language: 'mermaid' | 'd2';
-			code: string;
-		};
-	}) => Promise<AssistantInsertionState | null>;
-	rememberInsertionState: (artifactKey: string, insertionState: AssistantInsertionState) => void;
 }) {
 	const [runProgress, setRunProgress] = useState<AssistantRunProgress | null>(null);
 	const [isRunProgressExpanded, setIsRunProgressExpanded] = useState(true);
@@ -116,104 +96,6 @@ export function useAIChatRunController({
 
 		setIsRunProgressExpanded(false);
 	}, [runProgress?.runId, runProgress?.status]);
-
-	useEffect(() => {
-		if (!runProgress || runProgress.status !== 'completed') {
-			return;
-		}
-
-		const latestAssistantMessage = [...messages]
-			.reverse()
-			.find((message) => message.role === 'assistant' && (message.artifacts?.length ?? 0) > 0);
-		if (!latestAssistantMessage) {
-			return;
-		}
-
-		const pendingArtifacts = (latestAssistantMessage.artifacts ?? [])
-			.map((artifact, index) => ({
-				artifact,
-				artifactKey: buildArtifactKey(latestAssistantMessage.id, artifact, index),
-			}))
-			.filter(
-				({ artifact, artifactKey }) =>
-					(artifact.type === 'kanban-ops' ||
-						artifact.type === 'markdown' ||
-						artifact.type === 'prototype-files' ||
-						artifact.type === 'mermaid' ||
-						artifact.type === 'd2') &&
-					!assistantInsertionStates[artifactKey],
-			);
-
-		if (pendingArtifacts.length === 0) {
-			return;
-		}
-
-		let cancelled = false;
-
-		void (async () => {
-			for (const { artifact, artifactKey } of pendingArtifacts) {
-				if (cancelled) {
-					return;
-				}
-
-				try {
-					const insertionState =
-						artifact.type === 'mermaid' || artifact.type === 'd2'
-							? await (async () => {
-									const diagram = getDiagramArtifactSource(artifact);
-									if (!diagram) {
-										return null;
-									}
-									const rendered = await renderCodeArtifactToSvg({
-										language: diagram.language,
-										code: diagram.code,
-										d2Variant: 'default',
-									});
-									return insertRenderedDiagramOnCanvas({
-										title: diagram.language === 'mermaid' ? 'Mermaid Diagram' : 'D2 Diagram',
-										svgMarkup: rendered.svgMarkup,
-										width: rendered.width,
-										height: rendered.height,
-										diagram,
-									});
-								})()
-							: await insertArtifactOnCanvas(artifact);
-
-					if (!cancelled && insertionState) {
-						rememberInsertionState(artifactKey, insertionState);
-					}
-				} catch (error) {
-					if (!cancelled) {
-						captureBrowserException(error, {
-							tags: {
-								area: 'ai_chat',
-								action: 'auto_insert_artifact',
-							},
-							extra: {
-								artifactKey,
-								artifactType: artifact.type,
-							},
-						});
-						setChatError(
-							error instanceof Error ? error.message : 'Failed to insert artifact onto the canvas',
-						);
-					}
-				}
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [
-		assistantInsertionStates,
-		insertArtifactOnCanvas,
-		insertRenderedDiagramOnCanvas,
-		messages,
-		rememberInsertionState,
-		runProgress,
-		setChatError,
-	]);
 
 	const sendMessage = async (options?: {
 		contextModeOverride?: AssistantContextMode;

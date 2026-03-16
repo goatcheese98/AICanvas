@@ -14,7 +14,7 @@ import type {
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 
-interface StoredAssistantAssetContent {
+export interface StoredAssistantAssetContent {
 	kind: 'stored_asset';
 	r2Key: string;
 	mimeType: string;
@@ -25,6 +25,8 @@ interface StoredAssistantAssetContent {
 	tool?: string;
 	byteSize?: number;
 	sourceArtifactId?: string;
+	artifactId?: string;
+	runId?: string;
 }
 
 interface PrototypeArtifactPayload {

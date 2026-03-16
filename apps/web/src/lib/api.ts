@@ -268,6 +268,29 @@ export async function fetchAssistantRunArtifacts(
 	);
 }
 
+export async function fetchAssistantArtifactAsset(
+	runId: string,
+	artifactId: string,
+	headers: Record<string, string>,
+): Promise<{ blob: Blob; mimeType: string }> {
+	const response = await observedFetch(
+		toApiUrl(`/api/assistant/runs/${runId}/artifacts/${artifactId}/asset`),
+		{ headers },
+	);
+	const serverRequestId = response.headers.get('x-request-id');
+
+	if (!response.ok) {
+		const body = await response.text();
+		const message = body || `Assistant artifact asset fetch failed with status ${response.status}`;
+		throw new Error(serverRequestId ? `${message} (request ${serverRequestId})` : message);
+	}
+
+	return {
+		blob: await response.blob(),
+		mimeType: response.headers.get('content-type') ?? 'application/octet-stream',
+	};
+}
+
 export async function joinWaitlist(input: JoinWaitlist): Promise<JoinWaitlistResponse> {
 	const response = await observedFetch(toApiUrl('/api/waitlist'), {
 		method: 'POST',

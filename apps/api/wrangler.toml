@@ -27,8 +27,12 @@ CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://roop
 # OPENROUTER_TEXT_MODEL = "anthropic/claude-3.7-sonnet"
 # OPENROUTER_TOOL_MODEL = "openai/gpt-4.1"
 # OPENROUTER_IMAGE_MODEL = "google/gemini-2.5-flash-image-preview"
+# CLOUDFLARE_IMAGE_MODEL = "@cf/black-forest-labs/flux-2-klein-4b"
 # OPENROUTER_API_BASE_URL = "https://openrouter.ai/api/v1"
 # VECTORIZE_ASSET_URL = "https://your-vectorize-service.example.com/run"
+
+[ai]
+binding = "AI"
 
 [[d1_databases]]
 binding = "DB"
