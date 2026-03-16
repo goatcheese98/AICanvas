@@ -1,15 +1,12 @@
-import {
-	memo,
-	useCallback,
-	useEffect,
-	useLayoutEffect,
-	useMemo,
-	useRef,
-	useState,
-} from 'react';
+import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { AppState } from '@excalidraw/excalidraw/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
-import { applyOverlayUpdateByType, collectOverlayElements } from './overlay-registry';
+import {
+	applyOverlayUpdateByType,
+	collectOverlayElements,
+	getOverlayZIndex,
+} from './overlay-registry';
 import {
 	getOverlayDefinition,
 	normalizeOverlayElement,
@@ -17,10 +14,43 @@ import {
 	type TypedOverlayCanvasElement,
 } from './overlay-definitions';
 
-const EMPTY_SELECTED_ELEMENT_IDS: Record<string, boolean> = {};
+const EMPTY_SELECTED_ELEMENT_IDS: NonNullable<AppState['selectedElementIds']> = {};
 
-// ─── OverlayContent ──────────────────────────────────────────────────────────
-// Isolated so React only re-renders overlay internals when content changes.
+function getNormalizedAppState(appState: {
+	scrollX?: number;
+	scrollY?: number;
+	zoomValue?: number;
+	selectedElementIds?: AppState['selectedElementIds'];
+}) {
+	return {
+		scrollX: appState.scrollX ?? 0,
+		scrollY: appState.scrollY ?? 0,
+		zoom: {
+			value: appState.zoomValue ?? 1,
+		},
+		selectedElementIds: appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
+	};
+}
+
+function getOverlayContainerStyle(
+	element: TypedOverlayCanvasElement,
+	appState: ReturnType<typeof getNormalizedAppState>,
+	zIndex: number,
+) {
+	const zoom = appState.zoom.value;
+	const screenCenterX = (element.x + element.width / 2 + appState.scrollX) * zoom;
+	const screenCenterY = (element.y + element.height / 2 + appState.scrollY) * zoom;
+
+	return {
+		left: screenCenterX - element.width / 2,
+		top: screenCenterY - element.height / 2,
+		width: element.width,
+		height: element.height,
+		transform: `scale(${zoom}) rotate(${element.angle || 0}rad)`,
+		transformOrigin: 'center center',
+		zIndex,
+	} satisfies CSSProperties;
+}
 
 interface OverlayContentProps {
 	element: TypedOverlayCanvasElement;
@@ -44,15 +74,10 @@ const OverlayContent = memo(function OverlayContent({
 	});
 });
 
-// ─── OverlayItem ─────────────────────────────────────────────────────────────
-// Position (left/top/width/height) is set imperatively by the rAF loop.
-// React only controls pointer-events and overlay content.
-
 interface OverlayItemProps {
 	element: TypedOverlayCanvasElement;
-	isSelected: boolean;
-	onRegisterRef: (id: string, el: HTMLDivElement) => void;
-	onUnregisterRef: (id: string) => void;
+	stackIndex: number;
+	appState: ReturnType<typeof getNormalizedAppState>;
 	updateOverlayElement: <K extends OverlayType>(
 		elementId: string,
 		type: K,
@@ -60,186 +85,87 @@ interface OverlayItemProps {
 	) => void;
 }
 
-const OverlayItem = memo(
-	function OverlayItem({
-		element,
-		isSelected,
-		onRegisterRef,
-		onUnregisterRef,
-		updateOverlayElement,
-	}: OverlayItemProps) {
-		const [isEditing, setIsEditing] = useState(false);
-		const isEditingRef = useRef(false);
-		const divRef = useRef<HTMLDivElement>(null);
-		// Expose editing state as a data attribute so the rAF loop can read it without
-		// a React re-render — the loop uses this to keep editing overlays in front.
-		useEffect(() => {
-			if (divRef.current) divRef.current.dataset.editing = String(isEditing);
-		}, [isEditing]);
+function OverlayItem({
+	element,
+	stackIndex,
+	appState,
+	updateOverlayElement,
+}: OverlayItemProps) {
+	const [isEditing, setIsEditing] = useState(false);
+	const isEditingRef = useRef(false);
+	const type = element.customData.type;
+	const normalizedElement = normalizeOverlayElement(type, element);
+	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
+	const containerStyle = useMemo(
+		() =>
+			getOverlayContainerStyle(
+				normalizedElement,
+				appState,
+				getOverlayZIndex(isSelected, isEditing, stackIndex),
+			),
+		[appState, isEditing, isSelected, normalizedElement, stackIndex],
+	);
+	const interactionEnabled = isSelected;
+	const handleChange = useCallback(
+		(payload: OverlayUpdatePayloadMap[typeof type]) => {
+			updateOverlayElement(normalizedElement.id, type, payload);
+		},
+		[normalizedElement.id, type, updateOverlayElement],
+	);
+	const handleEditingChange = useCallback((nextIsEditing: boolean) => {
+		if (isEditingRef.current === nextIsEditing) return;
+		isEditingRef.current = nextIsEditing;
+		setIsEditing(nextIsEditing);
+	}, []);
 
-		const type = element.customData.type;
-		const normalizedElement = useMemo(
-			() => normalizeOverlayElement(type, element),
-			[element, type],
-		);
-
-		// Register the DOM node with the parent so the rAF loop can patch it.
-		useLayoutEffect(() => {
-			const el = divRef.current;
-			if (!el) return;
-			onRegisterRef(normalizedElement.id, el);
-			return () => onUnregisterRef(normalizedElement.id);
-		}, [normalizedElement.id, onRegisterRef, onUnregisterRef]);
-
-		const handleChange = useCallback(
-			(payload: OverlayUpdatePayloadMap[typeof type]) => {
-				updateOverlayElement(normalizedElement.id, type, payload);
-			},
-			[normalizedElement.id, type, updateOverlayElement],
-		);
-
-		const handleEditingChange = useCallback((nextIsEditing: boolean) => {
-			if (isEditingRef.current === nextIsEditing) return;
-			isEditingRef.current = nextIsEditing;
-			setIsEditing(nextIsEditing);
-		}, []);
-
-		return (
-			<div
-				ref={divRef}
-				className="absolute"
-				data-overlay-id={normalizedElement.id}
-				data-overlay-type={type}
-				data-testid={`overlay-item-${normalizedElement.id}`}
-				style={{
-					// Initial canvas-space position — rAF loop keeps this current every frame.
-					left: normalizedElement.x,
-					top: normalizedElement.y,
-					width: normalizedElement.width,
-					height: normalizedElement.height,
-					transform: normalizedElement.angle ? `rotate(${normalizedElement.angle}rad)` : undefined,
-					transformOrigin: 'center center',
-					pointerEvents: isSelected ? 'auto' : 'none',
-				}}
-			>
-				<div className="h-full w-full">
-					<OverlayContent
-						element={normalizedElement}
-						isSelected={isSelected}
-						onChange={handleChange as never}
-						onEditingChange={handleEditingChange}
-					/>
-				</div>
+	return (
+		<div
+			className="absolute"
+			data-testid={`overlay-item-${normalizedElement.id}`}
+			data-overlay-id={normalizedElement.id}
+			data-overlay-type={type}
+			style={{
+				...containerStyle,
+				pointerEvents: interactionEnabled ? 'auto' : 'none',
+			}}
+		>
+			<div className="h-full w-full">
+				<OverlayContent
+					element={normalizedElement}
+					isSelected={isSelected}
+					onChange={handleChange as never}
+					onEditingChange={handleEditingChange}
+				/>
 			</div>
-		);
-	},
-	(prev, next) =>
-		prev.element === next.element &&
-		prev.isSelected === next.isSelected &&
-		prev.onRegisterRef === next.onRegisterRef &&
-		prev.onUnregisterRef === next.onUnregisterRef &&
-		prev.updateOverlayElement === next.updateOverlayElement,
-);
-
-// ─── CanvasNotesLayer ─────────────────────────────────────────────────────────
-// Positions overlay items in screen space each frame via a rAF loop.
-// A requestAnimationFrame loop reads live state from excalidrawApi and patches
-// each item's position directly — no React renders are triggered during pan,
-// zoom, or drag.
+		</div>
+	);
+}
 
 export function CanvasNotesLayer() {
 	const elements = useAppStore((s) => s.elements);
+	const scrollX = useAppStore((s) => s.appState.scrollX ?? 0);
+	const scrollY = useAppStore((s) => s.appState.scrollY ?? 0);
+	const zoomValue = useAppStore((s) => s.appState.zoom?.value ?? 1);
 	const selectedElementIds = useAppStore(
 		(s) => s.appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
 	);
-	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
-
-	// Keep a ref so the rAF loop always sees the latest API handle without
-	// re-subscribing every time the API becomes available.
-	const excalidrawApiRef = useRef(excalidrawApi);
-	useEffect(() => {
-		excalidrawApiRef.current = excalidrawApi;
-	}, [excalidrawApi]);
-
-	// itemRefsRef: map of element id → overlay div, for per-element DOM patching.
-	const itemRefsRef = useRef<Map<string, HTMLDivElement>>(new Map());
-	const rafRef = useRef<number>(0);
-
-	// The rAF loop — runs every frame, independent of React's render cycle.
-	//
-	// Each overlay item is positioned in SCREEN SPACE (pixels from the canvas viewport
-	// top-left corner), computed from live Excalidraw state each frame. This removes
-	// drag/pan/zoom desync while keeping each item's z-index in the global stacking
-	// context so native shapes can appear above or below overlays correctly.
-	//
-	// We intentionally avoid using a CSS-transform container here because applying
-	// `transform` to a parent creates a stacking context that traps child z-indices
-	// inside it — preventing individual overlay items from competing with the
-	// Excalidraw canvas (z-index: 1) and interactive canvas (z-index: 3).
-	useLayoutEffect(() => {
-		function syncPositions() {
-			const api = excalidrawApiRef.current;
-
-			if (api) {
-				const { scrollX, scrollY, zoom, selectedElementIds } = api.getAppState();
-				const z = zoom.value;
-				const allElements = api.getSceneElements();
-				const itemRefs = itemRefsRef.current;
-
-				// Patch each registered overlay to its live screen-space position and z-index.
-				// Reading from api.getSceneElements() / api.getAppState() gives the live state
-				// that Excalidraw mutates in-place during drag — no React re-render needed.
-				// Screen X = (canvas.x + scrollX) * zoom, matching how Excalidraw projects
-				// canvas coordinates to screen coordinates.
-				for (const el of allElements) {
-					const itemEl = itemRefs.get(el.id);
-					if (!itemEl) continue;
-					itemEl.style.left = `${(el.x + scrollX) * z}px`;
-					itemEl.style.top = `${(el.y + scrollY) * z}px`;
-					itemEl.style.width = `${el.width * z}px`;
-					itemEl.style.height = `${el.height * z}px`;
-					itemEl.style.transform = el.angle ? `rotate(${el.angle}rad)` : '';
-
-					// Z-index:
-					// 10 → selected or editing overlay — above interactive canvas (z-index: 3)
-					//  2 → all other overlays — above static canvas (z-index: 1), below
-					//      interactive canvas (z-index: 3).
-					//
-					// We never use z-index: 0 (behind static canvas). Although the static canvas
-					// runs with viewBackgroundColor: 'transparent', canvas-drawn pixels (shapes,
-					// fills) are opaque and would hide the overlay's HTML content. Keeping all
-					// overlays at z-index ≥ 2 ensures text and content are always visible.
-					//
-					// When a native shape is SELECTED, Excalidraw moves it to the interactive
-					// canvas (z-index: 3), so it visually renders above the overlay (z-index: 2)
-					// without hiding the overlay content.
-					const isSelected = selectedElementIds[el.id] === true;
-					const isEditing = itemEl.dataset.editing === 'true';
-					itemEl.style.zIndex = String((isSelected || isEditing) ? 10 : 2);
-				}
-			}
-
-			rafRef.current = requestAnimationFrame(syncPositions);
-		}
-
-		rafRef.current = requestAnimationFrame(syncPositions);
-		return () => cancelAnimationFrame(rafRef.current);
-	}, []); // Intentionally empty — the loop runs for the lifetime of this component.
 
 	const overlayElements = useMemo(() => collectOverlayElements(elements), [elements]);
-
-	const onRegisterRef = useCallback((id: string, el: HTMLDivElement) => {
-		itemRefsRef.current.set(id, el);
-	}, []);
-
-	const onUnregisterRef = useCallback((id: string) => {
-		itemRefsRef.current.delete(id);
-	}, []);
+	const normalizedAppState = useMemo(
+		() =>
+			getNormalizedAppState({
+				scrollX,
+				scrollY,
+				zoomValue,
+				selectedElementIds,
+			}),
+		[scrollX, scrollY, selectedElementIds, zoomValue],
+	);
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
-			const { elements: currentElements, excalidrawApi: api, setElements } = useAppStore.getState();
-			if (!api) return;
+			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
+			if (!excalidrawApi) return;
 
 			let didChange = false;
 			const nextElements = currentElements.map((candidate) => {
@@ -254,21 +180,23 @@ export function CanvasNotesLayer() {
 			});
 			if (!didChange) return;
 
-			api.updateScene({ elements: nextElements });
+			excalidrawApi.updateScene({ elements: nextElements });
 			setElements(nextElements);
 		},
 		[],
 	);
 
 	return (
-		<div className="pointer-events-none absolute inset-0 overflow-hidden">
-			{overlayElements.map((element) => (
+		<div
+			className="pointer-events-none absolute inset-0 overflow-hidden"
+			style={{ zIndex: 2 }}
+		>
+			{overlayElements.map((element, stackIndex) => (
 				<OverlayItem
 					key={element.id}
 					element={element}
-					isSelected={selectedElementIds[element.id] === true}
-					onRegisterRef={onRegisterRef}
-					onUnregisterRef={onUnregisterRef}
+					stackIndex={stackIndex}
+					appState={normalizedAppState}
 					updateOverlayElement={updateOverlayElement}
 				/>
 			))}

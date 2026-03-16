@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -96,25 +96,6 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 		onError: (message) => addToast({ message, type: 'error' }),
 	});
 
-	// The canvas background color is rendered as a CSS div; the Excalidraw canvas is kept
-	// transparent so HTML overlays at z-index: 0 can show through it behind native shapes.
-	// CanvasCore intercepts background color changes and forwards them here.
-	const bgColorRef = useRef('#ffffff');
-	const [bgColor, setBgColor] = useState('#ffffff');
-	const handleBgColorChange = useCallback((color: string) => {
-		bgColorRef.current = color;
-		setBgColor(color);
-	}, []);
-
-	/** Re-instate the real background color in saved data (CanvasCore always syncs transparent). */
-	const patchBgColor = useCallback((data: CanvasData): CanvasData => {
-		const bg = bgColorRef.current;
-		if (bg !== 'transparent' && data.appState?.viewBackgroundColor === 'transparent') {
-			return { ...data, appState: { ...data.appState, viewBackgroundColor: bg } };
-		}
-		return data;
-	}, []);
-
 	// Coordinator is stable for the lifetime of this component
 	const coordinatorRef = useRef<CanvasPersistenceCoordinator | null>(null);
 	if (!coordinatorRef.current) {
@@ -152,9 +133,10 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 					appState: {
 						...(data.appState ?? {}),
 						exportBackground: true,
-						// Use the real background color — the saved appState always has 'transparent'
-						// because CanvasCore intercepts color changes and keeps the canvas transparent.
-						viewBackgroundColor: bgColorRef.current !== 'transparent' ? bgColorRef.current : '#ffffff',
+						viewBackgroundColor:
+							typeof data.appState?.viewBackgroundColor === 'string'
+								? data.appState.viewBackgroundColor
+								: '#ffffff',
 					},
 					files: (data.files ?? {}) as Record<string, unknown> as never,
 					mimeType: THUMBNAIL_MIME_TYPE,
@@ -267,12 +249,16 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	const handleSaveNeeded = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 			if (!isInitializedRef.current) return;
-			const data = patchBgColor(buildPersistedCanvasData(elements, appState as unknown as Record<string, unknown>, files as unknown as Record<string, unknown>));
+			const data = buildPersistedCanvasData(
+				elements,
+				appState as unknown as Record<string, unknown>,
+				files as unknown as Record<string, unknown>,
+			);
 			latestSceneRef.current = data;
 			coordinatorRef.current?.scheduleSave(data, canvasId);
 			scheduleServerSave(data);
 		},
-		[canvasId, patchBgColor, scheduleServerSave],
+		[canvasId, scheduleServerSave],
 	);
 
 	// Load canvas data from API
@@ -350,8 +336,8 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 
 	useEffect(() => {
 		if (!isInitializedRef.current) return;
-		latestSceneRef.current = patchBgColor(buildPersistedCanvasData(elements, appState, files));
-	}, [appState, elements, files, patchBgColor]);
+		latestSceneRef.current = buildPersistedCanvasData(elements, appState, files);
+	}, [appState, elements, files]);
 
 	// Cleanup on unmount
 	useEffect(() => {
@@ -369,17 +355,11 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 
 	return (
 		<div className="relative h-full w-full overflow-hidden">
-			{/* CSS background that shows the user's chosen canvas background color.
-			    The Excalidraw canvas itself runs with viewBackgroundColor: 'transparent' so
-			    HTML overlay divs at z-index: 0 can be visible through the canvas wherever
-			    no shapes are drawn. */}
-			<div className="absolute inset-0" style={{ background: bgColor, zIndex: 0 }} />
 			<CanvasCore
 				canvasId={canvasId}
 				onSaveNeeded={handleSaveNeeded}
 				onSceneChange={collaboration.handleSceneChange}
 				onPointerUpdate={collaboration.handlePointerUpdate}
-				onBgColorChange={handleBgColorChange}
 			/>
 			{excalidrawApi && <CanvasNotesLayer />}
 			<CanvasUI canvasId={canvasId} collaboration={collaboration} />

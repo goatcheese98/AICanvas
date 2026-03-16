@@ -86,14 +86,6 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-.excalidraw {
-	/* Bump interactive canvas (selection handles, live drawing previews) above
-	   HTML overlay divs which sit at z-index: 2. When a native shape is selected
-	   it is rendered on the interactive canvas (z-index: 3) and visually appears
-	   above the overlay, while the overlay content remains visible. */
-	--zIndex-interactiveCanvas: 3;
-}
-
 .excalidraw .App-menu_bottom {
 	justify-content: flex-start;
 	gap: 0.75rem;

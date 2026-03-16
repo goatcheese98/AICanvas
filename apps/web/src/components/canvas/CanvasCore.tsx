@@ -20,8 +20,6 @@ interface CanvasCoreProps {
 		button: 'down' | 'up';
 		pointersMap: Map<number, Readonly<{ x: number; y: number }>>;
 	}) => void;
-	/** Called when the user changes the canvas background color via Excalidraw's UI. */
-	onBgColorChange?: (color: string) => void;
 }
 
 export function CanvasCore({
@@ -30,7 +28,6 @@ export function CanvasCore({
 	onSceneChange,
 	initialData,
 	onPointerUpdate,
-	onBgColorChange,
 }: CanvasCoreProps) {
 	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
 	const setElements = useAppStore((s) => s.setElements);
@@ -66,24 +63,8 @@ export function CanvasCore({
 
 	const handleChange = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
-			// When the user changes the canvas background color, capture the real color and
-			// immediately reset the canvas to transparent. This lets HTML overlay divs placed
-			// at z-index: 0 remain visible through the canvas wherever no shapes are drawn
-			// (transparent canvas pixels), while shapes painted at a higher z-index cover them.
-			// The real background color is forwarded to the parent, which renders it as a CSS
-			// background div and ensures it is restored correctly when the canvas is saved.
-			if (appState.viewBackgroundColor !== 'transparent') {
-				onBgColorChange?.(appState.viewBackgroundColor);
-				apiRef.current?.updateScene({ appState: { viewBackgroundColor: 'transparent' } });
-				// Fall through so elements and files are still synced this frame.
-				// The subsequent onChange (triggered by the updateScene above) will re-sync
-				// appState with viewBackgroundColor: 'transparent'.
-			}
-
-			// Always sync with transparent background to Zustand so saved data stays clean.
-			const transparentAppState: AppState = { ...appState, viewBackgroundColor: 'transparent' };
 			const elementSnapshot = cloneExcalidrawElements(elements);
-			const appStateSnapshot = cloneExcalidrawAppState(transparentAppState);
+			const appStateSnapshot = cloneExcalidrawAppState(appState);
 			const filesSnapshot = cloneExcalidrawFiles(files);
 
 			setElements(elementSnapshot);
@@ -92,7 +73,7 @@ export function CanvasCore({
 			onSceneChange?.(elementSnapshot, appStateSnapshot, filesSnapshot);
 			onSaveNeeded?.(elementSnapshot, appStateSnapshot, filesSnapshot);
 		},
-		[setElements, setAppState, setFiles, onSaveNeeded, onSceneChange, onBgColorChange],
+		[setElements, setAppState, setFiles, onSaveNeeded, onSceneChange],
 	);
 
 	const handlePointerUpdate = useCallback(
