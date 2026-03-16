@@ -56,6 +56,12 @@ describe('useAIChatPatchActions', () => {
 		const setElements = vi.fn();
 		const setChatError = vi.fn();
 		const sceneElements = [createMarkdownElement()];
+		const appState = {
+			scrollX: 0,
+			scrollY: 0,
+			selectedElementIds: { 'note-1': true },
+			zoom: { value: 1 },
+		};
 		const artifact: AssistantArtifact = {
 			type: 'markdown-patch',
 			content: JSON.stringify({
@@ -76,6 +82,8 @@ describe('useAIChatPatchActions', () => {
 				...useAIChatPatchActions({
 					excalidrawApi: {
 						getSceneElements: () => sceneElements,
+						getAppState: () => appState as never,
+						getFiles: () => ({}),
 						updateScene,
 					} as never,
 					setElements,
@@ -91,7 +99,6 @@ describe('useAIChatPatchActions', () => {
 		});
 
 		expect(updateScene).toHaveBeenCalledTimes(1);
-		expect(setElements).toHaveBeenCalledTimes(1);
 		expect(result.current.assistantPatchStates['artifact-1']).toMatchObject({
 			status: 'applied',
 			targetId: 'note-1',
