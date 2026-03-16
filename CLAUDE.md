@@ -119,6 +119,50 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - **Direct Excalidraw scene JSON from AI.** The assistant emits semantic mutations, not raw scene data.
 - **Large files.** Split at 300-400 lines. Extract UI regions first, then move state into hooks.
 
+## Multi-Agent Worktree Workflow
+
+This repo is intended to support multiple coding agents working in parallel via Git worktrees.
+
+Canonical reference:
+`docs/multi-agent-orchestration.md`
+
+### Roles
+
+- **Orchestration worktree:** `/Users/rohanjasani/Desktop/Projects/AICanvas`
+  - Use this as the control center for `git worktree add`, `git worktree list`, branch management, monitoring, merge orchestration, and cleanup.
+  - Avoid using this folder as the main implementation workspace for Codex or Claude.
+- **Integration worktree:** `/Users/rohanjasani/Desktop/Projects/AICanvas-main`
+  - Keep this on `main`.
+  - Use it for integration, conflict resolution, final validation, and merge confidence checks.
+  - It should be opened less often than feature worktrees.
+- **Execution worktrees:** sibling folders such as `/Users/rohanjasani/Desktop/Projects/AICanvas-image-gen`
+  - One worktree per active task/feature.
+  - This is where agents actually make code changes.
+
+### Operating rules
+
+- Treat **one worktree as one branch, one agent task, and one preview URL**.
+- Prefer naming worktrees by **task/feature**, not by agent name.
+- Open each worktree as its **own workspace/project** in Codex or Claude. Do not rely on branch switching inside one shared folder.
+- If two agents are exploring the same idea independently, give them separate worktrees.
+- If two agents should collaborate on the exact same branch, they may share one worktree intentionally, but this should be the exception.
+- After a feature ships or is abandoned, prefer **removing** the worktree instead of renaming it.
+
+### Preview port convention
+
+- Reserve `5173` / `8787` for the integration path when possible.
+- Assign each execution worktree its own stable web and API ports.
+- `apps/web/vite.config.ts` supports `VITE_PORT` (or `PORT`) and `VITE_API_PROXY_TARGET` (or `API_PROXY_TARGET`) for this reason.
+
+### Suggested lifecycle
+
+1. Create a new feature worktree from `main`.
+2. Assign that worktree to one agent/task.
+3. Run its dev servers on dedicated ports.
+4. Make and validate changes inside that worktree.
+5. Integrate back through the `AICanvas-main` worktree.
+6. Remove the feature worktree and delete its branch after merge or cancellation.
+
 ## Key Files for Orientation
 
 | Area | Start here |
@@ -145,6 +189,7 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - `ARCHITECTURE.md` — tech stack decisions and rationale
 - `docs/overlay-authoring-pattern.md` — overlay composition specification
 - `docs/assistant-v2-architecture.md` — next-generation assistant architecture
+- `docs/multi-agent-orchestration.md` — delegation, worktree, branch, port, and merge operating model
 - `docs/overlay-lod-architecture.md` — overlay level-of-detail and performance model
 - `docs/observability.md` — current logging, tracing, and Sentry setup
 - `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan
