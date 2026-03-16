@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useAuth } from '@clerk/clerk-react';
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
@@ -112,5 +112,32 @@ describe('AIChatMessageCard', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Insert As Markdown' }));
 
 		expect(onInsertMarkdown).toHaveBeenCalledWith(message);
+	});
+
+	it('renders header accessory content next to the message meta controls', () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		const message: AssistantMessage = {
+			id: 'assistant-3',
+			role: 'assistant',
+			content: '## Summary\n\n- Point one',
+			createdAt: '2026-03-14T10:10:00.000Z',
+		};
+
+		const { container } = render(
+			<MessageCard
+				message={message}
+				onInsertMarkdown={vi.fn()}
+				headerAccessory={<div>Assistant activity trigger</div>}
+			/>,
+		);
+
+		const scopedQueries = within(container);
+		const time = scopedQueries.getByText('03:10 AM');
+		const accessory = scopedQueries.getByText('Assistant activity trigger');
+
+		expect(time.compareDocumentPosition(accessory)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 	});
 });
