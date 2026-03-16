@@ -20,7 +20,7 @@ const user: AuthUser = {
 	id: 'user_new',
 	email: 'test@example.com',
 	name: 'Test User',
-	avatarUrl: null,
+	avatarUrl: undefined,
 };
 
 describe('syncAuthenticatedUser', () => {
