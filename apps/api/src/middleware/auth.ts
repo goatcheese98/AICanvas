@@ -3,18 +3,12 @@ import { createClerkClient, verifyToken } from '@clerk/backend';
 import { eq } from 'drizzle-orm';
 import { createDb } from '../lib/db/client';
 import { users } from '../lib/db/schema';
+import { getAuthorizedParties } from '../lib/local-dev-origins';
 import { applySentryUserContext, logApiEvent } from '../lib/observability';
 import { buildAuthUser } from '../lib/auth/build-auth-user';
 import { syncAuthenticatedUser } from '../lib/auth/sync-user';
 import type { AppEnv } from '../types';
 import type { AuthUser } from '../types';
-
-function getAuthorizedParties(bindings: AppEnv['Bindings']) {
-	return (bindings.CLERK_AUTHORIZED_PARTIES ?? '')
-		.split(',')
-		.map((origin) => origin.trim())
-		.filter(Boolean);
-}
 
 function getBearerToken(authHeader: string | undefined) {
 	if (!authHeader?.startsWith('Bearer ')) {
@@ -32,7 +26,10 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 	}
 
 	try {
-		const authorizedParties = getAuthorizedParties(c.env);
+		const authorizedParties = getAuthorizedParties(
+			c.env.CLERK_AUTHORIZED_PARTIES,
+			c.env.ENVIRONMENT,
+		);
 		const jwtKey = c.env.CLERK_JWT_KEY?.trim() || undefined;
 		const session = await verifyToken(token, {
 			secretKey: c.env.CLERK_SECRET_KEY,

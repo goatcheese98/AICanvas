@@ -238,7 +238,7 @@ describe('requireAuth', () => {
 				R2: {} as R2Bucket,
 				CLERK_SECRET_KEY: 'sk_test_123',
 				CLERK_AUTHORIZED_PARTIES: 'http://localhost:5173,https://roopstudio.com',
-				ENVIRONMENT: 'test',
+				ENVIRONMENT: 'production',
 			},
 		);
 
