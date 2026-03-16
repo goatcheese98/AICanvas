@@ -95,14 +95,14 @@ Reserve the integration lane when possible:
 - web `5173`
 - api `8787`
 
-Assign stable ports to each execution worktree.
+Assign stable web ports to each execution worktree.
 
 Example:
 
-- `AICanvas-main` -> web `5173`, api `8787`
-- `AICanvas-overlay-runtime-lod` -> web `5174`, api `8788`
-- `AICanvas-assistant-image-pipeline` -> web `5175`, api `8789`
-- `AICanvas-prototype-workflow` -> web `5176`, api `8790`
+- `AICanvas-main` -> web `5173`
+- `AICanvas-overlay-runtime-lod` -> web `5174`
+- `AICanvas-assistant-image-pipeline` -> web `5175`
+- `AICanvas-prototype-workflow` -> web `5176`
 
 `apps/web/vite.config.ts` supports:
 
@@ -110,6 +110,75 @@ Example:
 - `VITE_API_PROXY_TARGET` or `API_PROXY_TARGET`
 
 Use them explicitly. Agents should not assume ports are assigned automatically.
+
+### Default local lane model
+
+By default, all local web lanes can share one API on `8787`.
+
+Current local-dev defaults treat these preview origins as the standard lane set:
+
+- `http://localhost:5173`
+- `http://localhost:5174`
+- `http://localhost:5175`
+- `http://localhost:5176`
+- `http://127.0.0.1:5173`
+- `http://127.0.0.1:5174`
+- `http://127.0.0.1:5175`
+- `http://127.0.0.1:5176`
+
+This is implemented on the API side via
+[local-dev-origins.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/lib/local-dev-origins.ts),
+which is used by:
+
+- [index.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/index.ts) for CORS
+- [auth.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/middleware/auth.ts) for Clerk `authorizedParties`
+
+Behavior:
+
+- in development and test, configured origins/authorized parties are merged with the default local lane set
+- in production, configured values remain scoped and are not expanded automatically
+
+This means a shared local API on `8787` is the default and simplest setup when
+the backend is not changing.
+
+### When to use dedicated API ports
+
+Use one shared API on `8787` when:
+
+- the work is frontend-only
+- multiple worktrees can safely talk to the same backend behavior
+- you want the least operational overhead
+
+Use dedicated API ports per worktree when:
+
+- a branch changes API behavior
+- you need isolated backend state or environment variables
+- you want to compare backend variants side by side
+
+Example dedicated backend lanes:
+
+- `AICanvas-main` -> web `5173`, api `8787`
+- `AICanvas-overlay-runtime-lod` -> web `5174`, api `8788`
+- `AICanvas-assistant-image-pipeline` -> web `5175`, api `8789`
+- `AICanvas-prototype-workflow` -> web `5176`, api `8790`
+
+If a worktree needs its own API, point that worktree's web app at it with
+`VITE_API_PROXY_TARGET`.
+
+### Local auth/env sync requirement
+
+New worktrees do not automatically receive local-only auth files.
+
+To make `/login` work in a fresh sibling worktree, ensure these exist there:
+
+- `apps/web/.env.local`
+- `apps/api/.dev.vars`
+
+Missing `apps/web/.env.local` causes the frontend to fail early with
+`Missing VITE_CLERK_PUBLISHABLE_KEY`.
+
+Missing or stale `apps/api/.dev.vars` can cause CORS failures or Clerk token
+verification failures even if the frontend boots correctly.
 
 ## Command Placement Rules
 
@@ -204,6 +273,13 @@ VITE_PORT=5175 bun run dev
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow/apps/web
 VITE_PORT=5176 bun run dev
+```
+
+Shared API default:
+
+```sh
+cd /Users/rohanjasani/Desktop/Projects/AICanvas/apps/api
+bun run dev
 ```
 
 If an execution lane needs its own API too, start that worktree's API on its

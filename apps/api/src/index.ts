@@ -5,28 +5,12 @@ import { logger } from 'hono/logger';
 import { HTTPException } from 'hono/http-exception';
 import { canvasRoutes } from './routes/canvas';
 import { assistantRoutes } from './routes/assistant';
+import { getCorsAllowedOrigins } from './lib/local-dev-origins';
 import { getRequestLogFields, logApiEvent, parseSampleRate } from './lib/observability';
 import { requestContext } from './middleware/request-context';
 import { userRoutes } from './routes/user';
 import { waitlistRoutes } from './routes/waitlist';
 import type { AppEnv } from './types';
-
-const DEFAULT_ALLOWED_ORIGINS = [
-	'http://localhost:5173',
-	'http://127.0.0.1:5173',
-	'https://roopstudio.com',
-	'https://www.roopstudio.com',
-];
-
-function getAllowedOrigins(bindings: AppEnv['Bindings']) {
-	const configuredOrigins = bindings.CORS_ALLOWED_ORIGINS?.split(',')
-		.map((origin) => origin.trim())
-		.filter(Boolean);
-
-	return configuredOrigins && configuredOrigins.length > 0
-		? configuredOrigins
-		: DEFAULT_ALLOWED_ORIGINS;
-}
 
 const app = new Hono<AppEnv>()
 	.use('*', requestContext)
@@ -35,7 +19,7 @@ const app = new Hono<AppEnv>()
 		'*',
 		async (c, next) =>
 			cors({
-				origin: getAllowedOrigins(c.env),
+				origin: getCorsAllowedOrigins(c.env.CORS_ALLOWED_ORIGINS, c.env.ENVIRONMENT),
 				credentials: true,
 			})(c, next),
 	)
