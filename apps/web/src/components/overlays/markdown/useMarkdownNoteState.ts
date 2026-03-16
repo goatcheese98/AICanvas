@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
@@ -244,7 +244,7 @@ export function useMarkdownNoteState({
 		}
 	}, [controlsLayout]);
 
-	const handleCommit = () => {
+	const handleCommit = useCallback(() => {
 		const nextSignature = serializeNoteState({
 			content,
 			images,
@@ -254,18 +254,18 @@ export function useMarkdownNoteState({
 		});
 		lastCommittedSignatureRef.current = nextSignature;
 		onChangeRef.current(element.id, content, images, title, settings, editorMode);
-	};
+	}, [content, editorMode, element.id, images, settings, title]);
 
-	const handleSurfaceStyleChange = (elementStyle: {
+	const handleSurfaceStyleChange = useCallback((elementStyle: {
 		backgroundColor?: string;
 		strokeColor?: string;
 		strokeWidth?: number;
 		roundness?: ExcalidrawElement['roundness'];
 	}) => {
 		onChangeRef.current(element.id, content, images, title, settings, editorMode, elementStyle);
-	};
+	}, [content, editorMode, element.id, images, settings, title]);
 
-	const showTitleLimitNotice = () => {
+	const showTitleLimitNotice = useCallback(() => {
 		setTitleNotice(true);
 		if (titleNoticeTimeoutRef.current !== null) {
 			window.clearTimeout(titleNoticeTimeoutRef.current);
@@ -274,23 +274,23 @@ export function useMarkdownNoteState({
 			setTitleNotice(false);
 			titleNoticeTimeoutRef.current = null;
 		}, 1800);
-	};
+	}, []);
 
-	const handleTitleChange = (nextValue: string) => {
+	const handleTitleChange = useCallback((nextValue: string) => {
 		if (nextValue.length > MAX_MARKDOWN_TITLE_LENGTH) {
 			showTitleLimitNotice();
 			setTitle(nextValue.slice(0, MAX_MARKDOWN_TITLE_LENGTH));
 			return;
 		}
 		setTitle(nextValue);
-	};
+	}, [showTitleLimitNotice]);
 
-	const handleTitleBlur = () => {
+	const handleTitleBlur = useCallback(() => {
 		const trimmedTitle = title.trim();
 		setTitle(trimmedTitle.length > 0 ? trimmedTitle : normalizedElement.title);
-	};
+	}, [normalizedElement.title, title]);
 
-	const insertImageFiles = async (fileList: FileList | null) => {
+	const insertImageFiles = useCallback(async (fileList: FileList | null) => {
 		if (!fileList?.length) return;
 
 		const nextImages = { ...images };
@@ -312,13 +312,13 @@ export function useMarkdownNoteState({
 		setImages(nextImages);
 		setContent(nextContent);
 		setActiveUtilityPanel('none');
-	};
+	}, [content, images]);
 
-	const handleEditorCheckboxToggle = (lineIndex: number) => {
+	const handleEditorCheckboxToggle = useCallback((lineIndex: number) => {
 		setContent((current) => toggleMarkdownCheckboxLine(current, lineIndex));
-	};
+	}, []);
 
-	const handlePreviewCheckboxToggle = (lineIndex: number) => {
+	const handlePreviewCheckboxToggle = useCallback((lineIndex: number) => {
 		const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
 		setContent(nextContent);
 		const nextSignature = serializeNoteState({
@@ -330,7 +330,7 @@ export function useMarkdownNoteState({
 		});
 		lastCommittedSignatureRef.current = nextSignature;
 		onChangeRef.current(element.id, nextContent, images, title, settings, editorMode);
-	};
+	}, [content, editorMode, element.id, images, settings, title]);
 
 	return {
 		normalizedElement,

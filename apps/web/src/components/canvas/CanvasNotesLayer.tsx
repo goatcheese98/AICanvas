@@ -118,15 +118,15 @@ function OverlayItem({
 		setIsEditing(nextIsEditing);
 	}, []);
 
-		return (
-			<div
-				className="absolute"
-				data-testid={`overlay-item-${normalizedElement.id}`}
-				data-overlay-id={normalizedElement.id}
-				data-overlay-type={type}
-				style={{
-					...containerStyle,
-					pointerEvents: interactionEnabled ? 'auto' : 'none',
+	return (
+		<div
+			className="absolute"
+			data-testid={`overlay-item-${normalizedElement.id}`}
+			data-overlay-id={normalizedElement.id}
+			data-overlay-type={type}
+			style={{
+				...containerStyle,
+				pointerEvents: interactionEnabled ? 'auto' : 'none',
 			}}
 		>
 			<div className="h-full w-full">

@@ -1,9 +1,26 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { NewLexOverlayCustomData } from '@ai-canvas/shared/types';
+import type { NewLexCommentThread, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
 import { LexicalNoteContainer } from './LexicalNoteContainer';
 import type { LexicalNoteProps } from './lexical-note-types';
+
+function createCommentThread(
+	overrides?: Partial<NewLexCommentThread>,
+): NewLexCommentThread {
+	return {
+		id: 'thread-1',
+		author: 'You',
+		comment: 'Discuss the intro',
+		commentDeleted: false,
+		anchorText: 'Intro',
+		createdAt: 1,
+		resolved: false,
+		collapsed: false,
+		replies: [],
+		...overrides,
+	};
+}
 
 function createElement(customData?: Partial<NewLexOverlayCustomData>): LexicalNoteProps['element'] {
 	return {
@@ -61,16 +78,27 @@ beforeEach(() => {
 
 afterEach(() => {
 	cleanup();
+	vi.restoreAllMocks();
 });
 
 describe('LexicalNoteContainer', () => {
+	it('hides the comments toggle when there are no comment threads yet', () => {
+		render(
+			<LexicalNoteContainer element={createElement()} isSelected onChange={vi.fn()} />,
+		);
+
+		expect(screen.queryByRole('button', { name: '0 comments' })).toBeNull();
+	});
+
 	it('commits title changes and opens the comments panel through the container boundary', () => {
 		const onChange = vi.fn();
 		const onEditingChange = vi.fn();
 
 		render(
 			<LexicalNoteContainer
-				element={createElement()}
+				element={createElement({
+					comments: [createCommentThread()],
+				})}
 				isSelected
 				onChange={onChange}
 				onEditingChange={onEditingChange}
@@ -87,9 +115,35 @@ describe('LexicalNoteContainer', () => {
 			title: 'Revised title',
 		});
 
-		fireEvent.click(screen.getByRole('button', { name: '0 comments' }));
+		fireEvent.click(screen.getByRole('button', { name: '1 comments' }));
 
-		expect(screen.getByText('No comments yet.')).not.toBeNull();
+		expect(screen.getByText('Discuss the intro')).not.toBeNull();
+		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+	});
+
+	it('prevents preview text selection when double-clicking into edit mode', () => {
+		const onEditingChange = vi.fn();
+		const removeAllRanges = vi.fn();
+		vi.spyOn(window, 'getSelection').mockReturnValue({
+			removeAllRanges,
+			setBaseAndExtent: vi.fn(),
+		} as unknown as Selection);
+
+		render(
+			<LexicalNoteContainer
+				element={createElement()}
+				isSelected
+				onChange={vi.fn()}
+				onEditingChange={onEditingChange}
+			/>,
+		);
+
+		const previewBody = screen.getByTestId('lexical-note-body');
+		const event = createEvent.dblClick(previewBody);
+		fireEvent(previewBody, event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(removeAllRanges).toHaveBeenCalledTimes(1);
 		expect(onEditingChange).toHaveBeenLastCalledWith(true);
 	});
 

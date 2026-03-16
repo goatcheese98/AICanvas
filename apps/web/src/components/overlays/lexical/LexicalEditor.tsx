@@ -158,6 +158,11 @@ function LexicalInner({
 					contentEditable={
 						<ContentEditable
 							className="canvas-lex-content-editable"
+							onMouseDownCapture={(event) => {
+								if (readOnly && event.detail > 1) {
+									event.preventDefault();
+								}
+							}}
 							style={{
 								width: '100%',
 								height: '100%',
@@ -174,6 +179,8 @@ function LexicalInner({
 								inset: 0,
 								cursor: readOnly ? 'default' : 'text',
 								background: 'transparent',
+								userSelect: readOnly ? 'none' : 'text',
+								WebkitUserSelect: readOnly ? 'none' : 'text',
 							}}
 						/>
 					}

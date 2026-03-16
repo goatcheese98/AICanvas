@@ -128,13 +128,24 @@ export function KanbanBoardContainer({
 		() => state.board.columns.reduce((total, column) => total + column.cards.length, 0),
 		[state.board.columns],
 	);
+	const responsiveColumnWidth = useMemo(() => {
+		const columnCount = Math.max(state.board.columns.length, 1);
+		const boardInnerWidth = Math.max(element.width - 104, 320);
+		const addLaneAllowance = 70;
+		const gapAllowance = Math.max(0, (columnCount - 1) * 12);
+		const availableWidth = Math.max(boardInnerWidth - addLaneAllowance - gapAllowance, 220);
+		return Math.max(240, Math.min(availableWidth / columnCount, 360));
+	}, [element.width, state.board.columns.length]);
 	const motionVariables = useMemo(
 		() =>
 			({
 				'--kanban-motion-duration': state.isLiveResizing ? '0ms' : '200ms',
 				'--kanban-motion-duration-fast': state.isLiveResizing ? '0ms' : '150ms',
+				'--kanban-card-min-height': `${Math.max(156, Math.min(element.height * 0.16, 220))}px`,
+				'--kanban-card-max-height': `${Math.max(260, Math.min(element.height * 0.42, 420))}px`,
+				'--kanban-column-width': `${responsiveColumnWidth}px`,
 			}) as CSSProperties,
-		[state.isLiveResizing],
+		[element.height, responsiveColumnWidth, state.isLiveResizing],
 	);
 
 	return (
@@ -172,8 +183,8 @@ export function KanbanBoardContainer({
 				onToggleSettings={() => state.setShowSettings((current) => !current)}
 			/>
 
-			<div className="min-h-0 flex-1 overflow-auto px-3 py-3">
-				<div className="flex min-w-full items-start gap-3 pb-4">
+			<div className="min-h-0 flex-1 overflow-auto px-3 py-2">
+				<div className="flex min-w-full items-start gap-2 pb-4">
 					{state.board.columns.map((column) => (
 						<div key={column.id} className="flex h-full items-stretch gap-3">
 							{drag.draggingColumnId &&
@@ -217,13 +228,13 @@ export function KanbanBoardContainer({
 
 					{drag.draggingColumnId && drag.projectedColumnDropId === null ? <ColumnDropIndicator /> : null}
 
-					<div className="flex min-w-[20.5rem] max-w-[20.5rem] shrink-0 self-start flex-col px-1 py-2">
-						<div aria-hidden="true" className="h-[3.1rem]" />
-						<div className="mt-4 flex items-start justify-start px-2">
+					<div className="flex w-[4.5rem] shrink-0 self-start flex-col items-end px-0 py-1">
+						<div aria-hidden="true" className="h-[2.35rem]" />
+						<div className="mt-2.5 flex w-full items-start justify-end">
 							<button
 								type="button"
 								onClick={state.handleAddColumn}
-								className="inline-flex items-center gap-2 border border-dashed px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors"
+								className="inline-flex h-[9.75rem] w-[3.75rem] shrink-0 flex-col items-center justify-center gap-2.5 border border-dashed px-1.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors"
 								style={{
 									borderRadius: `${Math.max(controlRadius, 0)}px`,
 									borderColor: 'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))',
@@ -240,7 +251,15 @@ export function KanbanBoardContainer({
 								title="Add column"
 							>
 								<PlusIcon />
-								Add
+								<span
+									style={{
+										writingMode: 'vertical-rl',
+										textOrientation: 'mixed',
+										letterSpacing: '0.24em',
+									}}
+								>
+									Add
+								</span>
 							</button>
 						</div>
 					</div>

@@ -125,6 +125,8 @@ function KanbanColumnInner({
 	const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
 	const [titleDraft, setTitleDraft] = useState(column.title);
 	const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const titleDraftRef = useRef(titleDraft);
+	const columnTitleRef = useRef(column.title);
 	const displayCards = useMemo(
 		() => column.cards.filter((card) => matchesSearch(card, searchQuery)),
 		[column.cards, searchQuery],
@@ -138,6 +140,11 @@ function KanbanColumnInner({
 	}, [titleDraft]);
 
 	useEffect(() => {
+		titleDraftRef.current = titleDraft;
+	}, [titleDraft]);
+
+	useEffect(() => {
+		columnTitleRef.current = column.title;
 		setTitleDraft(column.title);
 	}, [column.id, column.title]);
 
@@ -146,13 +153,25 @@ function KanbanColumnInner({
 	};
 
 	const commitTitleDraft = () => {
-		if (titleDraft.trim().length === 0) {
+		const nextTitle = titleDraftRef.current;
+		const currentTitle = columnTitleRef.current;
+		if (nextTitle.trim().length === 0) {
 			setTitleDraft(column.title);
 			return;
 		}
-		if (titleDraft === column.title) return;
-		onChange({ title: titleDraft });
+		if (nextTitle === currentTitle) return;
+		onChange({ title: nextTitle });
 	};
+
+	useEffect(
+		() => () => {
+			const nextTitle = titleDraftRef.current;
+			const currentTitle = columnTitleRef.current;
+			if (nextTitle.trim().length === 0 || nextTitle === currentTitle) return;
+			onChange({ title: nextTitle });
+		},
+		[onChange],
+	);
 
 	return (
 		<div
@@ -175,8 +194,9 @@ function KanbanColumnInner({
 				}
 				onCardColumnDrop(event, column.id);
 			}}
-			className="group flex min-w-[20.5rem] max-w-[20.5rem] self-start flex-col px-1 py-2 transition-[box-shadow,border-color,transform,opacity,background-color]"
+			className="group flex shrink-0 self-start flex-col px-1 py-1 transition-[box-shadow,border-color,transform,opacity,background-color]"
 			style={{
+				width: 'var(--kanban-column-width, 320px)',
 				borderRadius: `${columnRadius}px`,
 				borderColor: isCardOver ? KANBAN_ACCENT_BORDER : 'transparent',
 				background: isCardOver
@@ -190,9 +210,8 @@ function KanbanColumnInner({
 				transitionDuration: 'var(--kanban-motion-duration)',
 			}}
 		>
-			<div className="grid grid-cols-[4.75rem_minmax(0,1fr)_4.75rem] items-center px-2 py-0.5">
-				<div aria-hidden="true" className="h-9" />
-				<div className="mx-auto flex min-h-[2rem] max-w-[14rem] min-w-0 items-center justify-center text-center">
+			<div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2 py-0">
+				<div className="flex h-8 min-w-0 items-center pr-1.5">
 					<textarea
 						ref={titleTextareaRef}
 						rows={1}
@@ -207,14 +226,19 @@ function KanbanColumnInner({
 							}
 						}}
 						maxLength={80}
-						className="min-h-[1.45rem] w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-0 text-center text-[19px] font-semibold leading-[1.05] outline-none"
-						style={{ color: 'var(--color-text-primary)', fontFamily: 'inherit' }}
+						className="h-8 min-h-0 w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-[2px] text-left font-semibold uppercase leading-none outline-none"
+						style={{
+							color: 'var(--color-text-secondary)',
+							fontFamily: 'inherit',
+							fontSize: `${Math.max(fontSize + 1, 15)}px`,
+							letterSpacing: '0.14em',
+						}}
 						placeholder="Column title"
 					/>
 				</div>
 
 				<div
-					className={`flex shrink-0 items-center justify-end gap-1.5 transition-opacity duration-150 ${
+					className={`mt-[2px] flex shrink-0 items-center justify-end gap-1 transition-opacity duration-150 ${
 						isColumnHovered && hoveredCardId === null
 							? 'pointer-events-auto opacity-100'
 							: 'pointer-events-none opacity-0'
@@ -226,7 +250,7 @@ function KanbanColumnInner({
 						draggable
 						onDragStart={(event) => onColumnDragStart(event, column.id)}
 						onDragEnd={onColumnDragEnd}
-						className="inline-flex h-9 w-9 items-center justify-center border transition-colors"
+						className="inline-flex h-7 w-7 items-center justify-center border transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
@@ -239,11 +263,11 @@ function KanbanColumnInner({
 						aria-label={`Drag ${titleDraft || column.title}`}
 						title="Drag column"
 					>
-						<span className="grid grid-cols-2 gap-[2px]">
+						<span className="grid grid-cols-2 gap-[1.5px]">
 							{Array.from({ length: 6 }, (_, index) => (
 								<span
 									key={index}
-									className="h-[4px] w-[4px] rounded-full"
+									className="h-[3px] w-[3px] rounded-full"
 									style={{ background: 'currentColor' }}
 								/>
 							))}
@@ -253,7 +277,7 @@ function KanbanColumnInner({
 					<button
 						type="button"
 						onClick={onRequestDelete}
-						className="inline-flex h-9 w-9 items-center justify-center border transition-colors"
+						className="inline-flex h-7 w-7 items-center justify-center border text-[15px] leading-none transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
 							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
@@ -270,7 +294,7 @@ function KanbanColumnInner({
 				</div>
 			</div>
 
-			<div className="mt-4 min-h-[8rem] space-y-2">
+			<div className="mt-2.5 min-h-[8rem] space-y-2">
 				{displayCards.map((card) => {
 					const showDropBefore =
 						isCardOver && Boolean(draggingCardId) && projectedCardId === card.id;

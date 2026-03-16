@@ -249,7 +249,11 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	const handleSaveNeeded = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
 			if (!isInitializedRef.current) return;
-			const data = buildPersistedCanvasData(elements, appState as unknown as Record<string, unknown>, files as unknown as Record<string, unknown>);
+			const data = buildPersistedCanvasData(
+				elements,
+				appState as unknown as Record<string, unknown>,
+				files as unknown as Record<string, unknown>,
+			);
 			latestSceneRef.current = data;
 			coordinatorRef.current?.scheduleSave(data, canvasId);
 			scheduleServerSave(data);

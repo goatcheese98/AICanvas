@@ -1,12 +1,23 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 
+// Reject timestamp-style fractional indices like `a1773614343380` (letter + many digits).
+// Valid fractional-index keys are short (e.g. `a0`, `V`, `Zz`) — not unix timestamps.
+function isValidFractionalIndex(idx: string): boolean {
+	if (!idx) return false;
+	if (idx.length > 20) return false;
+	// Single letter followed by 7+ digits → almost certainly a Date.now() timestamp
+	if (/^[a-zA-Z]\d{7,}$/.test(idx)) return false;
+	return true;
+}
+
 export function normalizeSceneElement<T extends ExcalidrawElement>(element: T): T {
+	const rawIndex =
+		'index' in element && typeof (element as ExcalidrawElement & { index?: string }).index === 'string'
+			? (element as ExcalidrawElement & { index?: string }).index!
+			: null;
 	return {
 		...element,
-		index:
-			'index' in element && typeof (element as ExcalidrawElement & { index?: string }).index === 'string'
-				? (element as ExcalidrawElement & { index?: string }).index!
-				: ('a0' as ExcalidrawElement['index']),
+		index: (rawIndex && isValidFractionalIndex(rawIndex) ? rawIndex : 'a0') as ExcalidrawElement['index'],
 		angle: typeof element.angle === 'number' ? element.angle : 0,
 		strokeColor: element.strokeColor ?? '#000000',
 		backgroundColor: element.backgroundColor ?? '#ffffff',

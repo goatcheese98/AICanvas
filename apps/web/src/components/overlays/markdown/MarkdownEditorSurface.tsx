@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { MarkdownNoteSettings, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import { MarkdownHybridEditor } from './MarkdownHybridEditor';
 import { MarkdownPlainEditor } from './MarkdownPlainEditor';
@@ -15,7 +16,7 @@ interface MarkdownEditorSurfaceProps {
 	onPreviewCheckboxToggle: (lineIndex: number) => void;
 }
 
-export function MarkdownEditorSurface({
+export const MarkdownEditorSurface = memo(function MarkdownEditorSurface({
 	content,
 	images,
 	settings,
@@ -61,4 +62,4 @@ export function MarkdownEditorSurface({
 			/>
 		</div>
 	);
-}
+});

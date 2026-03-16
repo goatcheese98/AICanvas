@@ -46,16 +46,24 @@ function KanbanCardInner({
 	const dragArmedRef = useRef(false);
 	const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const titleDraftRef = useRef(titleDraft);
+	const cardTitleRef = useRef(card.title);
 
 	useEffect(() => {
 		setDetailsOpen(false);
 		setIsEditingDescription(false);
+		cardTitleRef.current = card.title;
 		setTitleDraft(card.title);
 	}, [card.id]);
 
 	useEffect(() => {
+		cardTitleRef.current = card.title;
 		setTitleDraft(card.title);
 	}, [card.title]);
+
+	useEffect(() => {
+		titleDraftRef.current = titleDraft;
+	}, [titleDraft]);
 
 	useEffect(() => {
 		if (!titleTextareaRef.current) return;
@@ -72,13 +80,25 @@ function KanbanCardInner({
 	}, [card.description, fontSize, isEditingDescription]);
 
 	const commitTitleDraft = () => {
-		if (titleDraft.trim().length === 0) {
+		const nextTitle = titleDraftRef.current;
+		const currentTitle = cardTitleRef.current;
+		if (nextTitle.trim().length === 0) {
 			setTitleDraft(card.title);
 			return;
 		}
-		if (titleDraft === card.title) return;
-		onChange({ title: titleDraft });
+		if (nextTitle === currentTitle) return;
+		onChange({ title: nextTitle });
 	};
+
+	useEffect(
+		() => () => {
+			const nextTitle = titleDraftRef.current;
+			const currentTitle = cardTitleRef.current;
+			if (nextTitle.trim().length === 0 || nextTitle === currentTitle) return;
+			onChange({ title: nextTitle });
+		},
+		[onChange],
+	);
 
 	const handleTitleInput = (event: FormEvent<HTMLTextAreaElement>) => {
 		autosizeTextarea(event.currentTarget);
@@ -122,6 +142,8 @@ function KanbanCardInner({
 			}}
 			className="group relative border px-4 py-4 transition-[transform,box-shadow,border-color,opacity]"
 			style={{
+				minHeight: 'var(--kanban-card-min-height, 156px)',
+				overflow: 'visible',
 				borderRadius: `${cardRadius}px`,
 				borderColor: showReturnCue
 					? 'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))'

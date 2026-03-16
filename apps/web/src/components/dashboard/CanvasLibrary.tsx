@@ -229,6 +229,8 @@ export function CanvasLibrary() {
 	const [sortBy, setSortBy] = useState<DashboardSortOption>('recent');
 	const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 	const [renameTarget, setRenameTarget] = useState<Canvas | null>(null);
+	const [deleteTarget, setDeleteTarget] = useState<Canvas | null>(null);
+	const [deleteError, setDeleteError] = useState<string | null>(null);
 	const [formState, setFormState] = useState<CanvasFormState>(DEFAULT_CREATE_FORM);
 	const [formError, setFormError] = useState<string | null>(null);
 	const deferredSearch = useDeferredValue(searchTerm);
@@ -322,7 +324,12 @@ export function CanvasLibrary() {
 			}
 		},
 		onSuccess: () => {
+			setDeleteTarget(null);
+			setDeleteError(null);
 			void queryClient.invalidateQueries({ queryKey: ['canvases'] });
+		},
+		onError: (error) => {
+			setDeleteError(error instanceof Error ? error.message : 'Failed to delete canvas. Please try again.');
 		},
 	});
 
@@ -525,7 +532,10 @@ export function CanvasLibrary() {
 							canvas={canvas}
 							onOpen={() => void navigate({ to: '/canvas/$id', params: { id: canvas.id } })}
 							onRename={() => openRenameDialog(canvas)}
-							onDelete={() => deleteCanvas.mutate(canvas.id)}
+							onDelete={() => {
+						setDeleteError(null);
+						setDeleteTarget(canvas);
+					}}
 							onToggleFavorite={() => toggleFavorite.mutate(canvas.id)}
 						/>
 					))}
@@ -562,6 +572,49 @@ export function CanvasLibrary() {
 					}}
 					onSubmit={handleRenameSubmit}
 				/>
+			) : null}
+
+			{deleteTarget ? (
+				<div className="app-dialog-backdrop fixed inset-0 z-40 flex items-center justify-center p-4">
+					<div className="app-panel app-panel-strong w-full max-w-md overflow-hidden rounded-[18px]">
+						<div className="px-6 py-6">
+							<h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Delete Canvas</h2>
+							<p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
+								Are you sure you want to delete{' '}
+								<span className="font-semibold text-[var(--color-text-primary)]">
+									{deleteTarget.title}
+								</span>
+								? This cannot be undone.
+							</p>
+							{deleteError ? (
+								<div className="mt-4 rounded-[12px] border border-[var(--color-danger-border)] bg-[var(--color-danger-bg)] px-4 py-3 text-sm text-[var(--color-danger-text)]">
+									{deleteError}
+								</div>
+							) : null}
+						</div>
+						<div className="flex items-center justify-end gap-3 border-t border-[var(--color-border)] px-6 py-4">
+							<button
+								type="button"
+								onClick={() => {
+									setDeleteTarget(null);
+									setDeleteError(null);
+								}}
+								disabled={deleteCanvas.isPending}
+								className="app-button app-button-secondary"
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								onClick={() => deleteCanvas.mutate(deleteTarget.id)}
+								disabled={deleteCanvas.isPending}
+								className="app-button app-button-danger"
+							>
+								{deleteCanvas.isPending ? 'Deleting…' : 'Delete Canvas'}
+							</button>
+						</div>
+					</div>
+				</div>
 			) : null}
 		</div>
 	);
