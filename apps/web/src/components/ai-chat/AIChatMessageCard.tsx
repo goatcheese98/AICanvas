@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
@@ -29,6 +30,8 @@ export function MessageCard({
 	onApplyPatch,
 	onUndoPatch,
 	onReapplyPatch,
+	headerAccessory,
+	headerDetails,
 }: {
 	message: AssistantMessage;
 	elements?: readonly CanvasElement[];
@@ -52,9 +55,32 @@ export function MessageCard({
 		artifact: AssistantArtifact,
 		options?: AssistantPatchApplyOptions,
 	) => void;
+	headerAccessory?: ReactNode;
+	headerDetails?: ReactNode;
 }) {
 	const isUser = message.role === 'user';
 	const visibleArtifacts = filterVisibleArtifacts(message.artifacts ?? []);
+	const messageActions =
+		!isUser && canInsertMessageAsMarkdown(message) && onInsertMarkdown ? (
+			<div className="flex flex-wrap gap-2">
+				{canApplyMessageAsPrototype(message) && onInsertPrototype ? (
+					<button
+						type="button"
+						onClick={() => onInsertPrototype(message)}
+						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+					>
+						Apply Prototype
+					</button>
+				) : null}
+				<button
+					type="button"
+					onClick={() => onInsertMarkdown(message)}
+					className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+				>
+					Insert As Markdown
+				</button>
+			</div>
+		) : null;
 
 	return (
 		<div
@@ -68,9 +94,11 @@ export function MessageCard({
 				<span>{isUser ? 'You' : message.generationMode ?? 'Assistant'}</span>
 				<div className="flex items-center gap-2">
 					<span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+					{!isUser && headerAccessory ? headerAccessory : null}
 					{!isUser ? <CopyButton value={message.content} label="Copy" className="h-7 px-2 text-[9px]" /> : null}
 				</div>
 			</div>
+			{!isUser && headerDetails ? <div className="mb-3">{headerDetails}</div> : null}
 			{isUser ? (
 				<div className="whitespace-pre-wrap text-[13px] leading-relaxed">{message.content}</div>
 			) : (
@@ -152,26 +180,7 @@ export function MessageCard({
 					})}
 				</div>
 			) : null}
-			{!isUser && canInsertMessageAsMarkdown(message) && onInsertMarkdown ? (
-				<div className="mt-3 flex flex-wrap gap-2">
-					{canApplyMessageAsPrototype(message) && onInsertPrototype ? (
-						<button
-							type="button"
-							onClick={() => onInsertPrototype(message)}
-							className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-						>
-							Apply Prototype
-						</button>
-					) : null}
-					<button
-						type="button"
-						onClick={() => onInsertMarkdown(message)}
-						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-					>
-						Insert As Markdown
-					</button>
-				</div>
-			) : null}
+			{messageActions ? <div className="mt-3">{messageActions}</div> : null}
 		</div>
 	);
 }

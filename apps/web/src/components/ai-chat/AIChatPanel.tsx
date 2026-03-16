@@ -52,6 +52,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 	});
 
 	const messages = currentThread?.messages ?? [];
+	const latestMessage = messages.at(-1) ?? null;
 	const selectionIndicator = useMemo(
 		() => buildSelectionIndicator(elements as unknown as CanvasElement[], selectedElementIds),
 		[elements, selectedElementIds],
@@ -118,6 +119,10 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		getPrototypeContextForRequest: canvasActions.getPrototypeContextForRequest,
 		appendLocalAssistantMessage,
 	});
+	const shouldAppendRunStatusToLatestMessage =
+		runProgress !== null &&
+		(runProgress.status === 'completed' || runProgress.status === 'failed') &&
+		latestMessage?.role === 'assistant';
 
 	useEffect(() => {
 		setRunProgress(null);
@@ -239,12 +244,6 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 
 				<div className="min-h-0 flex-1 overflow-auto">
 					<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
-						<AIChatRunStatus
-							runProgress={runProgress}
-							isExpanded={isRunProgressExpanded}
-							onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
-						/>
-
 						{messages.length === 0 ? (
 							<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-4">
 								<div className="text-[10px] font-medium text-stone-500">
@@ -296,9 +295,33 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 									onReapplyPatch={(artifactKey, artifact, options) =>
 										canvasActions.applyAssistantPatch(artifactKey, artifact, 'reapply', options)
 									}
-								/>
-							))
-						)}
+										headerAccessory={
+											shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
+												<AIChatRunStatus
+													runProgress={runProgress}
+													isExpanded={isRunProgressExpanded}
+													onToggleExpanded={() =>
+														setIsRunProgressExpanded((current) => !current)
+													}
+													variant="inline-trigger"
+												/>
+											) : undefined
+										}
+										headerDetails={
+											shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
+												<AIChatRunStatus
+													runProgress={runProgress}
+													isExpanded={isRunProgressExpanded}
+													onToggleExpanded={() =>
+														setIsRunProgressExpanded((current) => !current)
+													}
+													variant="inline-panel"
+												/>
+											) : undefined
+										}
+									/>
+								))
+							)}
 
 						{pendingSelectionConfirmation && selectionIndicator ? (
 							<SelectionConfirmationCard
@@ -319,6 +342,14 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 										skipSelectionConfirmation: true,
 									});
 								}}
+							/>
+						) : null}
+
+						{runProgress && !shouldAppendRunStatusToLatestMessage ? (
+							<AIChatRunStatus
+								runProgress={runProgress}
+								isExpanded={isRunProgressExpanded}
+								onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
 							/>
 						) : null}
 
