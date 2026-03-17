@@ -22,12 +22,17 @@ import { bumpElementVersion } from './overlay-definition-types';
 import type {
 	OverlayCustomDataMap,
 	OverlayDefinition,
+	OverlayRenderMode,
 	TypedOverlayCanvasElement,
 } from './overlay-definition-types';
 import { createDefaultKanbanColumns, DEFAULT_MARKDOWN_CONTENT } from './overlay-defaults';
 
 // Re-export types so existing imports still work
-export type { TypedOverlayCanvasElement, OverlayUpdatePayloadMap } from './overlay-definition-types';
+export type {
+	OverlayRenderMode,
+	TypedOverlayCanvasElement,
+	OverlayUpdatePayloadMap,
+} from './overlay-definition-types';
 
 function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 	return JSON.stringify(value ?? []);
@@ -85,14 +90,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			}) as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 		},
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, onChange, onActivityChange }) => (
 			<MarkdownNote
 				element={element}
 				isSelected={isSelected}
 				onChange={(elementId, content, images, title, settings, editorMode, elementStyle) =>
 					onChange({ content, images, title, settings, editorMode, elementStyle })
 				}
-				onEditingChange={onEditingChange}
+				onEditingChange={onActivityChange}
 			/>
 		),
 	},
@@ -140,12 +145,12 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, onChange, onActivityChange }) => (
 			<LexicalNote
 				element={element}
 				isSelected={isSelected}
 				onChange={(_elementId, updates) => onChange(updates)}
-				onEditingChange={onEditingChange}
+				onEditingChange={onActivityChange}
 			/>
 		),
 	},
@@ -167,13 +172,13 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				...element,
 				customData: normalizeKanbanOverlay(payload),
 			}),
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, mode, isSelected, onChange, onActivityChange }) => (
 			<KanbanBoard
 				element={element}
-				mode={isSelected ? 'live' : 'preview'}
+				mode={coerceKanbanMode(mode)}
 				isSelected={isSelected}
 				onChange={(_elementId, data) => onChange(data)}
-				onEditingChange={onEditingChange}
+				onEditingChange={onActivityChange}
 			/>
 		),
 	},
@@ -192,12 +197,12 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					url: payload.url,
 				}),
 			}),
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, onChange, onActivityChange }) => (
 			<WebEmbed
 				element={element}
 				isSelected={isSelected}
 				onChange={(_elementId, url) => onChange({ url })}
-				onEditingChange={onEditingChange}
+				onEditingChange={onActivityChange}
 			/>
 		),
 	},
@@ -256,6 +261,10 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 
 export function isOverlayType(value: unknown): value is OverlayType {
 	return typeof value === 'string' && (OVERLAY_TYPES as readonly string[]).includes(value);
+}
+
+function coerceKanbanMode(mode: OverlayRenderMode): 'preview' | 'live' {
+	return mode === 'preview' ? 'preview' : 'live';
 }
 
 export function getOverlayDefinition<K extends OverlayType>(type: K): OverlayDefinition<K> {

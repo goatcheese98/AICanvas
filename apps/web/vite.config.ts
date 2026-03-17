@@ -44,6 +44,8 @@ export default defineConfig(({ mode }) => {
 	const shouldUploadSourcemaps = Boolean(
 		env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT,
 	);
+	const port = Number(env.VITE_PORT || env.PORT || 5173);
+	const apiProxyTarget = env.VITE_API_PROXY_TARGET || env.API_PROXY_TARGET || 'http://localhost:8787';
 
 	return {
 		plugins: [
@@ -76,10 +78,10 @@ export default defineConfig(({ mode }) => {
 			alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
 		},
 		server: {
-			port: 5173,
+			port,
 			proxy: {
 				'/api': {
-					target: 'http://localhost:8787',
+					target: apiProxyTarget,
 					changeOrigin: true,
 				},
 			},

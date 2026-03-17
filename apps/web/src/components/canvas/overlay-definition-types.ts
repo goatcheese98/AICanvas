@@ -64,11 +64,15 @@ export interface CreateOverlayElementOptions {
 	customData?: Record<string, unknown>;
 }
 
-interface OverlayRenderProps<K extends OverlayType> {
+export type OverlayRenderMode = 'preview' | 'shell' | 'live';
+
+export interface OverlayRenderProps<K extends OverlayType> {
 	element: TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
+	mode: OverlayRenderMode;
 	isSelected: boolean;
+	isActive: boolean;
 	onChange: (payload: OverlayUpdatePayloadMap[K]) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }
 
 export interface OverlayDefinition<K extends OverlayType> {
