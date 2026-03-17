@@ -12,6 +12,7 @@ import '@excalidraw/excalidraw/index.css';
 import { CanvasCore } from './CanvasCore';
 import { CanvasUI } from './CanvasUI';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
+import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
 import { useAppStore } from '@/stores/store';
 import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useCollaboration } from '@/hooks/useCollaboration';
@@ -379,6 +380,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				onPointerUpdate={collaboration.handlePointerUpdate}
 			/>
 			{excalidrawApi && <CanvasNotesLayer />}
+			{excalidrawApi && <AIVectorSelectionOverlay />}
 			<CanvasUI canvasId={canvasId} collaboration={collaboration} />
 		</div>
 	);

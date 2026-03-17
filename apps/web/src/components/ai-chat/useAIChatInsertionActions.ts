@@ -429,7 +429,6 @@ export function useAIChatInsertionActions({
 		): Promise<NativeVectorCompileResult> => {
 			try {
 				return await vectorizeRasterBlobToSketchElements(blob, {
-					maxElements: 60,
 					controls: { colorPalette: 10 },
 					customData,
 				});
