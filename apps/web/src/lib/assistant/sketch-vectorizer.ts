@@ -34,8 +34,6 @@ export interface SketchVectorizationMetadata {
 	componentsFiltered: number;
 	elementsCreated: number;
 	elementsEmitted: number;
-	outlineComponentsFound: number;
-	outlineElementsCreated: number;
 	processingMs: number;
 }
 
@@ -67,6 +65,7 @@ interface BoundaryEdge {
 
 interface PolygonElementCandidate {
 	area: number;
+	color: RGB;
 	skeleton: Record<string, unknown>;
 }
 
@@ -134,6 +133,124 @@ function pointEquals(a: Point, b: Point) {
 
 function pixelLuminance(r: number, g: number, b: number) {
 	return r * 0.299 + g * 0.587 + b * 0.114;
+}
+
+/**
+ * Derives a deterministic seed from pixel data so K-means always produces the
+ * same clusters for the same image, making element counts reproducible.
+ */
+function computeImageSeed(data: Uint8ClampedArray): number {
+	let h = 2166136261; // FNV-1a offset basis
+	const step = Math.max(4, Math.floor(data.length / 2000) * 4);
+	for (let i = 0; i < data.length; i += step) {
+		h ^= data[i];
+		h = Math.imul(h, 16777619) >>> 0;
+	}
+	return h || 1; // xorshift must not receive 0
+}
+
+/** Simple xorshift32 PRNG returning values in [0, 1). */
+function makeSeededRandom(seed: number): () => number {
+	let s = (seed >>> 0) || 1;
+	return (): number => {
+		s ^= s << 13;
+		s ^= s >> 17;
+		s ^= s << 5;
+		s = s >>> 0;
+		return s / 4294967296;
+	};
+}
+
+/**
+ * Merges K-means color centers that are perceptually close (within `maxDistSq`
+ * RGB squared distance). This prevents over-segmentation of subjects with
+ * subtle tonal variation (e.g. a brown dog producing 8 shades of brown) which
+ * causes seam artifacts and inflated element counts.
+ *
+ * Merging is done via union-find; merged center colors are the pixel-weighted
+ * average of the constituent clusters.
+ */
+function mergeSimilarColorClusters(
+	centers: RGB[],
+	labels: Uint16Array,
+	counts: Uint32Array,
+	maxDistSq: number,
+): { centers: RGB[]; labels: Uint16Array; counts: Uint32Array } {
+	const n = centers.length;
+	const parent = Array.from({ length: n }, (_, i) => i);
+
+	function find(x: number): number {
+		while (parent[x] !== x) {
+			parent[x] = parent[parent[x]];
+			x = parent[x];
+		}
+		return x;
+	}
+
+	// Guard: skip merging at both ends of the brightness spectrum.
+	// Near-white colors (cream, off-white, light beige) and near-black colors
+	// (dark gray, near-black) represent visually distinct surface colors that
+	// should never be collapsed — only mid-range hues with subtle variation merge.
+	const MERGE_BRIGHT_CUTOFF = 185; // above this → protect from merging
+	const MERGE_DARK_CUTOFF = 55;   // below this → protect from merging
+	for (let i = 0; i < n; i += 1) {
+		const bi = brightness(centers[i]);
+		if (bi > MERGE_BRIGHT_CUTOFF || bi < MERGE_DARK_CUTOFF) continue;
+		for (let j = i + 1; j < n; j += 1) {
+			const bj = brightness(centers[j]);
+			if (bj > MERGE_BRIGHT_CUTOFF || bj < MERGE_DARK_CUTOFF) continue;
+			if (colorDistanceSq(centers[i], centers[j]) <= maxDistSq) {
+				parent[find(i)] = find(j);
+			}
+		}
+	}
+
+	// Build canonical new-index mapping
+	const rootToNewIndex = new Map<number, number>();
+	let nextId = 0;
+	const mapping = new Array<number>(n);
+	for (let i = 0; i < n; i += 1) {
+		const root = find(i);
+		if (!rootToNewIndex.has(root)) {
+			rootToNewIndex.set(root, nextId);
+			nextId += 1;
+		}
+		mapping[i] = rootToNewIndex.get(root)!;
+	}
+
+	// If nothing merged, return originals unchanged to avoid allocation
+	if (nextId === n) {
+		return { centers, labels, counts };
+	}
+
+	// Merged center color = pixel-weighted average of constituent clusters
+	const m = nextId;
+	const sumR = new Float64Array(m);
+	const sumG = new Float64Array(m);
+	const sumB = new Float64Array(m);
+	const newCounts = new Uint32Array(m);
+
+	for (let i = 0; i < n; i += 1) {
+		const mi = mapping[i];
+		sumR[mi] += centers[i].r * counts[i];
+		sumG[mi] += centers[i].g * counts[i];
+		sumB[mi] += centers[i].b * counts[i];
+		newCounts[mi] += counts[i];
+	}
+
+	const newCenters: RGB[] = Array.from({ length: m }, (_, i) => ({
+		r: newCounts[i] > 0 ? Math.round(sumR[i] / newCounts[i]) : 0,
+		g: newCounts[i] > 0 ? Math.round(sumG[i] / newCounts[i]) : 0,
+		b: newCounts[i] > 0 ? Math.round(sumB[i] / newCounts[i]) : 0,
+	}));
+
+	// Remap pixel labels to new cluster indices
+	const newLabels = new Uint16Array(labels.length);
+	for (let i = 0; i < labels.length; i += 1) {
+		newLabels[i] = mapping[labels[i]];
+	}
+
+	return { centers: newCenters, labels: newLabels, counts: newCounts };
 }
 
 function isNearWhitePixel(r: number, g: number, b: number) {
@@ -402,8 +519,8 @@ function samplePixels(data: Uint8ClampedArray, maxSamples = 180_000): RGB[] {
 	return samples.length > 0 ? samples : [{ r: 255, g: 255, b: 255 }];
 }
 
-function initKMeansPlusPlus(samples: RGB[], k: number): RGB[] {
-	const centers: RGB[] = [samples[Math.floor(Math.random() * samples.length)]];
+function initKMeansPlusPlus(samples: RGB[], k: number, rng: () => number): RGB[] {
+	const centers: RGB[] = [samples[Math.floor(rng() * samples.length)]];
 
 	while (centers.length < k) {
 		const distances = samples.map((sample) => {
@@ -415,11 +532,11 @@ function initKMeansPlusPlus(samples: RGB[], k: number): RGB[] {
 		});
 		const distanceSum = distances.reduce((total, value) => total + value, 0);
 		if (!Number.isFinite(distanceSum) || distanceSum <= 0) {
-			centers.push(samples[Math.floor(Math.random() * samples.length)]);
+			centers.push(samples[Math.floor(rng() * samples.length)]);
 			continue;
 		}
 
-		let pick = Math.random() * distanceSum;
+		let pick = rng() * distanceSum;
 		let chosen = samples[0];
 		for (let index = 0; index < samples.length; index += 1) {
 			pick -= distances[index];
@@ -449,9 +566,9 @@ function nearestCenterIndex(color: RGB, centers: RGB[]) {
 	return bestIndex;
 }
 
-function runKMeans(samples: RGB[], requestedK: number, maxIterations = 18): RGB[] {
+function runKMeans(samples: RGB[], requestedK: number, maxIterations = 18, rng: () => number = Math.random): RGB[] {
 	const clusterCount = clamp(requestedK, 2, samples.length);
-	let centers = initKMeansPlusPlus(samples, clusterCount);
+	let centers = initKMeansPlusPlus(samples, clusterCount, rng);
 
 	for (let iteration = 0; iteration < maxIterations; iteration += 1) {
 		const sumsR = new Float64Array(clusterCount);
@@ -986,53 +1103,6 @@ function chaikinSmoothClosed(points: Point[], iterations = 1) {
 	return ring;
 }
 
-function buildOutlineMask(
-	data: Uint8ClampedArray,
-	width: number,
-	height: number,
-	edgeSensitivity: number,
-) {
-	const mask = new Uint8Array(width * height);
-	const gradientThreshold = clamp(58 - edgeSensitivity * 0.9, 20, 48);
-	const darkThreshold = clamp(138 - edgeSensitivity * 1.5, 72, 132);
-
-	for (let y = 0; y < height; y += 1) {
-		for (let x = 0; x < width; x += 1) {
-			const pixel = y * width + x;
-			const offset = pixel * 4;
-			const luminance = pixelLuminance(
-				data[offset],
-				data[offset + 1],
-				data[offset + 2],
-			);
-			const rightOffset = (y * width + Math.min(width - 1, x + 1)) * 4;
-			const downOffset = (Math.min(height - 1, y + 1) * width + x) * 4;
-			const rightLuminance = pixelLuminance(
-				data[rightOffset],
-				data[rightOffset + 1],
-				data[rightOffset + 2],
-			);
-			const downLuminance = pixelLuminance(
-				data[downOffset],
-				data[downOffset + 1],
-				data[downOffset + 2],
-			);
-			const gradient = Math.max(
-				Math.abs(luminance - rightLuminance),
-				Math.abs(luminance - downLuminance),
-			);
-
-			if (
-				luminance <= darkThreshold &&
-				(gradient >= gradientThreshold || luminance <= darkThreshold - 18)
-			) {
-				mask[pixel] = 1;
-			}
-		}
-	}
-
-	return morphOpen(morphClose(mask, width, height, 2), width, height, 2);
-}
 
 function createPolygonSkeleton(
 	polygon: Point[],
@@ -1041,6 +1111,7 @@ function createPolygonSkeleton(
 	controls: SketchVectorControls,
 	customData: Record<string, unknown>,
 	groupId: string,
+	layerIndex: number,
 	overrides?: {
 		strokeColor?: string;
 		backgroundColor?: string;
@@ -1077,20 +1148,23 @@ function createPolygonSkeleton(
 	const baseColor = rgbToHex(color);
 	return {
 		area,
+		color,
 		skeleton: {
 			type: 'line',
 			x: Math.round(minX * 100) / 100,
 			y: Math.round(minY * 100) / 100,
 			points,
-			strokeColor: overrides?.strokeColor ?? baseColor,
+			strokeColor: overrides?.strokeColor ?? '#050505',
 			backgroundColor: overrides?.backgroundColor ?? baseColor,
 			fillStyle: 'solid',
+			// Dark stroke centered on boundary — inward half hidden by fill, outward
+			// half overwritten by adjacent solid-fill polygons. Eliminates seam gaps.
 			strokeWidth:
-				overrides?.strokeWidth ?? clamp(controls.edgeSensitivity / 24, 0.8, 2.5),
+				overrides?.strokeWidth ?? clamp(controls.edgeSensitivity / 12, 1.8, 3.5),
 			strokeStyle: 'solid',
 			roughness: overrides?.roughness ?? STYLE_ROUGHNESS[controls.style],
 			opacity: 100,
-			groupIds: [groupId],
+			groupIds: [`${groupId}-layer-${layerIndex}`, groupId],
 			customData,
 		},
 	};
@@ -1120,15 +1194,28 @@ async function runLayeredVectorization(
 	});
 
 	logs.push('Applying k-means color clustering...');
-	const centers = runKMeans(samplePixels(filtered), requestedColors);
-	const { labels, counts } = assignLabels(filtered, decoded.width, decoded.height, centers);
+	const rng = makeSeededRandom(computeImageSeed(decoded.data));
+	const rawCenters = runKMeans(samplePixels(filtered), requestedColors, 18, rng);
+	const rawAssignment = assignLabels(filtered, decoded.width, decoded.height, rawCenters);
+
+	// Merge perceptually similar clusters before polygon extraction.
+	// Without this, a subject with subtle tonal gradients (e.g. a brown dog)
+	// produces many near-identical clusters that leave seam gaps at boundaries
+	// and inflate element counts unpredictably across runs.
+	// Threshold: RGB squared distance ≤ 40² (catches ~25-unit per-channel differences).
+	const { centers, labels, counts } = mergeSimilarColorClusters(
+		rawCenters,
+		rawAssignment.labels,
+		rawAssignment.counts,
+		40 * 40,
+	);
+
 	const { backgroundLabel, backgroundLabels } = detectBackgroundLabels(centers, counts);
 	const epsilon = clamp(2.45 - controls.detailLevel * 1.35, 0.85, 2.25);
 	const minArea = Math.max(18, Math.round(48 - controls.detailLevel * 32));
 	const kernelSize = controls.detailLevel >= 0.85 ? 3 : 4;
 
 	const fillCandidates: PolygonElementCandidate[] = [];
-	const outlineCandidates: PolygonElementCandidate[] = [];
 	let componentsFound = 0;
 	let componentsFiltered = 0;
 
@@ -1137,17 +1224,24 @@ async function runLayeredVectorization(
 			continue;
 		}
 
-		const openedMask = morphOpen(
-			morphClose(
-				binaryMaskForLabel(labels, decoded.width, decoded.height, label),
-				decoded.width,
-				decoded.height,
-				2,
-			),
+		// Dark clusters (frames, outlines) form thin structures — typically only
+		// 3-6px wide in the working image. morphOpen with kernel ≥ 3 erodes them
+		// away completely, splitting the frame into many disconnected islands that
+		// leave visible gaps. For these clusters we only close (fill tiny holes)
+		// and skip the open step. Light/medium clusters are large solid fills where
+		// the open step still helps remove K-means noise protrusions.
+		const clusterBrightness =
+			0.299 * centers[label].r + 0.587 * centers[label].g + 0.114 * centers[label].b;
+		const isDarkCluster = clusterBrightness < 80;
+		const closedMask = morphClose(
+			binaryMaskForLabel(labels, decoded.width, decoded.height, label),
 			decoded.width,
 			decoded.height,
-			kernelSize,
+			isDarkCluster ? 3 : 2,
 		);
+		const openedMask = isDarkCluster
+			? closedMask
+			: morphOpen(closedMask, decoded.width, decoded.height, kernelSize);
 		const components = extractComponents(openedMask, decoded.width, decoded.height);
 		componentsFound += components.length;
 
@@ -1194,6 +1288,7 @@ async function runLayeredVectorization(
 				controls,
 				customData,
 				groupId,
+				label,
 			);
 			if (candidate) {
 				fillCandidates.push(candidate);
@@ -1201,78 +1296,33 @@ async function runLayeredVectorization(
 		}
 	}
 
-	logs.push('Extracting outline layers...');
-	const outlineMask = buildOutlineMask(
-		filtered,
-		decoded.width,
-		decoded.height,
-		controls.edgeSensitivity,
-	);
-	const outlineComponents = extractComponents(outlineMask, decoded.width, decoded.height);
-	const minOutlineArea = Math.max(10, Math.round(minArea * 0.45));
-	for (const component of outlineComponents) {
-		if (component.area < minOutlineArea) {
-			continue;
-		}
-
-		const loops = buildBoundaryLoops(component, outlineMask, decoded.width, decoded.height);
-		if (loops.length === 0) {
-			continue;
-		}
-
-		let chosenLoop = loops[0];
-		let chosenArea = Math.abs(polygonArea(chosenLoop));
-		for (let index = 1; index < loops.length; index += 1) {
-			const currentArea = Math.abs(polygonArea(loops[index]));
-			if (currentArea > chosenArea) {
-				chosenLoop = loops[index];
-				chosenArea = currentArea;
-			}
-		}
-
-		const smoothed = chaikinSmoothClosed(chosenLoop, 1);
-		const simplified = simplifyClosedPolygon(
-			smoothed,
-			clamp(epsilon * 0.65, 0.6, 1.6),
-		);
-		if (simplified.length < 4) {
-			continue;
-		}
-
-		const candidate = createPolygonSkeleton(
-			simplified,
-			{ r: 5, g: 5, b: 5 },
-			component.area,
-			controls,
-			customData,
-			groupId,
-			{
-				strokeColor: '#050505',
-				backgroundColor: 'transparent', // stroke-only — prevents solid dark fill from covering colored shapes
-				strokeWidth: clamp(controls.edgeSensitivity / 20, 1.15, 2.7),
-				roughness: 0,
-			},
-		);
-		if (candidate) {
-			outlineCandidates.push(candidate);
-		}
-	}
-
-	fillCandidates.sort((left, right) => right.area - left.area);
-	outlineCandidates.sort((left, right) => right.area - left.area);
+	// Painter's algorithm: darker elements go first (bottom), lighter elements go
+	// last (top). This is the correct depth order for layered illustrations:
+	// - Dark frame / silhouette polygon covers the full object footprint → bottom
+	// - Medium fills (windows, shadows) in the middle
+	// - Light background fills (cream bus body, fur) rendered last → top
+	//
+	// The light element's polygon only covers its own K-means pixels, so it
+	// exposes the dark fill underneath wherever dark pixels exist (window frames,
+	// outlines). No ring-shape detection needed — the K-means boundaries do the
+	// clipping automatically.
+	//
+	// Within the same brightness band, larger area goes first so large-area
+	// fragments of a hue don't accidentally cover finer same-hue details.
+	const brightness = ({ color: c }: PolygonElementCandidate) =>
+		0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+	fillCandidates.sort((left, right) => {
+		const bLeft = brightness(left);
+		const bRight = brightness(right);
+		if (Math.abs(bLeft - bRight) > 15) return bLeft - bRight; // darker first
+		return right.area - left.area; // same band: larger first
+	});
 
 	const maxElements =
 		options?.maxElements ?? MAX_ELEMENTS_BY_COMPLEXITY[controls.complexity];
-	// Outline budget is kept very small: the fill color layers already provide
-	// structure, so outlines are only used for the 2-3 most prominent edge loops.
-	// The old 30% budget (18 outlines with maxElements=60) was the reason the
-	// element count always landed at exactly 26 (8 fills + 18 outlines).
-	const outlineBudget = Math.min(outlineCandidates.length, 3);
-	const fillBudget = Math.max(0, maxElements - outlineBudget);
-	const emittedSkeletons = [
-		...outlineCandidates.slice(0, outlineBudget), // outlines behind fills
-		...fillCandidates.slice(0, fillBudget),        // fills on top of outlines
-	].map((candidate) => candidate.skeleton);
+	const emittedSkeletons = fillCandidates
+		.slice(0, maxElements)
+		.map((candidate) => candidate.skeleton);
 
 	if (emittedSkeletons.length === 0) {
 		throw new Error('No vectorizable regions were detected in this image.');
@@ -1300,10 +1350,8 @@ async function runLayeredVectorization(
 			minArea,
 			componentsFound,
 			componentsFiltered,
-			elementsCreated: fillCandidates.length + outlineCandidates.length,
+			elementsCreated: fillCandidates.length,
 			elementsEmitted: elements.length,
-			outlineComponentsFound: outlineComponents.length,
-			outlineElementsCreated: outlineCandidates.length,
 			processingMs: Math.round(performance.now() - startedAt),
 		},
 	} satisfies CompiledSketchVectorization;
