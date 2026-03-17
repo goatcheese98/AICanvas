@@ -47,7 +47,6 @@ This should be opened less often than execution worktrees.
 
 Examples:
 
-- `/Users/rohanjasani/Desktop/Projects/AICanvas-overlay-runtime-lod`
 - `/Users/rohanjasani/Desktop/Projects/AICanvas-assistant-image-pipeline`
 - `/Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow`
 
@@ -73,7 +72,6 @@ Use:
 
 Examples:
 
-- `AICanvas-overlay-runtime-lod`
 - `AICanvas-assistant-image-pipeline`
 - `AICanvas-prototype-workflow`
 
@@ -100,9 +98,8 @@ Assign stable web ports to each execution worktree.
 Example:
 
 - `AICanvas-main` -> web `5173`
-- `AICanvas-overlay-runtime-lod` -> web `5174`
-- `AICanvas-assistant-image-pipeline` -> web `5175`
-- `AICanvas-prototype-workflow` -> web `5176`
+- `AICanvas-assistant-image-pipeline` -> web `5181`
+- `AICanvas-prototype-workflow` -> web `5182`
 
 `apps/web/vite.config.ts` supports:
 
@@ -111,63 +108,31 @@ Example:
 
 Use them explicitly. Agents should not assume ports are assigned automatically.
 
-### Default local lane model
+### Fixed lane model
 
-By default, all local web lanes can share one API on `8787`.
+The integration lane stays on `5173` / `8787`.
 
-Current local-dev defaults treat these preview origins as the standard lane set:
+Every execution worktree gets its own dedicated backend, and the frontend/backend
+pair always share the same trailing digits:
 
-- `http://localhost:5173`
-- `http://localhost:5174`
-- `http://localhost:5175`
-- `http://localhost:5176`
-- `http://127.0.0.1:5173`
-- `http://127.0.0.1:5174`
-- `http://127.0.0.1:5175`
-- `http://127.0.0.1:5176`
+- `AICanvas-assistant-image-pipeline` -> web `5181`, api `8791`
+- `AICanvas-prototype-workflow` -> web `5182`, api `8792`
 
-This is implemented on the API side via
-[local-dev-origins.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/lib/local-dev-origins.ts),
-which is used by:
+Going forward, new execution lanes continue from that pattern:
 
-- [index.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/index.ts) for CORS
-- [auth.ts](/Users/rohanjasani/Desktop/Projects/AICanvas/apps/api/src/middleware/auth.ts) for Clerk `authorizedParties`
+- next frontend port starts at `5181`
+- next API port starts at `8791`
+- frontend/backend pairs should keep matching final digits
+- the next available execution pair is currently `5183` / `8793`
 
-Behavior:
-
-- in development and test, configured origins/authorized parties are merged with the default local lane set
-- in production, configured values remain scoped and are not expanded automatically
-
-This means a shared local API on `8787` is the default and simplest setup when
-the backend is not changing.
-
-### When to use dedicated API ports
-
-Use one shared API on `8787` when:
-
-- the work is frontend-only
-- multiple worktrees can safely talk to the same backend behavior
-- you want the least operational overhead
-
-Use dedicated API ports per worktree when:
-
-- a branch changes API behavior
-- you need isolated backend state or environment variables
-- you want to compare backend variants side by side
-
-Example dedicated backend lanes:
-
-- `AICanvas-main` -> web `5173`, api `8787`
-- `AICanvas-overlay-runtime-lod` -> web `5174`, api `8788`
-- `AICanvas-assistant-image-pipeline` -> web `5175`, api `8789`
-- `AICanvas-prototype-workflow` -> web `5176`, api `8790`
-
-If a worktree needs its own API, point that worktree's web app at it with
-`VITE_API_PROXY_TARGET`.
+Each worktree's `apps/web/.env.local` and `apps/api/.dev.vars` should be
+patched to that worktree's own lane. Do not rely on a shared API by default.
 
 ### Local auth/env sync requirement
 
 New worktrees do not automatically receive local-only auth files.
+This is expected because `.env.local` and `.dev.vars` are gitignored local files,
+not tracked project files.
 
 To make `/login` work in a fresh sibling worktree, ensure these exist there:
 
@@ -179,6 +144,24 @@ Missing `apps/web/.env.local` causes the frontend to fail early with
 
 Missing or stale `apps/api/.dev.vars` can cause CORS failures or Clerk token
 verification failures even if the frontend boots correctly.
+
+`apps/api/.dev.vars` should also carry that lane's `API_PORT`, and
+`apps/api/package.json` reads it so plain `bun run dev` binds to the correct
+backend port for that worktree.
+
+The API dev launcher also applies local D1 migrations before starting Wrangler,
+so a fresh or stale worktree is less likely to fail with a misleading generic
+auth error caused by an out-of-date `users` table.
+
+Preferred shortcut:
+
+```sh
+bun run worktree:new -- <name>
+```
+
+This creates the sibling worktree, syncs the current orchestration docs
+(`AGENTS.md`, `CLAUDE.md`, worktree/auth docs), and copies local env files when
+they exist in the orchestration worktree.
 
 ## Command Placement Rules
 
@@ -241,9 +224,9 @@ Use the orchestration thread to assign a small number of independent branches.
 
 Current safe examples:
 
-- overlay runtime / LOD performance work
 - assistant image pipeline work
 - prototype workflow polish
+- kanban UI polish
 
 ## Launch Commands
 
@@ -254,36 +237,33 @@ cd /Users/rohanjasani/Desktop/Projects/AICanvas-main/apps/web
 bun run dev
 ```
 
-### Overlay runtime lane
-
-```sh
-cd /Users/rohanjasani/Desktop/Projects/AICanvas-overlay-runtime-lod/apps/web
-VITE_PORT=5174 bun run dev
-```
-
 ### Assistant image pipeline lane
 
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas-assistant-image-pipeline/apps/web
-VITE_PORT=5175 bun run dev
+VITE_PORT=5181 VITE_API_PROXY_TARGET=http://localhost:8791 bun run dev
 ```
 
 ### Prototype workflow lane
 
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow/apps/web
-VITE_PORT=5176 bun run dev
+VITE_PORT=5182 VITE_API_PROXY_TARGET=http://localhost:8792 bun run dev
 ```
 
-Shared API default:
+### Assistant image pipeline API
 
 ```sh
-cd /Users/rohanjasani/Desktop/Projects/AICanvas/apps/api
+cd /Users/rohanjasani/Desktop/Projects/AICanvas-assistant-image-pipeline/apps/api
 bun run dev
 ```
 
-If an execution lane needs its own API too, start that worktree's API on its
-dedicated port and point `VITE_API_PROXY_TARGET` at it.
+### Prototype workflow API
+
+```sh
+cd /Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow/apps/api
+bun run dev
+```
 
 ## PR and Merge Management
 
@@ -338,6 +318,12 @@ Create a new task worktree from orchestration:
 
 ```sh
 git worktree add -b task/<name> ../AICanvas-<name> main
+```
+
+Create a new task worktree and bootstrap local env/docs:
+
+```sh
+bun run worktree:new -- <name>
 ```
 
 List worktrees:

@@ -8,7 +8,7 @@ Two separate Clerk instances are used:
 
 | Instance | Type | Used by |
 |---|---|---|
-| Development | `pk_test_...` / `sk_test_...` | Local dev (`localhost:5173-5176`) |
+| Development | `pk_test_...` / `sk_test_...` | Local dev (`localhost:5173` for main, `localhost:5181+` for execution lanes) |
 | Production | `pk_live_...` / `sk_live_...` | `roopstudio.com` |
 
 Both live under the same Clerk application (`RoopStudio`). Switching between them is done via the instance selector in the Clerk dashboard.
@@ -29,27 +29,36 @@ VITE_PARTYKIT_HOST=localhost:1999
 ```
 CLERK_SECRET_KEY=sk_test_...
 CLERK_PUBLISHABLE_KEY=pk_test_...
+API_PORT=8787
 ANTHROPIC_API_KEY=sk-ant-...
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176,https://roopstudio.com,https://www.roopstudio.com
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://roopstudio.com,https://www.roopstudio.com
+CLERK_AUTHORIZED_PARTIES=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-If you set `CORS_ALLOWED_ORIGINS` or `CLERK_AUTHORIZED_PARTIES` manually for local multi-worktree
-development, include every active preview lane (`5173`-`5176`) so the API and Clerk token checks stay
-aligned across worktrees.
+These files are intentionally gitignored, so `git worktree add` does not copy
+them into fresh sibling worktrees by itself.
+
+For the integration lane, keep the backend matched to `5173`/`8787`.
+For execution worktrees, use dedicated matching pairs like `5181`/`8791`, `5182`/`8792`, then continue upward as
+needed, and set that worktree's `CORS_ALLOWED_ORIGINS` / `CLERK_AUTHORIZED_PARTIES` to its own frontend port.
 
 Both `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_PUBLISHABLE_KEY` should use the **development** instance keys (`pk_test_...`, `sk_test_...`).
 
 ### Local D1 database
 
-Wrangler creates a fresh SQLite file under `.wrangler/state/v3/d1/` each time a new dev server session starts. If the `users` table is missing, auth will fail with `Authentication failed` (500).
+Wrangler creates a fresh SQLite file under `.wrangler/state/v3/d1/` for each
+worktree's local API runtime. If the `users` table is missing or stale, the UI
+may show a misleading `Authentication failed` error even though the real problem
+is local database state.
 
-After any fresh Wrangler start, run:
+`bun run dev` in `apps/api` now applies local D1 migrations before starting
+Wrangler, so fresh worktrees self-heal automatically in the normal dev flow.
+
+If you ever need to repair the local database manually, you can still run:
 
 ```sh
 bun run db:migrate
 ```
-
-This applies all migrations to the local D1. You only need to do this once per new `.wrangler/` state directory.
 
 ## Production Setup
 

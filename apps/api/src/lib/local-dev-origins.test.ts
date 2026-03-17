@@ -15,17 +15,17 @@ describe('local-dev-origins', () => {
 		]);
 	});
 
-	it('returns all local worktree lanes when cors origins are unset in development', () => {
+	it('returns the main lane when cors origins are unset in development', () => {
 		expect(getCorsAllowedOrigins(undefined, 'development')).toEqual([
 			...DEFAULT_LOCAL_DEV_ORIGINS,
 			...DEFAULT_PUBLIC_ORIGINS,
 		]);
 	});
 
-	it('merges configured development cors origins with local worktree lanes', () => {
+	it('uses configured development cors origins as-is', () => {
 		expect(
 			getCorsAllowedOrigins('http://localhost:5173,https://preview.example.com', 'development'),
-		).toEqual([...DEFAULT_LOCAL_DEV_ORIGINS, 'https://preview.example.com']);
+		).toEqual(['http://localhost:5173', 'https://preview.example.com']);
 	});
 
 	it('keeps production cors origins scoped to the configured list', () => {
@@ -38,10 +38,10 @@ describe('local-dev-origins', () => {
 		expect(getAuthorizedParties(undefined, 'development')).toEqual([]);
 	});
 
-	it('merges configured development authorized parties with local worktree lanes', () => {
+	it('uses configured development authorized parties as-is', () => {
 		expect(
 			getAuthorizedParties('http://localhost:5173,https://roopstudio.com', 'development'),
-		).toEqual([...DEFAULT_LOCAL_DEV_ORIGINS, 'https://roopstudio.com']);
+		).toEqual(['http://localhost:5173', 'https://roopstudio.com']);
 	});
 
 	it('keeps production authorized parties scoped to the configured list', () => {
