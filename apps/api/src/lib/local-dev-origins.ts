@@ -1,9 +1,7 @@
-const LOCAL_DEV_PORTS = ['5173', '5174', '5175', '5176'] as const;
-const LOCAL_DEV_HOSTS = ['localhost', '127.0.0.1'] as const;
-
-export const DEFAULT_LOCAL_DEV_ORIGINS = LOCAL_DEV_HOSTS.flatMap((host) =>
-	LOCAL_DEV_PORTS.map((port) => `http://${host}:${port}`),
-);
+export const DEFAULT_LOCAL_DEV_ORIGINS = [
+	'http://localhost:5173',
+	'http://127.0.0.1:5173',
+];
 
 export const DEFAULT_PUBLIC_ORIGINS = ['https://roopstudio.com', 'https://www.roopstudio.com'];
 
@@ -34,9 +32,7 @@ export function getCorsAllowedOrigins(
 			: [...DEFAULT_LOCAL_DEV_ORIGINS, ...DEFAULT_PUBLIC_ORIGINS];
 	}
 
-	return isProductionEnvironment(environment)
-		? dedupeOrigins(configuredOrigins)
-		: dedupeOrigins([...DEFAULT_LOCAL_DEV_ORIGINS, ...configuredOrigins]);
+	return dedupeOrigins(configuredOrigins);
 }
 
 export function getAuthorizedParties(
@@ -49,7 +45,5 @@ export function getAuthorizedParties(
 		return [];
 	}
 
-	return isProductionEnvironment(environment)
-		? dedupeOrigins(configuredParties)
-		: dedupeOrigins([...DEFAULT_LOCAL_DEV_ORIGINS, ...configuredParties]);
+	return dedupeOrigins(configuredParties);
 }
