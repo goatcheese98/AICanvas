@@ -1,4 +1,7 @@
-import { createOverlayElementDraft, getOverlayDefaults } from '@/components/canvas/element-factories';
+import {
+	createOverlayElementDraft,
+	getOverlayDefaults,
+} from '@/components/canvas/element-factories';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';

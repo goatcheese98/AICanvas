@@ -226,7 +226,7 @@ describe('assistant-artifacts', () => {
 					template: 'react',
 					activeFile: '/App.jsx',
 					files: {
-						'/App.jsx': { code: "export default function App() { return <div>Old</div>; }" },
+						'/App.jsx': { code: 'export default function App() { return <div>Old</div>; }' },
 					},
 				},
 				next: {
@@ -235,7 +235,7 @@ describe('assistant-artifacts', () => {
 					template: 'react',
 					activeFile: '/App.jsx',
 					files: {
-						'/App.jsx': { code: "export default function App() { return <button>Play</button>; }" },
+						'/App.jsx': { code: 'export default function App() { return <button>Play</button>; }' },
 					},
 				},
 				changedFiles: ['/App.jsx'],

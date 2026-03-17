@@ -8,7 +8,10 @@ import {
 	resolveInsertionSceneCenter,
 	restoreCanvasSelectionState,
 } from './ai-chat-canvas-mutations';
-import { compileRasterBlobToNativeVector, insertNativeVectorElementsOnCanvas } from './ai-chat-vector-insertion';
+import {
+	compileRasterBlobToNativeVector,
+	insertNativeVectorElementsOnCanvas,
+} from './ai-chat-vector-insertion';
 
 vi.mock('@/components/canvas/excalidraw-store-sync', () => ({
 	syncAppStoreFromExcalidraw: vi.fn(),
@@ -43,7 +46,9 @@ vi.mock('./ai-chat-canvas-mutations', async (importOriginal) => {
 
 describe('ai chat vector insertion helpers', () => {
 	it('falls back to SVG compilation when sketch vectorization fails', async () => {
-		vi.mocked(vectorizeRasterBlobToSketchElements).mockRejectedValueOnce(new Error('vectorizer failed'));
+		vi.mocked(vectorizeRasterBlobToSketchElements).mockRejectedValueOnce(
+			new Error('vectorizer failed'),
+		);
 
 		const result = await compileRasterBlobToNativeVector(
 			new Blob(['png-bytes'], { type: 'image/png' }),

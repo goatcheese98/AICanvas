@@ -24,7 +24,10 @@ vi.mock('./ai-chat-canvas-mutations', async (importOriginal) => {
 	};
 });
 
-import { insertStoredAssetOnCanvas, vectorizeRasterAssetOnCanvas } from './ai-chat-stored-asset-insertion';
+import {
+	insertStoredAssetOnCanvas,
+	vectorizeRasterAssetOnCanvas,
+} from './ai-chat-stored-asset-insertion';
 
 describe('ai chat stored asset insertion helpers', () => {
 	it('rejects stored assets without a downloadable reference', async () => {
@@ -87,7 +90,13 @@ describe('ai chat stored asset insertion helpers', () => {
 				addFiles,
 				getSceneElements,
 				getFiles,
-				getAppState: () => ({ scrollX: 0, scrollY: 0, width: 1280, height: 720, zoom: { value: 1 } }),
+				getAppState: () => ({
+					scrollX: 0,
+					scrollY: 0,
+					width: 1280,
+					height: 720,
+					zoom: { value: 1 },
+				}),
 				updateScene,
 			} as never,
 			elements: [],

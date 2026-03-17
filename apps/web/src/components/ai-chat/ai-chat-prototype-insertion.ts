@@ -7,14 +7,8 @@ import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import {
-	getConvertToExcalidrawElements,
-	getSelectedPrototypeElement,
-} from './ai-chat-canvas';
-import {
-	applyInsertedElements,
-	resolveInsertionSceneCenter,
-} from './ai-chat-canvas-mutations';
+import { getConvertToExcalidrawElements, getSelectedPrototypeElement } from './ai-chat-canvas';
+import { applyInsertedElements, resolveInsertionSceneCenter } from './ai-chat-canvas-mutations';
 import type { AssistantInsertionState } from './ai-chat-types';
 import {
 	buildPrototypeFromArtifact,

@@ -4,7 +4,10 @@ import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vect
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import { resolveInsertionSceneCenter, restoreCanvasSelectionState } from './ai-chat-canvas-mutations';
+import {
+	resolveInsertionSceneCenter,
+	restoreCanvasSelectionState,
+} from './ai-chat-canvas-mutations';
 import type { AssistantInsertionState } from './ai-chat-types';
 
 export interface NativeVectorCompileResult {
@@ -100,7 +103,9 @@ export async function insertNativeVectorElementsOnCanvas({
 		.map(([color, groupElements]) => ({
 			color,
 			elements: groupElements,
-			area: Math.max(...groupElements.map((element) => (element.width ?? 0) * (element.height ?? 0))),
+			area: Math.max(
+				...groupElements.map((element) => (element.width ?? 0) * (element.height ?? 0)),
+			),
 		}))
 		.sort((left, right) => {
 			if (left.color === 'transparent') return 1;

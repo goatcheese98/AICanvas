@@ -121,7 +121,9 @@ export async function vectorizeRasterAssetOnCanvas({
 		});
 	} catch (error) {
 		setChatError(
-			error instanceof Error ? error.message : 'This raster sketch could not be vectorized natively.',
+			error instanceof Error
+				? error.message
+				: 'This raster sketch could not be vectorized natively.',
 		);
 		return null;
 	}
@@ -133,7 +135,10 @@ export async function insertSourceRasterAsNativeVector({
 	excalidrawApi,
 	elements,
 	selectedElementIds,
-}: Omit<StoredAssetInsertionContext, 'setFiles' | 'setChatError'>): Promise<AssistantInsertionState | null> {
+}: Omit<
+	StoredAssetInsertionContext,
+	'setFiles' | 'setChatError'
+>): Promise<AssistantInsertionState | null> {
 	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
 	if (!storedAsset?.sourceArtifactId || !storedAsset.runId) {
 		return null;

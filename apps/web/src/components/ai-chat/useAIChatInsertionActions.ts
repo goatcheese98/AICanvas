@@ -7,17 +7,10 @@ import type {
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type {
-	BinaryFiles,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
+import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { type Dispatch, type SetStateAction, useCallback } from 'react';
-import {
-	getSelectedPrototypeElement,
-} from './ai-chat-canvas';
-import {
-	removeInsertedArtifactFromScene,
-} from './ai-chat-canvas-mutations';
+import { getSelectedPrototypeElement } from './ai-chat-canvas';
+import { removeInsertedArtifactFromScene } from './ai-chat-canvas-mutations';
 import {
 	insertKanbanArtifactOnCanvas,
 	insertMarkdownOnCanvas as insertMarkdownOnCanvasInternal,
@@ -32,12 +25,8 @@ import {
 	vectorizeRasterAssetOnCanvas as vectorizeRasterAssetOnCanvasInternal,
 } from './ai-chat-stored-asset-insertion';
 import type { AssistantInsertionState } from './ai-chat-types';
-import {
-	insertNativeVectorElementsOnCanvas,
-} from './ai-chat-vector-insertion';
-import {
-	buildMarkdownArtifactContent,
-} from './assistant-artifacts';
+import { insertNativeVectorElementsOnCanvas } from './ai-chat-vector-insertion';
+import { buildMarkdownArtifactContent } from './assistant-artifacts';
 
 export function useAIChatInsertionActions({
 	getToken,
@@ -195,14 +184,7 @@ export function useAIChatInsertionActions({
 				setChatError,
 			});
 		},
-		[
-			elements,
-			excalidrawApi,
-			getToken,
-			selectedElementIds,
-			setChatError,
-			setFiles,
-		],
+		[elements, excalidrawApi, getToken, selectedElementIds, setChatError, setFiles],
 	);
 
 	const rememberInsertionState = useCallback(
