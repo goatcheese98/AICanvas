@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
-import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
-import { captureBrowserException } from '@/lib/observability';
-import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
+import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { captureBrowserException } from '@/lib/observability';
+import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
+import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useEffect, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
@@ -108,16 +108,20 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		try {
 			const nextElements = elements.map((element) => {
 				if (element.id !== prototypeElement.id) return element;
-				return applyOverlayUpdateByType('prototype', element as ExcalidrawElement & { customData: PrototypeOverlayCustomData }, {
-					title: draft.title,
-					template: draft.template,
-					files: draft.files,
-					dependencies: draft.dependencies,
-					preview: draft.preview,
-					activeFile: draft.activeFile,
-					showEditor: draft.showEditor,
-					showPreview: draft.showPreview,
-				}) as unknown as ExcalidrawElement;
+				return applyOverlayUpdateByType(
+					'prototype',
+					element as ExcalidrawElement & { customData: PrototypeOverlayCustomData },
+					{
+						title: draft.title,
+						template: draft.template,
+						files: draft.files,
+						dependencies: draft.dependencies,
+						preview: draft.preview,
+						activeFile: draft.activeFile,
+						showEditor: draft.showEditor,
+						showPreview: draft.showPreview,
+					},
+				) as unknown as ExcalidrawElement;
 			});
 
 			const headers = await getRequiredAuthHeaders(getToken);

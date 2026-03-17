@@ -1,4 +1,4 @@
-import type { Party, Server, Connection } from 'partykit/server';
+import type { Connection, Party, Server } from 'partykit/server';
 
 /**
  * CollabRoom — real-time collaboration server.

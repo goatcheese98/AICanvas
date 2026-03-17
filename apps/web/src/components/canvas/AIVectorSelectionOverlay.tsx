@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useMemo } from 'react';
 
 type ElementWithMeta = ExcalidrawElement & {
 	points?: ReadonlyArray<readonly [number, number]>;
@@ -51,9 +51,8 @@ function elementToSvgPath(
 			return `${sx},${sy}`;
 		};
 
-		const d = renderPts
-			.map((p, i) => `${i === 0 ? 'M' : 'L'}${toScreen(p[0], p[1])}`)
-			.join(' ') + ' Z';
+		const d =
+			renderPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toScreen(p[0], p[1])}`).join(' ') + ' Z';
 		return d;
 	}
 
@@ -109,10 +108,7 @@ export function AIVectorSelectionOverlay() {
 	const dashArray = `${DASH_LEN} ${GAP_LEN}`;
 
 	return (
-		<div
-			className="pointer-events-none absolute inset-0 overflow-hidden"
-			style={{ zIndex: 3 }}
-		>
+		<div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 3 }}>
 			<svg
 				style={{
 					position: 'absolute',

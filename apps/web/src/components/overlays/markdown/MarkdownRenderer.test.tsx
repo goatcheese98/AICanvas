@@ -1,6 +1,6 @@
+import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { MarkdownRenderer, normalizeDisplayMath } from './MarkdownRenderer';
 
 const TEST_MARKDOWN_SETTINGS: MarkdownNoteSettings = {
@@ -130,7 +130,9 @@ Body copy.`}
 		expect(listItemParagraphs).toHaveLength(2);
 		expect(
 			listItemParagraphs.every((paragraph) =>
-				paragraph.getAttribute('style')?.includes('var(--markdown-paragraph-margin-bottom, 0.85em)'),
+				paragraph
+					.getAttribute('style')
+					?.includes('var(--markdown-paragraph-margin-bottom, 0.85em)'),
 			),
 		).toBe(true);
 	});
@@ -165,7 +167,9 @@ Body copy.`}
 		const codeNodes = Array.from(container.querySelectorAll('code'));
 		expect(codeNodes).toHaveLength(2);
 		expect(codeNodes[0]?.getAttribute('style')).toContain('color: rgb(37, 99, 235)');
-		expect(codeNodes[0]?.getAttribute('style')).toContain('background-color: rgba(148, 163, 184, 0.16)');
+		expect(codeNodes[0]?.getAttribute('style')).toContain(
+			'background-color: rgba(148, 163, 184, 0.16)',
+		);
 		expect(codeNodes[1]?.getAttribute('style')).toContain('color: rgb(37, 99, 235)');
 	});
 

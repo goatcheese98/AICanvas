@@ -60,12 +60,12 @@ describe('dashboard-utils', () => {
 	});
 
 	it('filters by title or description', () => {
-		expect(filterAndSortCanvases([...canvases], 'launch', 'recent').map((canvas) => canvas.id)).toEqual([
-			'3',
-		]);
-		expect(filterAndSortCanvases([...canvases], 'alpha', 'recent').map((canvas) => canvas.id)).toEqual([
-			'2',
-		]);
+		expect(
+			filterAndSortCanvases([...canvases], 'launch', 'recent').map((canvas) => canvas.id),
+		).toEqual(['3']);
+		expect(
+			filterAndSortCanvases([...canvases], 'alpha', 'recent').map((canvas) => canvas.id),
+		).toEqual(['2']);
 	});
 
 	it('detects duplicate titles using normalized keys', () => {

@@ -1,16 +1,3 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
-import { normalizeKanbanOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
-import type {
-	AssistantArtifact,
-	AssistantContextMode,
-	PrototypeOverlayCustomData,
-} from '@ai-canvas/shared/types';
-import type {
-	BinaryFileData,
-	BinaryFiles,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
 	createOverlayElementDraft,
 	getOverlayDefaults,
@@ -18,18 +5,25 @@ import {
 } from '@/components/canvas/element-factories';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
-import {
-	buildKanbanFromArtifact,
-	buildMarkdownArtifactContent,
-	buildPrototypeFromArtifact,
-	buildPrototypeFromMessageContent,
-	parseStoredAssistantAssetContent,
-} from './assistant-artifacts';
+import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { svgToDataUrl } from '@/lib/assistant/diagram-renderer';
-import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vectorizer';
 import { vectorizeRasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
+import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vectorizer';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
+import { normalizeKanbanOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
+import type {
+	AssistantArtifact,
+	AssistantContextMode,
+	PrototypeOverlayCustomData,
+} from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type {
+	BinaryFileData,
+	BinaryFiles,
+	ExcalidrawImperativeAPI,
+} from '@excalidraw/excalidraw/types';
+import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import {
 	createCanvasImageElement,
 	getConvertToExcalidrawElements,
@@ -39,12 +33,16 @@ import {
 import {
 	applyInsertedElements,
 	removeInsertedArtifactFromScene,
-	restoreCanvasSelectionState,
 	resolveInsertionSceneCenter,
+	restoreCanvasSelectionState,
 } from './ai-chat-canvas-mutations';
-import type {
-	AssistantInsertionState,
-} from './ai-chat-types';
+import type { AssistantInsertionState } from './ai-chat-types';
+import {
+	buildKanbanFromArtifact,
+	buildMarkdownArtifactContent,
+	buildPrototypeFromArtifact,
+	buildPrototypeFromMessageContent,
+} from './assistant-artifacts';
 
 function buildDataUrlFromBlob(blob: Blob): Promise<BinaryFileData['dataURL']> {
 	return blob.arrayBuffer().then((buffer) => {
@@ -375,8 +373,8 @@ export function useAIChatInsertionActions({
 			//   triple-click  → select the entire vectorized image
 			// groupIds[0] = layer group (inner), groupIds[1] = overall group (outer).
 			const overallGroupId =
-				(positioned[0] as ExcalidrawElement & { groupIds?: string[] })?.groupIds?.[0]
-				?? crypto.randomUUID();
+				(positioned[0] as ExcalidrawElement & { groupIds?: string[] })?.groupIds?.[0] ??
+				crypto.randomUUID();
 			const layers = sortedGroups.map((g, i) => {
 				const layerGroupId = `${overallGroupId}-layer-${i}`;
 				return g.elements.map((el) => ({
@@ -384,11 +382,6 @@ export function useAIChatInsertionActions({
 					groupIds: [layerGroupId, overallGroupId],
 				})) as ExcalidrawElement[];
 			});
-
-			console.log(
-				`[VectorInsertion] ${positioned.length} elements → ${layers.length} layers`,
-				layers.map((l, i) => `L${i + 1}(${l.length})`).join(' '),
-			);
 
 			// Insert one layer at a time so each fill layer renders before the next is placed.
 			// This creates a visible build-up and prevents Excalidraw from rendering all
@@ -411,7 +404,9 @@ export function useAIChatInsertionActions({
 				});
 
 				if (i < layers.length - 1) {
-					await new Promise<void>((resolve) => { setTimeout(resolve, LAYER_DELAY_MS); });
+					await new Promise<void>((resolve) => {
+						setTimeout(resolve, LAYER_DELAY_MS);
+					});
 				}
 			}
 
@@ -423,10 +418,7 @@ export function useAIChatInsertionActions({
 	);
 
 	const compileRasterBlobToNativeVector = useCallback(
-		async (
-			blob: Blob,
-			customData: Record<string, unknown>,
-		): Promise<NativeVectorCompileResult> => {
+		async (blob: Blob, customData: Record<string, unknown>): Promise<NativeVectorCompileResult> => {
 			try {
 				return await vectorizeRasterBlobToSketchElements(blob, {
 					controls: { colorPalette: 10 },
@@ -606,7 +598,8 @@ export function useAIChatInsertionActions({
 				width,
 				height,
 				customData: {
-					type: artifact.type === 'image-vector' ? 'ai-generated-vector-asset' : 'ai-generated-image',
+					type:
+						artifact.type === 'image-vector' ? 'ai-generated-vector-asset' : 'ai-generated-image',
 					provider: storedAsset.provider,
 					model: storedAsset.model,
 					prompt: storedAsset.prompt,
@@ -647,12 +640,15 @@ export function useAIChatInsertionActions({
 		],
 	);
 
-	const rememberInsertionState = useCallback((artifactKey: string, insertionState: AssistantInsertionState) => {
-		setAssistantInsertionStates((current) => ({
-			...current,
-			[artifactKey]: insertionState,
-		}));
-	}, [setAssistantInsertionStates]);
+	const rememberInsertionState = useCallback(
+		(artifactKey: string, insertionState: AssistantInsertionState) => {
+			setAssistantInsertionStates((current) => ({
+				...current,
+				[artifactKey]: insertionState,
+			}));
+		},
+		[setAssistantInsertionStates],
+	);
 
 	const insertArtifactOnCanvas = useCallback(
 		async (artifact: AssistantArtifact): Promise<AssistantInsertionState | null> => {
@@ -712,7 +708,7 @@ export function useAIChatInsertionActions({
 					if (selectedPrototype) {
 						const nextElements = currentElements.map((candidate) =>
 							candidate.id === selectedPrototype.id
-								? applyOverlayUpdateByType('prototype', candidate as never, {
+								? (applyOverlayUpdateByType('prototype', candidate as never, {
 										title: prototype.title,
 										template: prototype.template,
 										files: prototype.files,
@@ -721,7 +717,7 @@ export function useAIChatInsertionActions({
 										activeFile: prototype.activeFile,
 										showEditor: prototype.showEditor,
 										showPreview: prototype.showPreview,
-								  }) as typeof candidate
+									}) as typeof candidate)
 								: candidate,
 						);
 						excalidrawApi.updateScene({ elements: nextElements });
@@ -787,7 +783,7 @@ export function useAIChatInsertionActions({
 			if (selectedPrototype) {
 				const nextElements = currentElements.map((candidate) =>
 					candidate.id === selectedPrototype.id
-						? applyOverlayUpdateByType('prototype', candidate as never, {
+						? (applyOverlayUpdateByType('prototype', candidate as never, {
 								title: prototype.title,
 								template: prototype.template,
 								files: prototype.files,
@@ -796,7 +792,7 @@ export function useAIChatInsertionActions({
 								activeFile: prototype.activeFile,
 								showEditor: prototype.showEditor,
 								showPreview: prototype.showPreview,
-						  }) as typeof candidate
+							}) as typeof candidate)
 						: candidate,
 				);
 				excalidrawApi.updateScene({ elements: nextElements });

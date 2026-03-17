@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
-import { describeAssistantArtifact, parseStoredAssistantAssetContent } from './assistant-artifacts';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_DANGER,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
+import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
+import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import { useEffect, useState } from 'react';
+import { CodeSnippet } from './AIChatArtifactPrimitives';
 import { DiagramArtifactCard } from './AIChatDiagramArtifactCard';
 import { PatchArtifactCard } from './AIChatPatchArtifactCard';
-import { CodeSnippet } from './AIChatArtifactPrimitives';
+import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import type {
 	AssistantInsertionState,
 	AssistantPatchApplyOptions,
@@ -18,6 +14,7 @@ import type {
 	DiagramInsertInput,
 	MarkdownPatchReviewState,
 } from './ai-chat-types';
+import { describeAssistantArtifact } from './assistant-artifacts';
 
 function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
 	const { getToken, isSignedIn } = useAuth();
@@ -41,11 +38,7 @@ function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
 		void (async () => {
 			try {
 				const headers = await getRequiredAuthHeaders(async () => (await getToken?.()) ?? null);
-				const { blob } = await fetchAssistantArtifactAsset(
-					runId,
-					artifactId,
-					headers,
-				);
+				const { blob } = await fetchAssistantArtifactAsset(runId, artifactId, headers);
 				if (cancelled) {
 					return;
 				}
@@ -277,18 +270,20 @@ export function ArtifactCard({
 		case 'image':
 			const imageAsset = parseStoredAssistantAssetContent(artifact.content);
 			const isSketchRasterFallback =
-				generationMode === 'sketch'
-				&& !hasVectorCompanionArtifact
-				&& imageAsset?.mimeType !== 'image/svg+xml';
+				generationMode === 'sketch' &&
+				!hasVectorCompanionArtifact &&
+				imageAsset?.mimeType !== 'image/svg+xml';
 			return (
 				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-600">
 					<StoredAssetPreview artifact={artifact} />
 					{isSketchRasterFallback ? (
 						<div className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-							<div className="font-semibold">Server vectorization was not available for this run.</div>
+							<div className="font-semibold">
+								Server vectorization was not available for this run.
+							</div>
 							<div className="mt-1">
-								This result is a raster sketch preview. You can still trace this exact image into native
-								Excalidraw elements locally, or insert the raster preview as-is.
+								This result is a raster sketch preview. You can still trace this exact image into
+								native Excalidraw elements locally, or insert the raster preview as-is.
 							</div>
 						</div>
 					) : null}

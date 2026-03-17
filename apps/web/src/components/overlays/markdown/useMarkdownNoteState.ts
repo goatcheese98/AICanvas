@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { appendBlock, createMarkdownImageToken, toggleMarkdownCheckboxLine } from './markdown-utils';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { compressImageDataUrl, prewarmImageCache } from './markdown-media';
 import {
-	MAX_MARKDOWN_TITLE_LENGTH,
 	MARKDOWN_HEADER_FULL_BREAKPOINT,
 	MARKDOWN_HEADER_HIDDEN_BREAKPOINT,
+	MAX_MARKDOWN_TITLE_LENGTH,
 	TITLE_COMPACT_BREAKPOINT,
 	serializeImages,
 	serializeNoteState,
@@ -17,6 +16,11 @@ import {
 } from './markdown-note-helpers';
 import type { ControlsLayout, MarkdownViewMode, UtilityPanel } from './markdown-note-helpers';
 import type { MarkdownNoteProps } from './markdown-note-types';
+import {
+	appendBlock,
+	createMarkdownImageToken,
+	toggleMarkdownCheckboxLine,
+} from './markdown-utils';
 
 interface UseMarkdownNoteStateResult {
 	normalizedElement: ReturnType<typeof normalizeMarkdownOverlay>;
@@ -67,7 +71,10 @@ export function useMarkdownNoteState({
 	onChange,
 	onEditingChange,
 }: MarkdownNoteProps): UseMarkdownNoteStateResult {
-	const normalizedElement = useMemo(() => normalizeMarkdownOverlay(element.customData), [element.customData]);
+	const normalizedElement = useMemo(
+		() => normalizeMarkdownOverlay(element.customData),
+		[element.customData],
+	);
 	const normalizedElementSignature = useMemo(
 		() => serializeOverlayState(normalizedElement),
 		[normalizedElement],
@@ -76,7 +83,9 @@ export function useMarkdownNoteState({
 	const [content, setContent] = useState(normalizedElement.content);
 	const [images, setImages] = useState<Record<string, string>>(normalizedElement.images ?? {});
 	const [settings, setSettings] = useState(normalizedElement.settings);
-	const [editorMode, setEditorMode] = useState<MarkdownEditorMode>(normalizedElement.editorMode ?? 'raw');
+	const [editorMode, setEditorMode] = useState<MarkdownEditorMode>(
+		normalizedElement.editorMode ?? 'raw',
+	);
 	const [isPreview, setIsPreview] = useState(false);
 	const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel>('none');
 	const [isCompactControlsVisible, setIsCompactControlsVisible] = useState(false);
@@ -106,9 +115,15 @@ export function useMarkdownNoteState({
 		externalSignatureRef.current = normalizedElementSignature;
 		lastCommittedSignatureRef.current = normalizedElementSignature;
 		const nextImages = normalizedElement.images ?? {};
-		setTitle((current) => (current === normalizedElement.title ? current : normalizedElement.title));
-		setContent((current) => (current === normalizedElement.content ? current : normalizedElement.content));
-		setImages((current) => (serializeImages(current) === serializeImages(nextImages) ? current : nextImages));
+		setTitle((current) =>
+			current === normalizedElement.title ? current : normalizedElement.title,
+		);
+		setContent((current) =>
+			current === normalizedElement.content ? current : normalizedElement.content,
+		);
+		setImages((current) =>
+			serializeImages(current) === serializeImages(nextImages) ? current : nextImages,
+		);
 		setSettings((current) =>
 			serializeSettings(current) === serializeSettings(normalizedElement.settings)
 				? current
@@ -236,7 +251,9 @@ export function useMarkdownNoteState({
 	const activeMode: MarkdownViewMode = isPreview ? 'preview' : editorMode;
 	const surfaceBackground = element.backgroundColor ?? settings.background;
 	const showCompactControls =
-		isSelected && controlsLayout === 'hidden' && (isCompactControlsVisible || activeUtilityPanel !== 'none');
+		isSelected &&
+		controlsLayout === 'hidden' &&
+		(isCompactControlsVisible || activeUtilityPanel !== 'none');
 
 	useEffect(() => {
 		if (controlsLayout !== 'hidden') {
@@ -256,14 +273,17 @@ export function useMarkdownNoteState({
 		onChangeRef.current(element.id, content, images, title, settings, editorMode);
 	}, [content, editorMode, element.id, images, settings, title]);
 
-	const handleSurfaceStyleChange = useCallback((elementStyle: {
-		backgroundColor?: string;
-		strokeColor?: string;
-		strokeWidth?: number;
-		roundness?: ExcalidrawElement['roundness'];
-	}) => {
-		onChangeRef.current(element.id, content, images, title, settings, editorMode, elementStyle);
-	}, [content, editorMode, element.id, images, settings, title]);
+	const handleSurfaceStyleChange = useCallback(
+		(elementStyle: {
+			backgroundColor?: string;
+			strokeColor?: string;
+			strokeWidth?: number;
+			roundness?: ExcalidrawElement['roundness'];
+		}) => {
+			onChangeRef.current(element.id, content, images, title, settings, editorMode, elementStyle);
+		},
+		[content, editorMode, element.id, images, settings, title],
+	);
 
 	const showTitleLimitNotice = useCallback(() => {
 		setTitleNotice(true);
@@ -276,61 +296,73 @@ export function useMarkdownNoteState({
 		}, 1800);
 	}, []);
 
-	const handleTitleChange = useCallback((nextValue: string) => {
-		if (nextValue.length > MAX_MARKDOWN_TITLE_LENGTH) {
-			showTitleLimitNotice();
-			setTitle(nextValue.slice(0, MAX_MARKDOWN_TITLE_LENGTH));
-			return;
-		}
-		setTitle(nextValue);
-	}, [showTitleLimitNotice]);
+	const handleTitleChange = useCallback(
+		(nextValue: string) => {
+			if (nextValue.length > MAX_MARKDOWN_TITLE_LENGTH) {
+				showTitleLimitNotice();
+				setTitle(nextValue.slice(0, MAX_MARKDOWN_TITLE_LENGTH));
+				return;
+			}
+			setTitle(nextValue);
+		},
+		[showTitleLimitNotice],
+	);
 
 	const handleTitleBlur = useCallback(() => {
 		const trimmedTitle = title.trim();
 		setTitle(trimmedTitle.length > 0 ? trimmedTitle : normalizedElement.title);
 	}, [normalizedElement.title, title]);
 
-	const insertImageFiles = useCallback(async (fileList: FileList | null) => {
-		if (!fileList?.length) return;
+	const insertImageFiles = useCallback(
+		async (fileList: FileList | null) => {
+			if (!fileList?.length) return;
 
-		const nextImages = { ...images };
-		let nextContent = content;
+			const nextImages = { ...images };
+			let nextContent = content;
 
-		for (const file of Array.from(fileList)) {
-			const dataUrl = await new Promise<string>((resolve, reject) => {
-				const reader = new FileReader();
-				reader.onload = () => resolve(String(reader.result));
-				reader.onerror = () => reject(reader.error);
-				reader.readAsDataURL(file);
-			});
+			for (const file of Array.from(fileList)) {
+				const dataUrl = await new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = () => resolve(String(reader.result));
+					reader.onerror = () => reject(reader.error);
+					reader.readAsDataURL(file);
+				});
 
-			const imageId = crypto.randomUUID();
-			nextImages[imageId] = await compressImageDataUrl(dataUrl);
-			nextContent = appendBlock(nextContent, createMarkdownImageToken(imageId, file.name || 'image'));
-		}
+				const imageId = crypto.randomUUID();
+				nextImages[imageId] = await compressImageDataUrl(dataUrl);
+				nextContent = appendBlock(
+					nextContent,
+					createMarkdownImageToken(imageId, file.name || 'image'),
+				);
+			}
 
-		setImages(nextImages);
-		setContent(nextContent);
-		setActiveUtilityPanel('none');
-	}, [content, images]);
+			setImages(nextImages);
+			setContent(nextContent);
+			setActiveUtilityPanel('none');
+		},
+		[content, images],
+	);
 
 	const handleEditorCheckboxToggle = useCallback((lineIndex: number) => {
 		setContent((current) => toggleMarkdownCheckboxLine(current, lineIndex));
 	}, []);
 
-	const handlePreviewCheckboxToggle = useCallback((lineIndex: number) => {
-		const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
-		setContent(nextContent);
-		const nextSignature = serializeNoteState({
-			content: nextContent,
-			images,
-			title,
-			settings,
-			editorMode,
-		});
-		lastCommittedSignatureRef.current = nextSignature;
-		onChangeRef.current(element.id, nextContent, images, title, settings, editorMode);
-	}, [content, editorMode, element.id, images, settings, title]);
+	const handlePreviewCheckboxToggle = useCallback(
+		(lineIndex: number) => {
+			const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
+			setContent(nextContent);
+			const nextSignature = serializeNoteState({
+				content: nextContent,
+				images,
+				title,
+				settings,
+				editorMode,
+			});
+			lastCommittedSignatureRef.current = nextSignature;
+			onChangeRef.current(element.id, nextContent, images, title, settings, editorMode);
+		},
+		[content, editorMode, element.id, images, settings, title],
+	);
 
 	return {
 		normalizedElement,

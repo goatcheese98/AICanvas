@@ -18,18 +18,22 @@ export interface VectorizedAsset {
 }
 
 interface OpenRouterImageRef {
-	image_url?: {
-		url?: string;
-	} | string;
+	image_url?:
+		| {
+				url?: string;
+		  }
+		| string;
 	url?: string;
 }
 
 interface OpenRouterMessageContentPart {
 	type?: string;
 	text?: string;
-	image_url?: {
-		url?: string;
-	} | string;
+	image_url?:
+		| {
+				url?: string;
+		  }
+		| string;
 	url?: string;
 }
 
@@ -93,7 +97,9 @@ function decodeGeneratedImageBytes(
 	);
 }
 
-function getOpenRouterImageUrl(reference: OpenRouterImageRef | OpenRouterMessageContentPart): string | null {
+function getOpenRouterImageUrl(
+	reference: OpenRouterImageRef | OpenRouterMessageContentPart,
+): string | null {
 	if (typeof reference.image_url === 'string') {
 		return reference.image_url;
 	}
@@ -138,8 +144,8 @@ function parseOpenRouterInlineImage(payload: OpenRouterImageGenerationPayload): 
 	const imageUrl =
 		message?.images
 			?.map((image) => getOpenRouterImageUrl(image))
-			.find((candidate): candidate is string => Boolean(candidate))
-		?? (Array.isArray(message?.content)
+			.find((candidate): candidate is string => Boolean(candidate)) ??
+		(Array.isArray(message?.content)
 			? message.content
 					.map((part) => getOpenRouterImageUrl(part))
 					.find((candidate): candidate is string => Boolean(candidate))
@@ -348,10 +354,7 @@ export async function generateImageAsset(
 	);
 	const payload = (await okResponse.json()) as OpenRouterImageGenerationPayload;
 	const { imageUrl, revisedPrompt } = parseOpenRouterInlineImage(payload);
-	const { mimeType, bytes } = parseInlineImageDataUrl(
-		imageUrl,
-		'OpenRouter image generation',
-	);
+	const { mimeType, bytes } = parseInlineImageDataUrl(imageUrl, 'OpenRouter image generation');
 
 	return {
 		bytes,

@@ -30,6 +30,9 @@ export {
 } from './waitlist';
 export {
 	assistantSchemas,
+	storedAssistantAssetContentSchema,
+	serializeStoredAssistantAssetContent,
+	parseStoredAssistantAssetContent,
 	type SendMessage,
 	type CreateRun,
 	type ListThreads,

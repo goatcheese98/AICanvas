@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { useAuth } from '@clerk/clerk-react';
-import type { AssistantThread, CanvasElement } from '@ai-canvas/shared/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '@/lib/api';
 import { useAppStore } from '@/stores/store';
+import type { AssistantThread, CanvasElement } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIChatPanel } from './AIChatPanel';
 
 vi.mock('@clerk/clerk-react', () => ({

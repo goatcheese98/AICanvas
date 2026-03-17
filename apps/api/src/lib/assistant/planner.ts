@@ -57,15 +57,19 @@ function isEditIntent(message: string): boolean {
 }
 
 function shouldPatchSelectedKanban(request: PlannerRequest): boolean {
-	return hasSingleSelectedContextKind(request, 'kanban')
-		&& isEditIntent(request.message)
-		&& !isCreateNewArtifactIntent(request.message);
+	return (
+		hasSingleSelectedContextKind(request, 'kanban') &&
+		isEditIntent(request.message) &&
+		!isCreateNewArtifactIntent(request.message)
+	);
 }
 
 function shouldPatchSelectedMarkdown(request: PlannerRequest): boolean {
-	return hasSingleSelectedContextKind(request, 'markdown')
-		&& isEditIntent(request.message)
-		&& !isCreateNewArtifactIntent(request.message);
+	return (
+		hasSingleSelectedContextKind(request, 'markdown') &&
+		isEditIntent(request.message) &&
+		!isCreateNewArtifactIntent(request.message)
+	);
 }
 
 function buildTaskTitle(mode: GenerationMode): string {
@@ -157,7 +161,9 @@ function buildImagePipelineTasks(
 	return tasks;
 }
 
-function buildDiagramTasks(mode: Extract<GenerationMode, 'mermaid' | 'd2'>): PlannedAssistantTask[] {
+function buildDiagramTasks(
+	mode: Extract<GenerationMode, 'mermaid' | 'd2'>,
+): PlannedAssistantTask[] {
 	return [
 		{
 			type: 'generate_response',
@@ -216,21 +222,22 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 									resolvedMode as Extract<GenerationMode, 'image' | 'sketch'>,
 									request.history,
 								),
-						  }
+							}
 						: task,
-			  )
+				)
 			: null;
 
 	return {
 		resolvedMode,
-		tasks:
-			imageTasks
-				? imageTasks
-				: resolvedMode === 'mermaid' || resolvedMode === 'd2'
-					? buildDiagramTasks(resolvedMode)
+		tasks: imageTasks
+			? imageTasks
+			: resolvedMode === 'mermaid' || resolvedMode === 'd2'
+				? buildDiagramTasks(resolvedMode)
 				: (() => {
-						const shouldPatchKanban = resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
-						const shouldPatchMarkdown = resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
+						const shouldPatchKanban =
+							resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
+						const shouldPatchMarkdown =
+							resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
 						const includeArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban'
 								? shouldPatchKanban
@@ -242,8 +249,7 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 										? ['markdown-patch']
 										: [];
 						const isInsertableCreation =
-							(resolvedMode === 'kanban' && !shouldPatchKanban)
-							|| resolvedMode === 'prototype';
+							(resolvedMode === 'kanban' && !shouldPatchKanban) || resolvedMode === 'prototype';
 						const targetArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban' && !shouldPatchKanban
 								? ['kanban-ops']
@@ -265,11 +271,11 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 												: 'Prepared a new Kanban board for insertion onto the canvas.'
 											: resolvedMode === 'svg'
 												? 'Prepared an SVG illustration draft.'
-											: resolvedMode === 'prototype'
-												? 'Prepared prototype files for the canvas.'
-												: shouldPatchMarkdown
-													? 'Prepared a reversible markdown patch for the selected note.'
-													: 'Prepared an assistant response for the canvas.',
+												: resolvedMode === 'prototype'
+													? 'Prepared prototype files for the canvas.'
+													: shouldPatchMarkdown
+														? 'Prepared a reversible markdown patch for the selected note.'
+														: 'Prepared an assistant response for the canvas.',
 								},
 							},
 							...(isInsertableCreation
@@ -284,7 +290,7 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 												strategy: 'avoid-overlap' as const,
 											},
 										},
-								  ]
+									]
 								: []),
 							{
 								type: 'verify_run',
@@ -300,6 +306,6 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 								},
 							},
 						];
-				  })(),
+					})(),
 	};
 }

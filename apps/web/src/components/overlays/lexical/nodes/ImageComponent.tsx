@@ -1,5 +1,4 @@
 import './ImageNode.css';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
 import { mergeRegister } from '@lexical/utils';
@@ -11,6 +10,7 @@ import {
 	KEY_ESCAPE_COMMAND,
 	type NodeKey,
 } from 'lexical';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { $isImageNode } from './ImageNode';
 import { computeResizeDimensions, computeScale } from './imageResizeMath';
 
@@ -25,7 +25,8 @@ function useSuspenseImage(src: string): ImageStatus {
 	const promise = new Promise<ImageStatus>((resolve) => {
 		const img = new Image();
 		img.src = src;
-		img.onload = () => resolve({ error: false, height: img.naturalHeight, width: img.naturalWidth });
+		img.onload = () =>
+			resolve({ error: false, height: img.naturalHeight, width: img.naturalWidth });
 		img.onerror = () => resolve({ error: true });
 	}).then((result) => {
 		imageCache.set(src, result);
@@ -59,7 +60,9 @@ function SuspendedImage({
 		return <span style={{ color: '#9ca3af', fontSize: 13 }}>Image failed to load</span>;
 	}
 
-	return <img ref={imageRef} src={src} alt={alt} style={style} draggable={false} onError={onError} />;
+	return (
+		<img ref={imageRef} src={src} alt={alt} style={style} draggable={false} onError={onError} />
+	);
 }
 
 export default function ImageComponent({
@@ -168,8 +171,8 @@ export default function ImageComponent({
 			};
 
 			const onUp = () => {
-				const finalWidth = Math.round(parseFloat(img.style.width) || img.offsetWidth);
-				const finalHeight = Math.round(parseFloat(img.style.height) || img.offsetHeight);
+				const finalWidth = Math.round(Number.parseFloat(img.style.width) || img.offsetWidth);
+				const finalHeight = Math.round(Number.parseFloat(img.style.height) || img.offsetHeight);
 				editor.update(() => {
 					const node = $getNodeByKey(nodeKey);
 					if ($isImageNode(node)) node.setWidthAndHeight(finalWidth, finalHeight);

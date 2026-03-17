@@ -1,5 +1,5 @@
-import type { StateCreator } from 'zustand';
 import type { AssistantMessage, GenerationMode } from '@ai-canvas/shared/types';
+import type { StateCreator } from 'zustand';
 import type { AppStore } from '../store';
 
 export interface ChatThread {
@@ -41,9 +41,13 @@ function summarizeThreadTitle(content: string): string {
 function ensureThreads(state: Pick<ChatSlice, 'chatThreads' | 'activeChatThreadId' | 'messages'>) {
 	const existingThreads = state.chatThreads.length > 0 ? state.chatThreads : [createChatThread()];
 	const activeThreadId =
-		existingThreads.find((thread) => thread.id === state.activeChatThreadId)?.id ?? existingThreads[0]?.id ?? null;
+		existingThreads.find((thread) => thread.id === state.activeChatThreadId)?.id ??
+		existingThreads[0]?.id ??
+		null;
 	const activeMessages =
-		existingThreads.find((thread) => thread.id === activeThreadId)?.messages ?? state.messages ?? [];
+		existingThreads.find((thread) => thread.id === activeThreadId)?.messages ??
+		state.messages ??
+		[];
 
 	return {
 		chatThreads: existingThreads,
@@ -92,7 +96,9 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set) 
 	addMessage: (message) =>
 		set((state) => {
 			const ensured = ensureThreads(state);
-			const activeThread = ensured.chatThreads.find((thread) => thread.id === ensured.activeChatThreadId);
+			const activeThread = ensured.chatThreads.find(
+				(thread) => thread.id === ensured.activeChatThreadId,
+			);
 			if (!activeThread) {
 				return ensured;
 			}
@@ -120,7 +126,9 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set) 
 	clearMessages: () =>
 		set((state) => {
 			const ensured = ensureThreads(state);
-			const activeThread = ensured.chatThreads.find((thread) => thread.id === ensured.activeChatThreadId);
+			const activeThread = ensured.chatThreads.find(
+				(thread) => thread.id === ensured.activeChatThreadId,
+			);
 			if (!activeThread) {
 				return ensured;
 			}
@@ -161,10 +169,10 @@ export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set) 
 			const nextThreads = remainingThreads.length > 0 ? remainingThreads : [createChatThread()];
 			const nextActiveThreadId =
 				threadId === ensured.activeChatThreadId
-					? nextThreads[0]?.id ?? null
-					: nextThreads.find((thread) => thread.id === ensured.activeChatThreadId)?.id ??
+					? (nextThreads[0]?.id ?? null)
+					: (nextThreads.find((thread) => thread.id === ensured.activeChatThreadId)?.id ??
 						nextThreads[0]?.id ??
-						null;
+						null);
 			const nextMessages =
 				nextThreads.find((thread) => thread.id === nextActiveThreadId)?.messages ?? [];
 

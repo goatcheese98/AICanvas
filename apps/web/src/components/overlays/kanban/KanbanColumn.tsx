@@ -1,15 +1,11 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import type { DragEvent, FormEvent } from 'react';
 import type {
 	KanbanCard as KanbanCardType,
 	KanbanColumn as KanbanColumnType,
 } from '@ai-canvas/shared/types';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import type { DragEvent, FormEvent } from 'react';
 import { KanbanCard } from './KanbanCard';
-import {
-	KANBAN_ACCENT_BORDER,
-	KANBAN_ACCENT_SURFACE,
-	KANBAN_ACCENT_TEXT,
-} from './kanban-theme';
+import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_TEXT } from './kanban-theme';
 import { getProjectedOverCardId } from './kanban-utils';
 
 interface KanbanColumnProps {
@@ -33,11 +29,7 @@ interface KanbanColumnProps {
 	onAddCard: () => void;
 	onUpdateCard: (cardId: string, updates: Partial<KanbanCardType>) => void;
 	onDeleteCard: (cardId: string) => void;
-	onCardDragStart: (
-		event: DragEvent<HTMLElement>,
-		cardId: string,
-		columnId: string,
-	) => void;
+	onCardDragStart: (event: DragEvent<HTMLElement>, cardId: string, columnId: string) => void;
 	onCardDragEnd: () => void;
 	onCardColumnDragOver: (event: DragEvent<HTMLDivElement>, columnId: string) => void;
 	onCardColumnDrop: (event: DragEvent<HTMLDivElement>, columnId: string) => void;
@@ -63,8 +55,7 @@ function CardDropIndicator({ emphasized = false }: { emphasized?: boolean }) {
 					className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full transition-all duration-150"
 					style={{
 						background: 'var(--color-accent-text)',
-						boxShadow:
-							'0 0 0 4px color-mix(in srgb, var(--color-accent-bg) 58%, transparent)',
+						boxShadow: '0 0 0 4px color-mix(in srgb, var(--color-accent-bg) 58%, transparent)',
 					}}
 				/>
 			</div>
@@ -131,7 +122,7 @@ function KanbanColumnInner({
 		() => column.cards.filter((card) => matchesSearch(card, searchQuery)),
 		[column.cards, searchQuery],
 	);
-	const projectedCardId = isCardOver && draggingCardId ? overCardId ?? null : null;
+	const projectedCardId = isCardOver && draggingCardId ? (overCardId ?? null) : null;
 	const showEndDropIndicator = isCardOver && Boolean(draggingCardId) && projectedCardId === null;
 
 	useEffect(() => {
@@ -253,7 +244,8 @@ function KanbanColumnInner({
 						className="inline-flex h-7 w-7 items-center justify-center border transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
@@ -280,7 +272,8 @@ function KanbanColumnInner({
 						className="inline-flex h-7 w-7 items-center justify-center border text-[15px] leading-none transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 88%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
@@ -336,7 +329,8 @@ function KanbanColumnInner({
 					<div
 						className="rounded-[14px] border border-dashed px-3 py-4 text-center text-[11px] font-medium"
 						style={{
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 							color: 'var(--color-text-tertiary)',
 							background: 'color-mix(in srgb, var(--color-surface-strong) 92%, white)',
 						}}

@@ -1,11 +1,7 @@
 import type { AssistantContextMode } from '@ai-canvas/shared/types';
-import type { AssistantOutputStyle } from './output-style';
+import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import type { SelectionIndicator } from './ai-chat-types';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_DANGER,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
+import type { AssistantOutputStyle } from './output-style';
 
 export function AIChatHeader({
 	messagesCount,

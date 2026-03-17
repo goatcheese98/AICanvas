@@ -6,7 +6,9 @@ const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
 function encodeBase64(value: string): string {
-	const binary = Array.from(textEncoder.encode(value), (byte) => String.fromCharCode(byte)).join('');
+	const binary = Array.from(textEncoder.encode(value), (byte) => String.fromCharCode(byte)).join(
+		'',
+	);
 	return btoa(binary);
 }
 
@@ -42,26 +44,27 @@ describe('assistant media adapters', () => {
 	});
 
 	it('falls back to the OpenRouter image API when no AI binding is configured', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					choices: [
-						{
-							message: {
-								content: 'revised prompt',
-								images: [
-									{
-										image_url: {
-											url: `data:image/png;base64,${encodeBase64('png-bytes')}`,
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content: 'revised prompt',
+									images: [
+										{
+											image_url: {
+												url: `data:image/png;base64,${encodeBase64('png-bytes')}`,
+											},
 										},
-									},
-								],
+									],
+								},
 							},
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const result = await generateImageAsset(
@@ -84,27 +87,28 @@ describe('assistant media adapters', () => {
 	});
 
 	it('extracts OpenRouter revised prompts from structured content parts', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					choices: [
-						{
-							message: {
-								content: [
-									{ type: 'text', text: 'revised prompt' },
-									{ type: 'text', text: 'with extra detail' },
-								],
-								images: [
-									{
-										image_url: `data:image/webp;base64,${encodeBase64('webp-bytes')}`,
-									},
-								],
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content: [
+										{ type: 'text', text: 'revised prompt' },
+										{ type: 'text', text: 'with extra detail' },
+									],
+									images: [
+										{
+											image_url: `data:image/webp;base64,${encodeBase64('webp-bytes')}`,
+										},
+									],
+								},
 							},
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const result = await generateImageAsset(
@@ -127,20 +131,21 @@ describe('assistant media adapters', () => {
 	});
 
 	it('rejects OpenRouter responses without a usable inline image payload', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					choices: [
-						{
-							message: {
-								content: 'revised prompt',
-								images: [],
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						choices: [
+							{
+								message: {
+									content: 'revised prompt',
+									images: [],
+								},
 							},
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		await expect(
@@ -207,7 +212,9 @@ describe('assistant media adapters', () => {
 	});
 
 	it('normalizes opaque OpenRouter image errors into a user-facing message', async () => {
-		globalThis.fetch = vi.fn(async () => new Response('{"code":"upstream_timeout"}', { status: 502 })) as typeof fetch;
+		globalThis.fetch = vi.fn(
+			async () => new Response('{"code":"upstream_timeout"}', { status: 502 }),
+		) as typeof fetch;
 
 		await expect(
 			generateImageAsset(
@@ -229,15 +236,16 @@ describe('assistant media adapters', () => {
 	});
 
 	it('calls the vectorization tool endpoint and returns svg content', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					svg: '  <svg viewBox="0 0 10 10"></svg>\n',
-					tool: 'vectorizer',
-					model: 'svg-tool-v1',
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						svg: '  <svg viewBox="0 0 10 10"></svg>\n',
+						tool: 'vectorizer',
+						model: 'svg-tool-v1',
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const result = await vectorizeImageAsset(
@@ -263,13 +271,14 @@ describe('assistant media adapters', () => {
 	});
 
 	it('rejects vectorization responses with blank svg payloads', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					svg: '   \n\t  ',
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						svg: '   \n\t  ',
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		await expect(
@@ -291,13 +300,14 @@ describe('assistant media adapters', () => {
 	});
 
 	it('rejects vectorization responses with non-svg content', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: '{"not":"svg"}',
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: '{"not":"svg"}',
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		await expect(

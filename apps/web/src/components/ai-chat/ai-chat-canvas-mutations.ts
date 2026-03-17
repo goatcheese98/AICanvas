@@ -1,20 +1,11 @@
-import {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-} from '@ai-canvas/shared/schemas';
-import type { CanvasElement } from '@ai-canvas/shared/types';
-import type {
-	BinaryFiles,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { getViewportSceneCenter } from '@/components/canvas/element-factories';
-import {
-	getSelectedSceneBounds,
-	getViewportSceneBounds,
-} from './ai-chat-canvas';
+import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import { normalizeKanbanOverlay, normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
+import type { CanvasElement } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import { getSelectedSceneBounds, getViewportSceneBounds } from './ai-chat-canvas';
 import { clonePatchCustomData } from './ai-chat-helpers';
 import type { AssistantInsertionState } from './ai-chat-types';
 

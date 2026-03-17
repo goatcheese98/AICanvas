@@ -1,30 +1,30 @@
-import { useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
 	AppState,
-	BinaryFiles,
 	BinaryFileData,
+	BinaryFiles,
 	ExcalidrawImperativeAPI,
 } from '@excalidraw/excalidraw/types';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef } from 'react';
 import '@excalidraw/excalidraw/index.css';
-import { CanvasCore } from './CanvasCore';
-import { CanvasUI } from './CanvasUI';
-import { CanvasNotesLayer } from './CanvasNotesLayer';
-import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
-import { useAppStore } from '@/stores/store';
-import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useCollaboration } from '@/hooks/useCollaboration';
+import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import {
-	CanvasPersistenceCoordinator,
 	type CanvasData,
+	CanvasPersistenceCoordinator,
 } from '@/lib/persistence/CanvasPersistenceCoordinator';
+import { useAppStore } from '@/stores/store';
+import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
+import { CanvasCore } from './CanvasCore';
+import { CanvasNotesLayer } from './CanvasNotesLayer';
+import { CanvasUI } from './CanvasUI';
+import { normalizeAiVectorGroupResize } from './ai-vector-resize-normalizer';
 import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
 import { syncAppStoreFromExcalidraw } from './excalidraw-store-sync';
 import { normalizeSceneElements } from './scene-element-normalizer';
-import { normalizeAiVectorGroupResize } from './ai-vector-resize-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
 const THUMBNAIL_MIME_TYPE = 'image/png';
@@ -49,11 +49,15 @@ async function getExportToBlob() {
 	return exportToBlobLoader;
 }
 
-function toSceneUpdateAppState(appState: Record<string, unknown> | null | undefined): SceneUpdateAppState {
+function toSceneUpdateAppState(
+	appState: Record<string, unknown> | null | undefined,
+): SceneUpdateAppState {
 	return (appState ?? {}) as SceneUpdateAppState;
 }
 
-function toBinaryFiles(files: BinaryFiles | Record<string, unknown> | null | undefined): BinaryFiles {
+function toBinaryFiles(
+	files: BinaryFiles | Record<string, unknown> | null | undefined,
+): BinaryFiles {
 	return (files ?? {}) as BinaryFiles;
 }
 
@@ -305,42 +309,42 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 			status === 'success' && canvasQueryData?.canvas?.updatedAt
 				? new Date(canvasQueryData.canvas.updatedAt).getTime()
 				: 0;
-			const shouldUseLocalSnapshot = Boolean(localSnapshot && localSavedAt > remoteUpdatedAt);
+		const shouldUseLocalSnapshot = Boolean(localSnapshot && localSavedAt > remoteUpdatedAt);
 
-			if (status === 'success' && canvasQueryData?.data && !shouldUseLocalSnapshot) {
-				const { elements, appState, files } = canvasQueryData.data as unknown as HydratedCanvasScene;
-				const remoteData = buildPersistedCanvasData(
-					toSceneElements(elements),
-					appState ?? {},
-					files ?? null,
-				);
-				const remoteFiles = toBinaryFiles(files);
-				excalidrawApi.updateScene({
-					elements: normalizeSceneElements(remoteData.elements as ExcalidrawElement[]),
-					appState: toSceneUpdateAppState(remoteData.appState),
-				});
-				if (Object.keys(remoteFiles).length > 0) {
-					excalidrawApi.addFiles(toBinaryFileList(remoteFiles));
-				}
-				syncAppStoreFromExcalidraw(excalidrawApi);
-				latestSceneRef.current = remoteData;
-			} else if (localSnapshot) {
-				const localData = buildPersistedCanvasData(
-					normalizeSceneElements((localSnapshot.canvasData.elements ?? []) as ExcalidrawElement[]),
-					localSnapshot.canvasData.appState ?? {},
-					localSnapshot.canvasData.files ?? null,
-				);
-				const localFiles = toBinaryFiles(localData.files);
-				excalidrawApi.updateScene({
-					elements: normalizeSceneElements(localData.elements as ExcalidrawElement[]),
-					appState: toSceneUpdateAppState(localData.appState),
-				});
-				if (Object.keys(localFiles).length > 0) {
-					excalidrawApi.addFiles(toBinaryFileList(localFiles));
-				}
-				syncAppStoreFromExcalidraw(excalidrawApi);
-				latestSceneRef.current = localData;
+		if (status === 'success' && canvasQueryData?.data && !shouldUseLocalSnapshot) {
+			const { elements, appState, files } = canvasQueryData.data as unknown as HydratedCanvasScene;
+			const remoteData = buildPersistedCanvasData(
+				toSceneElements(elements),
+				appState ?? {},
+				files ?? null,
+			);
+			const remoteFiles = toBinaryFiles(files);
+			excalidrawApi.updateScene({
+				elements: normalizeSceneElements(remoteData.elements as ExcalidrawElement[]),
+				appState: toSceneUpdateAppState(remoteData.appState),
+			});
+			if (Object.keys(remoteFiles).length > 0) {
+				excalidrawApi.addFiles(toBinaryFileList(remoteFiles));
 			}
+			syncAppStoreFromExcalidraw(excalidrawApi);
+			latestSceneRef.current = remoteData;
+		} else if (localSnapshot) {
+			const localData = buildPersistedCanvasData(
+				normalizeSceneElements((localSnapshot.canvasData.elements ?? []) as ExcalidrawElement[]),
+				localSnapshot.canvasData.appState ?? {},
+				localSnapshot.canvasData.files ?? null,
+			);
+			const localFiles = toBinaryFiles(localData.files);
+			excalidrawApi.updateScene({
+				elements: normalizeSceneElements(localData.elements as ExcalidrawElement[]),
+				appState: toSceneUpdateAppState(localData.appState),
+			});
+			if (Object.keys(localFiles).length > 0) {
+				excalidrawApi.addFiles(toBinaryFileList(localFiles));
+			}
+			syncAppStoreFromExcalidraw(excalidrawApi);
+			latestSceneRef.current = localData;
+		}
 
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {

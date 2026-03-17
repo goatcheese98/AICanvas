@@ -1,4 +1,4 @@
-import { simplifyPoints, type SvgPoint } from './svg-path-utils';
+import { type SvgPoint, simplifyPoints } from './svg-path-utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -206,9 +206,7 @@ function kmeansQuantize(imageData: ImageData, k: number) {
 			s[2] += pixels[i][2];
 			s[3] += 1;
 		}
-		centers = sums.map((s, j) =>
-			s[3] > 0 ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]] : centers[j],
-		);
+		centers = sums.map((s, j) => (s[3] > 0 ? [s[0] / s[3], s[1] / s[3], s[2] / s[3]] : centers[j]));
 	}
 
 	const colorCenters: RgbaColor[] = centers.map(([r, g, b]) => ({ r, g, b, a: 255 }));
@@ -400,16 +398,15 @@ function maskConvexHull(mask: Uint8Array, width: number, height: number): SvgPoi
 		}
 	}
 	const pivot = candidates[lo];
-	const rest = candidates.filter((_, i) => i !== lo).sort((a, b) => {
-		const cross =
-			(a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
-		if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
-		return (
-			(a.x - pivot.x) ** 2 +
-			(a.y - pivot.y) ** 2 -
-			((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
-		);
-	});
+	const rest = candidates
+		.filter((_, i) => i !== lo)
+		.sort((a, b) => {
+			const cross = (a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
+			if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
+			return (
+				(a.x - pivot.x) ** 2 + (a.y - pivot.y) ** 2 - ((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
+			);
+		});
 	const hull: SvgPoint[] = [pivot];
 	for (const p of rest) {
 		while (hull.length >= 2) {
@@ -486,8 +483,14 @@ function thinMask(mask: Uint8Array, width: number, height: number): Uint8Array {
 
 	const next = new Uint8Array(mask);
 	const offsets = [
-		[0, -1], [1, -1], [1, 0], [1, 1],
-		[0, 1], [-1, 1], [-1, 0], [-1, -1],
+		[0, -1],
+		[1, -1],
+		[1, 0],
+		[1, 1],
+		[0, 1],
+		[-1, 1],
+		[-1, 0],
+		[-1, -1],
 	] as const;
 	let changed = true;
 
@@ -655,7 +658,10 @@ function loadImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
 
 function renderImageToCanvas(image: HTMLImageElement, options?: VectorizeRasterOptions) {
 	const maxSampleDimension = options?.maxSampleDimension ?? DEFAULT_OPTIONS.maxSampleDimension;
-	const scale = Math.min(1, maxSampleDimension / Math.max(image.naturalWidth, image.naturalHeight, 1));
+	const scale = Math.min(
+		1,
+		maxSampleDimension / Math.max(image.naturalWidth, image.naturalHeight, 1),
+	);
 	const width = Math.max(1, Math.round(image.naturalWidth * scale));
 	const height = Math.max(1, Math.round(image.naturalHeight * scale));
 	const canvas = document.createElement('canvas');
@@ -869,7 +875,11 @@ export function vectorizeImageDataToSvg(
 
 		const simplified = simplifyPoints(hullPoints, 0.5);
 		if (simplified.length >= 3) {
-			layers.push({ fill: colorToHex(centers[ci]), paths: [polygonPath(simplified)], pixelCount: dominantPixels });
+			layers.push({
+				fill: colorToHex(centers[ci]),
+				paths: [polygonPath(simplified)],
+				pixelCount: dominantPixels,
+			});
 		}
 	}
 

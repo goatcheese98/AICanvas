@@ -29,7 +29,14 @@ export function LexicalDebugPanel({
 				pointerEvents: 'none',
 			}}
 		>
-			<div style={{ fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+			<div
+				style={{
+					fontWeight: 700,
+					letterSpacing: '0.08em',
+					textTransform: 'uppercase',
+					marginBottom: 8,
+				}}
+			>
 				Lexical Debug
 			</div>
 			<div>id: {elementId}</div>
@@ -42,8 +49,16 @@ export function LexicalDebugPanel({
 			<div>commits: {debugState.commitCount}</div>
 			<div>externalSyncs: {debugState.externalSyncCount}</div>
 			<div>lastReason: {debugState.lastCommitReason ?? 'none'}</div>
-			<div>lastCommitAt: {debugState.lastCommitAt ? new Date(debugState.lastCommitAt).toLocaleTimeString() : 'never'}</div>
-			<div>lastExternalSyncAt: {debugState.lastExternalSyncAt ? new Date(debugState.lastExternalSyncAt).toLocaleTimeString() : 'never'}</div>
+			<div>
+				lastCommitAt:{' '}
+				{debugState.lastCommitAt ? new Date(debugState.lastCommitAt).toLocaleTimeString() : 'never'}
+			</div>
+			<div>
+				lastExternalSyncAt:{' '}
+				{debugState.lastExternalSyncAt
+					? new Date(debugState.lastExternalSyncAt).toLocaleTimeString()
+					: 'never'}
+			</div>
 		</div>
 	);
 }

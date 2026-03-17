@@ -1,18 +1,18 @@
-import { memo, useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
-import type { AppState } from '@excalidraw/excalidraw/types';
-import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
+import type { OverlayType } from '@ai-canvas/shared/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
+import { type CSSProperties, memo, useCallback, useMemo, useRef, useState } from 'react';
+import {
+	type OverlayUpdatePayloadMap,
+	type TypedOverlayCanvasElement,
+	getOverlayDefinition,
+	normalizeOverlayElement,
+} from './overlay-definitions';
 import {
 	applyOverlayUpdateByType,
 	collectOverlayElements,
 	getOverlayZIndex,
 } from './overlay-registry';
-import {
-	getOverlayDefinition,
-	normalizeOverlayElement,
-	type OverlayUpdatePayloadMap,
-	type TypedOverlayCanvasElement,
-} from './overlay-definitions';
 
 const EMPTY_SELECTED_ELEMENT_IDS: NonNullable<AppState['selectedElementIds']> = {};
 
@@ -85,12 +85,7 @@ interface OverlayItemProps {
 	) => void;
 }
 
-function OverlayItem({
-	element,
-	stackIndex,
-	appState,
-	updateOverlayElement,
-}: OverlayItemProps) {
+function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: OverlayItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const isEditingRef = useRef(false);
 	const type = element.customData.type;
@@ -187,10 +182,7 @@ export function CanvasNotesLayer() {
 	);
 
 	return (
-		<div
-			className="pointer-events-none absolute inset-0 overflow-hidden"
-			style={{ zIndex: 2 }}
-		>
+		<div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
 			{overlayElements.map((element, stackIndex) => (
 				<OverlayItem
 					key={element.id}

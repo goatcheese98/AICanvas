@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { useEffect, useRef } from 'react';
 
 interface StateSyncPluginProps {
 	serializedState: string;

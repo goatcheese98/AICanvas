@@ -138,7 +138,8 @@ describe('assistant planner', () => {
 								r2Key: 'assistant-assets/run-1/pelican.png',
 								mimeType: 'image/png',
 								provider: 'cloudflare',
-								prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+								prompt:
+									'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
 							}),
 						},
 					],

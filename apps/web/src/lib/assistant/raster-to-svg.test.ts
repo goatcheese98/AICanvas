@@ -25,10 +25,22 @@ function createImageData(
 describe('raster to svg vectorization', () => {
 	it('traces a simple monochrome sketch region into svg paths', () => {
 		const imageData = createImageData(4, 4, [
-			[255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255],
-			[255, 255, 255, 255], [0, 0, 0, 255], [0, 0, 0, 255], [255, 255, 255, 255],
-			[255, 255, 255, 255], [0, 0, 0, 255], [0, 0, 0, 255], [255, 255, 255, 255],
-			[255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255], [255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[0, 0, 0, 255],
+			[0, 0, 0, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[0, 0, 0, 255],
+			[0, 0, 0, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
+			[255, 255, 255, 255],
 		]);
 
 		const svg = vectorizeImageDataToSvg(imageData);
@@ -41,8 +53,14 @@ describe('raster to svg vectorization', () => {
 
 	it('preserves multiple fill colors for simple posterized regions', () => {
 		const imageData = createImageData(4, 2, [
-			[255, 0, 0, 255], [255, 0, 0, 255], [0, 0, 255, 255], [0, 0, 255, 255],
-			[255, 0, 0, 255], [255, 0, 0, 255], [0, 0, 255, 255], [0, 0, 255, 255],
+			[255, 0, 0, 255],
+			[255, 0, 0, 255],
+			[0, 0, 255, 255],
+			[0, 0, 255, 255],
+			[255, 0, 0, 255],
+			[255, 0, 0, 255],
+			[0, 0, 255, 255],
+			[0, 0, 255, 255],
 		]);
 
 		const svg = vectorizeImageDataToSvg(imageData, { maxColors: 4 });
@@ -52,18 +70,22 @@ describe('raster to svg vectorization', () => {
 	});
 
 	it('removes tiny isolated noise via morphological opening, preserving the main region', () => {
-		const imageData = createImageData(12, 12, Array.from({ length: 144 }, (_, index) => {
-			const x = index % 12;
-			const y = Math.floor(index / 12);
-			if (x >= 3 && x <= 8 && y >= 2 && y <= 8) {
-				return [40, 40, 40, 255] as [number, number, number, number];
-			}
-			// Tiny 2×3 isolated mark — should be erased by morphological opening
-			if (y >= 10 && x >= 9) {
-				return [40, 40, 40, 255] as [number, number, number, number];
-			}
-			return [255, 255, 255, 255] as [number, number, number, number];
-		}));
+		const imageData = createImageData(
+			12,
+			12,
+			Array.from({ length: 144 }, (_, index) => {
+				const x = index % 12;
+				const y = Math.floor(index / 12);
+				if (x >= 3 && x <= 8 && y >= 2 && y <= 8) {
+					return [40, 40, 40, 255] as [number, number, number, number];
+				}
+				// Tiny 2×3 isolated mark — should be erased by morphological opening
+				if (y >= 10 && x >= 9) {
+					return [40, 40, 40, 255] as [number, number, number, number];
+				}
+				return [255, 255, 255, 255] as [number, number, number, number];
+			}),
+		);
 
 		const svg = vectorizeImageDataToSvg(imageData);
 		const pathCount = (svg.match(/<path /g) ?? []).length;

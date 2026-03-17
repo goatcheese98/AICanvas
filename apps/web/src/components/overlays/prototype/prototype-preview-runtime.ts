@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PrototypeOverlayCustomData, PrototypeOverlayFile } from '@ai-canvas/shared/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PrototypeCompilerWorker from './runtime/prototype-compiler.worker?worker';
 
 const PROTOTYPE_ALLOWED_DEPENDENCIES = new Set([
@@ -182,12 +182,14 @@ function rewriteImportsToVirtualPaths(
 
 	let nextCode = code.replace(
 		/\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1/g,
-		(match, quote: string, specifier: string) => match.replace(specifier, replaceSpecifier(specifier)),
+		(match, quote: string, specifier: string) =>
+			match.replace(specifier, replaceSpecifier(specifier)),
 	);
 
 	nextCode = nextCode.replace(
 		/\bimport\(\s*(['"])([^'"]+)\1\s*\)/g,
-		(match, quote: string, specifier: string) => match.replace(specifier, replaceSpecifier(specifier)),
+		(match, quote: string, specifier: string) =>
+			match.replace(specifier, replaceSpecifier(specifier)),
 	);
 
 	return {
@@ -215,9 +217,7 @@ function createModuleUrl(code: string) {
 	return `data:text/javascript;charset=utf-8,${encodeURIComponent(code)}`;
 }
 
-function getDependencyImportMap(
-	dependencies: Iterable<string>,
-) {
+function getDependencyImportMap(dependencies: Iterable<string>) {
 	const imports: Record<string, string> = {
 		...REACT_IMPORT_MAP,
 	};
@@ -301,9 +301,8 @@ function createPreviewDocument(
 		dependencyImports.add(dependency);
 	}
 
-	const { imports: dependencyMap, diagnostics: dependencyDiagnostics } = getDependencyImportMap(
-		dependencyImports,
-	);
+	const { imports: dependencyMap, diagnostics: dependencyDiagnostics } =
+		getDependencyImportMap(dependencyImports);
 	diagnostics.push(...dependencyDiagnostics);
 
 	if (!entryModuleCode) {
@@ -383,9 +382,7 @@ requestAnimationFrame(() => window.__prototypePreviewSend('ready'));
 	};
 }
 
-export function usePrototypePreview(
-	input: PrototypeOverlayCustomData,
-): PrototypePreviewState {
+export function usePrototypePreview(input: PrototypeOverlayCustomData): PrototypePreviewState {
 	const [nonce, setNonce] = useState(0);
 	const [status, setStatus] = useState<PrototypePreviewState['status']>('idle');
 	const [srcDoc, setSrcDoc] = useState('');
@@ -459,7 +456,9 @@ export function usePrototypePreview(
 		jobIdRef.current = requestId;
 		setStatus('compiling');
 
-		const handleWorkerMessage = (event: MessageEvent<WorkerSuccessPayload | WorkerErrorPayload>) => {
+		const handleWorkerMessage = (
+			event: MessageEvent<WorkerSuccessPayload | WorkerErrorPayload>,
+		) => {
 			if (event.data.id !== requestId) {
 				return;
 			}

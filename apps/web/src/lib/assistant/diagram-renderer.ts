@@ -10,7 +10,10 @@ export interface DiagramSvgRenderResult {
 }
 
 type D2Engine = {
-	compile: (input: unknown, options?: unknown) => Promise<{
+	compile: (
+		input: unknown,
+		options?: unknown,
+	) => Promise<{
 		diagram: unknown;
 		renderOptions: unknown;
 	}>;
@@ -83,20 +86,27 @@ function toSceneCompatibleElements(elements: unknown[]): ExcalidrawElementSkelet
 						: '#000000',
 			backgroundColor:
 				typeof element.backgroundColor === 'string' ? element.backgroundColor : 'transparent',
-			fillStyle: typeof element.fillStyle === 'string' ? element.fillStyle : isText ? 'solid' : 'hachure',
+			fillStyle:
+				typeof element.fillStyle === 'string' ? element.fillStyle : isText ? 'solid' : 'hachure',
 			strokeWidth: typeof element.strokeWidth === 'number' ? element.strokeWidth : 1,
 			strokeStyle: typeof element.strokeStyle === 'string' ? element.strokeStyle : 'solid',
 			roughness: typeof element.roughness === 'number' ? element.roughness : isText ? 0 : 1,
 			opacity: typeof element.opacity === 'number' ? element.opacity : 100,
-			roundness: typeof element.roundness === 'object' || element.roundness === null ? element.roundness : null,
+			roundness:
+				typeof element.roundness === 'object' || element.roundness === null
+					? element.roundness
+					: null,
 			seed: typeof element.seed === 'number' ? element.seed : Math.floor(Math.random() * 100000),
 			version: typeof element.version === 'number' ? element.version : 1,
-			versionNonce:
-				typeof element.versionNonce === 'number' ? element.versionNonce : Date.now(),
+			versionNonce: typeof element.versionNonce === 'number' ? element.versionNonce : Date.now(),
 			isDeleted: typeof element.isDeleted === 'boolean' ? element.isDeleted : false,
 			groupIds: Array.isArray(element.groupIds) ? element.groupIds : [],
-			frameId: typeof element.frameId === 'string' || element.frameId === null ? element.frameId : null,
-			boundElements: Array.isArray(element.boundElements) || element.boundElements === null ? element.boundElements : null,
+			frameId:
+				typeof element.frameId === 'string' || element.frameId === null ? element.frameId : null,
+			boundElements:
+				Array.isArray(element.boundElements) || element.boundElements === null
+					? element.boundElements
+					: null,
 			updated: typeof element.updated === 'number' ? element.updated : Date.now(),
 			link: typeof element.link === 'string' || element.link === null ? element.link : null,
 			locked: typeof element.locked === 'boolean' ? element.locked : false,
@@ -107,13 +117,11 @@ function toSceneCompatibleElements(elements: unknown[]): ExcalidrawElementSkelet
 			normalized.originalText =
 				typeof element.originalText === 'string' ? element.originalText : textValue;
 			normalized.fontSize = fontSize;
-			normalized.fontFamily =
-				typeof element.fontFamily === 'number' ? element.fontFamily : 3;
+			normalized.fontFamily = typeof element.fontFamily === 'number' ? element.fontFamily : 3;
 			normalized.textAlign = typeof element.textAlign === 'string' ? element.textAlign : 'left';
 			normalized.verticalAlign =
 				typeof element.verticalAlign === 'string' ? element.verticalAlign : 'top';
-			normalized.lineHeight =
-				typeof element.lineHeight === 'number' ? element.lineHeight : 1.25;
+			normalized.lineHeight = typeof element.lineHeight === 'number' ? element.lineHeight : 1.25;
 			normalized.baseline =
 				typeof element.baseline === 'number' ? element.baseline : Math.round(fontSize * 1.2);
 			normalized.containerId =
@@ -128,7 +136,8 @@ function toSceneCompatibleElements(elements: unknown[]): ExcalidrawElementSkelet
 
 		if (Array.isArray(element.points)) normalized.points = element.points;
 		if (typeof element.endArrowhead !== 'undefined') normalized.endArrowhead = element.endArrowhead;
-		if (typeof element.startArrowhead !== 'undefined') normalized.startArrowhead = element.startArrowhead;
+		if (typeof element.startArrowhead !== 'undefined')
+			normalized.startArrowhead = element.startArrowhead;
 		if (typeof element.customData === 'object' && element.customData !== null) {
 			normalized.customData = element.customData;
 		}
@@ -186,9 +195,7 @@ export function asciiFromD2(source: string): string {
 	const edges: Array<{ from: string; to: string; label?: string }> = [];
 
 	for (const line of lines) {
-		const edgeMatch = line.match(
-			/^([a-zA-Z0-9_-]+)\s*->\s*([a-zA-Z0-9_-]+)(?:\s*:\s*(.+))?$/,
-		);
+		const edgeMatch = line.match(/^([a-zA-Z0-9_-]+)\s*->\s*([a-zA-Z0-9_-]+)(?:\s*:\s*(.+))?$/);
 		if (edgeMatch) {
 			const from = edgeMatch[1];
 			const to = edgeMatch[2];
@@ -368,7 +375,7 @@ export async function renderCodeArtifactToSvg(input: {
 			};
 		}
 
-		throw (error instanceof Error ? error : new Error('D2 render failed'));
+		throw error instanceof Error ? error : new Error('D2 render failed');
 	}
 }
 

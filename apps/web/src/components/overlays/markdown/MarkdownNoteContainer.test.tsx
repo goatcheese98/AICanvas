@@ -1,10 +1,12 @@
+import type { MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import { MarkdownNoteContainer } from './MarkdownNoteContainer';
 import type { MarkdownNoteProps } from './markdown-note-types';
 
-function createElement(customData?: Partial<MarkdownOverlayCustomData>): MarkdownNoteProps['element'] {
+function createElement(
+	customData?: Partial<MarkdownOverlayCustomData>,
+): MarkdownNoteProps['element'] {
 	return {
 		id: 'markdown-element',
 		type: 'rectangle',

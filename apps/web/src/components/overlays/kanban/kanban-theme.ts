@@ -38,12 +38,9 @@ export const KANBAN_BACKGROUND_THEMES: KanbanBackgroundTheme[] = [
 		label: 'Mist',
 		description: 'Soft accent wash with the most airy contrast.',
 		swatch: 'linear-gradient(135deg, color-mix(in srgb, var(--color-accent-bg) 82%, white), white)',
-		boardBackground:
-			`linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 18%, white) 0%, color-mix(in srgb, var(--color-surface-strong) 90%, white) 100%)`,
-		headerBackground:
-			`linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 28%, white) 0%, color-mix(in srgb, var(--color-surface) 90%, white) 100%)`,
-		columnBackground:
-			`linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 14%, white) 0%, color-mix(in srgb, var(--color-surface-muted) 88%, white) 100%)`,
+		boardBackground: `linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 18%, white) 0%, color-mix(in srgb, var(--color-surface-strong) 90%, white) 100%)`,
+		headerBackground: `linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 28%, white) 0%, color-mix(in srgb, var(--color-surface) 90%, white) 100%)`,
+		columnBackground: `linear-gradient(180deg, color-mix(in srgb, var(--color-accent-bg) 14%, white) 0%, color-mix(in srgb, var(--color-surface-muted) 88%, white) 100%)`,
 		cardBackground: 'color-mix(in srgb, var(--color-surface-strong) 98%, white)',
 		borderTone: 'color-mix(in srgb, var(--color-text-secondary) 14%, var(--color-border))',
 	},
@@ -127,8 +124,7 @@ function clamp(value: number, min: number, max: number) {
 
 export function getKanbanBackgroundTheme(themeId?: string) {
 	return (
-		KANBAN_BACKGROUND_THEMES.find((theme) => theme.id === themeId) ??
-		KANBAN_BACKGROUND_THEMES[0]
+		KANBAN_BACKGROUND_THEMES.find((theme) => theme.id === themeId) ?? KANBAN_BACKGROUND_THEMES[0]
 	);
 }
 
@@ -136,7 +132,10 @@ export function getKanbanFontOption(fontId?: string) {
 	return KANBAN_FONT_OPTIONS.find((font) => font.id === fontId) ?? KANBAN_FONT_OPTIONS[0];
 }
 
-export function getKanbanSketchVariables(roughness?: number, freezeForResize = false): CSSProperties {
+export function getKanbanSketchVariables(
+	roughness?: number,
+	freezeForResize = false,
+): CSSProperties {
 	const intensity = clamp((typeof roughness === 'number' ? roughness : 0) / 4, 0, 1);
 	const textureAlpha = (0.012 + intensity * 0.032).toFixed(3);
 	const highlightAlpha = (0.016 + intensity * 0.02).toFixed(3);
@@ -163,7 +162,7 @@ export function getKanbanSketchVariables(roughness?: number, freezeForResize = f
 						`repeating-linear-gradient(${crossTilt}deg, rgba(255, 255, 255, ${highlightAlpha}) 0 1px, transparent 1px ${(
 							Number(cardTextureSpacing) + 2.5
 						).toFixed(2)}px)`,
-				  ].join(', ')
+					].join(', ')
 				: 'none',
 		'--kanban-sketch-control-texture':
 			intensity > 0 && !freezeForResize

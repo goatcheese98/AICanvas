@@ -1,9 +1,5 @@
 import type { AssistantThread } from '@ai-canvas/shared/types';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_ACTIVE,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
+import { PANEL_BUTTON, PANEL_BUTTON_ACTIVE, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import {
 	formatThreadTimestamp,
 	getThreadDisplayTitle,
@@ -35,7 +31,9 @@ export function AIChatSidebar({
 			}`}
 		>
 			<div className="border-b border-stone-200 px-3 py-2">
-				<div className={`flex items-center ${isHistoryCollapsed ? 'justify-center' : 'justify-between'} gap-2`}>
+				<div
+					className={`flex items-center ${isHistoryCollapsed ? 'justify-center' : 'justify-between'} gap-2`}
+				>
 					{isHistoryCollapsed ? null : (
 						<div className="text-[11px] font-medium text-stone-500">History</div>
 					)}

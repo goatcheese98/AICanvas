@@ -1,12 +1,12 @@
 import { waitlistSchemas } from '@ai-canvas/shared/schemas';
 import {
+	type CSSProperties,
+	type FormEvent,
 	startTransition,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type CSSProperties,
-	type FormEvent,
 } from 'react';
 import { joinWaitlist } from '../../lib/api';
 import { LandingCanvasScene } from './LandingCanvasScene';
@@ -65,8 +65,7 @@ export function LandingPage() {
 
 		if (!node) return;
 
-		const targetTop =
-			window.scrollY + node.getBoundingClientRect().top - window.innerHeight * 0.22;
+		const targetTop = window.scrollY + node.getBoundingClientRect().top - window.innerHeight * 0.22;
 
 		window.scrollTo({
 			top: Math.max(0, targetTop),
@@ -128,7 +127,7 @@ export function LandingPage() {
 
 	const progressChapterId =
 		activeChapter.id === landingWaitlistChapter.id
-			? landingStoryChapters[landingStoryChapters.length - 1]?.id ?? activeChapter.id
+			? (landingStoryChapters[landingStoryChapters.length - 1]?.id ?? activeChapter.id)
 			: activeChapter.id;
 
 	const boardStyle: LandingBoardStyle = {
@@ -240,7 +239,7 @@ export function LandingPage() {
 												{landingContent.scene.secondaryLabel}
 											</a>
 										</div>
-									<div className="landing-stage-pips" aria-label="Canvas tour progress">
+										<div className="landing-stage-pips" aria-label="Canvas tour progress">
 											{landingStoryChapters.map((chapter) => (
 												<span
 													key={chapter.id}

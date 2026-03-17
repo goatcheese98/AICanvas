@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { normalizeOverlayElement, type TypedOverlayCanvasElement } from './overlay-definitions';
+import { describe, expect, it } from 'vitest';
+import { type TypedOverlayCanvasElement, normalizeOverlayElement } from './overlay-definitions';
 
 function createMarkdownOverlay(
 	overrides?: Partial<TypedOverlayCanvasElement['customData']>,

@@ -1,4 +1,4 @@
-import { getAssistantRunProgressLabel, type AssistantRunProgress } from './run-progress';
+import { type AssistantRunProgress, getAssistantRunProgressLabel } from './run-progress';
 
 function ChevronIcon({ open }: { open: boolean }) {
 	return (

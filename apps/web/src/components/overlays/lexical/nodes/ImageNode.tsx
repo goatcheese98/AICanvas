@@ -1,16 +1,16 @@
-import type { JSX } from 'react';
 import {
 	$applyNodeReplacement,
-	DecoratorNode,
 	type DOMConversionMap,
 	type DOMConversionOutput,
 	type DOMExportOutput,
+	DecoratorNode,
 	type EditorConfig,
 	type LexicalNode,
 	type NodeKey,
 	type SerializedLexicalNode,
 	type Spread,
 } from 'lexical';
+import type { JSX } from 'react';
 import ImageComponent from './ImageComponent';
 
 export interface ImagePayload {

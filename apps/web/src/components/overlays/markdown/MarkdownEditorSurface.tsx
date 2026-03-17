@@ -1,5 +1,5 @@
-import { memo } from 'react';
 import type { MarkdownNoteSettings, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
+import { memo } from 'react';
 import { MarkdownHybridEditor } from './MarkdownHybridEditor';
 import { MarkdownPlainEditor } from './MarkdownPlainEditor';
 import { MarkdownRenderer } from './MarkdownRenderer';

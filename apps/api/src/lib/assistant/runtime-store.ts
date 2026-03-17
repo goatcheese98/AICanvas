@@ -40,7 +40,8 @@ export function subscribeToAssistantRun(
 	listener: (event: AssistantRunEvent) => void,
 ): () => void {
 	const state = getOwnerState(ownerId);
-	const listeners = state.listenersByRun.get(runId) ?? new Set<(event: AssistantRunEvent) => void>();
+	const listeners =
+		state.listenersByRun.get(runId) ?? new Set<(event: AssistantRunEvent) => void>();
 	listeners.add(listener);
 	state.listenersByRun.set(runId, listeners);
 

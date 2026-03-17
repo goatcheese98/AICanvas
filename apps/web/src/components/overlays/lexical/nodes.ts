@@ -1,5 +1,5 @@
 import { CodeHighlightNode, CodeNode } from '@lexical/code';
-import { LinkNode, AutoLinkNode } from '@lexical/link';
+import { AutoLinkNode, LinkNode } from '@lexical/link';
 import { ListItemNode, ListNode } from '@lexical/list';
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import { HeadingNode, QuoteNode } from '@lexical/rich-text';

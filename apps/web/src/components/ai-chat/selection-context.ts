@@ -42,7 +42,9 @@ function getSelectionLabel(kind: string, count: number): string {
 	return count === 1 ? 'item' : 'items';
 }
 
-export function getSelectedElementIdsFromMap(selectedElementIds: Record<string, boolean>): string[] {
+export function getSelectedElementIdsFromMap(
+	selectedElementIds: Record<string, boolean>,
+): string[] {
 	return Object.entries(selectedElementIds)
 		.filter(([, isSelected]) => isSelected)
 		.map(([id]) => id);

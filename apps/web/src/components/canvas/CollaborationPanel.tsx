@@ -1,10 +1,10 @@
 import {
-	getCollaborationStatusCopy,
 	type CollaborationSessionStatus,
+	getCollaborationStatusCopy,
 } from '@/hooks/collaboration-utils';
 import {
-	CHROME_BUTTON_BASE,
 	CHROME_BUTTON_ACTIVE,
+	CHROME_BUTTON_BASE,
 	CHROME_BUTTON_DANGER,
 	CHROME_BUTTON_IDLE,
 } from './canvas-chrome';
@@ -22,8 +22,8 @@ interface CollaborationPanelProps {
 }
 
 export function CollaborationPanel({ ...collaboration }: CollaborationPanelProps) {
-	const collaboratorList = Array.from(collaboration.collaborators.values()).filter(
-		(collaborator) => Boolean(collaborator.username),
+	const collaboratorList = Array.from(collaboration.collaborators.values()).filter((collaborator) =>
+		Boolean(collaborator.username),
 	);
 	const sessionCopy = getCollaborationStatusCopy(
 		collaboration.sessionStatus,

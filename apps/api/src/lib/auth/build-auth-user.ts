@@ -15,10 +15,14 @@ interface ClerkUserLike {
 
 export function buildAuthUser(user: ClerkUserLike): AuthUser {
 	const email =
-		user.emailAddresses?.find((candidate) => typeof candidate.emailAddress === 'string' && candidate.emailAddress.length > 0)
-			?.emailAddress ?? `${user.id}@clerk.local`;
+		user.emailAddresses?.find(
+			(candidate) =>
+				typeof candidate.emailAddress === 'string' && candidate.emailAddress.length > 0,
+		)?.emailAddress ?? `${user.id}@clerk.local`;
 	const name =
-		`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.username?.trim() || 'Unnamed User';
+		`${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() ||
+		user.username?.trim() ||
+		'Unnamed User';
 
 	return {
 		id: user.id,

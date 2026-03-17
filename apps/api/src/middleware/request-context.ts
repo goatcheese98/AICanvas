@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
-import type { AppEnv } from '../types';
 import { applySentryRequestContext, getRequestLogFields, logApiEvent } from '../lib/observability';
+import type { AppEnv } from '../types';
 
 export const requestContext = createMiddleware<AppEnv>(async (c, next) => {
 	const requestId = crypto.randomUUID();

@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $isCodeNode, CodeNode } from '@lexical/code';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey, $nodesOfType } from 'lexical';
+import { useEffect } from 'react';
 import { detectCodeLanguage } from '../utils/detectCodeLanguage';
 
 const DEBOUNCE_MS = 500;
@@ -35,7 +35,9 @@ export default function AutoCodeLanguagePlugin() {
 
 				const detections = pending
 					.map(({ key, code }) => ({ key, lang: detectCodeLanguage(code) }))
-					.filter((candidate): candidate is { key: string; lang: string } => Boolean(candidate.lang));
+					.filter((candidate): candidate is { key: string; lang: string } =>
+						Boolean(candidate.lang),
+					);
 
 				if (detections.length === 0) return;
 

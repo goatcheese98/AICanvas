@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
+import { act, renderHook } from '@testing-library/react';
+import { useState } from 'react';
+import { describe, expect, it, vi } from 'vitest';
 import type { AssistantPatchApplyState } from './ai-chat-types';
 import { useAIChatPatchActions } from './useAIChatPatchActions';
 

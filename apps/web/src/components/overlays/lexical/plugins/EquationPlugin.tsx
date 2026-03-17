@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
 	$getSelection,
 	$isRangeSelection,
 	COMMAND_PRIORITY_EDITOR,
-	createCommand,
 	type LexicalCommand,
+	createCommand,
 } from 'lexical';
+import { useEffect } from 'react';
 import { $createEquationNode, EquationNode } from '../nodes/EquationNode';
 
 export const INSERT_EQUATION_COMMAND: LexicalCommand<{

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { describe, expect, it } from 'vitest';
 import type { TypedOverlayCanvasElement } from './overlay-definition-types';
 import {
 	applyOverlayUpdateByType,
@@ -237,7 +237,10 @@ describe('overlay-registry', () => {
 				metrics: [{ label: 'Revenue', value: '$144k' }],
 			},
 			files: {
-				'/App.js': { code: 'export default function App() { return <div>Hi</div>; }', active: true },
+				'/App.js': {
+					code: 'export default function App() { return <div>Hi</div>; }',
+					active: true,
+				},
 			},
 			activeFile: '/App.js',
 		});

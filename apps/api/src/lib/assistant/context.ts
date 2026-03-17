@@ -16,8 +16,8 @@ import type {
 	AssistantSelectedContext,
 	CanvasElement,
 } from '@ai-canvas/shared/types';
-import { loadCanvasFromR2 } from '../storage/canvas-storage';
 import type { AppEnv } from '../../types';
+import { loadCanvasFromR2 } from '../storage/canvas-storage';
 
 const SELECTION_CONTEXT_PRIORITY: Record<AssistantSelectedContext['kind'], number> = {
 	markdown: 1,
@@ -80,7 +80,10 @@ function getOverlayType(element: CanvasElement): string | undefined {
 }
 
 function getOverlayLikeType(element: CanvasElement): string | undefined {
-	return getOverlayType(element) ?? (parseGeneratedDiagramMetadata(element) ? 'generated-diagram' : undefined);
+	return (
+		getOverlayType(element) ??
+		(parseGeneratedDiagramMetadata(element) ? 'generated-diagram' : undefined)
+	);
 }
 
 function parseGeneratedDiagramMetadata(element: CanvasElement): GeneratedDiagramMetadata | null {
@@ -91,7 +94,11 @@ function parseGeneratedDiagramMetadata(element: CanvasElement): GeneratedDiagram
 
 	const language = customData.language;
 	const code = customData.code;
-	if ((language !== 'mermaid' && language !== 'd2') || typeof code !== 'string' || code.trim().length === 0) {
+	if (
+		(language !== 'mermaid' && language !== 'd2') ||
+		typeof code !== 'string' ||
+		code.trim().length === 0
+	) {
 		return null;
 	}
 
@@ -109,7 +116,13 @@ function getElementType(element: CanvasElement): string {
 
 function buildElementLabel(element: CanvasElement): string | undefined {
 	const customData = toObjectRecord(element.customData);
-	const textCandidates = [customData?.title, customData?.name, element.text, customData?.content, customData?.url];
+	const textCandidates = [
+		customData?.title,
+		customData?.name,
+		element.text,
+		customData?.content,
+		customData?.url,
+	];
 
 	for (const candidate of textCandidates) {
 		const normalized = normalizeText(candidate, 120);
@@ -251,13 +264,13 @@ function buildGenericContextPayload(element: CanvasElement) {
 		shapeType: getElementType(element),
 		text,
 		link:
-			normalizeText(element.link, 2000)
-			?? normalizeText(customData?.url, 2000)
-			?? normalizeText(customData?.href, 2000),
+			normalizeText(element.link, 2000) ??
+			normalizeText(customData?.url, 2000) ??
+			normalizeText(customData?.href, 2000),
 		hasImageFile:
-			typeof element.fileId === 'string'
-			|| typeof customData?.fileId === 'string'
-			|| getElementType(element) === 'image',
+			typeof element.fileId === 'string' ||
+			typeof customData?.fileId === 'string' ||
+			getElementType(element) === 'image',
 		customDataType: typeof customData?.type === 'string' ? customData.type : undefined,
 		isConnector: getElementType(element) === 'arrow' || getElementType(element) === 'line',
 		isFrame: getElementType(element) === 'frame',
@@ -530,9 +543,13 @@ export async function buildAssistantContextSnapshot(
 		selectedOverlayTypes,
 		canvasMeta: input.canvasMeta,
 		canvasSummary:
-			input.contextMode === 'none' ? undefined : buildCanvasSummary(elements, selectedElements.length),
+			input.contextMode === 'none'
+				? undefined
+				: buildCanvasSummary(elements, selectedElements.length),
 		canvasElementSummaries:
-			input.contextMode === 'all' ? buildCanvasElementSummaries(elements, selectedIdSet) : undefined,
+			input.contextMode === 'all'
+				? buildCanvasElementSummaries(elements, selectedIdSet)
+				: undefined,
 		selectionEnvironment:
 			input.contextMode === 'none'
 				? undefined
@@ -561,7 +578,9 @@ function formatCountMap(prefix: string, values: Record<string, number>): string 
 	return `${prefix}: ${entries.map(([key, count]) => `${key} ${count}`).join(', ')}.`;
 }
 
-export function summarizeAssistantContextSnapshot(snapshot?: AssistantContextSnapshot): string | null {
+export function summarizeAssistantContextSnapshot(
+	snapshot?: AssistantContextSnapshot,
+): string | null {
 	if (!snapshot) {
 		return null;
 	}
@@ -581,11 +600,17 @@ export function summarizeAssistantContextSnapshot(snapshot?: AssistantContextSna
 		lines.push(
 			`Canvas summary: ${snapshot.canvasSummary.textBearingElementCount} text-bearing elements, ${snapshot.canvasSummary.editableOverlayCount} editable overlays, ${snapshot.canvasSummary.selectedCount} selected.`,
 		);
-		const elementTypeLine = formatCountMap('Element types', snapshot.canvasSummary.elementTypeCounts);
+		const elementTypeLine = formatCountMap(
+			'Element types',
+			snapshot.canvasSummary.elementTypeCounts,
+		);
 		if (elementTypeLine) {
 			lines.push(elementTypeLine);
 		}
-		const overlayTypeLine = formatCountMap('Overlay types', snapshot.canvasSummary.overlayTypeCounts);
+		const overlayTypeLine = formatCountMap(
+			'Overlay types',
+			snapshot.canvasSummary.overlayTypeCounts,
+		);
 		if (overlayTypeLine) {
 			lines.push(overlayTypeLine);
 		}

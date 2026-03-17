@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { normalizeKanbanOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
@@ -10,8 +9,17 @@ import type {
 	KanbanOverlayCustomData,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
-import type { AssistantDraft, AssistantServiceInput, AssistantServiceResult } from './types';
+import { nanoid } from 'nanoid';
+import { createAnthropicMessage } from './anthropic';
 import { summarizeAssistantContextSnapshot } from './context';
+export { resolveGenerationMode } from './generation-mode';
+import {
+	buildAnthropicConversation,
+	getLastDiagramArtifact,
+	getLastSvgSource,
+	inferPrototypeTemplate,
+	resolveGenerationMode,
+} from './generation-mode';
 import {
 	buildD2EditPrompt,
 	buildD2Prompt,
@@ -24,232 +32,7 @@ import {
 	buildSvgPrompt,
 	extractCodeBlock,
 } from './parsing';
-import { createAnthropicMessage } from './anthropic';
-
-function sanitizeHistoryMessages(history: AssistantServiceInput['history']): AssistantMessage[] {
-	if (!Array.isArray(history)) {
-		return [];
-	}
-
-	return history
-		.filter(
-			(message) =>
-				(message.role === 'user' || message.role === 'assistant') && typeof message.content === 'string',
-		)
-		.slice(-12)
-		.map((message) => ({
-			id: message.id,
-			role: message.role,
-			content: message.content.trim().slice(0, 4000),
-			generationMode: message.generationMode,
-			artifacts: message.artifacts,
-			createdAt: message.createdAt,
-		}))
-		.filter((message) => message.content.length > 0);
-}
-
-function buildAnthropicConversation(
-	input: AssistantServiceInput,
-	currentUserContent: string,
-): Array<{ role: 'user' | 'assistant'; content: string }> {
-	return [
-		...sanitizeHistoryMessages(input.history).map((message) => ({
-			role: message.role,
-			content: message.content,
-		})),
-		{
-			role: 'user',
-			content: currentUserContent,
-		},
-	];
-}
-
-function inferPrototypeTemplate(input: AssistantServiceInput): PrototypeOverlayCustomData['template'] {
-	const message = input.message.toLowerCase();
-
-	if (/(vanilla|html\s*\/\s*css|html css|plain javascript|plain js|vanilla js|vanilla javascript)/.test(message)) {
-		return 'vanilla';
-	}
-
-	if (/(react|jsx|tsx)/.test(message)) {
-		return 'react';
-	}
-
-	return input.prototypeContext?.template ?? 'react';
-}
-
-function getLastDiagramArtifact(
-	history: AssistantServiceInput['history'],
-): { mode: Extract<GenerationMode, 'mermaid' | 'd2'>; content: string } | null {
-	if (!Array.isArray(history)) {
-		return null;
-	}
-
-	for (const message of [...history].reverse()) {
-		for (const artifact of [...(message.artifacts ?? [])].reverse()) {
-			if ((artifact.type === 'mermaid' || artifact.type === 'd2') && artifact.content.trim().length > 0) {
-				return { mode: artifact.type, content: artifact.content.trim() };
-			}
-		}
-
-		if (message.role !== 'assistant') {
-			continue;
-		}
-
-		if (message.generationMode === 'mermaid') {
-			const code = extractCodeBlock(message.content, 'mermaid');
-			if (code) {
-				return { mode: 'mermaid', content: code };
-			}
-		}
-
-		if (message.generationMode === 'd2') {
-			const code = extractCodeBlock(message.content, 'd2');
-			if (code) {
-				return { mode: 'd2', content: code };
-			}
-		}
-	}
-
-	return null;
-}
-
-function isDiagramFollowUpRequest(message: string): boolean {
-	return /(fix|update|adjust|change|edit|refine|improve|render|rerender|re-render|correct|repair|clean up|arrow|edge|line|label|node|spacing|align|move|swap|reverse|rotate|that|it|this|same diagram)/.test(
-		message,
-	);
-}
-
-function getLastSvgSource(
-	history: AssistantServiceInput['history'],
-): string | null {
-	if (!Array.isArray(history)) {
-		return null;
-	}
-
-	for (const message of [...history].reverse()) {
-		if (message.role !== 'assistant' || message.generationMode !== 'svg') {
-			continue;
-		}
-
-		const code = extractCodeBlock(message.content, 'svg');
-		if (code) {
-			return code;
-		}
-	}
-
-	return null;
-}
-
-function getLastMediaGenerationMode(
-	history: AssistantServiceInput['history'],
-): Extract<GenerationMode, 'image' | 'sketch' | 'svg'> | null {
-	if (!Array.isArray(history)) {
-		return null;
-	}
-
-	for (const message of [...history].reverse()) {
-		if (message.role !== 'assistant') {
-			continue;
-		}
-
-		if (
-			message.generationMode === 'image'
-			|| message.generationMode === 'sketch'
-			|| message.generationMode === 'svg'
-		) {
-			return message.generationMode;
-		}
-	}
-
-	return null;
-}
-
-function isImageFollowUpRequest(message: string): boolean {
-	return /\b(background|lighting|style|color|palette|scene|setting|composition|pose|expression|outfit|add|remove|change|adjust|update|refine|improve|simplify|variation|version|another|different|with|without|make it|make the|keep the|same subject|same image|same svg|same icon|bigger|larger|smaller|proceed|go ahead|do it|yes|yep|let's do|lets do|try that)\b/.test(
-		message,
-	);
-}
-
-export function resolveGenerationMode(input: AssistantServiceInput): GenerationMode {
-	if (input.generationMode) {
-		return input.generationMode;
-	}
-
-	const message = input.message.toLowerCase();
-	const hasVisualVerb = /\b(generate|create|creat|make|render|design|draw|illustrat(?:e|ion)|craft|build)\b/.test(
-		message,
-	);
-	const hasExplicitImageIntent =
-		/\b(generate|create|creat|make|render|design|draw|illustrat(?:e|ion))\s+(?:an?\s+)?(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\b/.test(
-			message,
-		) ||
-		/\b(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\s+of\b/.test(
-			message,
-		);
-	const hasExplicitSvgIntent =
-		(/\b(svg|vector|vectorized|vectorizable|vector graphic|logo|icon|mascot|sticker)\b/.test(
-			message,
-		) &&
-			hasVisualVerb) ||
-		/\b(as|in)\s+svg\b/.test(message);
-
-	if (/\bd2\b/.test(message)) {
-		return 'd2';
-	}
-
-	if (
-		/(kanban|backlog|sprint board|task board|turn this into tasks|plan tasks)/.test(message)
-	) {
-		return 'kanban';
-	}
-
-	if (
-		/(mermaid|flowchart|sequence diagram|state diagram|architecture diagram|diagram this|diagram the)/.test(
-			message,
-		)
-	) {
-		return 'mermaid';
-	}
-
-	if (hasExplicitSvgIntent) {
-		return 'svg';
-	}
-
-	if (/(wireframe|hand-drawn sketch|sketch this|whiteboard sketch)/.test(message)) {
-		return 'sketch';
-	}
-
-	if (hasExplicitImageIntent) {
-		return 'image';
-	}
-
-	if (
-		/(prototype|protoype|prototype|propotype|mockup|landing page|landing-page|react app|dashboard ui|ui prototype|build a component|build a page|vanilla js|vanilla javascript|html css|jsx|tsx)/.test(message) ||
-		(Boolean(input.prototypeContext) &&
-			/(react|vanilla|html|css|javascript|js|jsx|tsx|convert|rewrite|migrate|refactor|restyle|rebuild)/.test(
-				message,
-			))
-	) {
-		return 'prototype';
-	}
-
-	if (/(generate an image|create an image|hero illustration|illustration|cover image)/.test(message)) {
-		return 'image';
-	}
-
-	const lastDiagramArtifact = getLastDiagramArtifact(input.history);
-	if (lastDiagramArtifact && isDiagramFollowUpRequest(message)) {
-		return lastDiagramArtifact.mode;
-	}
-
-	const lastMediaGenerationMode = getLastMediaGenerationMode(input.history);
-	if (lastMediaGenerationMode && isImageFollowUpRequest(message)) {
-		return lastMediaGenerationMode;
-	}
-
-	return 'chat';
-}
+import type { AssistantDraft, AssistantServiceInput, AssistantServiceResult } from './types';
 
 function sentenceCase(text: string): string {
 	const trimmed = text.trim().replace(/\s+/g, ' ');
@@ -267,11 +50,13 @@ function escapeSvgText(text: string): string {
 }
 
 function slug(text: string): string {
-	return text
-		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/(^-|-$)/g, '')
-		.slice(0, 24) || 'node';
+	return (
+		text
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, '-')
+			.replace(/(^-|-$)/g, '')
+			.slice(0, 24) || 'node'
+	);
 }
 
 function truncateLabel(text: string, max = 56): string {
@@ -295,9 +80,7 @@ function isCreateNewArtifactIntent(message: string): boolean {
 	);
 }
 
-function getSelectedEditableContexts(
-	input: AssistantServiceInput,
-): AssistantSelectedContext[] {
+function getSelectedEditableContexts(input: AssistantServiceInput): AssistantSelectedContext[] {
 	return (input.contextSnapshot?.selectedContexts ?? []).filter(
 		(context) => context.kind === 'markdown' || context.kind === 'kanban',
 	);
@@ -338,7 +121,7 @@ function removeMarkdownSection(
 		return { content, removed: false };
 	}
 
-	const startLevel = (lines[startIndex]?.match(headingPattern)?.[1].length ?? 1);
+	const startLevel = lines[startIndex]?.match(headingPattern)?.[1].length ?? 1;
 	let endIndex = lines.length;
 	for (let index = startIndex + 1; index < lines.length; index += 1) {
 		const match = lines[index]?.match(headingPattern);
@@ -350,7 +133,10 @@ function removeMarkdownSection(
 
 	const nextLines = [...lines.slice(0, startIndex), ...lines.slice(endIndex)];
 	return {
-		content: nextLines.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+		content: nextLines
+			.join('\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.trim(),
 		removed: true,
 	};
 }
@@ -371,7 +157,10 @@ function extractUnavailableItems(message: string): string[] {
 			.split(/,| and | or /i)
 			.map((item) =>
 				item
-					.replace(/\b(the|a|an|any|section|list|grocery|groceries|ingredients?|please|actually|can you|could you)\b/gi, ' ')
+					.replace(
+						/\b(the|a|an|any|section|list|grocery|groceries|ingredients?|please|actually|can you|could you)\b/gi,
+						' ',
+					)
 					.replace(/\s+/g, ' ')
 					.trim(),
 			)
@@ -399,9 +188,7 @@ function removeMarkdownListItems(
 
 		const comparableLine = normalizeMarkdownComparableText(line);
 		const shouldRemove = normalizedTargets.some(
-			(target) =>
-				comparableLine.includes(target) ||
-				target.includes(comparableLine),
+			(target) => comparableLine.includes(target) || target.includes(comparableLine),
 		);
 		if (shouldRemove) {
 			removedCount += 1;
@@ -412,7 +199,10 @@ function removeMarkdownListItems(
 	});
 
 	return {
-		content: nextLines.join('\n').replace(/\n{3,}/g, '\n\n').trim(),
+		content: nextLines
+			.join('\n')
+			.replace(/\n{3,}/g, '\n\n')
+			.trim(),
 		removedCount,
 	};
 }
@@ -579,10 +369,7 @@ async function createMarkdownPatchArtifact(
 	};
 }
 
-function findKanbanTargetColumn(
-	board: KanbanOverlayCustomData,
-	message: string,
-) {
+function findKanbanTargetColumn(board: KanbanOverlayCustomData, message: string) {
 	const normalizedMessage = message.toLowerCase();
 	if (board.columns.length === 0) {
 		return null;
@@ -623,9 +410,10 @@ function detectMoveCardIntent(
 	if (!cardQuery || !columnQuery) return null;
 
 	// Find matching column (substring match on title)
-	const targetColumn = board.columns.find((column) =>
-		column.title.toLowerCase().includes(columnQuery) ||
-		columnQuery.includes(column.title.toLowerCase()),
+	const targetColumn = board.columns.find(
+		(column) =>
+			column.title.toLowerCase().includes(columnQuery) ||
+			columnQuery.includes(column.title.toLowerCase()),
 	);
 	if (!targetColumn) return null;
 
@@ -644,11 +432,10 @@ function detectMoveCardIntent(
  * Detect "remove/delete [card title]" patterns.
  * Returns the cardId when matched, otherwise null.
  */
-function detectRemoveCardIntent(
-	board: KanbanOverlayCustomData,
-	message: string,
-): string | null {
-	const match = message.match(/\b(?:remove|delete)\s+(?:the\s+card\s+)?(.+?)(?:\s+card)?(?:[.!?]|$)/i);
+function detectRemoveCardIntent(board: KanbanOverlayCustomData, message: string): string | null {
+	const match = message.match(
+		/\b(?:remove|delete)\s+(?:the\s+card\s+)?(.+?)(?:\s+card)?(?:[.!?]|$)/i,
+	);
 	if (!match) return null;
 
 	const cardQuery = match[1]?.trim().toLowerCase();
@@ -707,7 +494,10 @@ async function createKanbanPatchArtifact(
 
 			const responseText = completion.text.trim();
 			// Strip optional markdown code fences if the model included them despite instructions
-			const jsonText = responseText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+			const jsonText = responseText
+				.replace(/^```(?:json)?\s*/i, '')
+				.replace(/\s*```$/, '')
+				.trim();
 
 			let parsedBoard: KanbanOverlayCustomData | null = null;
 			try {
@@ -847,7 +637,7 @@ async function createKanbanPatchArtifact(
 								checklist: [],
 							},
 						],
-				  }
+					}
 				: column,
 		),
 	});
@@ -943,7 +733,10 @@ function truncateTitle(text: string): string {
 function extractPrototypeSubject(message: string): string {
 	const match = message.match(/\b(?:for|about|around|targeting)\s+(.+)$/i);
 	const subject = (match?.[1] ?? message)
-		.replace(/\b(create|build|make|design|prototype|website|landing page|landing-page|page|dashboard|app)\b/gi, ' ')
+		.replace(
+			/\b(create|build|make|design|prototype|website|landing page|landing-page|page|dashboard|app)\b/gi,
+			' ',
+		)
 		.replace(/[^\w\s-]/g, ' ')
 		.replace(/\s+/g, ' ')
 		.trim();
@@ -1346,7 +1139,8 @@ p {
 			preview: {
 				eyebrow: 'Interactive prototype',
 				title,
-				description: 'A functional calculator with live arithmetic controls and calculation history.',
+				description:
+					'A functional calculator with live arithmetic controls and calculation history.',
 				accent: palette.accent,
 				background: palette.background,
 				badges: ['Calculator', 'Interactive', 'Vanilla'],
@@ -1754,39 +1548,42 @@ function buildPromptDrivenPrototype(input: AssistantServiceInput): PrototypeOver
 			: variant === 'app'
 				? `Work with ${subject.toLowerCase()} directly in the prototype, validate behavior, and refine the interaction model without leaving the canvas.`
 				: `Present the value of ${subject.toLowerCase()} with clear positioning, focused benefits, and a decisive call to action.`;
-	const badges = keywords.length > 0 ? keywords.slice(0, 4).map(toTitleWords) : ['Strategy', 'Design', 'Launch'];
-	const features = (keywords.length > 0 ? keywords : ['workflow', 'conversion', 'automation']).slice(0, 3);
+	const badges =
+		keywords.length > 0 ? keywords.slice(0, 4).map(toTitleWords) : ['Strategy', 'Design', 'Launch'];
+	const features = (
+		keywords.length > 0 ? keywords : ['workflow', 'conversion', 'automation']
+	).slice(0, 3);
 	const metrics =
 		variant === 'dashboard'
 			? [
 					{ label: 'Active', value: '142' },
 					{ label: 'At Risk', value: '09' },
 					{ label: 'Win Rate', value: '38%' },
-			  ]
+				]
 			: [
 					{ label: 'Visitors', value: '24k' },
 					{ label: 'Conversion', value: '7.4%' },
 					{ label: 'Pipeline', value: '$186k' },
-			  ];
+				];
 	const jsx =
 		variant === 'dashboard'
 			? `import './styles.css';
 
 const metrics = ${JSON.stringify(metrics, null, 2)};
 const priorities = ${JSON.stringify(
-				features.map((feature, index) => `${toTitleWords(feature)} stream ${index + 1}`),
-				null,
-				2,
-			)};
+					features.map((feature, index) => `${toTitleWords(feature)} stream ${index + 1}`),
+					null,
+					2,
+				)};
 const updates = ${JSON.stringify(
-				[
-					`${brand} approvals waiting on design review`,
-					`Critical ${features[0] ?? 'workflow'} automation needs refinement`,
-					`Leadership update scheduled for tomorrow morning`,
-				],
-				null,
-				2,
-			)};
+					[
+						`${brand} approvals waiting on design review`,
+						`Critical ${features[0] ?? 'workflow'} automation needs refinement`,
+						`Leadership update scheduled for tomorrow morning`,
+					],
+					null,
+					2,
+				)};
 
 export default function App() {
   return (
@@ -1863,13 +1660,13 @@ export default function App() {
 import './styles.css';
 
 const starterItems = ${JSON.stringify(
-					features.map((feature, index) => ({
-						id: `item-\${index + 1}`,
-						label: `${toTitleWords(feature)} task`,
-					})),
-					null,
-					2,
-				)};
+						features.map((feature, index) => ({
+							id: `item-\${index + 1}`,
+							label: `${toTitleWords(feature)} task`,
+						})),
+						null,
+						2,
+					)};
 
 export default function App() {
   const [items, setItems] = useState(starterItems);
@@ -1925,22 +1722,22 @@ export default function App() {
 				: `import './styles.css';
 
 const features = ${JSON.stringify(
-				features.map((feature) => ({
-					title: toTitleWords(feature),
-					copy: `Built to improve ${feature} outcomes with faster execution and cleaner collaboration.`,
-				})),
-				null,
-				2,
-			)};
+						features.map((feature) => ({
+							title: toTitleWords(feature),
+							copy: `Built to improve ${feature} outcomes with faster execution and cleaner collaboration.`,
+						})),
+						null,
+						2,
+					)};
 const proofPoints = ${JSON.stringify(
-				[
-					`Teams adopt ${brand} in under 14 days`,
-					`${brand} shortens planning cycles by 32%`,
-					`Customers use ${subject.toLowerCase()} workflows daily`,
-				],
-				null,
-				2,
-			)};
+						[
+							`Teams adopt ${brand} in under 14 days`,
+							`${brand} shortens planning cycles by 32%`,
+							`Customers use ${subject.toLowerCase()} workflows daily`,
+						],
+						null,
+						2,
+					)};
 
 export default function App() {
   return (
@@ -2379,7 +2176,11 @@ p {
 		},
 		preview: {
 			eyebrow:
-				variant === 'dashboard' ? 'Live workspace' : variant === 'app' ? 'Interactive app' : 'Prototype website',
+				variant === 'dashboard'
+					? 'Live workspace'
+					: variant === 'app'
+						? 'Interactive app'
+						: 'Prototype website',
 			title:
 				variant === 'dashboard'
 					? `${brand} Dashboard`
@@ -2395,9 +2196,7 @@ p {
 	});
 }
 
-function serializePrototypeArtifact(
-	prototype: PrototypeOverlayCustomData,
-): string {
+function serializePrototypeArtifact(prototype: PrototypeOverlayCustomData): string {
 	return JSON.stringify(
 		{
 			title: prototype.title,
@@ -2414,9 +2213,7 @@ function serializePrototypeArtifact(
 	);
 }
 
-function buildPrototypeFallback(
-	input: AssistantServiceInput,
-): PrototypeOverlayCustomData {
+function buildPrototypeFallback(input: AssistantServiceInput): PrototypeOverlayCustomData {
 	return buildPromptDrivenPrototype(input);
 }
 
@@ -2426,9 +2223,9 @@ function parsePrototypeArtifactContent(value: string): PrototypeOverlayCustomDat
 			prototype?: PrototypeOverlayCustomData;
 		};
 		return normalizePrototypeOverlay(
-			(typeof parsed.prototype === 'object' && parsed.prototype !== null ? parsed.prototype : parsed) as
-				| PrototypeOverlayCustomData
-				| Record<string, unknown>,
+			(typeof parsed.prototype === 'object' && parsed.prototype !== null
+				? parsed.prototype
+				: parsed) as PrototypeOverlayCustomData | Record<string, unknown>,
 		);
 	} catch {
 		return null;
@@ -2480,7 +2277,10 @@ function isFunctionalPrototypeOutput(
 	return hasState && hasInteraction && !looksLikeMarketing;
 }
 
-function buildMermaidDraft(message: string, contextMode: AssistantServiceInput['contextMode']): AssistantDraft {
+function buildMermaidDraft(
+	message: string,
+	contextMode: AssistantServiceInput['contextMode'],
+): AssistantDraft {
 	const title = sentenceCase(message);
 	const root = slug(title);
 	const contextNode = contextMode === 'selected' ? 'selected_context' : 'canvas_context';
@@ -2506,12 +2306,17 @@ function buildMermaidDraftFromHistory(input: AssistantServiceInput): AssistantDr
 	}
 
 	return {
-		content: ['Updated the Mermaid diagram draft:', '', '```mermaid', previous.content, '```'].join('\n'),
+		content: ['Updated the Mermaid diagram draft:', '', '```mermaid', previous.content, '```'].join(
+			'\n',
+		),
 		artifacts: [{ type: 'mermaid', content: previous.content }],
 	};
 }
 
-function buildD2Draft(message: string, contextMode: AssistantServiceInput['contextMode']): AssistantDraft {
+function buildD2Draft(
+	message: string,
+	contextMode: AssistantServiceInput['contextMode'],
+): AssistantDraft {
 	const title = sentenceCase(message);
 	const code = [
 		'title: "AI Canvas Diagram"',
@@ -2541,7 +2346,9 @@ function buildD2DraftFromHistory(input: AssistantServiceInput): AssistantDraft |
 }
 
 function buildKanbanColumnTitles(input: AssistantServiceInput): string[] {
-	const selectedKanban = input.contextSnapshot?.selectedContexts.find((context) => context.kind === 'kanban');
+	const selectedKanban = input.contextSnapshot?.selectedContexts.find(
+		(context) => context.kind === 'kanban',
+	);
 	if (selectedKanban && isCreateNewArtifactIntent(input.message)) {
 		const titles = selectedKanban.kanbanSummary.columns
 			.map((column) => column.title.trim())
@@ -2571,9 +2378,7 @@ function buildKanbanColumnTitles(input: AssistantServiceInput): string[] {
 		.join('\n')
 		.toLowerCase();
 
-	if (
-		/(backlog|to do|todo|in progress|doing|done|complete|completed|review)/.test(corpus)
-	) {
+	if (/(backlog|to do|todo|in progress|doing|done|complete|completed|review)/.test(corpus)) {
 		return ['To Do', 'In Progress', 'Done'];
 	}
 
@@ -2589,7 +2394,13 @@ function extractTaskCandidatesFromMarkdown(content: string): string[] {
 		.split('\n')
 		.map((line) => line.trim())
 		.filter(Boolean)
-		.map((line) => line.replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '').replace(/^#+\s+/, '').trim())
+		.map((line) =>
+			line
+				.replace(/^[-*+]\s+/, '')
+				.replace(/^\d+\.\s+/, '')
+				.replace(/^#+\s+/, '')
+				.trim(),
+		)
 		.filter((line) => line.length > 3)
 		.slice(0, 12);
 }
@@ -2641,7 +2452,8 @@ function buildKanbanCardSeeds(input: AssistantServiceInput): Array<{
 		if (label) {
 			seeds.push({
 				title: truncateLabel(label, 56),
-				description: context.textExcerpt && context.textExcerpt !== label ? context.textExcerpt : undefined,
+				description:
+					context.textExcerpt && context.textExcerpt !== label ? context.textExcerpt : undefined,
 			});
 		}
 	}
@@ -2662,7 +2474,10 @@ function buildKanbanCardSeeds(input: AssistantServiceInput): Array<{
 				description: 'Generated from the assistant request',
 				priority: /high|urgent|critical/i.test(input.message) ? 'high' : 'medium',
 			},
-			{ title: 'Clarify scope', description: 'Capture the concrete outcome this board should support.' },
+			{
+				title: 'Clarify scope',
+				description: 'Capture the concrete outcome this board should support.',
+			},
 			{ title: 'Define the next step', description: 'Turn the first obvious move into a card.' },
 		);
 	}
@@ -2720,9 +2535,7 @@ function buildPrototypeDraft(input: AssistantServiceInput): AssistantDraft {
 
 function buildChatDraft(input: AssistantServiceInput): AssistantDraft {
 	const contextSummary =
-		input.contextMode === 'none'
-			? null
-			: summarizeAssistantContextSnapshot(input.contextSnapshot);
+		input.contextMode === 'none' ? null : summarizeAssistantContextSnapshot(input.contextSnapshot);
 	return {
 		content: [
 			`Working in ${
@@ -2745,8 +2558,7 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 	switch (resolveGenerationMode(input)) {
 		case 'mermaid':
 			return (
-				buildMermaidDraftFromHistory(input) ??
-				buildMermaidDraft(input.message, input.contextMode)
+				buildMermaidDraftFromHistory(input) ?? buildMermaidDraft(input.message, input.contextMode)
 			);
 		case 'd2':
 			return buildD2DraftFromHistory(input) ?? buildD2Draft(input.message, input.contextMode);
@@ -2801,14 +2613,14 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 
 	const generationMode = resolveGenerationMode(input);
 	const contextSnapshotSummary =
-		input.contextMode === 'none'
-			? null
-			: summarizeAssistantContextSnapshot(input.contextSnapshot);
+		input.contextMode === 'none' ? null : summarizeAssistantContextSnapshot(input.contextSnapshot);
 	const systemPrompt = [
 		'You are AI Canvas, an assistant that prepares structured outputs for a canvas-based workspace.',
 		'Prefer concise, directly usable outputs.',
 		...(input.contextMode !== 'none'
-			? [`Current context mode: ${input.contextMode === 'selected' ? 'selected elements' : 'whole canvas'}.`]
+			? [
+					`Current context mode: ${input.contextMode === 'selected' ? 'selected elements' : 'whole canvas'}.`,
+				]
 			: []),
 		...(contextSnapshotSummary ? [contextSnapshotSummary] : []),
 	].join('\n');
@@ -2883,7 +2695,7 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 					},
 					null,
 					2,
-			  )
+				)
 			: undefined;
 		const completion = await createAnthropicMessage(input.bindings, {
 			system: systemPrompt,
@@ -2895,7 +2707,11 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 		});
 		const json = extractCodeBlock(completion.text, 'json') ?? completion.text.trim();
 		const prototype = parsePrototypeArtifactContent(json);
-		if (!prototype || isStarterPrototypeOutput(prototype) || !isFunctionalPrototypeOutput(prototype, input.message)) {
+		if (
+			!prototype ||
+			isStarterPrototypeOutput(prototype) ||
+			!isFunctionalPrototypeOutput(prototype, input.message)
+		) {
 			return null;
 		}
 		return {
@@ -2919,9 +2735,7 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 			].join('\n'),
 			messages: buildAnthropicConversation(
 				input,
-				previous
-					? buildSvgEditPrompt(input.message, previous)
-					: buildSvgPrompt(input.message),
+				previous ? buildSvgEditPrompt(input.message, previous) : buildSvgPrompt(input.message),
 			),
 			maxTokens: 3000,
 		});
@@ -2930,9 +2744,13 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 			return null;
 		}
 		return {
-			content: ['Prepared an SVG illustration draft for the canvas.', '', '```svg', svg, '```'].join(
-				'\n',
-			),
+			content: [
+				'Prepared an SVG illustration draft for the canvas.',
+				'',
+				'```svg',
+				svg,
+				'```',
+			].join('\n'),
 		};
 	}
 

@@ -1,5 +1,3 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type {
 	AssistantArtifact,
 	AssistantArtifactRecord,
@@ -18,8 +16,9 @@ import type {
 	AssistantThread,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import type { Database } from '../db/client';
-import { logApiEvent } from '../observability';
 import {
 	assistantArtifacts,
 	assistantRunEvents,
@@ -28,6 +27,7 @@ import {
 	assistantThreads,
 	canvases,
 } from '../db/schema';
+import { logApiEvent } from '../observability';
 
 export function summarizeAssistantThreadTitle(content: string): string {
 	const normalized = content.trim().replace(/\s+/g, ' ');
@@ -423,8 +423,12 @@ export async function createAssistantRunRecord(
 		contextMode: request.contextMode,
 		modeHint: request.modeHint,
 		requestHistoryJson: request.history ? JSON.stringify(request.history) : null,
-		selectedElementIdsJson: request.selectedElementIds ? JSON.stringify(request.selectedElementIds) : null,
-		prototypeContextJson: request.prototypeContext ? JSON.stringify(request.prototypeContext) : null,
+		selectedElementIdsJson: request.selectedElementIds
+			? JSON.stringify(request.selectedElementIds)
+			: null,
+		prototypeContextJson: request.prototypeContext
+			? JSON.stringify(request.prototypeContext)
+			: null,
 		contextSnapshotJson: request.contextSnapshot ? JSON.stringify(request.contextSnapshot) : null,
 		createdAt: now,
 		updatedAt: now,
@@ -434,9 +438,7 @@ export async function createAssistantRunRecord(
 		.update(assistantThreads)
 		.set({
 			title:
-				thread.title === 'New chat'
-					? summarizeAssistantThreadTitle(request.message)
-					: undefined,
+				thread.title === 'New chat' ? summarizeAssistantThreadTitle(request.message) : undefined,
 			updatedAt: now,
 		})
 		.where(and(eq(assistantThreads.id, request.threadId), eq(assistantThreads.userId, userId)));

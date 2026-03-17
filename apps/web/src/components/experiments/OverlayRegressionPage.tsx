@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '@excalidraw/excalidraw/index.css';
-import type { AppState } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { OverlayType } from '@ai-canvas/shared/types';
 import { CanvasCore } from '@/components/canvas/CanvasCore';
 import { CanvasNotesLayer } from '@/components/canvas/CanvasNotesLayer';
 import { createOverlayElementDraft } from '@/components/canvas/element-factories';
 import { collectOverlayElements } from '@/components/canvas/overlay-registry';
 import { useAppStore } from '@/stores/store';
+import type { OverlayType } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
 type OverlayReference = {
 	id: string;
@@ -52,8 +52,7 @@ function syncStoreFromApi(excalidrawApi: ExcalidrawImperativeAPI) {
 		...excalidrawApi.getAppState(),
 		selectedElementIds: { ...(excalidrawApi.getAppState().selectedElementIds ?? {}) },
 		zoom:
-			excalidrawApi.getAppState().zoom &&
-			typeof excalidrawApi.getAppState().zoom === 'object'
+			excalidrawApi.getAppState().zoom && typeof excalidrawApi.getAppState().zoom === 'object'
 				? { ...excalidrawApi.getAppState().zoom }
 				: excalidrawApi.getAppState().zoom,
 	});
@@ -75,43 +74,33 @@ function createSeedElement(
 }
 
 function buildSeedScene() {
-	const markdown = createSeedElement(
-		'markdown',
-		{ x: 420, y: 320 },
-		'regression-markdown',
-		{
-			title: 'Markdown',
-			content: '# Regression\n\nDrag me with confidence.',
-		},
-	);
-	const kanban = createSeedElement(
-		'kanban',
-		{ x: 1120, y: 470 },
-		'regression-kanban',
-		{
-			title: 'Kanban',
-			columns: [
-				{
-					id: 'todo',
-					title: 'Todo',
-					cards: [
-						{
-							id: 'card-1',
-							title: 'Lock drag',
-							description: 'Stay aligned.',
-							priority: 'medium',
-							checklist: [],
-						},
-					],
-				},
-				{
-					id: 'doing',
-					title: 'Doing',
-					cards: [],
-				},
-			],
-		},
-	);
+	const markdown = createSeedElement('markdown', { x: 420, y: 320 }, 'regression-markdown', {
+		title: 'Markdown',
+		content: '# Regression\n\nDrag me with confidence.',
+	});
+	const kanban = createSeedElement('kanban', { x: 1120, y: 470 }, 'regression-kanban', {
+		title: 'Kanban',
+		columns: [
+			{
+				id: 'todo',
+				title: 'Todo',
+				cards: [
+					{
+						id: 'card-1',
+						title: 'Lock drag',
+						description: 'Stay aligned.',
+						priority: 'medium',
+						checklist: [],
+					},
+				],
+			},
+			{
+				id: 'doing',
+				title: 'Doing',
+				cards: [],
+			},
+		],
+	});
 
 	return {
 		elements: [markdown, kanban],
@@ -449,8 +438,8 @@ export function OverlayRegressionPage() {
 					Overlay Regression
 				</div>
 				<div className="mt-1 max-w-xs leading-relaxed">
-					Dashed red frames are API-derived live references. The real overlay DOM should stay
-					locked to them while dragging and zooming.
+					Dashed red frames are API-derived live references. The real overlay DOM should stay locked
+					to them while dragging and zooming.
 				</div>
 				<div className="mt-2 flex items-center gap-2 text-[11px]">
 					<span data-testid="overlay-regression-api-state">

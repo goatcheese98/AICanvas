@@ -1,10 +1,10 @@
-import { type MouseEvent, useCallback, useRef } from 'react';
-import { useAppStore } from '@/stores/store';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { LexicalDebugPanel } from './LexicalDebugPanel';
-import { LexicalEditor } from './LexicalEditor';
+import { useAppStore } from '@/stores/store';
+import { type MouseEvent, useCallback, useRef } from 'react';
 import { LexicalCommentComposer } from './LexicalCommentComposer';
 import { LexicalCommentsPanel } from './LexicalCommentsPanel';
+import { LexicalDebugPanel } from './LexicalDebugPanel';
+import { LexicalEditor } from './LexicalEditor';
 import { LexicalNoteHeader } from './LexicalNoteHeader';
 import {
 	MIN_EXPANDED_EDITOR_WIDTH,

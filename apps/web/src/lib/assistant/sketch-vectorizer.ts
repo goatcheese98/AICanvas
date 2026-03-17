@@ -66,6 +66,9 @@ interface BoundaryEdge {
 interface PolygonElementCandidate {
 	area: number;
 	color: RGB;
+	label: number;
+	bbox: { minX: number; minY: number; maxX: number; maxY: number };
+	polygon: Point[];
 	skeleton: Record<string, unknown>;
 }
 
@@ -151,7 +154,7 @@ function computeImageSeed(data: Uint8ClampedArray): number {
 
 /** Simple xorshift32 PRNG returning values in [0, 1). */
 function makeSeededRandom(seed: number): () => number {
-	let s = (seed >>> 0) || 1;
+	let s = seed >>> 0 || 1;
 	return (): number => {
 		s ^= s << 13;
 		s ^= s >> 17;
@@ -192,7 +195,7 @@ function mergeSimilarColorClusters(
 	// (dark gray, near-black) represent visually distinct surface colors that
 	// should never be collapsed — only mid-range hues with subtle variation merge.
 	const MERGE_BRIGHT_CUTOFF = 185; // above this → protect from merging
-	const MERGE_DARK_CUTOFF = 55;   // below this → protect from merging
+	const MERGE_DARK_CUTOFF = 55; // below this → protect from merging
 	for (let i = 0; i < n; i += 1) {
 		const bi = brightness(centers[i]);
 		if (bi > MERGE_BRIGHT_CUTOFF || bi < MERGE_DARK_CUTOFF) continue;
@@ -266,11 +269,7 @@ function resolveControls(input?: Partial<SketchVectorControls>): SketchVectorCon
 	return {
 		style: input?.style ?? DEFAULT_CONTROLS.style,
 		complexity: input?.complexity ?? DEFAULT_CONTROLS.complexity,
-		colorPalette: clamp(
-			Math.round(input?.colorPalette ?? DEFAULT_CONTROLS.colorPalette),
-			2,
-			24,
-		),
+		colorPalette: clamp(Math.round(input?.colorPalette ?? DEFAULT_CONTROLS.colorPalette), 2, 24),
 		detailLevel: clamp(input?.detailLevel ?? DEFAULT_CONTROLS.detailLevel, 0.2, 1),
 		edgeSensitivity: clamp(
 			Math.round(input?.edgeSensitivity ?? DEFAULT_CONTROLS.edgeSensitivity),
@@ -332,11 +331,7 @@ function detectSubjectBounds(
 	return { minX, minY, maxX, maxY };
 }
 
-function sanitizeCheckerboardBackground(
-	data: Uint8ClampedArray,
-	width: number,
-	height: number,
-) {
+function sanitizeCheckerboardBackground(data: Uint8ClampedArray, width: number, height: number) {
 	const visited = new Uint8Array(width * height);
 	const queue = new Int32Array(width * height);
 
@@ -350,9 +345,7 @@ function sanitizeCheckerboardBackground(
 		}
 
 		const offset = pixel * 4;
-		if (
-			!isNearNeutralLight(data[offset], data[offset + 1], data[offset + 2])
-		) {
+		if (!isNearNeutralLight(data[offset], data[offset + 1], data[offset + 2])) {
 			return;
 		}
 
@@ -391,11 +384,7 @@ function sanitizeCheckerboardBackground(
 	}
 }
 
-function drawImageOnWhiteCanvas(
-	image: CanvasImageSource,
-	width: number,
-	height: number,
-) {
+function drawImageOnWhiteCanvas(image: CanvasImageSource, width: number, height: number) {
 	const canvas = document.createElement('canvas');
 	canvas.width = width;
 	canvas.height = height;
@@ -566,7 +555,12 @@ function nearestCenterIndex(color: RGB, centers: RGB[]) {
 	return bestIndex;
 }
 
-function runKMeans(samples: RGB[], requestedK: number, maxIterations = 18, rng: () => number = Math.random): RGB[] {
+function runKMeans(
+	samples: RGB[],
+	requestedK: number,
+	maxIterations = 18,
+	rng: () => number = Math.random,
+): RGB[] {
 	const clusterCount = clamp(requestedK, 2, samples.length);
 	let centers = initKMeansPlusPlus(samples, clusterCount, rng);
 
@@ -662,12 +656,11 @@ function applyBilateralFilter(
 					const g = data[offset + 1];
 					const b = data[offset + 2];
 					const colorDistance =
-						(r - centerR) * (r - centerR)
-						+ (g - centerG) * (g - centerG)
-						+ (b - centerB) * (b - centerB);
+						(r - centerR) * (r - centerR) +
+						(g - centerG) * (g - centerG) +
+						(b - centerB) * (b - centerB);
 					const colorWeight = Math.exp(-(colorDistance / twoSigmaColorSq));
-					const spatialWeight =
-						spatialKernel[(deltaY + radius) * diameter + (deltaX + radius)];
+					const spatialWeight = spatialKernel[(deltaY + radius) * diameter + (deltaX + radius)];
 					const weight = colorWeight * spatialWeight;
 					totalWeight += weight;
 					weightedR += r * weight;
@@ -677,10 +670,8 @@ function applyBilateralFilter(
 			}
 
 			output[centerOffset] = totalWeight <= 0 ? centerR : Math.round(weightedR / totalWeight);
-			output[centerOffset + 1] =
-				totalWeight <= 0 ? centerG : Math.round(weightedG / totalWeight);
-			output[centerOffset + 2] =
-				totalWeight <= 0 ? centerB : Math.round(weightedB / totalWeight);
+			output[centerOffset + 1] = totalWeight <= 0 ? centerG : Math.round(weightedG / totalWeight);
+			output[centerOffset + 2] = totalWeight <= 0 ? centerB : Math.round(weightedB / totalWeight);
 			output[centerOffset + 3] = 255;
 		}
 	}
@@ -688,12 +679,7 @@ function applyBilateralFilter(
 	return output;
 }
 
-function assignLabels(
-	data: Uint8ClampedArray,
-	width: number,
-	height: number,
-	centers: RGB[],
-) {
+function assignLabels(data: Uint8ClampedArray, width: number, height: number, centers: RGB[]) {
 	const totalPixels = width * height;
 	const labels = new Uint16Array(totalPixels);
 	const counts = new Uint32Array(centers.length);
@@ -761,12 +747,7 @@ function detectBackgroundLabels(centers: RGB[], counts: Uint32Array) {
 	};
 }
 
-function binaryMaskForLabel(
-	labels: Uint16Array,
-	width: number,
-	height: number,
-	label: number,
-) {
+function binaryMaskForLabel(labels: Uint16Array, width: number, height: number, label: number) {
 	const mask = new Uint8Array(width * height);
 	for (let index = 0; index < labels.length; index += 1) {
 		mask[index] = labels[index] === label ? 1 : 0;
@@ -829,12 +810,7 @@ function morphDilate(mask: Uint8Array, width: number, height: number, kernelSize
 				for (let offsetX = start; offsetX <= end; offsetX += 1) {
 					const sampleX = x + offsetX;
 					const sampleY = y + offsetY;
-					if (
-						sampleX < 0 ||
-						sampleY < 0 ||
-						sampleX >= width ||
-						sampleY >= height
-					) {
+					if (sampleX < 0 || sampleY < 0 || sampleX >= width || sampleY >= height) {
 						continue;
 					}
 					output[sampleY * width + sampleX] = 1;
@@ -921,12 +897,7 @@ function polygonArea(points: Point[]) {
 	return area / 2;
 }
 
-function buildBoundaryLoops(
-	component: Component,
-	mask: Uint8Array,
-	width: number,
-	height: number,
-) {
+function buildBoundaryLoops(component: Component, mask: Uint8Array, width: number, height: number) {
 	const edges: BoundaryEdge[] = [];
 
 	for (const pixel of component.pixels) {
@@ -1041,6 +1012,18 @@ function rdp(points: Point[], epsilon: number): Point[] {
 	return [points[0], points[lastIndex]];
 }
 
+function pointInPolygon(point: Point, polygon: Point[]) {
+	let isInside = false;
+	const [x, y] = point;
+	for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+		const [xi, yi] = polygon[i];
+		const [xj, yj] = polygon[j];
+		const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+		if (intersect) isInside = !isInside;
+	}
+	return isInside;
+}
+
 function simplifyClosedPolygon(points: Point[], epsilon: number) {
 	if (points.length < 4) {
 		return points;
@@ -1068,9 +1051,7 @@ function chaikinSmoothClosed(points: Point[], iterations = 1) {
 		return points;
 	}
 
-	let ring = pointEquals(points[0], points[points.length - 1])
-		? points.slice(0, -1)
-		: [...points];
+	let ring = pointEquals(points[0], points[points.length - 1]) ? points.slice(0, -1) : [...points];
 	if (ring.length < 3) {
 		return points;
 	}
@@ -1081,14 +1062,8 @@ function chaikinSmoothClosed(points: Point[], iterations = 1) {
 			const pointA = ring[index];
 			const pointB = ring[(index + 1) % ring.length];
 			next.push(
-				[
-					pointA[0] * 0.75 + pointB[0] * 0.25,
-					pointA[1] * 0.75 + pointB[1] * 0.25,
-				],
-				[
-					pointA[0] * 0.25 + pointB[0] * 0.75,
-					pointA[1] * 0.25 + pointB[1] * 0.75,
-				],
+				[pointA[0] * 0.75 + pointB[0] * 0.25, pointA[1] * 0.75 + pointB[1] * 0.25],
+				[pointA[0] * 0.25 + pointB[0] * 0.75, pointA[1] * 0.25 + pointB[1] * 0.75],
 			);
 		}
 		ring = next;
@@ -1103,7 +1078,6 @@ function chaikinSmoothClosed(points: Point[], iterations = 1) {
 	return ring;
 }
 
-
 function createPolygonSkeleton(
 	polygon: Point[],
 	color: RGB,
@@ -1112,6 +1086,7 @@ function createPolygonSkeleton(
 	customData: Record<string, unknown>,
 	groupId: string,
 	layerIndex: number,
+	label: number,
 	overrides?: {
 		strokeColor?: string;
 		backgroundColor?: string;
@@ -1140,27 +1115,31 @@ function createPolygonSkeleton(
 		return null;
 	}
 
-	const points = polygon.map(([x, y]) => [x - minX, y - minY] as Point);
-	if (!pointEquals(points[0], points[points.length - 1])) {
-		points.push(points[0]);
+	const originX = polygon[0][0];
+	const originY = polygon[0][1];
+	const normalizedPoints = polygon.map(([x, y]) => [x - originX, y - originY] as Point);
+	if (!pointEquals(normalizedPoints[0], normalizedPoints[normalizedPoints.length - 1])) {
+		normalizedPoints.push(normalizedPoints[0]);
 	}
 
 	const baseColor = rgbToHex(color);
 	return {
 		area,
 		color,
+		label,
+		bbox: { minX, minY, maxX, maxY },
+		polygon,
 		skeleton: {
 			type: 'line',
-			x: Math.round(minX * 100) / 100,
-			y: Math.round(minY * 100) / 100,
-			points,
+			x: Math.round(originX * 100) / 100,
+			y: Math.round(originY * 100) / 100,
+			points: normalizedPoints,
 			strokeColor: overrides?.strokeColor ?? '#050505',
 			backgroundColor: overrides?.backgroundColor ?? baseColor,
 			fillStyle: 'solid',
 			// Dark stroke centered on boundary — inward half hidden by fill, outward
 			// half overwritten by adjacent solid-fill polygons. Eliminates seam gaps.
-			strokeWidth:
-				overrides?.strokeWidth ?? clamp(controls.edgeSensitivity / 12, 1.8, 3.5),
+			strokeWidth: overrides?.strokeWidth ?? clamp(controls.edgeSensitivity / 12, 1.8, 3.5),
 			strokeStyle: 'solid',
 			roughness: overrides?.roughness ?? STYLE_ROUGHNESS[controls.style],
 			opacity: 100,
@@ -1170,10 +1149,7 @@ function createPolygonSkeleton(
 	};
 }
 
-async function runLayeredVectorization(
-	blob: Blob,
-	options?: SketchVectorizerOptions,
-) {
+async function runLayeredVectorization(blob: Blob, options?: SketchVectorizerOptions) {
 	const startedAt = performance.now();
 	const controls = resolveControls(options?.controls);
 	const decoded = await decodeImageData(blob, controls, options ?? {});
@@ -1224,31 +1200,33 @@ async function runLayeredVectorization(
 			continue;
 		}
 
-		// Dark clusters (frames, outlines) form thin structures — typically only
-		// 3-6px wide in the working image. morphOpen with kernel ≥ 3 erodes them
-		// away completely, splitting the frame into many disconnected islands that
-		// leave visible gaps. For these clusters we only close (fill tiny holes)
-		// and skip the open step. Light/medium clusters are large solid fills where
-		// the open step still helps remove K-means noise protrusions.
+		// Dark clusters (frames, outlines, eyes) form thin structures — skip
+		// morphClose to preserve gaps as narrow as 2px (e.g. the sclera gap that
+		// separates an eye pupil from the eyelid). Bridging that gap merges the
+		// pupil into the outline component, making the eye invisible. Light/medium
+		// clusters are solid fills where closing small holes and opening noise
+		// protrusions still helps.
 		const clusterBrightness =
 			0.299 * centers[label].r + 0.587 * centers[label].g + 0.114 * centers[label].b;
 		const isDarkCluster = clusterBrightness < 80;
-		const closedMask = morphClose(
-			binaryMaskForLabel(labels, decoded.width, decoded.height, label),
-			decoded.width,
-			decoded.height,
-			isDarkCluster ? 3 : 2,
-		);
-		const openedMask = isDarkCluster
-			? closedMask
-			: morphOpen(closedMask, decoded.width, decoded.height, kernelSize);
-		const components = extractComponents(openedMask, decoded.width, decoded.height);
+		const rawMask = binaryMaskForLabel(labels, decoded.width, decoded.height, label);
+		const processedMask = isDarkCluster
+			? rawMask
+			: morphOpen(
+					morphClose(rawMask, decoded.width, decoded.height, 2),
+					decoded.width,
+					decoded.height,
+					kernelSize,
+				);
+		const components = extractComponents(processedMask, decoded.width, decoded.height);
 		componentsFound += components.length;
 
-		// Keep all components above minArea — no per-cluster cap.
-		// The overall maxElements budget and 20-layer ceiling act as the safety valves.
+		// Dark clusters use a lower minArea so small details (eye pupils, small
+		// accent marks) are not filtered out. Light/medium clusters keep the
+		// standard threshold which removes K-means noise more aggressively.
+		const componentMinArea = isDarkCluster ? Math.max(4, Math.round(minArea * 0.35)) : minArea;
 		const eligible = components
-			.filter((c) => c.area >= minArea)
+			.filter((c) => c.area >= componentMinArea)
 			.sort((a, b) => b.area - a.area);
 		componentsFiltered += components.length - eligible.length;
 
@@ -1257,7 +1235,7 @@ async function runLayeredVectorization(
 		}
 
 		for (const component of eligible) {
-			const loops = buildBoundaryLoops(component, openedMask, decoded.width, decoded.height);
+			const loops = buildBoundaryLoops(component, processedMask, decoded.width, decoded.height);
 			if (loops.length === 0) {
 				continue;
 			}
@@ -1272,10 +1250,7 @@ async function runLayeredVectorization(
 				}
 			}
 
-			const smoothed = chaikinSmoothClosed(
-				chosenLoop,
-				controls.detailLevel >= 0.8 ? 1 : 0,
-			);
+			const smoothed = chaikinSmoothClosed(chosenLoop, controls.detailLevel >= 0.8 ? 1 : 0);
 			const simplified = simplifyClosedPolygon(smoothed, epsilon);
 			if (simplified.length < 4) {
 				continue;
@@ -1289,6 +1264,7 @@ async function runLayeredVectorization(
 				customData,
 				groupId,
 				label,
+				label,
 			);
 			if (candidate) {
 				fillCandidates.push(candidate);
@@ -1296,33 +1272,55 @@ async function runLayeredVectorization(
 		}
 	}
 
-	// Painter's algorithm: darker elements go first (bottom), lighter elements go
-	// last (top). This is the correct depth order for layered illustrations:
-	// - Dark frame / silhouette polygon covers the full object footprint → bottom
-	// - Medium fills (windows, shadows) in the middle
-	// - Light background fills (cream bus body, fur) rendered last → top
-	//
-	// The light element's polygon only covers its own K-means pixels, so it
-	// exposes the dark fill underneath wherever dark pixels exist (window frames,
-	// outlines). No ring-shape detection needed — the K-means boundaries do the
-	// clipping automatically.
-	//
-	// Within the same brightness band, larger area goes first so large-area
-	// fragments of a hue don't accidentally cover finer same-hue details.
-	const brightness = ({ color: c }: PolygonElementCandidate) =>
-		0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+	// --- Component-level spatial containment depth ---
+	// For each candidate polygon, count how many other candidates' bounding boxes
+	// fully contain its bounding box. A polygon with a higher containment score is
+	// more deeply nested spatially and must render LATER (on top) than its
+	// containers. This correctly handles:
+	//   - Dog eye pupil (small bbox) inside brown fur (medium) inside dark outline
+	//     (full-dog bbox) → pupil renders last, visible on top.
+	const containmentScore = new Map<PolygonElementCandidate, number>();
+	for (const candidate of fillCandidates) {
+		let score = 0;
+		const { minX, minY, maxX, maxY } = candidate.bbox;
+		for (const other of fillCandidates) {
+			if (other === candidate) continue;
+			// Use a generous margin so boundaries resting against edges are
+			// still registered as "contained" by their background plate.
+			const margin = 10;
+			if (
+				minX >= other.bbox.minX - margin &&
+				maxX <= other.bbox.maxX + margin &&
+				minY >= other.bbox.minY - margin &&
+				maxY <= other.bbox.maxY + margin
+			) {
+				score++;
+			}
+		}
+		containmentScore.set(candidate, score);
+	}
+
+	// Sort by: containment depth ascending (outer/background-adjacent first).
+	// If depth is tied, sort by bounding box area descending (macro elements like
+	// bodies first, micro details like eyes last). If bounding box area is similar,
+	// sort by brightness ascending (darker elements first so outlines underlie fills),
+	// then true area descending as tiebreaker.
 	fillCandidates.sort((left, right) => {
-		const bLeft = brightness(left);
-		const bRight = brightness(right);
-		if (Math.abs(bLeft - bRight) > 15) return bLeft - bRight; // darker first
-		return right.area - left.area; // same band: larger first
+		// 1. Tiebreaker: containment nesting logic
+		// Ascending: outer layers (score 0) draw before inner layers (score 1+)
+		const cLeft = containmentScore.get(left) ?? 0;
+		const cRight = containmentScore.get(right) ?? 0;
+		if (cLeft !== cRight) return cLeft - cRight;
+
+		// 2. Pixel Area fallback
+		// Descending: macro background fills (large) draw before micro details/outlines (small)
+		return right.area - left.area;
 	});
 
-	const maxElements =
-		options?.maxElements ?? MAX_ELEMENTS_BY_COMPLEXITY[controls.complexity];
+	const maxElements = options?.maxElements ?? MAX_ELEMENTS_BY_COMPLEXITY[controls.complexity];
 	const emittedSkeletons = fillCandidates
 		.slice(0, maxElements)
-		.map((candidate) => candidate.skeleton);
+		.map((candidate) => ({ ...candidate.skeleton }));
 
 	if (emittedSkeletons.length === 0) {
 		throw new Error('No vectorizable regions were detected in this image.');

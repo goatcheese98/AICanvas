@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
 import { FONT_FAMILY } from '@excalidraw/excalidraw';
+import type { CSSProperties } from 'react';
 
 type FillStyle = 'solid' | 'hachure' | 'cross-hatch';
 type StrokeStyle = 'solid' | 'dashed' | 'dotted';
@@ -32,15 +32,15 @@ function parseHex(hex: string): { r: number; g: number; b: number } | null {
 	const normalized = hex.trim();
 	if (!normalized.startsWith('#')) return null;
 	if (normalized.length === 4) {
-		const r = parseInt(normalized[1] + normalized[1], 16);
-		const g = parseInt(normalized[2] + normalized[2], 16);
-		const b = parseInt(normalized[3] + normalized[3], 16);
+		const r = Number.parseInt(normalized[1] + normalized[1], 16);
+		const g = Number.parseInt(normalized[2] + normalized[2], 16);
+		const b = Number.parseInt(normalized[3] + normalized[3], 16);
 		return { r, g, b };
 	}
 	if (normalized.length === 7) {
-		const r = parseInt(normalized.slice(1, 3), 16);
-		const g = parseInt(normalized.slice(3, 5), 16);
-		const b = parseInt(normalized.slice(5, 7), 16);
+		const r = Number.parseInt(normalized.slice(1, 3), 16);
+		const g = Number.parseInt(normalized.slice(3, 5), 16);
+		const b = Number.parseInt(normalized.slice(5, 7), 16);
 		return { r, g, b };
 	}
 	return null;

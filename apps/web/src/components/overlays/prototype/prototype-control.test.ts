@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
+import { describe, expect, it } from 'vitest';
 import {
 	applyPrototypeStudioCommand,
 	applyPrototypeStudioCommands,
@@ -12,7 +12,7 @@ describe('prototype-control', () => {
 		const updated = applyPrototypeStudioCommand(initial, {
 			type: 'write_file',
 			path: '/App.jsx',
-			code: "export default function App() { return <div>Updated</div>; }",
+			code: 'export default function App() { return <div>Updated</div>; }',
 		});
 
 		expect(updated.files['/App.jsx']?.code).toContain('Updated');
@@ -45,7 +45,10 @@ describe('prototype-control', () => {
 		const updated = applyPrototypeStudioCommand(
 			normalizePrototypeOverlay({
 				files: {
-					'/App.js': { code: "export default function App() { return <div>Hi</div>; }", active: true },
+					'/App.js': {
+						code: 'export default function App() { return <div>Hi</div>; }',
+						active: true,
+					},
 					'/index.html': { code: '<div id="root"></div>', hidden: true },
 					'/package.json': { code: '{"name":"legacy"}', hidden: true },
 				},

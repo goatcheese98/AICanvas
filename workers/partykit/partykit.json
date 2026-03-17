@@ -1,5 +1,5 @@
 {
-  "name": "ai-canvas-collab",
-  "main": "collab.ts",
-  "compatibilityDate": "2024-12-18"
+	"name": "ai-canvas-collab",
+	"main": "collab.ts",
+	"compatibilityDate": "2024-12-18"
 }

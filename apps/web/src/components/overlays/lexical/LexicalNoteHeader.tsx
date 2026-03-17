@@ -39,9 +39,7 @@ export function LexicalNoteHeader({
 		isEditing &&
 		isSelected &&
 		elementWidth <
-			(commentsPanelOpen
-				? MIN_EXPANDED_EDITOR_WITH_COMMENTS_WIDTH
-				: MIN_EXPANDED_EDITOR_WIDTH);
+			(commentsPanelOpen ? MIN_EXPANDED_EDITOR_WITH_COMMENTS_WIDTH : MIN_EXPANDED_EDITOR_WIDTH);
 	const shouldShowCommentsToggle = commentsPanelOpen || commentCount > 0;
 
 	return (

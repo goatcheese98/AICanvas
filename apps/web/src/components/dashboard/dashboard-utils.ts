@@ -1,5 +1,5 @@
-import type { Canvas } from '@ai-canvas/shared/types';
 import { getCanvasTitleKey } from '@ai-canvas/shared/schemas';
+import type { Canvas } from '@ai-canvas/shared/types';
 
 export type DashboardSortOption = 'recent' | 'alphabetical' | 'favorites';
 

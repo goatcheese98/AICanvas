@@ -1,10 +1,6 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type {
-	AppState,
-	BinaryFiles,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
 import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
 export type ExcalidrawSceneUpdate = {
 	elements?: readonly ExcalidrawElement[];
@@ -26,10 +22,7 @@ export function cloneExcalidrawAppState<T extends Partial<AppState>>(appState: T
 	return {
 		...appState,
 		selectedElementIds: { ...(appState.selectedElementIds ?? {}) },
-		zoom:
-			appState.zoom && typeof appState.zoom === 'object'
-				? { ...appState.zoom }
-				: appState.zoom,
+		zoom: appState.zoom && typeof appState.zoom === 'object' ? { ...appState.zoom } : appState.zoom,
 	} as T;
 }
 
@@ -38,16 +31,11 @@ export function cloneExcalidrawFiles(files: BinaryFiles): BinaryFiles {
 }
 
 export function syncAppStoreFromExcalidraw(
-	excalidrawApi: Pick<
-		ExcalidrawImperativeAPI,
-		'getSceneElements' | 'getAppState' | 'getFiles'
-	>,
+	excalidrawApi: Pick<ExcalidrawImperativeAPI, 'getSceneElements' | 'getAppState' | 'getFiles'>,
 ) {
 	const snapshot = {
 		elements: cloneExcalidrawElements(excalidrawApi.getSceneElements()),
-		appState: cloneExcalidrawAppState(
-			excalidrawApi.getAppState() as Partial<AppState>,
-		),
+		appState: cloneExcalidrawAppState(excalidrawApi.getAppState() as Partial<AppState>),
 		files: cloneExcalidrawFiles(excalidrawApi.getFiles()),
 	};
 	const { setElements, setAppState, setFiles } = useAppStore.getState();
@@ -66,8 +54,6 @@ export function updateSceneAndSyncAppStore(
 	>,
 	scene: ExcalidrawSceneUpdate,
 ) {
-	excalidrawApi.updateScene(
-		scene as Parameters<ExcalidrawImperativeAPI['updateScene']>[0],
-	);
+	excalidrawApi.updateScene(scene as Parameters<ExcalidrawImperativeAPI['updateScene']>[0]);
 	return syncAppStoreFromExcalidraw(excalidrawApi);
 }

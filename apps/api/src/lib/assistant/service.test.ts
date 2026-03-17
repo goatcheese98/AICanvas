@@ -23,7 +23,8 @@ describe('assistant service', () => {
 
 	it('returns reversible markdown patch artifacts for selected markdown edit requests', async () => {
 		const result = await generateAssistantResponse({
-			message: 'I unfortunately do not have beef chuck or brisket. Can you adjust the list accordingly?',
+			message:
+				'I unfortunately do not have beef chuck or brisket. Can you adjust the list accordingly?',
 			contextMode: 'selected',
 			contextSnapshot: {
 				canvasId: 'canvas-1',
@@ -131,18 +132,19 @@ describe('assistant service', () => {
 	});
 
 	it('uses Anthropic to rewrite selected markdown when a valid full document is returned', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: ['```markdown', '## Toppings', '', '- [ ] Jalapenos', '```'].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: ['```markdown', '## Toppings', '', '- [ ] Jalapenos', '```'].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -174,7 +176,15 @@ describe('assistant service', () => {
 						markdown: {
 							type: 'markdown',
 							title: 'Notes',
-							content: ['## Protein', '', '- [ ] Chicken thighs', '', '## Toppings', '', '- [ ] Jalapenos'].join('\n'),
+							content: [
+								'## Protein',
+								'',
+								'- [ ] Chicken thighs',
+								'',
+								'## Toppings',
+								'',
+								'- [ ] Jalapenos',
+							].join('\n'),
 						},
 					},
 				],
@@ -188,24 +198,31 @@ describe('assistant service', () => {
 			},
 		});
 
-		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as { next: { content: string } };
+		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
+			next: { content: string };
+		};
 		expect(patch.next.content).toBe('## Toppings\n\n- [ ] Jalapenos');
 		expect(result.message.artifacts?.[0]?.content).toContain('Rewrites the selected markdown note');
 	});
 
 	it('falls back from Anthropic markdown rewrite when the model parrots the prompt', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: ['```markdown', '- Great. Can you actually remove the protein section from the grocery list?', '```'].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```markdown',
+									'- Great. Can you actually remove the protein section from the grocery list?',
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -237,7 +254,15 @@ describe('assistant service', () => {
 						markdown: {
 							type: 'markdown',
 							title: 'Notes',
-							content: ['## Protein', '', '- [ ] Chicken thighs', '', '## Toppings', '', '- [ ] Jalapenos'].join('\n'),
+							content: [
+								'## Protein',
+								'',
+								'- [ ] Chicken thighs',
+								'',
+								'## Toppings',
+								'',
+								'- [ ] Jalapenos',
+							].join('\n'),
 						},
 					},
 				],
@@ -251,7 +276,9 @@ describe('assistant service', () => {
 			},
 		});
 
-		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as { next: { content: string } };
+		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
+			next: { content: string };
+		};
 		expect(patch.next.content).toContain('## Toppings');
 		expect(patch.next.content).not.toContain('Great. Can you actually remove');
 	});
@@ -484,7 +511,8 @@ describe('assistant service', () => {
 									r2Key: 'assistant-assets/run-1/pelican.png',
 									mimeType: 'image/png',
 									provider: 'cloudflare',
-									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+									prompt:
+										'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
 								}),
 							},
 						],
@@ -512,7 +540,8 @@ describe('assistant service', () => {
 									r2Key: 'assistant-assets/run-1/pelican.png',
 									mimeType: 'image/png',
 									provider: 'cloudflare',
-									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+									prompt:
+										'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
 								}),
 							},
 						],
@@ -532,7 +561,13 @@ describe('assistant service', () => {
 					{
 						id: 'assistant-svg-1',
 						role: 'assistant',
-						content: ['Prepared an SVG illustration draft.', '', '```svg', '<svg></svg>', '```'].join('\n'),
+						content: [
+							'Prepared an SVG illustration draft.',
+							'',
+							'```svg',
+							'<svg></svg>',
+							'```',
+						].join('\n'),
 						generationMode: 'svg',
 						createdAt: new Date().toISOString(),
 					},
@@ -542,18 +577,19 @@ describe('assistant service', () => {
 	});
 
 	it('builds diagram edit prompts from the previous diagram source', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: '```d2\na -> c\n```',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: '```d2\na -> c\n```',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -582,7 +618,9 @@ describe('assistant service', () => {
 		expect(result.message.generationMode).toBe('d2');
 		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'd2', content: 'a -> c' });
 
-		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as RequestInit | undefined;
+		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as
+			| RequestInit
+			| undefined;
 		const body = JSON.parse(String(init?.body));
 		expect(body.messages.at(-1)?.content).toContain('Current D2 source:');
 		expect(body.messages.at(-1)?.content).toContain('The app renders D2 directly.');
@@ -590,18 +628,19 @@ describe('assistant service', () => {
 	});
 
 	it('uses Anthropic for chat mode when bindings are configured', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: 'This is an Anthropic-generated response.',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: 'This is an Anthropic-generated response.',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -623,18 +662,19 @@ describe('assistant service', () => {
 	});
 
 	it('passes recent conversation history to Anthropic', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: 'Follow-up response.',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: 'Follow-up response.',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -665,7 +705,9 @@ describe('assistant service', () => {
 			},
 		});
 
-		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as RequestInit | undefined;
+		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as
+			| RequestInit
+			| undefined;
 		expect(JSON.parse(String(init?.body))).toMatchObject({
 			messages: [
 				{ role: 'user', content: 'Draft a resume summary' },
@@ -676,37 +718,41 @@ describe('assistant service', () => {
 	});
 
 	it('falls back to a functional app when Anthropic returns a marketing prototype for an app request', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: [
-								'```json',
-								JSON.stringify(
-									{
-										title: 'A Calculator Website',
-										template: 'react',
-										activeFile: '/App.jsx',
-										files: {
-											'/App.jsx': {
-												code: "export default function App() { return <main><button>Start Free</button><button>See the tour</button></main>; }",
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'A Calculator Website',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/App.jsx': {
+													code: 'export default function App() { return <main><button>Start Free</button><button>See the tour</button></main>; }',
+												},
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/styles.css': { code: 'main { padding: 24px; }' },
 											},
-											'/index.jsx': { code: "import { createRoot } from 'react-dom/client';", hidden: true },
-											'/styles.css': { code: 'main { padding: 24px; }' },
 										},
-									},
-									null,
-									2,
-								),
-								'```',
-							].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 

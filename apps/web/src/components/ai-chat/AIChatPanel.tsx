@@ -1,21 +1,21 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
-import { buildSelectionIndicator } from './selection-context';
-import { CHAT_INPUT_MAX_HEIGHT } from './ai-chat-constants';
-import { extractSvgFromMessageContent, getLatestPendingPatchArtifacts } from './ai-chat-helpers';
-import { MessageCard, SelectionConfirmationCard } from './AIChatArtifacts';
-import { AIChatSidebar } from './AIChatSidebar';
-import { AIChatHeader } from './AIChatHeader';
-import { AIChatRunStatus } from './AIChatRunStatus';
-import { AIChatComposer } from './AIChatComposer';
-import { useAIChatThreads } from './useAIChatThreads';
-import { useAIChatCanvasActions } from './useAIChatCanvasActions';
-import { useAIChatRunController } from './useAIChatRunController';
-import { outputStyleToModeHint, type AssistantOutputStyle } from './output-style';
+import { fetchAssistantCapabilities, getRequiredAuthHeaders } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
-import { fetchAssistantCapabilities, getRequiredAuthHeaders } from '@/lib/api';
+import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { MessageCard, SelectionConfirmationCard } from './AIChatArtifacts';
+import { AIChatComposer } from './AIChatComposer';
+import { AIChatHeader } from './AIChatHeader';
+import { AIChatRunStatus } from './AIChatRunStatus';
+import { AIChatSidebar } from './AIChatSidebar';
+import { CHAT_INPUT_MAX_HEIGHT } from './ai-chat-constants';
+import { extractSvgFromMessageContent, getLatestPendingPatchArtifacts } from './ai-chat-helpers';
+import { type AssistantOutputStyle, outputStyleToModeHint } from './output-style';
+import { buildSelectionIndicator } from './selection-context';
+import { useAIChatCanvasActions } from './useAIChatCanvasActions';
+import { useAIChatRunController } from './useAIChatRunController';
+import { useAIChatThreads } from './useAIChatThreads';
 
 export function AIChatPanel({ canvasId }: { canvasId: string }) {
 	const { getToken, isSignedIn } = useAuth();
@@ -360,33 +360,29 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 									onReapplyPatch={(artifactKey, artifact, options) =>
 										canvasActions.applyAssistantPatch(artifactKey, artifact, 'reapply', options)
 									}
-										headerAccessory={
-											shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
-												<AIChatRunStatus
-													runProgress={runProgress}
-													isExpanded={isRunProgressExpanded}
-													onToggleExpanded={() =>
-														setIsRunProgressExpanded((current) => !current)
-													}
-													variant="inline-trigger"
-												/>
-											) : undefined
-										}
-										headerDetails={
-											shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
-												<AIChatRunStatus
-													runProgress={runProgress}
-													isExpanded={isRunProgressExpanded}
-													onToggleExpanded={() =>
-														setIsRunProgressExpanded((current) => !current)
-													}
-													variant="inline-panel"
-												/>
-											) : undefined
-										}
-									/>
-								))
-							)}
+									headerAccessory={
+										shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
+											<AIChatRunStatus
+												runProgress={runProgress}
+												isExpanded={isRunProgressExpanded}
+												onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
+												variant="inline-trigger"
+											/>
+										) : undefined
+									}
+									headerDetails={
+										shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
+											<AIChatRunStatus
+												runProgress={runProgress}
+												isExpanded={isRunProgressExpanded}
+												onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
+												variant="inline-panel"
+											/>
+										) : undefined
+									}
+								/>
+							))
+						)}
 
 						{pendingSelectionConfirmation && selectionIndicator ? (
 							<SelectionConfirmationCard

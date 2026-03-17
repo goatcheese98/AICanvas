@@ -1,5 +1,5 @@
-import { Suspense, lazy } from 'react';
 import { Outlet, createFileRoute, useRouterState } from '@tanstack/react-router';
+import { Suspense, lazy } from 'react';
 
 const CanvasContainer = lazy(() =>
 	import('@/components/canvas/CanvasContainer').then((module) => ({

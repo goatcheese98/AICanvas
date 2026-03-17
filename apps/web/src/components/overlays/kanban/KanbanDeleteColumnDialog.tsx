@@ -44,7 +44,12 @@ export function KanbanDeleteColumnDialog({
 					{cardCount === 1 ? '' : 's'}.
 				</div>
 				<div className="mt-5 flex justify-end gap-2">
-					<button type="button" onClick={onCancel} className={KANBAN_BUTTON} style={getKanbanPanelStyle()}>
+					<button
+						type="button"
+						onClick={onCancel}
+						className={KANBAN_BUTTON}
+						style={getKanbanPanelStyle()}
+					>
 						Cancel
 					</button>
 					<button

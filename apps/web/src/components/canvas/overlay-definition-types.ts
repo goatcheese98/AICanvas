@@ -1,4 +1,3 @@
-import type { ReactElement } from 'react';
 import type {
 	KanbanOverlayCustomData,
 	MarkdownOverlayCustomData,
@@ -8,9 +7,11 @@ import type {
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { ReactElement } from 'react';
 
-export type TypedOverlayCanvasElement<T extends OverlayCustomDataMap[OverlayType] = OverlayCustomDataMap[OverlayType]> =
-	ExcalidrawElement & { customData: T };
+export type TypedOverlayCanvasElement<
+	T extends OverlayCustomDataMap[OverlayType] = OverlayCustomDataMap[OverlayType],
+> = ExcalidrawElement & { customData: T };
 
 export type OverlayCustomDataMap = {
 	markdown: MarkdownOverlayCustomData;

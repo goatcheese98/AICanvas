@@ -10,14 +10,11 @@ import {
 
 describe('markdown-parser', () => {
 	it('parses markdown into semantic blocks', () => {
-		const blocks = parseMarkdownBlocks('# Title\n\n- one\n- two\n\n| A | B |\n| - | - |\n| 1 | 2 |');
+		const blocks = parseMarkdownBlocks(
+			'# Title\n\n- one\n- two\n\n| A | B |\n| - | - |\n| 1 | 2 |',
+		);
 
-		expect(blocks.map((block) => block.type)).toEqual([
-			'heading',
-			'empty',
-			'list',
-			'table',
-		]);
+		expect(blocks.map((block) => block.type)).toEqual(['heading', 'empty', 'list', 'table']);
 	});
 
 	it('reconstructs markdown without losing order', () => {

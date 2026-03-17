@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import { LandingPage } from './LandingPage';
 
 afterEach(() => {
@@ -30,13 +30,21 @@ describe('LandingPage', () => {
 
 		const navigation = screen.getByRole('navigation', { name: /landing/i });
 
-		expect(screen.getByRole('link', { name: /join waitlist/i }).getAttribute('href')).toBe('#waitlist');
-		expect(screen.getAllByRole('link', { name: /^sign in$/i })[0]?.getAttribute('href')).toBe('/login');
-		expect(within(navigation).getByRole('link', { name: /canvas story/i }).getAttribute('href')).toBe(
-			'#capture',
-		);
-		expect(within(navigation).getByRole('link', { name: /^waitlist$/i }).getAttribute('href')).toBe(
+		expect(screen.getByRole('link', { name: /join waitlist/i }).getAttribute('href')).toBe(
 			'#waitlist',
 		);
+		expect(screen.getAllByRole('link', { name: /^sign in$/i })[0]?.getAttribute('href')).toBe(
+			'/login',
+		);
+		expect(
+			within(navigation)
+				.getByRole('link', { name: /canvas story/i })
+				.getAttribute('href'),
+		).toBe('#capture');
+		expect(
+			within(navigation)
+				.getByRole('link', { name: /^waitlist$/i })
+				.getAttribute('href'),
+		).toBe('#waitlist');
 	});
 });

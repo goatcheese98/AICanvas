@@ -1,17 +1,17 @@
 {
-  "name": "@ai-canvas/partykit",
-  "version": "0.0.1",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "npx partykit dev",
-    "deploy": "npx partykit deploy"
-  },
-  "dependencies": {
-    "partykit": "^0.0.115",
-    "partysocket": "^1.1.16"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.3"
-  }
+	"name": "@ai-canvas/partykit",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "npx partykit dev",
+		"deploy": "npx partykit deploy"
+	},
+	"dependencies": {
+		"partykit": "^0.0.115",
+		"partysocket": "^1.1.16"
+	},
+	"devDependencies": {
+		"typescript": "^5.9.3"
+	}
 }

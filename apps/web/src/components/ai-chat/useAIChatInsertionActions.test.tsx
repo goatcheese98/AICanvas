@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { act, renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import { fetchAssistantArtifactAsset } from '@/lib/api';
+import type { AssistantArtifact } from '@ai-canvas/shared/types';
+import { act, renderHook } from '@testing-library/react';
+import { useState } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AssistantInsertionState } from './ai-chat-types';
 
 vi.mock('@/lib/api', () => ({

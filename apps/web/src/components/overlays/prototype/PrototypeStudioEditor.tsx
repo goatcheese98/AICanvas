@@ -1,17 +1,19 @@
-import { useEffect, useMemo, useState } from 'react';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import { useEffect, useMemo, useState } from 'react';
 import { PrototypeCodeEditor } from './PrototypeCodeEditor';
-import {
-	applyPrototypeStudioCommand,
-	listPrototypeFiles,
-} from './prototype-control';
+import { applyPrototypeStudioCommand, listPrototypeFiles } from './prototype-control';
 import { usePrototypePreview } from './prototype-preview-runtime';
 import { serializePrototypeState } from './prototype-utils';
 
 function getFileLabel(path: string) {
 	if (path.endsWith('.css')) return '#';
-	if (path.endsWith('.js') || path.endsWith('.jsx') || path.endsWith('.ts') || path.endsWith('.tsx')) {
+	if (
+		path.endsWith('.js') ||
+		path.endsWith('.jsx') ||
+		path.endsWith('.ts') ||
+		path.endsWith('.tsx')
+	) {
 		return '<>';
 	}
 	if (path.endsWith('.json')) return '{}';
@@ -41,7 +43,9 @@ function PreviewStatusBadge({
 				: 'border-stone-200 bg-stone-50 text-stone-600';
 
 	return (
-		<div className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${tone}`}>
+		<div
+			className={`rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${tone}`}
+		>
 			{label}
 		</div>
 	);
@@ -52,12 +56,12 @@ interface PrototypeStudioEditorProps {
 	onChange: (nextValue: PrototypeOverlayCustomData) => void;
 }
 
-export function PrototypeStudioEditor({
-	value,
-	onChange,
-}: PrototypeStudioEditorProps) {
+export function PrototypeStudioEditor({ value, onChange }: PrototypeStudioEditorProps) {
 	const normalizedValue = useMemo(() => normalizePrototypeOverlay(value), [value]);
-	const normalizedSignature = useMemo(() => serializePrototypeState(normalizedValue), [normalizedValue]);
+	const normalizedSignature = useMemo(
+		() => serializePrototypeState(normalizedValue),
+		[normalizedValue],
+	);
 	const [draft, setDraft] = useState<PrototypeOverlayCustomData>(normalizedValue);
 	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
 
@@ -70,7 +74,9 @@ export function PrototypeStudioEditor({
 	}, [draftSignature, normalizedSignature, normalizedValue]);
 
 	const visibleFiles = useMemo(() => listPrototypeFiles(draft), [draft]);
-	const activeFilePath = visibleFiles.includes(draft.activeFile ?? '') ? draft.activeFile ?? visibleFiles[0] : visibleFiles[0];
+	const activeFilePath = visibleFiles.includes(draft.activeFile ?? '')
+		? (draft.activeFile ?? visibleFiles[0])
+		: visibleFiles[0];
 	const activeFile = activeFilePath ? draft.files[activeFilePath] : undefined;
 	const preview = usePrototypePreview(draft);
 
@@ -226,7 +232,9 @@ export function PrototypeStudioEditor({
 													</div>
 												) : null}
 											</div>
-											<div className="mt-1 text-sm leading-5 text-stone-700">{diagnostic.message}</div>
+											<div className="mt-1 text-sm leading-5 text-stone-700">
+												{diagnostic.message}
+											</div>
 										</div>
 									))}
 								</div>

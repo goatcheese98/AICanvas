@@ -1,5 +1,5 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { KanbanCard, KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 
 export type KanbanElement = ExcalidrawElement & {
 	customData: KanbanOverlayCustomData;

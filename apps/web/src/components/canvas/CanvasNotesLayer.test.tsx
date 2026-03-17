@@ -1,7 +1,7 @@
+import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useAppStore } from '@/stores/store';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
 
 describe('CanvasNotesLayer', () => {
@@ -44,7 +44,9 @@ describe('CanvasNotesLayer', () => {
 		});
 
 		const { container, rerender } = render(<CanvasNotesLayer />);
-		const initialContainer = container.querySelector('[style*="left: 100px;"][style*="top: 120px;"]');
+		const initialContainer = container.querySelector(
+			'[style*="left: 100px;"][style*="top: 120px;"]',
+		);
 
 		expect(initialContainer).toBeTruthy();
 
@@ -87,7 +89,9 @@ describe('CanvasNotesLayer', () => {
 		});
 
 		const { container, rerender } = render(<CanvasNotesLayer />);
-		const initialContainer = container.querySelector('[style*="left: 220px;"][style*="top: 150px;"]');
+		const initialContainer = container.querySelector(
+			'[style*="left: 220px;"][style*="top: 150px;"]',
+		);
 
 		expect(initialContainer).toBeTruthy();
 

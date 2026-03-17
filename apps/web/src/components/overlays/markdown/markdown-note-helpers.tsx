@@ -1,15 +1,15 @@
-import type { ReactNode } from 'react';
-import {
-	DEFAULT_MARKDOWN_NOTE_SETTINGS,
-	MARKDOWN_SYSTEM_FONT_STACK,
-	normalizeMarkdownOverlay,
-} from '@ai-canvas/shared/schemas';
-import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
 	EXCALIDRAW_FONT_OPTIONS,
 	getExcalidrawFontFamily,
 } from '@/components/canvas/excalidraw-element-style';
+import {
+	DEFAULT_MARKDOWN_NOTE_SETTINGS,
+	MARKDOWN_SYSTEM_FONT_STACK,
+	type normalizeMarkdownOverlay,
+} from '@ai-canvas/shared/schemas';
+import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { ReactNode } from 'react';
 
 export type MarkdownViewMode = MarkdownEditorMode | 'preview';
 export type UtilityPanel = 'none' | 'style' | 'image';
@@ -149,7 +149,14 @@ export function getRoundnessOptionId(roundness: ExcalidrawElement['roundness'] |
 export function renderModeIcon(icon: (typeof MODE_OPTIONS)[number]['icon']): ReactNode {
 	if (icon === 'raw') {
 		return (
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+			<svg
+				width="13"
+				height="13"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+			>
 				<path d="m18 16 4-4-4-4" />
 				<path d="m6 8-4 4 4 4" />
 				<path d="m14.5 4-5 16" />
@@ -158,7 +165,14 @@ export function renderModeIcon(icon: (typeof MODE_OPTIONS)[number]['icon']): Rea
 	}
 	if (icon === 'hybrid') {
 		return (
-			<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+			<svg
+				width="13"
+				height="13"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				strokeWidth="2"
+			>
 				<rect x="3" y="4" width="7" height="7" rx="1.5" />
 				<rect x="14" y="4" width="7" height="7" rx="1.5" />
 				<rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -167,7 +181,14 @@ export function renderModeIcon(icon: (typeof MODE_OPTIONS)[number]['icon']): Rea
 		);
 	}
 	return (
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+		<svg
+			width="13"
+			height="13"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+		>
 			<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
 			<circle cx="12" cy="12" r="3" />
 		</svg>

@@ -1,22 +1,22 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
 import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { parseSvgDimensions } from './diagram-renderer';
 import {
+	IDENTITY_MATRIX,
+	type SvgMatrix,
+	type SvgPathContour,
+	type SvgPoint,
 	createEllipsePoints,
 	createRectanglePoints,
 	distributePoints,
 	getPointBounds,
-	IDENTITY_MATRIX,
 	multiplySvgMatrices,
 	parseSvgPathContours,
 	parseSvgPoints,
 	parseSvgTransform,
 	simplifyPoints,
 	transformPointCloud,
-	type SvgMatrix,
-	type SvgPathContour,
-	type SvgPoint,
 } from './svg-path-utils';
 
 interface CompiledSvgStyle {
@@ -94,11 +94,7 @@ function parseStyleAttribute(style: string | null) {
 	return result;
 }
 
-function readStyleValue(
-	element: Element,
-	inlineStyle: Record<string, string>,
-	property: string,
-) {
+function readStyleValue(element: Element, inlineStyle: Record<string, string>, property: string) {
 	const direct = element.getAttribute(property);
 	if (typeof direct === 'string' && direct.length > 0) {
 		return direct;
@@ -138,10 +134,7 @@ function resolveElementStyle(element: Element, parent: CompiledSvgStyle): Compil
 		normalizeNumber(readStyleValue(element, inlineStyle, 'fill-opacity'), parent.fillOpacity),
 	);
 	const strokeOpacity = clampOpacity(
-		normalizeNumber(
-			readStyleValue(element, inlineStyle, 'stroke-opacity'),
-			parent.strokeOpacity,
-		),
+		normalizeNumber(readStyleValue(element, inlineStyle, 'stroke-opacity'), parent.strokeOpacity),
 	);
 
 	return {
@@ -196,17 +189,16 @@ function convexHull(points: SvgPoint[]): SvgPoint[] {
 		}
 	}
 	const pivot = points[lo];
-	const rest = points.filter((_, i) => i !== lo).sort((a, b) => {
-		// Sort CCW by polar angle, break ties by distance (keep farthest)
-		const cross =
-			(a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
-		if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
-		return (
-			(a.x - pivot.x) ** 2 +
-			(a.y - pivot.y) ** 2 -
-			((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
-		);
-	});
+	const rest = points
+		.filter((_, i) => i !== lo)
+		.sort((a, b) => {
+			// Sort CCW by polar angle, break ties by distance (keep farthest)
+			const cross = (a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
+			if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
+			return (
+				(a.x - pivot.x) ** 2 + (a.y - pivot.y) ** 2 - ((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
+			);
+		});
 	const hull: SvgPoint[] = [pivot];
 	for (const p of rest) {
 		while (hull.length >= 2) {
@@ -269,9 +261,8 @@ function createLineSkeleton(
 		return null;
 	}
 
-	const normalizedPoints = closed && finalPoints.length > 2
-		? [...finalPoints.slice(0, -1), finalPoints[0]]
-		: finalPoints;
+	const normalizedPoints =
+		closed && finalPoints.length > 2 ? [...finalPoints.slice(0, -1), finalPoints[0]] : finalPoints;
 	const bounds = getPointBounds(normalizedPoints);
 
 	// Discard degenerate thin shapes that Rough.js cannot render as a meaningful fill.
@@ -307,7 +298,9 @@ function createLineSkeleton(
 		roughness: inferRoughness(style),
 		opacity: Math.max(
 			1,
-			Math.round(100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity)),
+			Math.round(
+				100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity),
+			),
 		),
 		groupIds: [context.groupId],
 		customData: context.customData,
@@ -341,7 +334,9 @@ function createRectangleSkeleton(
 		roughness: inferRoughness(style),
 		opacity: Math.max(
 			1,
-			Math.round(100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity)),
+			Math.round(
+				100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity),
+			),
 		),
 		roundness,
 		groupIds: [context.groupId],
@@ -375,7 +370,9 @@ function createEllipseSkeleton(
 		roughness: inferRoughness(style),
 		opacity: Math.max(
 			1,
-			Math.round(100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity)),
+			Math.round(
+				100 * Math.max(style.opacity * style.fillOpacity, style.opacity * style.strokeOpacity),
+			),
 		),
 		groupIds: [context.groupId],
 		customData: context.customData,
@@ -383,10 +380,7 @@ function createEllipseSkeleton(
 }
 
 function isAxisAligned(matrix: SvgMatrix) {
-	return (
-		Math.abs(matrix[1]) < 0.0001 &&
-		Math.abs(matrix[2]) < 0.0001
-	);
+	return Math.abs(matrix[1]) < 0.0001 && Math.abs(matrix[2]) < 0.0001;
 }
 
 function compileContourSet(
@@ -414,7 +408,10 @@ function compileElementNode(
 	context: CompileContext,
 ): ExcalidrawElementSkeleton[] {
 	const style = resolveElementStyle(element, parentStyle);
-	const matrix = multiplySvgMatrices(parentMatrix, parseSvgTransform(element.getAttribute('transform')));
+	const matrix = multiplySvgMatrices(
+		parentMatrix,
+		parseSvgTransform(element.getAttribute('transform')),
+	);
 	const tagName = element.tagName.toLowerCase();
 
 	switch (tagName) {
@@ -428,7 +425,12 @@ function compileElementNode(
 			if (!pathData) {
 				return [];
 			}
-			return compileContourSet(parseSvgPathContours(pathData, context.scale), style, matrix, context);
+			return compileContourSet(
+				parseSvgPathContours(pathData, context.scale),
+				style,
+				matrix,
+				context,
+			);
 		}
 		case 'polyline':
 		case 'polygon': {
@@ -450,7 +452,15 @@ function compileElementNode(
 			const x2 = normalizeNumber(element.getAttribute('x2'), 0);
 			const y2 = normalizeNumber(element.getAttribute('y2'), 0);
 			return compileContourSet(
-				[{ points: [{ x: x1, y: y1 }, { x: x2, y: y2 }], closed: false }],
+				[
+					{
+						points: [
+							{ x: x1, y: y1 },
+							{ x: x2, y: y2 },
+						],
+						closed: false,
+					},
+				],
 				style,
 				matrix,
 				context,
@@ -490,16 +500,8 @@ function compileElementNode(
 		case 'ellipse': {
 			const cx = normalizeNumber(element.getAttribute('cx'), 0);
 			const cy = normalizeNumber(element.getAttribute('cy'), 0);
-			const rx =
-				normalizeNumber(
-					element.getAttribute(tagName === 'circle' ? 'r' : 'rx'),
-					0,
-				);
-			const ry =
-				normalizeNumber(
-					element.getAttribute(tagName === 'circle' ? 'r' : 'ry'),
-					rx,
-				);
+			const rx = normalizeNumber(element.getAttribute(tagName === 'circle' ? 'r' : 'rx'), 0);
+			const ry = normalizeNumber(element.getAttribute(tagName === 'circle' ? 'r' : 'ry'), rx);
 			const scaledMatrix = multiplySvgMatrices([context.scale, 0, 0, context.scale, 0, 0], matrix);
 			if (isAxisAligned(scaledMatrix) && scaledMatrix[0] > 0 && scaledMatrix[3] > 0) {
 				return [
@@ -569,9 +571,7 @@ export function compileSvgToExcalidraw(
 	// override the roughness: 0 we set in every skeleton. Force it back to 0
 	// post-conversion so Rough.js never re-randomizes fills on interaction.
 	const converted = convertToExcalidrawElements(trimmed);
-	const elements = converted.map((el) =>
-		({ ...el, roughness: 0 }) as ExcalidrawElement,
-	);
+	const elements = converted.map((el) => ({ ...el, roughness: 0 }) as ExcalidrawElement);
 
 	return { elements, width: constrained.width, height: constrained.height };
 }

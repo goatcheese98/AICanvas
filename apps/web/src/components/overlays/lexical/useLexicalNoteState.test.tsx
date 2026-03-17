@@ -1,6 +1,6 @@
+import type { NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import type { LexicalElement } from './lexical-note-types';
 import { useLexicalNoteState } from './useLexicalNoteState';
 

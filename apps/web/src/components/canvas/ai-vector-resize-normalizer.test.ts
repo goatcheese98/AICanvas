@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { describe, expect, it } from 'vitest';
 import { normalizeAiVectorGroupResize } from './ai-vector-resize-normalizer';
 
 function createLineElement(
@@ -87,8 +87,8 @@ describe('normalizeAiVectorGroupResize', () => {
 
 		expect(aspectRatio).toBeCloseTo(0.5, 1);
 		expect(result[0].width).toBeLessThan(nextElements[0].width);
-		expect((result[0] as unknown as { points: Array<readonly [number, number]> }).points[1][0]).toBeLessThan(
-			nextElements[0].width,
-		);
+		expect(
+			(result[0] as unknown as { points: Array<readonly [number, number]> }).points[1][0],
+		).toBeLessThan(nextElements[0].width);
 	});
 });

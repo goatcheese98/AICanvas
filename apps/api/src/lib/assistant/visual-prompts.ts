@@ -41,15 +41,30 @@ export function buildCanvasSafeImagePrompt(input: BuildCanvasSafeImagePromptInpu
 
 	if (input.mode === 'sketch') {
 		lines.push('Sketch-specific rules:');
-		lines.push('- use a clean illustration style with flat or lightly shaded color regions — limited color palette of 3-6 colors is ideal');
-		lines.push('- dark contour lines should be continuous, smooth, and flow naturally — avoid choppy or fragmented strokes');
-		lines.push('- favor clearly defined, contained regions with readable boundaries for clean vector tracing');
-		lines.push('- layer shapes naturally: background fills first, mid-ground details next, foreground outlines last');
-		lines.push('- keep inner details (windows, wheels, stripes, labels) as distinct contained shapes rather than blended gradients');
+		lines.push(
+			'- use a clean illustration style with flat or lightly shaded color regions — limited color palette of 3-6 colors is ideal',
+		);
+		lines.push(
+			'- dark contour lines should be continuous, smooth, and flow naturally — avoid choppy or fragmented strokes',
+		);
+		lines.push(
+			'- favor clearly defined, contained regions with readable boundaries for clean vector tracing',
+		);
+		lines.push(
+			'- layer shapes naturally: background fills first, mid-ground details next, foreground outlines last',
+		);
+		lines.push(
+			'- keep inner details (windows, wheels, stripes, labels, facial features, eyes) as distinct contained shapes rather than blended gradients',
+		);
+		lines.push(
+			'- ensure essential defining details (like eyes and noses) are drawn legibly and not omitted or merged into flat regions',
+		);
 		lines.push('- avoid excessive symmetry — allow natural organic variation in proportions');
 	} else {
 		lines.push('Image-specific rules:');
-		lines.push('- deliver a clean standalone subject for direct canvas placement and later vectorization');
+		lines.push(
+			'- deliver a clean standalone subject for direct canvas placement and later vectorization',
+		);
 		lines.push('- keep empty white margins around the subject');
 	}
 

@@ -1,22 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import {
+	type D2RenderVariant,
 	downloadBlob,
 	renderCodeArtifactToSvg,
 	svgToPngBlob,
-	type D2RenderVariant,
 } from '@/lib/assistant/diagram-renderer';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_DANGER,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
-import { getDiagramArtifactSource } from './assistant-artifacts';
-import type {
-	AssistantInsertionState,
-	DiagramInsertInput,
-} from './ai-chat-types';
+import type { AssistantArtifact } from '@ai-canvas/shared/types';
+import { useEffect, useMemo, useState } from 'react';
 import { CodeSnippet } from './AIChatArtifactPrimitives';
+import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from './ai-chat-constants';
+import type { AssistantInsertionState, DiagramInsertInput } from './ai-chat-types';
+import { getDiagramArtifactSource } from './assistant-artifacts';
 
 export function DiagramArtifactCard({
 	artifactKey,
@@ -177,7 +170,9 @@ export function DiagramArtifactCard({
 			</div>
 			<div className="overflow-hidden rounded-[10px] border border-stone-200 bg-white">
 				{isRendering ? (
-					<div className="px-4 py-10 text-center text-[12px] text-stone-500">Rendering diagram...</div>
+					<div className="px-4 py-10 text-center text-[12px] text-stone-500">
+						Rendering diagram...
+					</div>
 				) : renderError ? (
 					<div className="px-4 py-10 text-center text-[12px] text-rose-700">{renderError}</div>
 				) : rendered ? (

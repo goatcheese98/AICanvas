@@ -1,8 +1,8 @@
+import * as api from '@/lib/api';
+import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useAuth } from '@clerk/clerk-react';
-import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
-import * as api from '@/lib/api';
 import { MessageCard } from './AIChatMessageCard';
 
 vi.mock('@clerk/clerk-react', () => ({
@@ -101,11 +101,7 @@ describe('AIChatMessageCard', () => {
 		};
 
 		const { container } = render(
-			<MessageCard
-				message={message}
-				onInsertArtifact={vi.fn()}
-				onVectorizeArtifact={vi.fn()}
-			/>,
+			<MessageCard message={message} onInsertArtifact={vi.fn()} onVectorizeArtifact={vi.fn()} />,
 		);
 
 		await waitFor(() => {
@@ -207,9 +203,7 @@ describe('AIChatMessageCard', () => {
 		const { container } = render(<MessageCard message={message} onInsertArtifact={vi.fn()} />);
 
 		await waitFor(() => {
-			expect(
-				within(container).getByRole('button', { name: 'Insert Native Vector' }),
-			).toBeTruthy();
+			expect(within(container).getByRole('button', { name: 'Insert Native Vector' })).toBeTruthy();
 		});
 	});
 
@@ -271,15 +265,19 @@ describe('AIChatMessageCard', () => {
 			id: 'assistant-svg-1',
 			role: 'assistant',
 			generationMode: 'svg',
-			content: ['Prepared an SVG illustration draft.', '', '```svg', '<svg viewBox="0 0 10 10"></svg>', '```'].join('\n'),
+			content: [
+				'Prepared an SVG illustration draft.',
+				'',
+				'```svg',
+				'<svg viewBox="0 0 10 10"></svg>',
+				'```',
+			].join('\n'),
 			createdAt: '2026-03-14T10:06:00.000Z',
 		};
 
 		const { container } = render(<MessageCard message={message} onInsertSvg={onInsertSvg} />);
 
-		fireEvent.click(
-			within(container).getByRole('button', { name: 'Insert Native Vector' }),
-		);
+		fireEvent.click(within(container).getByRole('button', { name: 'Insert Native Vector' }));
 
 		expect(onInsertSvg).toHaveBeenCalledWith(message);
 	});

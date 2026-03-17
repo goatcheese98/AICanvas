@@ -1,13 +1,13 @@
+import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState, BinaryFileData, BinaryFiles } from '@excalidraw/excalidraw/types';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AppState, BinaryFileData, BinaryFiles } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useAppStore } from '@/stores/store';
 import {
-	useCanvasTourSceneController,
 	type CameraTarget,
 	type CanvasSceneSnapshot,
 	type TourTool,
+	useCanvasTourSceneController,
 } from './useCanvasTourSceneController';
 
 function createElement(id: string, x = 0, y = 0): ExcalidrawElement {
@@ -54,17 +54,19 @@ function createMockApi() {
 	};
 
 	return {
-		updateScene: vi.fn((update: { elements?: ExcalidrawElement[]; appState?: Partial<AppState> }) => {
-			if (update.elements) {
-				state.elements = update.elements;
-			}
-			if (update.appState) {
-				state.appState = {
-					...state.appState,
-					...update.appState,
-				};
-			}
-		}),
+		updateScene: vi.fn(
+			(update: { elements?: ExcalidrawElement[]; appState?: Partial<AppState> }) => {
+				if (update.elements) {
+					state.elements = update.elements;
+				}
+				if (update.appState) {
+					state.appState = {
+						...state.appState,
+						...update.appState,
+					};
+				}
+			},
+		),
 		setActiveTool: vi.fn(),
 		addFiles: vi.fn(),
 		getSceneElements: vi.fn(() => state.elements),
@@ -96,22 +98,24 @@ function renderSceneController(overrides?: {
 	surfaceEpoch?: number;
 	setActiveTool?: (tool: TourTool) => void;
 }) {
-	return renderHook((props: { isGuideMode: boolean; surfaceEpoch: number }) =>
-		useCanvasTourSceneController({
-			imageId: 'tour-image' as BinaryFileData['id'],
-			defaultScene,
-			guideBaseline,
-			initialCamera,
-			isGuideMode: props.isGuideMode,
-			surfaceEpoch: props.surfaceEpoch,
-			setActiveTool: overrides?.setActiveTool ?? vi.fn(),
-		}),
-	{
-		initialProps: {
-			isGuideMode: overrides?.isGuideMode ?? true,
-			surfaceEpoch: overrides?.surfaceEpoch ?? 0,
+	return renderHook(
+		(props: { isGuideMode: boolean; surfaceEpoch: number }) =>
+			useCanvasTourSceneController({
+				imageId: 'tour-image' as BinaryFileData['id'],
+				defaultScene,
+				guideBaseline,
+				initialCamera,
+				isGuideMode: props.isGuideMode,
+				surfaceEpoch: props.surfaceEpoch,
+				setActiveTool: overrides?.setActiveTool ?? vi.fn(),
+			}),
+		{
+			initialProps: {
+				isGuideMode: overrides?.isGuideMode ?? true,
+				surfaceEpoch: overrides?.surfaceEpoch ?? 0,
+			},
 		},
-	});
+	);
 }
 
 beforeEach(() => {

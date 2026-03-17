@@ -1,5 +1,12 @@
-import { useMemo } from 'react';
 import type { AssistantArtifact, CanvasElement } from '@ai-canvas/shared/types';
+import { useMemo } from 'react';
+import { resolveMarkdownContentFromElements } from './ai-chat-canvas';
+import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
+import type {
+	AssistantPatchApplyOptions,
+	AssistantPatchApplyState,
+	MarkdownPatchReviewState,
+} from './ai-chat-types';
 import {
 	applyAcceptedMarkdownPatchHunks,
 	buildMarkdownPatchDiff,
@@ -9,16 +16,6 @@ import {
 	parseMarkdownPatchArtifact,
 	summarizeKanbanPatchChanges,
 } from './assistant-artifacts';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
-import { resolveMarkdownContentFromElements } from './ai-chat-canvas';
-import type {
-	AssistantPatchApplyOptions,
-	AssistantPatchApplyState,
-	MarkdownPatchReviewState,
-} from './ai-chat-types';
 
 export function PatchArtifactCard({
 	artifact,
@@ -66,7 +63,11 @@ export function PatchArtifactCard({
 		const acceptedHunkIdSet = new Set(acceptedHunkIds);
 		const reviewedMarkdownContent =
 			markdownHunks.length > 0
-				? applyAcceptedMarkdownPatchHunks(markdownPatch.base.content, markdownHunks, acceptedHunkIds)
+				? applyAcceptedMarkdownPatchHunks(
+						markdownPatch.base.content,
+						markdownHunks,
+						acceptedHunkIds,
+					)
 				: markdownPatch.next.content;
 		const currentMarkdownContent =
 			markdownPatch.targetId && elements
@@ -111,7 +112,8 @@ export function PatchArtifactCard({
 					</div>
 				) : conflictState === 'modified' ? (
 					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
-						The note changed after this patch was prepared. Undo or regenerate the patch before applying.
+						The note changed after this patch was prepared. Undo or regenerate the patch before
+						applying.
 					</div>
 				) : conflictState === 'already-applied' && applyState?.status !== 'applied' ? (
 					<div className="mb-3 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">

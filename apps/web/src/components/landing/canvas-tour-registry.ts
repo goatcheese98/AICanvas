@@ -1,6 +1,6 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
-import { canvasTourChapters, type CanvasTourGuideOverlay } from './canvas-tour-content';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { type CanvasTourGuideOverlay, canvasTourChapters } from './canvas-tour-content';
 import type { CameraTarget } from './useCanvasTourSceneController';
 
 export interface RegisteredTourSceneSnapshot {
@@ -44,9 +44,7 @@ function normalizeGuideOverlay(
 		accentColor:
 			typeof overlay.accentColor === 'string' ? overlay.accentColor : fallback.accentColor,
 		surfaceOpacity:
-			typeof overlay.surfaceOpacity === 'number'
-				? overlay.surfaceOpacity
-				: fallback.surfaceOpacity,
+			typeof overlay.surfaceOpacity === 'number' ? overlay.surfaceOpacity : fallback.surfaceOpacity,
 		placement: {
 			leftRem:
 				typeof overlay.placement?.leftRem === 'number'
@@ -71,7 +69,8 @@ function normalizeRegisteredSceneSnapshot(
 	if (!Array.isArray(input.elements) || !isValidCamera(input.camera)) {
 		return null;
 	}
-	const fallbackChapter = canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? canvasTourChapters[0];
+	const fallbackChapter =
+		canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? canvasTourChapters[0];
 	if (!fallbackChapter) {
 		return null;
 	}
@@ -101,19 +100,18 @@ export function loadRegisteredTourScenes(): RegisteredTourSceneLibrary | null {
 			| Partial<RegisteredTourSceneLibrary>;
 
 		if ('scenes' in parsed && parsed.scenes && typeof parsed.scenes === 'object') {
-			const scenes = Object.entries(parsed.scenes).reduce<Record<string, RegisteredTourSceneSnapshot>>(
-				(acc, [sceneId, value]) => {
-					const normalized = normalizeRegisteredSceneSnapshot(
-						sceneId,
-						value as Partial<RegisteredTourSceneSnapshot>,
-					);
-					if (normalized) {
-						acc[sceneId] = normalized;
-					}
-					return acc;
-				},
-				{},
-			);
+			const scenes = Object.entries(parsed.scenes).reduce<
+				Record<string, RegisteredTourSceneSnapshot>
+			>((acc, [sceneId, value]) => {
+				const normalized = normalizeRegisteredSceneSnapshot(
+					sceneId,
+					value as Partial<RegisteredTourSceneSnapshot>,
+				);
+				if (normalized) {
+					acc[sceneId] = normalized;
+				}
+				return acc;
+			}, {});
 			if (Object.keys(scenes).length === 0) {
 				return null;
 			}
@@ -126,7 +124,10 @@ export function loadRegisteredTourScenes(): RegisteredTourSceneLibrary | null {
 
 		const firstChapter = canvasTourChapters[0];
 		const migrated = firstChapter
-			? normalizeRegisteredSceneSnapshot(firstChapter.id, parsed as Partial<RegisteredTourSceneSnapshot>)
+			? normalizeRegisteredSceneSnapshot(
+					firstChapter.id,
+					parsed as Partial<RegisteredTourSceneSnapshot>,
+				)
 			: null;
 		if (!migrated) {
 			return null;

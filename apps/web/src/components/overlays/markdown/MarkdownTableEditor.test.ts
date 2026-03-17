@@ -13,7 +13,9 @@ describe('MarkdownTableEditor helpers', () => {
 
 	it('serializes tables with stable markdown structure', () => {
 		const rows = parseMarkdownTable('| Name | Role |\n| --- | --- |\n| Rohan | PM |');
-		expect(serializeMarkdownTable(rows)).toBe('| Name  | Role |\n| ----- | ---- |\n| Rohan | PM   |');
+		expect(serializeMarkdownTable(rows)).toBe(
+			'| Name  | Role |\n| ----- | ---- |\n| Rohan | PM   |',
+		);
 	});
 
 	it('normalizes ragged rows to the header column count', () => {

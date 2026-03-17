@@ -83,10 +83,7 @@ export function buildKanbanPrompt(userText: string): string {
 	].join('\n');
 }
 
-export function buildMarkdownRewritePrompt(
-	userText: string,
-	currentMarkdown: string,
-): string {
+export function buildMarkdownRewritePrompt(userText: string, currentMarkdown: string): string {
 	return [
 		'Rewrite the selected markdown note to satisfy the edit request.',
 		'Rules:',
@@ -105,10 +102,7 @@ export function buildMarkdownRewritePrompt(
 	].join('\n');
 }
 
-export function buildPrototypePrompt(
-	userText: string,
-	currentPrototypeJson?: string,
-): string {
+export function buildPrototypePrompt(userText: string, currentPrototypeJson?: string): string {
 	return [
 		'Generate only JSON for the prototype tooling.',
 		'Rules:',

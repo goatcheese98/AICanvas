@@ -1,10 +1,4 @@
-import type {
-	KanbanOverlayCustomData,
-	MarkdownOverlayCustomData,
-	NewLexOverlayCustomData,
-	OverlayType,
-	PrototypeOverlayCustomData,
-} from '@ai-canvas/shared/types';
+import { OVERLAY_TYPES } from '@ai-canvas/shared/constants';
 import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
@@ -12,22 +6,31 @@ import {
 	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
-import { OVERLAY_TYPES } from '@ai-canvas/shared/constants';
-import { MarkdownNote } from '../overlays/markdown';
-import { LexicalNote } from '../overlays/lexical';
+import type {
+	KanbanOverlayCustomData,
+	MarkdownOverlayCustomData,
+	NewLexOverlayCustomData,
+	OverlayType,
+	PrototypeOverlayCustomData,
+} from '@ai-canvas/shared/types';
 import { KanbanBoard } from '../overlays/kanban';
+import { LexicalNote } from '../overlays/lexical';
+import { MarkdownNote } from '../overlays/markdown';
 import { PrototypeNote } from '../overlays/prototype';
 import { WebEmbed } from '../overlays/web-embed';
+import { DEFAULT_MARKDOWN_CONTENT, createDefaultKanbanColumns } from './overlay-defaults';
 import { bumpElementVersion } from './overlay-definition-types';
 import type {
 	OverlayCustomDataMap,
 	OverlayDefinition,
 	TypedOverlayCanvasElement,
 } from './overlay-definition-types';
-import { createDefaultKanbanColumns, DEFAULT_MARKDOWN_CONTENT } from './overlay-defaults';
 
 // Re-export types so existing imports still work
-export type { TypedOverlayCanvasElement, OverlayUpdatePayloadMap } from './overlay-definition-types';
+export type {
+	TypedOverlayCanvasElement,
+	OverlayUpdatePayloadMap,
+} from './overlay-definition-types';
 
 function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 	return JSON.stringify(value ?? []);
@@ -36,13 +39,11 @@ function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	markdown: {
 		defaultSize: { width: 400, height: 450 },
-		normalizeCustomData: (input) => normalizeMarkdownOverlay(input as Partial<MarkdownOverlayCustomData>),
+		normalizeCustomData: (input) =>
+			normalizeMarkdownOverlay(input as Partial<MarkdownOverlayCustomData>),
 		createCustomData: (options) =>
 			normalizeMarkdownOverlay({
-				title:
-					typeof options.customData?.title === 'string'
-						? options.customData.title
-						: undefined,
+				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
 				content:
 					typeof options.customData?.content === 'string'
 						? options.customData.content
@@ -101,23 +102,17 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		normalizeCustomData: normalizeNewLexOverlay,
 		createCustomData: (options) =>
 			normalizeNewLexOverlay({
-				title:
-					typeof options.customData?.title === 'string'
-						? options.customData.title
-						: undefined,
+				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
 				lexicalState:
 					typeof options.customData?.lexicalState === 'string'
 						? options.customData.lexicalState
 						: '',
-				comments: Array.isArray(options.customData?.comments)
-					? options.customData.comments
-					: [],
+				comments: Array.isArray(options.customData?.comments) ? options.customData.comments : [],
 				commentsPanelOpen:
 					typeof options.customData?.commentsPanelOpen === 'boolean'
 						? options.customData.commentsPanelOpen
 						: false,
-				version:
-					typeof options.customData?.version === 'number' ? options.customData.version : 1,
+				version: typeof options.customData?.version === 'number' ? options.customData.version : 1,
 			}),
 		applyUpdate: (element, payload) => {
 			const current = normalizeNewLexOverlay(element.customData);
@@ -151,13 +146,12 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	},
 	kanban: {
 		defaultSize: { width: 1050, height: 900 },
-		normalizeCustomData: (input) => normalizeKanbanOverlay(input as Partial<KanbanOverlayCustomData>),
+		normalizeCustomData: (input) =>
+			normalizeKanbanOverlay(input as Partial<KanbanOverlayCustomData>),
 		createCustomData: (options) =>
 			normalizeKanbanOverlay({
 				title:
-					typeof options.customData?.title === 'string'
-						? options.customData.title
-						: 'Kanban Board',
+					typeof options.customData?.title === 'string' ? options.customData.title : 'Kanban Board',
 				columns: Array.isArray(options.customData?.columns)
 					? (options.customData.columns as KanbanOverlayCustomData['columns'])
 					: createDefaultKanbanColumns(),
@@ -207,11 +201,8 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		createCustomData: (options) =>
 			normalizePrototypeOverlay({
 				title:
-					typeof options.customData?.title === 'string'
-						? options.customData.title
-						: 'Prototype',
-				template:
-					options.customData?.template === 'vanilla' ? 'vanilla' : 'react',
+					typeof options.customData?.title === 'string' ? options.customData.title : 'Prototype',
+				template: options.customData?.template === 'vanilla' ? 'vanilla' : 'react',
 				files:
 					typeof options.customData?.files === 'object'
 						? (options.customData.files as PrototypeOverlayCustomData['files'])
@@ -246,10 +237,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				}),
 			}),
 		render: ({ element, isSelected }) => (
-			<PrototypeNote
-				element={element}
-				isSelected={isSelected}
-			/>
+			<PrototypeNote element={element} isSelected={isSelected} />
 		),
 	},
 };

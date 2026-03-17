@@ -50,7 +50,9 @@ describe('compileSvgToExcalidraw', () => {
 				type: 'ai-generated-vector-elements',
 			}),
 		});
-		expect(((result.elements[0] as unknown) as { points: unknown[] }).points.length).toBeGreaterThanOrEqual(4);
+		expect(
+			(result.elements[0] as unknown as { points: unknown[] }).points.length,
+		).toBeGreaterThanOrEqual(4);
 	});
 
 	it('compiles basic SVG primitives into native Excalidraw shapes', () => {
@@ -93,6 +95,8 @@ describe('compileSvgToExcalidraw', () => {
 			strokeColor: '#a16207',
 			strokeWidth: 1,
 		});
-		expect(((result.elements[0] as unknown) as { points: unknown[] }).points.length).toBeLessThanOrEqual(12);
+		expect(
+			(result.elements[0] as unknown as { points: unknown[] }).points.length,
+		).toBeLessThanOrEqual(12);
 	});
 });

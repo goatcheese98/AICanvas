@@ -1,28 +1,27 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Excalidraw } from '@excalidraw/excalidraw';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { CanvasNotesLayer } from '@/components/canvas/CanvasNotesLayer';
+import { Excalidraw } from '@excalidraw/excalidraw';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import '@excalidraw/excalidraw/index.css';
-import {
-	canvasTourChapters,
-	type CanvasTourChapter,
-	type CanvasTourGuideOverlay,
-} from './canvas-tour-content';
 import { CanvasTourLayoutPanel } from './CanvasTourLayoutPanel';
 import { CanvasTourToolbar } from './CanvasTourToolbar';
 import {
+	type CanvasTourChapter,
+	type CanvasTourGuideOverlay,
+	canvasTourChapters,
+} from './canvas-tour-content';
+import {
+	type RegisteredTourSceneLibrary,
+	type RegisteredTourSceneSnapshot,
 	clearRegisteredTourScenes,
 	loadRegisteredTourScenes,
 	persistRegisteredTourScenes,
-	type RegisteredTourSceneLibrary,
-	type RegisteredTourSceneSnapshot,
 } from './canvas-tour-registry';
-import { createCanvasTourScene, TOUR_IMAGE_FILE_ID } from './canvas-tour-scene';
+import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
 import {
-	getTourTool,
-	useCanvasTourSceneController,
 	type CanvasSceneSnapshot,
 	type TourTool,
+	getTourTool,
+	useCanvasTourSceneController,
 } from './useCanvasTourSceneController';
 import './canvas-tour.css';
 

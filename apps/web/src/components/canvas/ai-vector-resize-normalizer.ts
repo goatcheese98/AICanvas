@@ -69,7 +69,7 @@ function scaleElementUniformly(
 						previousLinear.lastCommittedPoint[0] * scale,
 						previousLinear.lastCommittedPoint[1] * scale,
 					]
-				: currentLinear.lastCommittedPoint ?? null,
+				: (currentLinear.lastCommittedPoint ?? null),
 			strokeWidth: Math.max(1, previousElement.strokeWidth * scale),
 		} as ExcalidrawElement;
 	}
@@ -116,7 +116,9 @@ export function normalizeAiVectorGroupResize(params: {
 		return null;
 	}
 
-	const selectedElements = params.nextElements.filter((element) => selectedIds.includes(element.id));
+	const selectedElements = params.nextElements.filter((element) =>
+		selectedIds.includes(element.id),
+	);
 	if (selectedElements.length !== selectedIds.length) {
 		return null;
 	}

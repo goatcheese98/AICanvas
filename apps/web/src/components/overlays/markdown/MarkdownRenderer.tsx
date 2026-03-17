@@ -1,17 +1,10 @@
-import {
-	memo,
-	useEffect,
-	useMemo,
-	useState,
-	type CSSProperties,
-	type JSX,
-} from 'react';
+import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
+import { type CSSProperties, type JSX, memo, useEffect, useMemo, useState } from 'react';
 import ReactMarkdown, { type Components, type ExtraProps } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
-import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import { markdownUrlTransform, resolveMarkdownAssetSrc } from './markdown-media';
 import 'katex/dist/katex.min.css';
 
@@ -52,7 +45,9 @@ const HEADING_STYLES = {
 	h6: { fontSize: '0.92em', lineHeight: 1.45, marginTop: '0.9em', marginBottom: '0.35em' },
 } as const satisfies Record<string, CSSProperties>;
 
-function getCheckboxLineIndex(node: { position?: { start?: { line?: number | null } | null } | null }): number {
+function getCheckboxLineIndex(node: {
+	position?: { start?: { line?: number | null } | null } | null;
+}): number {
 	const lineNumber = node.position?.start?.line;
 	if (typeof lineNumber !== 'number' || Number.isNaN(lineNumber)) return -1;
 	return Math.max(0, lineNumber - 1);
@@ -121,8 +116,9 @@ function MarkdownImage({ src, alt, width, height, inlineSized, props }: Markdown
 	if (failed) {
 		return (
 			<span
-				className={`inline-flex items-center border border-amber-200 bg-amber-50 text-[0.92em] text-amber-800 ${inlineSized ? 'my-0 inline-flex align-middle' : 'my-3'
-					}`}
+				className={`inline-flex items-center border border-amber-200 bg-amber-50 text-[0.92em] text-amber-800 ${
+					inlineSized ? 'my-0 inline-flex align-middle' : 'my-3'
+				}`}
 				style={{
 					borderRadius: INLINE_RADIUS,
 					padding: '0.16em 0.52em',
@@ -152,10 +148,10 @@ function MarkdownImage({ src, alt, width, height, inlineSized, props }: Markdown
 				inlineSized
 					? undefined
 					: {
-						borderRadius: SURFACE_RADIUS,
-						marginTop: BLOCK_SPACING,
-						marginBottom: BLOCK_SPACING,
-					}
+							borderRadius: SURFACE_RADIUS,
+							marginTop: BLOCK_SPACING,
+							marginBottom: BLOCK_SPACING,
+						}
 			}
 			onError={() => {
 				failedImageSrcCache.add(src);
@@ -197,22 +193,28 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 					{children}
 				</pre>
 			),
-			code: ({ inline, className, children, node: _node, ...props }: MarkdownCodeComponentProps) => {
+			code: ({
+				inline,
+				className,
+				children,
+				node: _node,
+				...props
+			}: MarkdownCodeComponentProps) => {
 				const isInline = inline === true || (!className && typeof inline !== 'boolean');
 				return isInline ? (
 					<code
-							className="border text-[0.92em] font-medium"
-							style={{
-								color: settings.inlineCodeColor,
+						className="border text-[0.92em] font-medium"
+						style={{
+							color: settings.inlineCodeColor,
 							backgroundColor: 'rgba(148, 163, 184, 0.16)',
 							borderColor: 'rgba(148, 163, 184, 0.3)',
 							borderRadius: INLINE_RADIUS,
 							padding: '0.16em 0.42em',
-							}}
-							{...props}
-						>
-							{children}
-						</code>
+						}}
+						{...props}
+					>
+						{children}
+					</code>
 				) : (
 					<code className={`font-medium text-stone-800 ${className ?? ''}`.trim()} {...props}>
 						{children}
@@ -271,13 +273,13 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				const inlineSized = width !== undefined || height !== undefined;
 				return (
 					<MarkdownImage
-							src={resolvedSrc}
-							alt={alt}
-							width={width}
-							height={height}
-							inlineSized={Boolean(inlineSized)}
-							props={props}
-						/>
+						src={resolvedSrc}
+						alt={alt}
+						width={width}
+						height={height}
+						inlineSized={Boolean(inlineSized)}
+						props={props}
+					/>
 				);
 			},
 			input: ({ type, checked, node }: MarkdownComponentProps<'input'>) => {
@@ -285,9 +287,9 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				const lineIndex = node ? getCheckboxLineIndex(node) : -1;
 				return (
 					<input
-							type="checkbox"
-							checked={Boolean(checked)}
-							readOnly={!onCheckboxToggle}
+						type="checkbox"
+						checked={Boolean(checked)}
+						readOnly={!onCheckboxToggle}
 						onClick={(event) => event.stopPropagation()}
 						onChange={() => {
 							if (lineIndex >= 0) onCheckboxToggle?.(lineIndex);
@@ -296,10 +298,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 						style={{
 							width: CHECKBOX_SIZE,
 							height: CHECKBOX_SIZE,
-								marginRight: COMPACT_SPACING,
-								flexShrink: 0,
-							}}
-						/>
+							marginRight: COMPACT_SPACING,
+							flexShrink: 0,
+						}}
+					/>
 				);
 			},
 			p: ({ children, style }: MarkdownComponentProps<'p'>) => (
@@ -340,7 +342,10 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 				</h5>
 			),
 			h6: ({ children }: MarkdownComponentProps<'h6'>) => (
-				<h6 className="font-semibold uppercase tracking-[0.08em] text-stone-700" style={HEADING_STYLES.h6}>
+				<h6
+					className="font-semibold uppercase tracking-[0.08em] text-stone-700"
+					style={HEADING_STYLES.h6}
+				>
 					{children}
 				</h6>
 			),
@@ -378,34 +383,37 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 					style={
 						className?.includes('task-list-item')
 							? ({
-								gap: COMPACT_SPACING,
-								marginBottom: '0.7em',
-								'--markdown-paragraph-margin-top': 0,
-								'--markdown-paragraph-margin-bottom': 0,
-							} as CSSProperties)
+									gap: COMPACT_SPACING,
+									marginBottom: '0.7em',
+									'--markdown-paragraph-margin-top': 0,
+									'--markdown-paragraph-margin-bottom': 0,
+								} as CSSProperties)
 							: ({
-								marginBottom: '0.45em',
-								'--markdown-paragraph-margin-top': 0,
-								'--markdown-paragraph-margin-bottom': 0,
-							} as CSSProperties)
+									marginBottom: '0.45em',
+									'--markdown-paragraph-margin-top': 0,
+									'--markdown-paragraph-margin-bottom': 0,
+								} as CSSProperties)
 					}
 				>
 					{children}
 				</li>
-				),
+			),
 			hr: () => <hr className="border-stone-200" style={{ margin: '1.35em 0' }} />,
 		} satisfies Components;
 	}, [images, onCheckboxToggle, settings.inlineCodeColor]);
 
 	return (
-		<div className={className ? `${className} text-stone-700` : 'text-stone-700'} style={typographyStyle}>
+		<div
+			className={className ? `${className} text-stone-700` : 'text-stone-700'}
+			style={typographyStyle}
+		>
 			<ReactMarkdown
 				remarkPlugins={REMARK_PLUGINS}
 				rehypePlugins={REHYPE_PLUGINS}
 				urlTransform={markdownUrlTransform}
 				components={components}
 			>
-					{normalizedContent}
+				{normalizedContent}
 			</ReactMarkdown>
 		</div>
 	);

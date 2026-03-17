@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { EditorState } from '@codemirror/state';
-import { EditorView, drawSelection, highlightActiveLine, lineNumbers } from '@codemirror/view';
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { cssLanguage } from '@codemirror/lang-css';
 import { htmlLanguage } from '@codemirror/lang-html';
 import { javascript } from '@codemirror/lang-javascript';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
+import { EditorView, drawSelection, highlightActiveLine, lineNumbers } from '@codemirror/view';
 import { keymap } from '@codemirror/view';
+import { useEffect, useMemo, useRef } from 'react';
 
 interface PrototypeCodeEditorProps {
 	path: string;
@@ -30,12 +30,7 @@ function getLanguage(path: string) {
 	});
 }
 
-export function PrototypeCodeEditor({
-	path,
-	code,
-	readOnly,
-	onChange,
-}: PrototypeCodeEditorProps) {
+export function PrototypeCodeEditor({ path, code, readOnly, onChange }: PrototypeCodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
 	const onChangeRef = useRef(onChange);

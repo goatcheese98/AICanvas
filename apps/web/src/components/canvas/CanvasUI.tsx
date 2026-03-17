@@ -1,31 +1,31 @@
+import { AIChatPanel } from '@/components/ai-chat';
+import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
+import { useAppStore } from '@/stores/store';
+import type { OverlayType } from '@ai-canvas/shared/types';
+import { useUser } from '@clerk/clerk-react';
+import type { AppState } from '@excalidraw/excalidraw/types';
+import { useNavigate } from '@tanstack/react-router';
 import {
+	type Dispatch,
+	type PointerEvent as ReactPointerEvent,
+	type SetStateAction,
 	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type Dispatch,
-	type PointerEvent as ReactPointerEvent,
-	type SetStateAction,
 } from 'react';
-import { useUser } from '@clerk/clerk-react';
-import { useNavigate } from '@tanstack/react-router';
-import type { OverlayType } from '@ai-canvas/shared/types';
-import type { AppState } from '@excalidraw/excalidraw/types';
-import { useAppStore } from '@/stores/store';
-import { AIChatPanel } from '@/components/ai-chat';
-import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
-import { buildOverlayInsertionScene } from './element-factories';
-import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
-import {
-	CHROME_BUTTON_BASE,
-	CHROME_BUTTON_IDLE,
-	CHROME_BUTTON_ACTIVE,
-	PanelShell,
-	PanelFrame,
-} from './canvas-chrome';
 import { CollaborationPanel } from './CollaborationPanel';
 import { ProfilePanel } from './ProfilePanel';
+import {
+	CHROME_BUTTON_ACTIVE,
+	CHROME_BUTTON_BASE,
+	CHROME_BUTTON_IDLE,
+	PanelFrame,
+	PanelShell,
+} from './canvas-chrome';
+import { buildOverlayInsertionScene } from './element-factories';
+import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
 
 interface CanvasUIProps {
 	canvasId: string;
@@ -76,11 +76,13 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 			user?.firstName ||
 			user?.primaryEmailAddress?.emailAddress?.split('@')[0] ||
 			'You';
-		return name
-			.split(/\s+/)
-			.slice(0, 2)
-			.map((part) => part[0]?.toUpperCase() ?? '')
-			.join('') || 'Y';
+		return (
+			name
+				.split(/\s+/)
+				.slice(0, 2)
+				.map((part) => part[0]?.toUpperCase() ?? '')
+				.join('') || 'Y'
+		);
 	}, [user]);
 	const profileName =
 		user?.fullName ||
@@ -124,37 +126,36 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		return () => window.removeEventListener('resize', handleResize);
 	}, []);
 
-	const startResize =
-		useCallback(
-			(setter: Dispatch<SetStateAction<number>>, min: number, max: number) =>
-				(event: ReactPointerEvent<HTMLDivElement>) => {
-					event.preventDefault();
-					const startX = event.clientX;
-					const currentWidth = (() => {
-						let snapshot = min;
-						setter((value) => {
-							snapshot = value;
-							return value;
-						});
-						return snapshot;
-					})();
+	const startResize = useCallback(
+		(setter: Dispatch<SetStateAction<number>>, min: number, max: number) =>
+			(event: ReactPointerEvent<HTMLDivElement>) => {
+				event.preventDefault();
+				const startX = event.clientX;
+				const currentWidth = (() => {
+					let snapshot = min;
+					setter((value) => {
+						snapshot = value;
+						return value;
+					});
+					return snapshot;
+				})();
 
-					const handleMove = (moveEvent: PointerEvent) => {
-						const delta = moveEvent.clientX - startX;
-						const viewportMax = Math.max(min, Math.min(max, window.innerWidth - 48));
-						setter(Math.max(min, Math.min(viewportMax, currentWidth - delta)));
-					};
+				const handleMove = (moveEvent: PointerEvent) => {
+					const delta = moveEvent.clientX - startX;
+					const viewportMax = Math.max(min, Math.min(max, window.innerWidth - 48));
+					setter(Math.max(min, Math.min(viewportMax, currentWidth - delta)));
+				};
 
-					const handleUp = () => {
-						window.removeEventListener('pointermove', handleMove);
-						window.removeEventListener('pointerup', handleUp);
-					};
+				const handleUp = () => {
+					window.removeEventListener('pointermove', handleMove);
+					window.removeEventListener('pointerup', handleUp);
+				};
 
-					window.addEventListener('pointermove', handleMove);
-					window.addEventListener('pointerup', handleUp);
-				},
-			[],
-		);
+				window.addEventListener('pointermove', handleMove);
+				window.addEventListener('pointerup', handleUp);
+			},
+		[],
+	);
 
 	const startSidePanelResize = startResize(setSidePanelWidth, MIN_PANEL_WIDTH, MAX_PANEL_WIDTH);
 	const startChatPanelResize = startResize(setChatPanelWidth, MIN_CHAT_WIDTH, MAX_CHAT_WIDTH);
@@ -164,7 +165,10 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 			event.preventDefault();
 			const startY = event.clientY;
 			let snapshot = chatPanelHeight;
-			setChatPanelHeight((v) => { snapshot = v; return v; });
+			setChatPanelHeight((v) => {
+				snapshot = v;
+				return v;
+			});
 			const handleMove = (e: PointerEvent) => {
 				const delta = e.clientY - startY;
 				const maxH = Math.floor(window.innerHeight * 0.88);
@@ -220,8 +224,9 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					<button
 						type="button"
 						onClick={() => setIsInsertMenuOpen((current) => !current)}
-						className={`${CHROME_BUTTON_BASE} ${isInsertMenuOpen ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-							} bg-white/96 tracking-[0.22em] backdrop-blur`}
+						className={`${CHROME_BUTTON_BASE} ${
+							isInsertMenuOpen ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+						} bg-white/96 tracking-[0.22em] backdrop-blur`}
 					>
 						Insert
 					</button>
@@ -251,8 +256,9 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 					type="button"
 					aria-label="Profile and workspace menu"
 					onClick={() => setActivePanel(activePanel === 'assets' ? 'none' : 'assets')}
-					className={`flex h-9 w-9 items-center justify-center rounded-[8px] border shadow-sm backdrop-blur ${activePanel === 'assets' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-						}`}
+					className={`flex h-9 w-9 items-center justify-center rounded-[8px] border shadow-sm backdrop-blur ${
+						activePanel === 'assets' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+					}`}
 				>
 					{user?.imageUrl ? (
 						<img src={user.imageUrl} alt="" className="h-8 w-8 rounded-full object-cover" />
@@ -327,8 +333,9 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				<button
 					type="button"
 					onClick={() => setActivePanel(activePanel === 'collab' ? 'none' : 'collab')}
-					className={`${CHROME_BUTTON_BASE} ${activePanel === 'collab' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-						} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
+					className={`${CHROME_BUTTON_BASE} ${
+						activePanel === 'collab' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+					} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
 				>
 					<span className={`h-2 w-2 rounded-full ${statusDotClass}`} />
 					Live
@@ -337,10 +344,18 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				<button
 					type="button"
 					onClick={() => setActivePanel(activePanel === 'chat' ? 'none' : 'chat')}
-					className={`${CHROME_BUTTON_BASE} ${activePanel === 'chat' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
-						} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
+					className={`${CHROME_BUTTON_BASE} ${
+						activePanel === 'chat' ? CHROME_BUTTON_ACTIVE : CHROME_BUTTON_IDLE
+					} flex items-center gap-2 bg-white/95 px-3.5 py-2.5 shadow-lg backdrop-blur`}
 				>
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+					>
 						<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
 					</svg>
 					AI

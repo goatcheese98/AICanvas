@@ -42,20 +42,21 @@ describe('getRequiredAuthHeaders', () => {
 
 describe('assistant thread api helpers', () => {
 	it('fetches assistant threads for a canvas', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify([
-					{
-						id: 'thread-1',
-						canvasId: 'canvas-1',
-						title: 'Roadmap',
-						messages: [],
-						createdAt: '2026-03-10T00:00:00.000Z',
-						updatedAt: '2026-03-10T00:00:00.000Z',
-					},
-				]),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify([
+						{
+							id: 'thread-1',
+							canvasId: 'canvas-1',
+							title: 'Roadmap',
+							messages: [],
+							createdAt: '2026-03-10T00:00:00.000Z',
+							updatedAt: '2026-03-10T00:00:00.000Z',
+						},
+					]),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const threads = await fetchAssistantThreads('canvas-1', { Authorization: 'Bearer test' });
@@ -73,18 +74,19 @@ describe('assistant thread api helpers', () => {
 	});
 
 	it('creates an assistant thread', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					id: 'thread-2',
-					canvasId: 'canvas-1',
-					title: 'New chat',
-					messages: [],
-					createdAt: '2026-03-10T00:00:00.000Z',
-					updatedAt: '2026-03-10T00:00:00.000Z',
-				}),
-				{ status: 201, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						id: 'thread-2',
+						canvasId: 'canvas-1',
+						title: 'New chat',
+						messages: [],
+						createdAt: '2026-03-10T00:00:00.000Z',
+						updatedAt: '2026-03-10T00:00:00.000Z',
+					}),
+					{ status: 201, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const thread = await createAssistantThread(
@@ -102,11 +104,12 @@ describe('assistant thread api helpers', () => {
 	});
 
 	it('deletes an assistant thread', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(JSON.stringify({ ok: true }), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			}),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(JSON.stringify({ ok: true }), {
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+				}),
 		) as typeof fetch;
 
 		await expect(
@@ -123,14 +126,15 @@ describe('assistant thread api helpers', () => {
 
 describe('waitlist api helper', () => {
 	it('posts a waitlist submission', async () => {
-		globalThis.fetch = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					status: 'created',
-					message: "Thanks for joining. We'll be in touch soon.",
-				}),
-				{ status: 201, headers: { 'Content-Type': 'application/json' } },
-			),
+		globalThis.fetch = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						status: 'created',
+						message: "Thanks for joining. We'll be in touch soon.",
+					}),
+					{ status: 201, headers: { 'Content-Type': 'application/json' } },
+				),
 		) as typeof fetch;
 
 		const result = await joinWaitlist({

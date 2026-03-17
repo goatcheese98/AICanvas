@@ -18,19 +18,9 @@ export type GenerationMode =
 
 export type AssistantContextMode = 'all' | 'selected' | 'none';
 
-export type AssistantRunStatus =
-	| 'queued'
-	| 'running'
-	| 'completed'
-	| 'failed'
-	| 'cancelled';
+export type AssistantRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
-export type AssistantTaskStatus =
-	| 'queued'
-	| 'running'
-	| 'completed'
-	| 'failed'
-	| 'cancelled';
+export type AssistantTaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export type AssistantTaskType =
 	| 'plan_run'
@@ -213,6 +203,21 @@ export interface AssistantArtifact {
 		| 'markdown-patch'
 		| 'layout-plan';
 	content: string;
+}
+
+export interface StoredAssistantAssetContent {
+	kind: 'stored_asset';
+	r2Key: string;
+	mimeType: string;
+	provider: string;
+	model?: string;
+	prompt?: string;
+	revisedPrompt?: string;
+	tool?: string;
+	byteSize?: number;
+	sourceArtifactId?: string;
+	artifactId?: string;
+	runId?: string;
 }
 
 export interface AssistantMarkdownPatchArtifact {

@@ -1,8 +1,16 @@
-import type { RefObject } from 'react';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { abbreviateMarkdownTitle, renderModeIcon, MODE_OPTIONS, NOTE_SEGMENTED_ACTIVE, NOTE_SEGMENTED_BUTTON, NOTE_SEGMENTED_IDLE, NOTE_SEGMENTED_SHELL } from './markdown-note-helpers';
+import type { RefObject } from 'react';
 import { MarkdownUtilityPanel } from './MarkdownUtilityPanel';
+import {
+	MODE_OPTIONS,
+	NOTE_SEGMENTED_ACTIVE,
+	NOTE_SEGMENTED_BUTTON,
+	NOTE_SEGMENTED_IDLE,
+	NOTE_SEGMENTED_SHELL,
+	abbreviateMarkdownTitle,
+	renderModeIcon,
+} from './markdown-note-helpers';
 
 interface MarkdownNoteHeaderProps {
 	title: string;
@@ -129,7 +137,11 @@ export function MarkdownNoteHeader({
 					if (isSelected && controlsLayout === 'hidden') onCompactControlsVisibilityChange(true);
 				}}
 			>
-				{controlsLayout === 'hidden' ? <div className="h-7 w-28" /> : renderModeSwitcher(controlsLayout)}
+				{controlsLayout === 'hidden' ? (
+					<div className="h-7 w-28" />
+				) : (
+					renderModeSwitcher(controlsLayout)
+				)}
 			</div>
 			<div
 				className="flex items-center justify-end"

@@ -37,12 +37,7 @@ function cubicBezierPoint(
 	};
 }
 
-function quadraticBezierPoint(
-	p0: SvgPoint,
-	p1: SvgPoint,
-	p2: SvgPoint,
-	t: number,
-): SvgPoint {
+function quadraticBezierPoint(p0: SvgPoint, p1: SvgPoint, p2: SvgPoint, t: number): SvgPoint {
 	const mt = 1 - t;
 	return {
 		x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,
@@ -207,14 +202,7 @@ export function parseSvgTransform(transform: string | null | undefined): SvgMatr
 		switch (name) {
 			case 'matrix':
 				if (rawArgs.length >= 6) {
-					next = [
-						rawArgs[0],
-						rawArgs[1],
-						rawArgs[2],
-						rawArgs[3],
-						rawArgs[4],
-						rawArgs[5],
-					];
+					next = [rawArgs[0], rawArgs[1], rawArgs[2], rawArgs[3], rawArgs[4], rawArgs[5]];
 				}
 				break;
 			case 'translate':
@@ -285,12 +273,7 @@ export function simplifyPoints(points: SvgPoint[], tolerance: number): SvgPoint[
 		return dx * dx + dy * dy;
 	};
 
-	const simplifyDPStep = (
-		input: SvgPoint[],
-		first: number,
-		last: number,
-		result: SvgPoint[],
-	) => {
+	const simplifyDPStep = (input: SvgPoint[], first: number, last: number, result: SvgPoint[]) => {
 		let maxSqDistance = sqTolerance;
 		let index = 0;
 
@@ -454,7 +437,14 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 			case 'C': {
 				const contour = ensureContour();
 				while (index.value < tokens.length && !isCommandToken(tokens[index.value])) {
-					const values = [readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index)];
+					const values = [
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+					];
 					if (values.some((value) => value == null)) {
 						break;
 					}
@@ -470,10 +460,14 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 						x: absolute ? values[4]! : current.x + values[4]!,
 						y: absolute ? values[5]! : current.y + values[5]!,
 					};
-					const estimate = distance(current, control1) + distance(control1, control2) + distance(control2, end);
+					const estimate =
+						distance(current, control1) + distance(control1, control2) + distance(control2, end);
 					const segments = estimateCurveSegments(estimate, scale);
 					for (let segment = 1; segment <= segments; segment += 1) {
-						addPoint(contour, cubicBezierPoint(current, control1, control2, end, segment / segments));
+						addPoint(
+							contour,
+							cubicBezierPoint(current, control1, control2, end, segment / segments),
+						);
 					}
 					current = end;
 					previousCubicControl = control2;
@@ -484,11 +478,18 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 			case 'S': {
 				const contour = ensureContour();
 				while (index.value < tokens.length && !isCommandToken(tokens[index.value])) {
-					const values = [readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index)];
+					const values = [
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+					];
 					if (values.some((value) => value == null)) {
 						break;
 					}
-					const control1 = previousCubicControl ? reflect(previousCubicControl, current) : { ...current };
+					const control1 = previousCubicControl
+						? reflect(previousCubicControl, current)
+						: { ...current };
 					const control2 = {
 						x: absolute ? values[0]! : current.x + values[0]!,
 						y: absolute ? values[1]! : current.y + values[1]!,
@@ -497,10 +498,14 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 						x: absolute ? values[2]! : current.x + values[2]!,
 						y: absolute ? values[3]! : current.y + values[3]!,
 					};
-					const estimate = distance(current, control1) + distance(control1, control2) + distance(control2, end);
+					const estimate =
+						distance(current, control1) + distance(control1, control2) + distance(control2, end);
 					const segments = estimateCurveSegments(estimate, scale);
 					for (let segment = 1; segment <= segments; segment += 1) {
-						addPoint(contour, cubicBezierPoint(current, control1, control2, end, segment / segments));
+						addPoint(
+							contour,
+							cubicBezierPoint(current, control1, control2, end, segment / segments),
+						);
 					}
 					current = end;
 					previousCubicControl = control2;
@@ -511,7 +516,12 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 			case 'Q': {
 				const contour = ensureContour();
 				while (index.value < tokens.length && !isCommandToken(tokens[index.value])) {
-					const values = [readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index), readNumber(tokens, index)];
+					const values = [
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+						readNumber(tokens, index),
+					];
 					if (values.some((value) => value == null)) {
 						break;
 					}
@@ -542,9 +552,9 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 					if (x == null || y == null) {
 						break;
 					}
-						const control: SvgPoint = previousQuadraticControl
-							? reflect(previousQuadraticControl, current)
-							: { ...current };
+					const control: SvgPoint = previousQuadraticControl
+						? reflect(previousQuadraticControl, current)
+						: { ...current };
 					const end = {
 						x: absolute ? x : current.x + x,
 						y: absolute ? y : current.y + y,
@@ -593,8 +603,7 @@ export function parseSvgPathContours(pathData: string, scale = 1): SvgPathContou
 						current = end;
 						continue;
 					}
-					const arcLength =
-						Math.max(params.rx, params.ry) * Math.abs(params.deltaAngle);
+					const arcLength = Math.max(params.rx, params.ry) * Math.abs(params.deltaAngle);
 					const segments = estimateCurveSegments(arcLength, scale);
 					for (let segment = 1; segment <= segments; segment += 1) {
 						const angle = params.startAngle + (params.deltaAngle * segment) / segments;
@@ -642,13 +651,7 @@ export function createRectanglePoints(x: number, y: number, width: number, heigh
 	];
 }
 
-export function createEllipsePoints(
-	cx: number,
-	cy: number,
-	rx: number,
-	ry: number,
-	scale = 1,
-) {
+export function createEllipsePoints(cx: number, cy: number, rx: number, ry: number, scale = 1) {
 	const perimeter = Math.PI * (3 * (rx + ry) - Math.sqrt((3 * rx + ry) * (rx + 3 * ry)));
 	const segments = Math.max(16, Math.min(64, estimateCurveSegments(perimeter, scale)));
 	const points: SvgPoint[] = [];

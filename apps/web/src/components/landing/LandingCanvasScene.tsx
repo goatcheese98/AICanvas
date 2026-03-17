@@ -1,4 +1,4 @@
-import type { FormEventHandler, CSSProperties, ReactNode } from 'react';
+import type { CSSProperties, FormEventHandler, ReactNode } from 'react';
 import type { LandingStoryChapter } from './landing-content';
 
 type LandingCanvasSceneProps = {
@@ -13,7 +13,10 @@ type LandingCanvasSceneProps = {
 	onWaitlistSubmit: FormEventHandler<HTMLFormElement>;
 };
 
-function ToolbarIcon({ children, viewBox = '0 0 24 24' }: { children: ReactNode; viewBox?: string }) {
+function ToolbarIcon({
+	children,
+	viewBox = '0 0 24 24',
+}: { children: ReactNode; viewBox?: string }) {
 	return (
 		<svg
 			aria-hidden="true"
@@ -57,7 +60,12 @@ function BoardLogo({
 					stroke="currentColor"
 					strokeWidth="1.7"
 				/>
-				<path d="M9.4 9.1v7.3m0-7.3 4.9 7.2V9.6" fill="none" stroke="currentColor" strokeWidth="1.7" />
+				<path
+					d="M9.4 9.1v7.3m0-7.3 4.9 7.2V9.6"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="1.7"
+				/>
 			</svg>
 		);
 	}
@@ -85,7 +93,10 @@ function CanvasToolbar() {
 							d="M13.542 8.542H6.458a2.5 2.5 0 0 0-2.5 2.5v3.75a2.5 2.5 0 0 0 2.5 2.5h7.084a2.5 2.5 0 0 0 2.5-2.5v-3.75a2.5 2.5 0 0 0-2.5-2.5Z"
 							strokeWidth="1.25"
 						/>
-						<path d="M10 13.958a1.042 1.042 0 1 0 0-2.083 1.042 1.042 0 0 0 0 2.083Z" strokeWidth="1.25" />
+						<path
+							d="M10 13.958a1.042 1.042 0 1 0 0-2.083 1.042 1.042 0 0 0 0 2.083Z"
+							strokeWidth="1.25"
+						/>
 						<path
 							d="M6.4 9.56V5.18c0-.93.4-1.83 1.11-2.49A3.98 3.98 0 0 1 10.21 1.67c1.01 0 1.98.37 2.69 1.03.72.66 1.12 1.55 1.12 2.48"
 							strokeWidth="1.25"
@@ -450,7 +461,9 @@ function CanvasBoard({
 					<span className="landing-meta">Opening access</span>
 				</div>
 				<h2 className="landing-card-title">Join the waitlist</h2>
-				<p className="landing-card-copy">Get early access when RoopStudio opens its first release wave.</p>
+				<p className="landing-card-copy">
+					Get early access when RoopStudio opens its first release wave.
+				</p>
 				<label className="landing-board-form-label" htmlFor="landing-board-email">
 					Work email
 				</label>

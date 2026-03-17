@@ -6,8 +6,8 @@ describe('AIChatRunStatus', () => {
 	it('renders only an expand icon when the inline variant is collapsed', () => {
 		const onToggleExpanded = vi.fn();
 
-	render(
-		<AIChatRunStatus
+		render(
+			<AIChatRunStatus
 				runProgress={{
 					runId: 'run-1',
 					status: 'completed',
@@ -23,12 +23,12 @@ describe('AIChatRunStatus', () => {
 						},
 					],
 					artifacts: [],
-			}}
-			isExpanded={false}
-			onToggleExpanded={onToggleExpanded}
-			variant="inline-trigger"
-		/>,
-	);
+				}}
+				isExpanded={false}
+				onToggleExpanded={onToggleExpanded}
+				variant="inline-trigger"
+			/>,
+		);
 
 		expect(screen.queryByText('Assistant Activity')).toBeNull();
 		expect(screen.queryByText('Run completed')).toBeNull();

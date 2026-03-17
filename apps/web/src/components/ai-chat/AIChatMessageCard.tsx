@@ -1,17 +1,16 @@
+import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
 import type { ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
-import { filterVisibleArtifacts } from './assistant-artifacts';
+import { ArtifactCard } from './AIChatArtifactCard';
+import { CodeSnippet, CopyButton } from './AIChatArtifactPrimitives';
+import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import {
 	buildArtifactKey,
 	canApplyMessageAsPrototype,
 	canInsertMessageAsMarkdown,
 	canInsertMessageAsSvg,
 } from './ai-chat-helpers';
-import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
-import { ArtifactCard } from './AIChatArtifactCard';
-import { CodeSnippet, CopyButton } from './AIChatArtifactPrimitives';
 import type {
 	AssistantInsertionState,
 	AssistantPatchApplyOptions,
@@ -19,6 +18,7 @@ import type {
 	DiagramInsertInput,
 	MarkdownPatchReviewState,
 } from './ai-chat-types';
+import { filterVisibleArtifacts } from './assistant-artifacts';
 
 export function MessageCard({
 	message,
@@ -113,11 +113,18 @@ export function MessageCard({
 			}`}
 		>
 			<div className="mb-1.5 flex items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-[0.18em] opacity-70">
-				<span>{isUser ? 'You' : message.generationMode ?? 'Assistant'}</span>
+				<span>{isUser ? 'You' : (message.generationMode ?? 'Assistant')}</span>
 				<div className="flex items-center gap-2">
-					<span>{new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+					<span>
+						{new Date(message.createdAt).toLocaleTimeString([], {
+							hour: '2-digit',
+							minute: '2-digit',
+						})}
+					</span>
 					{!isUser && headerAccessory ? headerAccessory : null}
-					{!isUser ? <CopyButton value={message.content} label="Copy" className="h-7 px-2 text-[9px]" /> : null}
+					{!isUser ? (
+						<CopyButton value={message.content} label="Copy" className="h-7 px-2 text-[9px]" />
+					) : null}
 				</div>
 			</div>
 			{!isUser && headerDetails ? <div className="mb-3">{headerDetails}</div> : null}
@@ -132,10 +139,14 @@ export function MessageCard({
 							strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
 							em: ({ children }) => <em className="italic">{children}</em>,
 							ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-4">{children}</ul>,
-							ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-4">{children}</ol>,
+							ol: ({ children }) => (
+								<ol className="mb-2 list-decimal space-y-0.5 pl-4">{children}</ol>
+							),
 							li: ({ children }) => <li className="text-[13px]">{children}</li>,
 							h1: ({ children }) => <h1 className="mb-2 text-[15px] font-semibold">{children}</h1>,
-							h2: ({ children }) => <h2 className="mb-1.5 text-[13px] font-semibold">{children}</h2>,
+							h2: ({ children }) => (
+								<h2 className="mb-1.5 text-[13px] font-semibold">{children}</h2>
+							),
 							h3: ({ children }) => <h3 className="mb-1 text-[13px] font-medium">{children}</h3>,
 							code: ({ node, className, children, ...props }) => {
 								const isBlock =

@@ -1,10 +1,10 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
-	getOverlayDefinition,
-	isOverlayType,
 	type OverlayUpdatePayloadMap,
 	type TypedOverlayCanvasElement,
+	getOverlayDefinition,
+	isOverlayType,
 } from './overlay-definitions';
 
 export function collectOverlayElements(
@@ -23,7 +23,10 @@ export function applyOverlayUpdateByType<K extends OverlayType>(
 	element: TypedOverlayCanvasElement,
 	payload: OverlayUpdatePayloadMap[K],
 ): TypedOverlayCanvasElement {
-	return getOverlayDefinition(type).applyUpdate(element as never, payload as never) as TypedOverlayCanvasElement;
+	return getOverlayDefinition(type).applyUpdate(
+		element as never,
+		payload as never,
+	) as TypedOverlayCanvasElement;
 }
 
 /**

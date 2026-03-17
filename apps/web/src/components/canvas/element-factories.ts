@@ -1,11 +1,8 @@
-import type {
-	OverlayType,
-	OverlayCustomData,
-} from '@ai-canvas/shared/types';
-import type { AppState } from '@excalidraw/excalidraw/types';
+import type { OverlayCustomData, OverlayType } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { normalizeSceneElement } from './scene-element-normalizer';
+import type { AppState } from '@excalidraw/excalidraw/types';
 import { getOverlayDefinition } from './overlay-definitions';
+import { normalizeSceneElement } from './scene-element-normalizer';
 
 interface CreateOverlayElementOptions {
 	type: OverlayType;
@@ -95,9 +92,7 @@ export function getViewportSceneCenter(appState: Partial<AppState>): SceneCenter
  * This will be used with the Excalidraw API to mutate elements:
  *   api.updateScene({ elements: [...elements, newElement] })
  */
-export function createOverlayCustomData(
-	options: CreateOverlayElementOptions,
-): OverlayCustomData {
+export function createOverlayCustomData(options: CreateOverlayElementOptions): OverlayCustomData {
 	return getOverlayDefinition(options.type).createCustomData(options);
 }
 
@@ -126,8 +121,11 @@ export function createOverlayElementDraft(
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,
 		backgroundColor: isPrototype ? '#fcfcfb' : isTextNote ? DEFAULT_NOTE_BACKGROUND : '#ffffff',
-		strokeColor:
-			isPrototype ? DEFAULT_NOTE_STROKE : isRichText ? DEFAULT_RICH_TEXT_STROKE : DEFAULT_NOTE_STROKE,
+		strokeColor: isPrototype
+			? DEFAULT_NOTE_STROKE
+			: isRichText
+				? DEFAULT_RICH_TEXT_STROKE
+				: DEFAULT_NOTE_STROKE,
 		strokeWidth: 1,
 		strokeStyle: 'solid',
 		roughness: 0,

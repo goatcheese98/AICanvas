@@ -1,8 +1,8 @@
+import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { CanvasCore } from './CanvasCore';
-import { useAppStore } from '@/stores/store';
 
 let latestExcalidrawProps: Record<string, unknown> | null = null;
 
@@ -43,11 +43,7 @@ describe('CanvasCore', () => {
 		const onSaveNeeded = vi.fn();
 
 		render(
-			<CanvasCore
-				canvasId="canvas-1"
-				onSceneChange={onSceneChange}
-				onSaveNeeded={onSaveNeeded}
-			/>,
+			<CanvasCore canvasId="canvas-1" onSceneChange={onSceneChange} onSaveNeeded={onSaveNeeded} />,
 		);
 
 		expect(latestExcalidrawProps).not.toBeNull();
@@ -79,11 +75,13 @@ describe('CanvasCore', () => {
 		};
 
 		act(() => {
-			(latestExcalidrawProps?.onChange as (
-				elements: readonly ExcalidrawElement[],
-				appState: typeof sourceAppState,
-				files: typeof sourceFiles,
-			) => void)(sourceElements, sourceAppState, sourceFiles);
+			(
+				latestExcalidrawProps?.onChange as (
+					elements: readonly ExcalidrawElement[],
+					appState: typeof sourceAppState,
+					files: typeof sourceFiles,
+				) => void
+			)(sourceElements, sourceAppState, sourceFiles);
 		});
 
 		const state = useAppStore.getState();
@@ -250,11 +248,13 @@ describe('CanvasCore', () => {
 		const sourceFiles = {};
 
 		act(() => {
-			(latestExcalidrawProps?.onChange as (
-				elements: readonly ExcalidrawElement[],
-				appState: typeof sourceAppState,
-				files: typeof sourceFiles,
-			) => void)(sourceElements, sourceAppState, sourceFiles);
+			(
+				latestExcalidrawProps?.onChange as (
+					elements: readonly ExcalidrawElement[],
+					appState: typeof sourceAppState,
+					files: typeof sourceFiles,
+				) => void
+			)(sourceElements, sourceAppState, sourceFiles);
 		});
 
 		expect(updateScene).toHaveBeenCalledWith({

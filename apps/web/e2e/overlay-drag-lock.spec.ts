@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { type Locator, type Page, expect, test } from '@playwright/test';
 
 type Bounds = { x: number; y: number; width: number; height: number };
 
@@ -122,9 +122,7 @@ test.describe('overlay drag lock regression', () => {
 		await expectLocked(page, insertedKanbanId);
 	});
 
-	test('overlays stay locked to live references while the viewport is panned', async ({
-		page,
-	}) => {
+	test('overlays stay locked to live references while the viewport is panned', async ({ page }) => {
 		await page.goto('/experiments/overlay-regression');
 		await expect(page.getByTestId('overlay-regression-api-state')).toHaveText('API: ready');
 

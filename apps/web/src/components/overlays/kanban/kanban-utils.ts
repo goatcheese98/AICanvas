@@ -1,4 +1,7 @@
-import { createStarterKanbanColumns as createSharedStarterKanbanColumns, normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
+import {
+	createStarterKanbanColumns as createSharedStarterKanbanColumns,
+	normalizeKanbanOverlay,
+} from '@ai-canvas/shared/schemas';
 import type { KanbanCard, KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const MAX_HISTORY_ENTRIES = 100;
@@ -47,7 +50,9 @@ export function serializeKanbanBoard(board: KanbanOverlayCustomData) {
 	return JSON.stringify(board);
 }
 
-export function normalizeKanbanBoard(board: Partial<KanbanOverlayCustomData> | null | undefined): KanbanOverlayCustomData {
+export function normalizeKanbanBoard(
+	board: Partial<KanbanOverlayCustomData> | null | undefined,
+): KanbanOverlayCustomData {
 	return normalizeKanbanOverlay(board);
 }
 
@@ -99,7 +104,9 @@ export function moveKanbanCard(
 	toColumnId: string,
 	overCardId?: string | null,
 ): KanbanOverlayCustomData {
-	const fromColumn = board.columns.find((column) => column.cards.some((card) => card.id === cardId));
+	const fromColumn = board.columns.find((column) =>
+		column.cards.some((card) => card.id === cardId),
+	);
 	if (!fromColumn) return board;
 
 	const sourceCardIndex = fromColumn.cards.findIndex((card) => card.id === cardId);

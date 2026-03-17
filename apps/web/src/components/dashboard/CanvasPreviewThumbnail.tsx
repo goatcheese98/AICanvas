@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
 import { getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
+import { useAuth } from '@clerk/clerk-react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
 interface CanvasPreviewThumbnailProps {
 	canvasId: string;
@@ -24,9 +24,12 @@ export function CanvasPreviewThumbnail({
 		queryFn: async () => {
 			try {
 				const headers = await getRequiredAuthHeaders(getToken);
-				const response = await fetch(toApiUrl(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`), {
-					headers,
-				});
+				const response = await fetch(
+					toApiUrl(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`),
+					{
+						headers,
+					},
+				);
 
 				if (response.status === 404) {
 					return null;

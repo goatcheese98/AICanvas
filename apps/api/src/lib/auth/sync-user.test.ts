@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { syncAuthenticatedUser } from './sync-user';
-import type { Database } from '../db/client';
 import type { AuthUser } from '../../types';
+import type { Database } from '../db/client';
+import { syncAuthenticatedUser } from './sync-user';
 
 function createMockDb() {
 	const deleteWhere = vi.fn().mockResolvedValue(undefined);

@@ -21,6 +21,9 @@ export function buildPersistedCanvasData(
 	};
 }
 
-export function shouldWaitForCanvasHydration(status: QueryStatus, fetchStatus: FetchStatus): boolean {
+export function shouldWaitForCanvasHydration(
+	status: QueryStatus,
+	fetchStatus: FetchStatus,
+): boolean {
 	return status === 'pending' || fetchStatus === 'fetching';
 }

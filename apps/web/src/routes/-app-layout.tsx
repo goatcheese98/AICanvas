@@ -1,5 +1,5 @@
-import { Outlet } from '@tanstack/react-router';
 import { useAuth } from '@clerk/clerk-react';
+import { Outlet } from '@tanstack/react-router';
 import { ClerkRouteProvider } from './-clerk-provider';
 
 function AuthenticatedOutlet() {

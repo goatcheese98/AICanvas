@@ -1,6 +1,6 @@
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
-import { buildPrototypeFromMessageContent, filterVisibleArtifacts } from './assistant-artifacts';
 import type { AssistantPatchApplyState, PatchArtifactDescriptor } from './ai-chat-types';
+import { buildPrototypeFromMessageContent, filterVisibleArtifacts } from './assistant-artifacts';
 
 export function clonePatchCustomData<T extends Record<string, unknown>>(value: T): T {
 	if (typeof structuredClone === 'function') {

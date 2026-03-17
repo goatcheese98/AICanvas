@@ -2,8 +2,8 @@
 
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { AuthRedirectCallbackPage } from './-oauth-callback-view';
 import { LoginPage } from './-login-view';
+import { AuthRedirectCallbackPage } from './-oauth-callback-view';
 import { SignupPage } from './-signup-view';
 
 const signInSpy = vi.fn();

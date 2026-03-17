@@ -50,7 +50,15 @@ export function LexicalCommentComposer({
 				}}
 			>
 				<div>
-					<div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#78716c' }}>
+					<div
+						style={{
+							fontSize: 12,
+							fontWeight: 700,
+							letterSpacing: '0.16em',
+							textTransform: 'uppercase',
+							color: '#78716c',
+						}}
+					>
 						New Comment
 					</div>
 					<div style={{ marginTop: 4, fontSize: 14, color: '#57534e' }}>

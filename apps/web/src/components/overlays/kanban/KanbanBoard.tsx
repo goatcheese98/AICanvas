@@ -1,20 +1,20 @@
-import { useEffect, useMemo } from 'react';
-import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { getExcalidrawSurfaceStyle } from '@/components/canvas/excalidraw-element-style';
+import { OverlaySurface } from '@/components/overlays/overlay-surface';
+import { useEffect, useMemo } from 'react';
 import { KanbanBoardContainer } from './KanbanBoardContainer';
-import { getLabelTone } from './kanban-card-helpers';
 import type { KanbanBoardProps } from './kanban-board-types';
-import { normalizeKanbanBoard } from './kanban-utils';
+import { getLabelTone } from './kanban-card-helpers';
 import {
+	KANBAN_ACCENT_BORDER,
+	KANBAN_ACCENT_SURFACE,
+	KANBAN_ACCENT_TEXT,
 	clampKanbanFontSize,
 	formatDueDate,
 	getKanbanBackgroundTheme,
 	getKanbanFontOption,
 	isKanbanCardOverdue,
-	KANBAN_ACCENT_BORDER,
-	KANBAN_ACCENT_SURFACE,
-	KANBAN_ACCENT_TEXT,
 } from './kanban-theme';
+import { normalizeKanbanBoard } from './kanban-utils';
 
 const PREVIEW_PRIORITY_META = {
 	low: {
@@ -79,7 +79,10 @@ function KanbanPreviewBoard({
 			<div className="flex h-full flex-col bg-white/42 backdrop-blur-[1px]">
 				<div className="flex min-h-16 items-center justify-between gap-3 border-b border-stone-200/80 px-5 py-3">
 					<div className="min-w-0">
-						<div className="truncate font-semibold text-stone-900" style={{ fontSize: `${fontSize + 2}px` }}>
+						<div
+							className="truncate font-semibold text-stone-900"
+							style={{ fontSize: `${fontSize + 2}px` }}
+						>
 							{board.title}
 						</div>
 					</div>
@@ -120,7 +123,8 @@ function KanbanPreviewBoard({
 												className="rounded-[18px] border px-4 py-3 text-xs text-stone-600 shadow-[0_18px_34px_-30px_rgba(15,23,42,0.22)]"
 												style={{
 													borderColor: activeTheme.borderTone,
-													backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 98%, white)',
+													backgroundColor:
+														'color-mix(in srgb, var(--color-surface-strong) 98%, white)',
 													minHeight: '6.5rem',
 												}}
 											>
@@ -163,7 +167,9 @@ function KanbanPreviewBoard({
 																color: 'var(--color-text-secondary)',
 															}}
 														>
-															<span>{doneCount}/{checklist.length}</span>
+															<span>
+																{doneCount}/{checklist.length}
+															</span>
 														</span>
 													) : null}
 
@@ -215,7 +221,9 @@ function KanbanPreviewBoard({
 													<div
 														className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em]"
 														style={{
-															color: isOverdue ? 'var(--color-danger-text)' : 'var(--color-text-secondary)',
+															color: isOverdue
+																? 'var(--color-danger-text)'
+																: 'var(--color-text-secondary)',
 														}}
 													>
 														{isOverdue ? 'Overdue' : 'Due'} {formatDueDate(card.dueDate)}

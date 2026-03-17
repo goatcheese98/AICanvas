@@ -1,5 +1,3 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AssistantMessage, AssistantThread } from '@ai-canvas/shared/types';
 import {
 	createAssistantThread,
 	deleteAssistantThread,
@@ -7,6 +5,8 @@ import {
 	getRequiredAuthHeaders,
 } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
+import type { AssistantMessage, AssistantThread } from '@ai-canvas/shared/types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export function useAIChatThreads({
 	canvasId,

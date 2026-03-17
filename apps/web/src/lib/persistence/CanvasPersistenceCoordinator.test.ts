@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CanvasPersistenceCoordinator, type CanvasData } from './CanvasPersistenceCoordinator';
+import { type CanvasData, CanvasPersistenceCoordinator } from './CanvasPersistenceCoordinator';
 
 const sampleData: CanvasData = {
 	elements: [{ id: 'a' }],

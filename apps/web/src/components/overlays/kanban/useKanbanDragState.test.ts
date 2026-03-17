@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { dragReducer, type DragState } from './useKanbanDragState';
+import { type DragState, dragReducer } from './useKanbanDragState';
 
 describe('dragReducer', () => {
 	it('tracks delete targeting for card drags without losing the active card', () => {
-		const started = dragReducer({ mode: 'idle' }, { type: 'CARD_START', cardId: 'card-1', fromColumnId: 'todo' });
+		const started = dragReducer(
+			{ mode: 'idle' },
+			{ type: 'CARD_START', cardId: 'card-1', fromColumnId: 'todo' },
+		);
 		const targeted = dragReducer(started, { type: 'CARD_DELETE_TARGET' });
 
 		expect(targeted).toEqual({
