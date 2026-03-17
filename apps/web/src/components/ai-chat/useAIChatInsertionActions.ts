@@ -331,22 +331,64 @@ export function useAIChatInsertionActions({
 				y: sceneCenter.y - (bounds.top + bounds.height / 2),
 			});
 
-			// Group consecutive elements by backgroundColor — each unique color is one SVG layer.
-			// Elements are pre-sorted lightest→darkest, so layers build up naturally.
+			// Group ALL elements by their backgroundColor into distinct color layers.
+			// "Max layers" (not max elements) is the correct cap: each rendering pass
+			// inserts all elements of one color simultaneously, building the image
+			// layer by layer like a painter — large base shapes first, details last.
+			// This prevents individual elements from landing at wrong z-depths.
 			type ElementWithBg = ExcalidrawElement & { backgroundColor?: string };
-			const layers: ExcalidrawElement[][] = [];
-			let currentBatch: ExcalidrawElement[] = [];
-			let currentFill: string | undefined;
+			const MAX_LAYERS = 20;
+			const colorMap = new Map<string, ExcalidrawElement[]>();
 			for (const el of positioned) {
-				const fill = (el as ElementWithBg).backgroundColor;
-				if (fill !== currentFill && currentBatch.length > 0) {
-					layers.push(currentBatch);
-					currentBatch = [];
-				}
-				currentFill = fill;
-				currentBatch.push(el);
+				const fill = (el as ElementWithBg).backgroundColor ?? 'transparent';
+				const group = colorMap.get(fill) ?? [];
+				group.push(el);
+				colorMap.set(fill, group);
 			}
-			if (currentBatch.length > 0) layers.push(currentBatch);
+
+			// Sort color groups by their largest element's bounding-box area:
+			// large regions (body fills) render first/behind, small details last/on top.
+			// Stroke-only outlines (transparent background) always go last so they
+			// draw over fills — they don't cover fills since backgroundColor is transparent.
+			const sortedGroups = [...colorMap.entries()]
+				.map(([color, els]) => ({
+					color,
+					elements: els,
+					area: Math.max(...els.map((el) => (el.width ?? 0) * (el.height ?? 0))),
+				}))
+				.sort((a, b) => {
+					if (a.color === 'transparent') return 1;
+					if (b.color === 'transparent') return -1;
+					return b.area - a.area;
+				});
+
+			// Merge overflow groups into adjacent layers to honour MAX_LAYERS.
+			// Smallest groups merge into the preceding layer (least disruptive visually).
+			while (sortedGroups.length > MAX_LAYERS) {
+				const last = sortedGroups.pop()!;
+				sortedGroups[sortedGroups.length - 1].elements.push(...last.elements);
+			}
+
+			// Assign nested groupIds so layers are independently selectable:
+			//   single-click  → select the element
+			//   double-click  → select the color layer (all elements of this color)
+			//   triple-click  → select the entire vectorized image
+			// groupIds[0] = layer group (inner), groupIds[1] = overall group (outer).
+			const overallGroupId =
+				(positioned[0] as ExcalidrawElement & { groupIds?: string[] })?.groupIds?.[0]
+				?? crypto.randomUUID();
+			const layers = sortedGroups.map((g, i) => {
+				const layerGroupId = `${overallGroupId}-layer-${i}`;
+				return g.elements.map((el) => ({
+					...el,
+					groupIds: [layerGroupId, overallGroupId],
+				})) as ExcalidrawElement[];
+			});
+
+			console.log(
+				`[VectorInsertion] ${positioned.length} elements → ${layers.length} layers`,
+				layers.map((l, i) => `L${i + 1}(${l.length})`).join(' '),
+			);
 
 			// Insert one layer at a time so each fill layer renders before the next is placed.
 			// This creates a visible build-up and prevents Excalidraw from rendering all
@@ -387,7 +429,8 @@ export function useAIChatInsertionActions({
 		): Promise<NativeVectorCompileResult> => {
 			try {
 				return await vectorizeRasterBlobToSketchElements(blob, {
-					maxElements: 120,
+					maxElements: 60,
+					controls: { colorPalette: 10 },
 					customData,
 				});
 			} catch {
@@ -397,7 +440,7 @@ export function useAIChatInsertionActions({
 				});
 				return compileSvgToExcalidraw(svgMarkup, {
 					maxPointsPerElement: 36,
-					maxElementCount: 120,
+					maxElementCount: 60,
 					customData,
 				});
 			}

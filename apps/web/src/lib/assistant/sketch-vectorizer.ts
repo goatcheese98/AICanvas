@@ -600,10 +600,25 @@ function assignLabels(
 
 function detectBackgroundLabels(centers: RGB[], counts: Uint32Array) {
 	const backgroundLabels = new Set<number>();
-	let mainIndex = 0;
-	for (let index = 1; index < counts.length; index += 1) {
-		if (counts[index] > counts[mainIndex]) {
+
+	// Background must be BRIGHT (near-white), not merely the most common cluster.
+	// Using pixel count misidentifies colored subjects (bus body, dog fur) as
+	// background when they cover a large fraction of the image.
+	let mainIndex = -1;
+	for (let index = 0; index < centers.length; index += 1) {
+		if (
+			brightness(centers[index]) > 220 &&
+			(mainIndex === -1 || brightness(centers[index]) > brightness(centers[mainIndex]))
+		) {
 			mainIndex = index;
+		}
+	}
+	// Fallback: if no cluster is bright enough, use the brightest one available.
+	if (mainIndex === -1) {
+		for (let index = 0; index < centers.length; index += 1) {
+			if (mainIndex === -1 || brightness(centers[index]) > brightness(centers[mainIndex])) {
+				mainIndex = index;
+			}
 		}
 	}
 	backgroundLabels.add(mainIndex);
@@ -1136,12 +1151,18 @@ async function runLayeredVectorization(
 		const components = extractComponents(openedMask, decoded.width, decoded.height);
 		componentsFound += components.length;
 
-		for (const component of components) {
-			if (component.area < minArea) {
-				componentsFiltered += 1;
-				continue;
-			}
+		// Keep all components above minArea — no per-cluster cap.
+		// The overall maxElements budget and 20-layer ceiling act as the safety valves.
+		const eligible = components
+			.filter((c) => c.area >= minArea)
+			.sort((a, b) => b.area - a.area);
+		componentsFiltered += components.length - eligible.length;
 
+		if (eligible.length === 0) {
+			continue;
+		}
+
+		for (const component of eligible) {
 			const loops = buildBoundaryLoops(component, openedMask, decoded.width, decoded.height);
 			if (loops.length === 0) {
 				continue;
@@ -1227,7 +1248,7 @@ async function runLayeredVectorization(
 			groupId,
 			{
 				strokeColor: '#050505',
-				backgroundColor: '#050505',
+				backgroundColor: 'transparent', // stroke-only — prevents solid dark fill from covering colored shapes
 				strokeWidth: clamp(controls.edgeSensitivity / 20, 1.15, 2.7),
 				roughness: 0,
 			},
@@ -1242,14 +1263,15 @@ async function runLayeredVectorization(
 
 	const maxElements =
 		options?.maxElements ?? MAX_ELEMENTS_BY_COMPLEXITY[controls.complexity];
-	const reservedForOutlines = Math.min(
-		outlineCandidates.length,
-		Math.max(12, Math.floor(maxElements * 0.3)),
-	);
-	const fillBudget = Math.max(0, maxElements - reservedForOutlines);
+	// Outline budget is kept very small: the fill color layers already provide
+	// structure, so outlines are only used for the 2-3 most prominent edge loops.
+	// The old 30% budget (18 outlines with maxElements=60) was the reason the
+	// element count always landed at exactly 26 (8 fills + 18 outlines).
+	const outlineBudget = Math.min(outlineCandidates.length, 3);
+	const fillBudget = Math.max(0, maxElements - outlineBudget);
 	const emittedSkeletons = [
-		...fillCandidates.slice(0, fillBudget),
-		...outlineCandidates.slice(0, maxElements - Math.min(fillBudget, fillCandidates.length)),
+		...outlineCandidates.slice(0, outlineBudget), // outlines behind fills
+		...fillCandidates.slice(0, fillBudget),        // fills on top of outlines
 	].map((candidate) => candidate.skeleton);
 
 	if (emittedSkeletons.length === 0) {

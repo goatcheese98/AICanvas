@@ -280,22 +280,6 @@ function morphOpen(mask: Uint8Array, width: number, height: number): Uint8Array 
 	return morphDilate(morphErode(mask, width, height), width, height);
 }
 
-// ─── Chaikin curve smoothing ──────────────────────────────────────────────────
-
-function chaikinSmooth(points: SvgPoint[], closed: boolean): SvgPoint[] {
-	if (points.length < 3) return points;
-	const result: SvgPoint[] = [];
-	const n = closed ? points.length : points.length - 1;
-	for (let i = 0; i < n; i += 1) {
-		const p0 = points[i];
-		const p1 = points[(i + 1) % points.length];
-		result.push({ x: 0.75 * p0.x + 0.25 * p1.x, y: 0.75 * p0.y + 0.25 * p1.y });
-		result.push({ x: 0.25 * p0.x + 0.75 * p1.x, y: 0.25 * p0.y + 0.75 * p1.y });
-	}
-	if (!closed) result.push(points[points.length - 1]);
-	return result;
-}
-
 // ─── Component pruning ────────────────────────────────────────────────────────
 
 function pruneSmallComponents(
@@ -338,6 +322,106 @@ function pruneSmallComponents(
 	}
 
 	return result;
+}
+
+// ─── Dominant region extraction ───────────────────────────────────────────────
+
+/**
+ * Returns a mask containing only the single largest connected component.
+ * Discards shadows, reflections, and disconnected anti-aliasing artifacts so
+ * each color cluster produces exactly one dominant spatial shape.
+ */
+function largestComponent(mask: Uint8Array, width: number, _height: number): Uint8Array {
+	const result = new Uint8Array(mask.length);
+	const visited = new Uint8Array(mask.length);
+	let best: number[] = [];
+
+	for (let start = 0; start < mask.length; start += 1) {
+		if (!mask[start] || visited[start]) continue;
+		const component: number[] = [];
+		const stack = [start];
+		visited[start] = 1;
+		while (stack.length > 0) {
+			const idx = stack.pop() ?? start;
+			component.push(idx);
+			const x = idx % width;
+			const neighbors = [
+				idx - width,
+				idx + width,
+				x > 0 ? idx - 1 : -1,
+				x < width - 1 ? idx + 1 : -1,
+			];
+			for (const n of neighbors) {
+				if (n >= 0 && n < mask.length && !visited[n] && mask[n]) {
+					visited[n] = 1;
+					stack.push(n);
+				}
+			}
+		}
+		if (component.length > best.length) best = component;
+	}
+
+	for (const idx of best) result[idx] = 1;
+	return result;
+}
+
+/**
+ * Computes the convex hull of all set pixels in a mask using only
+ * row-boundary candidates (leftmost + rightmost pixel per row).
+ * Row-boundary pixels fully determine the convex hull — no interior pixel
+ * can be a hull vertex — so this is both exact and O(height) in candidate count.
+ */
+function maskConvexHull(mask: Uint8Array, width: number, height: number): SvgPoint[] {
+	const candidates: SvgPoint[] = [];
+	for (let y = 0; y < height; y += 1) {
+		let left = -1;
+		let right = -1;
+		for (let x = 0; x < width; x += 1) {
+			if (mask[y * width + x]) {
+				if (left < 0) left = x;
+				right = x;
+			}
+		}
+		if (left >= 0) {
+			candidates.push({ x: left + 0.5, y: y + 0.5 });
+			if (right !== left) candidates.push({ x: right + 0.5, y: y + 0.5 });
+		}
+	}
+	if (candidates.length < 3) return candidates;
+
+	// Graham scan
+	let lo = 0;
+	for (let i = 1; i < candidates.length; i += 1) {
+		if (
+			candidates[i].y > candidates[lo].y ||
+			(candidates[i].y === candidates[lo].y && candidates[i].x < candidates[lo].x)
+		) {
+			lo = i;
+		}
+	}
+	const pivot = candidates[lo];
+	const rest = candidates.filter((_, i) => i !== lo).sort((a, b) => {
+		const cross =
+			(a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
+		if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
+		return (
+			(a.x - pivot.x) ** 2 +
+			(a.y - pivot.y) ** 2 -
+			((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
+		);
+	});
+	const hull: SvgPoint[] = [pivot];
+	for (const p of rest) {
+		while (hull.length >= 2) {
+			const a = hull[hull.length - 2];
+			const b = hull[hull.length - 1];
+			const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+			if (cross <= 0) hull.pop();
+			else break;
+		}
+		hull.push(p);
+	}
+	return hull.length >= 3 ? hull : candidates;
 }
 
 // ─── Contour tracing (marching squares) ──────────────────────────────────────
@@ -586,6 +670,79 @@ function renderImageToCanvas(image: HTMLImageElement, options?: VectorizeRasterO
 	return { width, height, imageData: ctx.getImageData(0, 0, width, height) };
 }
 
+// ─── Color cluster merging ────────────────────────────────────────────────────
+
+/**
+ * Merges k-means clusters whose RGB centroids are within `threshold` Euclidean
+ * distance. Reduces element count for images with near-identical color regions
+ * (e.g. dark body with slight gradient, JPEG boundary artifacts).
+ * Uses union-find for O(k²) merge detection, then re-labels the pixel array.
+ */
+function mergeSimilarCenters(
+	centers: RgbaColor[],
+	labels: Int32Array,
+	threshold: number,
+): { centers: RgbaColor[]; labels: Int32Array } {
+	const n = centers.length;
+	if (n <= 1) return { centers, labels };
+
+	const parent = Array.from({ length: n }, (_, i) => i);
+	const find = (x: number): number => {
+		while (parent[x] !== x) {
+			parent[x] = parent[parent[x]];
+			x = parent[x];
+		}
+		return x;
+	};
+
+	const sq = threshold * threshold;
+	for (let i = 0; i < n; i += 1) {
+		for (let j = i + 1; j < n; j += 1) {
+			const dr = centers[i].r - centers[j].r;
+			const dg = centers[i].g - centers[j].g;
+			const db = centers[i].b - centers[j].b;
+			if (dr * dr + dg * dg + db * db <= sq) {
+				const ri = find(i);
+				const rj = find(j);
+				if (ri !== rj) parent[rj] = ri;
+			}
+		}
+	}
+
+	const groupAccum = new Map<number, { r: number; g: number; b: number; count: number }>();
+	for (let i = 0; i < n; i += 1) {
+		const root = find(i);
+		const acc = groupAccum.get(root) ?? { r: 0, g: 0, b: 0, count: 0 };
+		acc.r += centers[i].r;
+		acc.g += centers[i].g;
+		acc.b += centers[i].b;
+		acc.count += 1;
+		groupAccum.set(root, acc);
+	}
+
+	const rootOrder: number[] = [];
+	for (const root of groupAccum.keys()) rootOrder.push(root);
+	rootOrder.sort((a, b) => a - b);
+
+	const newCenters: RgbaColor[] = rootOrder.map((root) => {
+		const acc = groupAccum.get(root)!;
+		return {
+			r: Math.round(acc.r / acc.count),
+			g: Math.round(acc.g / acc.count),
+			b: Math.round(acc.b / acc.count),
+			a: 255,
+		};
+	});
+
+	const rootToNew = new Map(rootOrder.map((root, ni) => [root, ni]));
+	const newLabels = new Int32Array(labels.length);
+	for (let i = 0; i < labels.length; i += 1) {
+		newLabels[i] = rootToNew.get(find(labels[i])) ?? 0;
+	}
+
+	return { centers: newCenters, labels: newLabels };
+}
+
 // ─── Core vectorization ───────────────────────────────────────────────────────
 
 export function vectorizeImageDataToSvg(
@@ -598,8 +755,12 @@ export function vectorizeImageDataToSvg(
 	// Bilateral filter: edge-preserving denoising before quantization
 	const filtered = applyBilateralFilter(imageData);
 
-	// K-Means++ quantization
-	const { centers, labels } = kmeansQuantize(filtered, maxColors);
+	// K-Means++ quantization, then merge perceptually near-identical clusters.
+	// A merge threshold of 30 RGB units collapses slight color variants (e.g.
+	// a black bezel at #050505 and a near-black shadow at #1a1818) into one
+	// region, naturally reducing element count without losing visible structure.
+	const quantized = kmeansQuantize(filtered, maxColors);
+	const { centers, labels } = mergeSimilarCenters(quantized.centers, quantized.labels, 30);
 
 	// Background: lightest cluster with luminance > 220 (genuine light/white bg).
 	// If none qualifies, bgIndex = -1 and all clusters become foreground.
@@ -616,11 +777,15 @@ export function vectorizeImageDataToSvg(
 		bgLuminance = Math.max(...centers.map(luminance));
 	}
 
-	// Monochrome detection: all foreground clusters are dark and desaturated
+	// Monochrome detection: ALL foreground clusters must be genuinely achromatic
+	// (saturation < 15) — this is true for scanned pen sketches but NOT for
+	// colored digital renders like a tablet with a blue/gray screen.
+	// The old threshold of 30 incorrectly classified tablet images as monochrome,
+	// routing them through skeleton tracing and producing 80+ elements.
 	const fgCenters = bgIndex >= 0 ? centers.filter((_, i) => i !== bgIndex) : centers;
 	const isMostlyMonochrome =
 		fgCenters.length > 0 &&
-		fgCenters.every((c) => saturation(c) < 30) &&
+		fgCenters.every((c) => saturation(c) < 15) &&
 		fgCenters.some((c) => luminance(c) < bgLuminance - 50);
 
 	// Prune components smaller than ~0.4% of total pixels — aggressively removes
@@ -640,10 +805,14 @@ export function vectorizeImageDataToSvg(
 		const pruned = pruneSmallComponents(opened, width, height, minArea);
 		const thinned = thinMask(pruned, width, height);
 
+		// Cap at 20 paths to prevent element explosion on complex dark silhouettes.
+		// Skeleton tracing of a rounded rectangle body can produce hundreds of tiny
+		// segments; keeping the longest paths preserves the main structure.
 		let paths: TracedPath[] = traceSkeletonPaths(thinned, width, height)
 			.map((p) => ({ ...p, points: simplifyLoop(p.points, 1, 1) }))
 			.filter((p) => p.points.length >= 2 && pathLength(p.points) >= 3)
-			.sort((a, b) => b.points.length - a.points.length);
+			.sort((a, b) => b.points.length - a.points.length)
+			.slice(0, 20);
 
 		if (paths.length === 0) {
 			paths = traceMaskContours(pruned, width, height)
@@ -684,20 +853,23 @@ export function vectorizeImageDataToSvg(
 		const rawMask = new Uint8Array(width * height);
 		for (let i = 0; i < rawMask.length; i += 1) rawMask[i] = labels[i] === ci ? 1 : 0;
 
-		// Double morphClose: each pass closes 1-pixel cracks; two passes close the
-		// 2-pixel boundary artifacts from anti-aliasing and JPEG compression.
-		const clusterMask = pruneSmallComponents(
-			morphClose(morphClose(rawMask, width, height), width, height),
-			width, height, minArea,
-		);
+		// Double morphClose closes 2-pixel gaps from anti-aliasing; then keep only
+		// the single largest connected component to eliminate disconnected fragments.
+		const closedMask = morphClose(morphClose(rawMask, width, height), width, height);
+		const dominantMask = largestComponent(closedMask, width, height);
 
-		const loops = traceMaskContours(clusterMask, width, height)
-			.map((loop) => chaikinSmooth(simplifyLoop(loop, 1, 1), true))
-			.filter((loop) => Math.abs(computeSignedArea(loop)) >= 3)
-			.sort((a, b) => Math.abs(computeSignedArea(b)) - Math.abs(computeSignedArea(a)));
+		let dominantPixels = 0;
+		for (let i = 0; i < dominantMask.length; i += 1) dominantPixels += dominantMask[i];
+		if (dominantPixels < minArea) continue;
 
-		if (loops.length > 0) {
-			layers.push({ fill: colorToHex(centers[ci]), paths: loops.map(polygonPath), pixelCount: pixelCounts[ci] });
+		// Convex hull of dominant mask pixels → exactly one convex polygon per color.
+		// Convex polygons are guaranteed safe for Rough.js and never go transparent.
+		const hullPoints = maskConvexHull(dominantMask, width, height);
+		if (hullPoints.length < 3) continue;
+
+		const simplified = simplifyPoints(hullPoints, 0.5);
+		if (simplified.length >= 3) {
+			layers.push({ fill: colorToHex(centers[ci]), paths: [polygonPath(simplified)], pixelCount: dominantPixels });
 		}
 	}
 
