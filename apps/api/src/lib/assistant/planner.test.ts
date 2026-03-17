@@ -46,6 +46,22 @@ describe('assistant planner', () => {
 		expect(plan.tasks[0]?.title).toBe('Generate Kanban operations');
 	});
 
+	it('plans a response-only svg draft when svg is requested explicitly', () => {
+		const plan = planAssistantRun({
+			message: 'create a vector mascot logo',
+			contextMode: 'selected',
+			modeHint: 'svg',
+		});
+
+		expect(plan.resolvedMode).toBe('svg');
+		expect(plan.tasks.map((task) => task.type)).toEqual(['generate_response', 'verify_run']);
+		expect(plan.tasks[0]?.input).toMatchObject({
+			kind: 'generate_response',
+			resolvedMode: 'svg',
+			includeArtifactTypes: [],
+		});
+	});
+
 	it('plans a raster-only image pipeline when vectorization is unavailable', () => {
 		const plan = planAssistantRun({
 			message: 'create a hero illustration for this idea',
@@ -100,6 +116,7 @@ describe('assistant planner', () => {
 		expect(plan.tasks[1]?.input).toMatchObject({
 			kind: 'vectorize_asset',
 			sourceArtifactType: 'image',
+			sourceTaskType: 'generate_image',
 		});
 	});
 

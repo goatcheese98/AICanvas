@@ -3,10 +3,12 @@ import type {
 	AssistantArtifactRecord,
 	AssistantContextMode,
 	AssistantMessage,
+	AssistantTask,
 	AssistantTaskInput,
 	GenerationMode,
 } from '@ai-canvas/shared/types';
 import { generateAssistantResponse } from './service';
+import { buildCanvasSafeImagePrompt } from './visual-prompts';
 
 interface StoredAssistantAssetContent {
 	kind: 'stored_asset';
@@ -54,6 +56,65 @@ function enrichStoredArtifactContent(artifact: AssistantArtifactRecord): string 
 	} catch {
 		return artifact.content;
 	}
+}
+
+function getTaskOutputArtifactIds(task: AssistantTask): string[] {
+	if (!task.output) {
+		return [];
+	}
+
+	switch (task.output.kind) {
+		case 'artifact_created':
+		case 'placement_ready':
+			return task.output.artifactIds;
+		default:
+			return [];
+	}
+}
+
+export function resolveSourceArtifactForTask(params: {
+	artifacts: AssistantArtifactRecord[];
+	tasks: AssistantTask[];
+	currentTaskId: string;
+	sourceArtifactType: Extract<AssistantTaskInput, { kind: 'vectorize_asset' }>['sourceArtifactType'];
+	sourceArtifactId?: string;
+	sourceTaskType?: Extract<AssistantTaskInput, { kind: 'vectorize_asset' }>['sourceTaskType'];
+}): AssistantArtifactRecord | null {
+	if (params.sourceArtifactId) {
+		const sourceArtifact = params.artifacts.find(
+			(artifact) =>
+				artifact.id === params.sourceArtifactId
+				&& artifact.type === params.sourceArtifactType,
+		);
+		if (sourceArtifact) {
+			return sourceArtifact;
+		}
+	}
+
+	const currentTaskIndex = params.tasks.findIndex((task) => task.id === params.currentTaskId);
+	const priorTasks = currentTaskIndex >= 0 ? params.tasks.slice(0, currentTaskIndex) : params.tasks;
+
+	if (params.sourceTaskType) {
+		for (const task of [...priorTasks].reverse()) {
+			if (task.type !== params.sourceTaskType || task.status !== 'completed') {
+				continue;
+			}
+
+			for (const artifactId of [...getTaskOutputArtifactIds(task)].reverse()) {
+				const sourceArtifact = params.artifacts.find(
+					(artifact) => artifact.id === artifactId && artifact.type === params.sourceArtifactType,
+				);
+				if (sourceArtifact) {
+					return sourceArtifact;
+				}
+			}
+		}
+	}
+
+	return (
+		[...params.artifacts].reverse().find((artifact) => artifact.type === params.sourceArtifactType)
+		?? null
+	);
 }
 
 function summarizeRequest(message: string): string {
@@ -115,10 +176,10 @@ export function createImageGenerationInput(
 
 	return {
 		kind: 'generate_image',
-		prompt:
-			mode === 'sketch'
-				? `Create a loose whiteboard sketch for: ${promptBody}`
-				: `Create a polished image for: ${promptBody}`,
+		prompt: buildCanvasSafeImagePrompt({
+			request: promptBody,
+			mode,
+		}),
 		style: mode,
 		outputTitle: mode === 'sketch' ? 'Generated sketch source image' : 'Generated source image',
 	};

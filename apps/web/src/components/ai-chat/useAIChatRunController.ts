@@ -3,6 +3,7 @@ import type {
 	AssistantArtifact,
 	AssistantContextMode,
 	AssistantMessage,
+	GenerationMode,
 	AssistantRunCreated,
 	AssistantThread,
 	PrototypeOverlayCustomData,
@@ -36,6 +37,7 @@ export function useAIChatRunController({
 	getToken,
 	isSignedIn,
 	contextMode,
+	modeHint,
 	selectedElementIds,
 	input,
 	setInput,
@@ -56,6 +58,7 @@ export function useAIChatRunController({
 	getToken: () => Promise<string | null>;
 	isSignedIn: boolean | undefined;
 	contextMode: AssistantContextMode;
+	modeHint?: GenerationMode;
 	selectedElementIds: Record<string, boolean>;
 	input: string;
 	setInput: (value: string) => void;
@@ -205,6 +208,7 @@ export function useAIChatRunController({
 						canvasId,
 						message: text,
 						contextMode: effectiveContextMode,
+						modeHint,
 						history,
 						selectedElementIds: requestSelectedIds,
 						prototypeContext,

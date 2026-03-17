@@ -19,6 +19,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
 	return {
 		...original,
 		getRequiredAuthHeaders: vi.fn(),
+		fetchAssistantCapabilities: vi.fn(),
 		fetchAssistantThreads: vi.fn(),
 	};
 });
@@ -70,6 +71,10 @@ describe('AIChatPanel characterization', () => {
 		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
 			Authorization: 'Bearer test-token',
 		});
+		vi.mocked(api.fetchAssistantCapabilities).mockResolvedValue({
+			vectorizationEnabled: false,
+			svgGenerationEnabled: true,
+		});
 		vi.mocked(api.fetchAssistantThreads).mockResolvedValue([]);
 	});
 
@@ -80,9 +85,13 @@ describe('AIChatPanel characterization', () => {
 			screen.getByPlaceholderText('Describe the result you want on the canvas...'),
 		).toBeTruthy();
 		expect(screen.getByRole('button', { name: 'New Chat' })).toBeTruthy();
+		expect(screen.getByLabelText('Output style')).toBeTruthy();
 
 		await waitFor(() => {
 			expect(api.getRequiredAuthHeaders).toHaveBeenCalledWith(mockGetToken);
+			expect(api.fetchAssistantCapabilities).toHaveBeenCalledWith({
+				Authorization: 'Bearer test-token',
+			});
 			expect(api.fetchAssistantThreads).toHaveBeenCalledWith(canvasId, {
 				Authorization: 'Bearer test-token',
 			});

@@ -23,6 +23,7 @@ import {
 	buildPlacementPlanArtifact,
 	buildResponseArtifacts,
 	buildResponseSummary,
+	resolveSourceArtifactForTask,
 } from '../lib/assistant/task-execution';
 import { generateImageAsset, vectorizeImageAsset } from '../lib/assistant/media-adapters';
 import { publishAssistantRunEvent } from '../lib/assistant/runtime-store';
@@ -264,14 +265,22 @@ async function executeAssistantRun(
 							throw new Error('Vectorization task is missing payload');
 						}
 						const taskInput = runningTask.input;
-						const imageArtifacts = await listAssistantArtifactsRecord(db, ownerId, runId);
-						const latestImageArtifact = [...imageArtifacts]
-							.reverse()
-							.find((artifact) => artifact.type === taskInput.sourceArtifactType);
-						if (!latestImageArtifact) {
+						const [tasks, artifacts] = await Promise.all([
+							listAssistantTasksRecord(db, ownerId, runId),
+							listAssistantArtifactsRecord(db, ownerId, runId),
+						]);
+						const sourceImageArtifact = resolveSourceArtifactForTask({
+							tasks,
+							artifacts,
+							currentTaskId: runningTask.id,
+							sourceArtifactType: taskInput.sourceArtifactType,
+							sourceArtifactId: taskInput.sourceArtifactId,
+							sourceTaskType: taskInput.sourceTaskType,
+						});
+						if (!sourceImageArtifact) {
 							throw new Error('Vectorization failed: missing image artifact');
 						}
-						const sourceImage = parseStoredAssistantAssetContent(latestImageArtifact.content);
+						const sourceImage = parseStoredAssistantAssetContent(sourceImageArtifact.content);
 						if (!sourceImage) {
 							throw new Error('Vectorization failed: image artifact content is not a stored asset');
 						}
@@ -305,7 +314,7 @@ async function executeAssistantRun(
 								provider: vectorized.provider,
 								model: vectorized.model,
 								tool: vectorized.tool,
-								sourceArtifactId: latestImageArtifact.id,
+								sourceArtifactId: sourceImageArtifact.id,
 							}),
 						});
 						const completedTask = await updateAssistantTaskRecord(db, ownerId, runningTask.id, {
@@ -662,6 +671,13 @@ function isTerminalAssistantRunStatus(status: string): boolean {
 
 export const assistantRoutes = new Hono<AppEnv>()
 	.use(requireAuth)
+
+	.get('/capabilities', async (c) => {
+		return c.json({
+			vectorizationEnabled: Boolean(c.env.VECTORIZE_ASSET_URL),
+			svgGenerationEnabled: Boolean(c.env.ANTHROPIC_API_KEY),
+		});
+	})
 
 	.get('/threads', zValidator('query', assistantSchemas.listThreads), async (c) => {
 		const ownerId = c.get('user').id;

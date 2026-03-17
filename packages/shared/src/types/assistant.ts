@@ -6,7 +6,15 @@ import type {
 	WebEmbedOverlayCustomData,
 } from './overlay';
 
-export type GenerationMode = 'chat' | 'mermaid' | 'd2' | 'image' | 'sketch' | 'kanban' | 'prototype';
+export type GenerationMode =
+	| 'chat'
+	| 'mermaid'
+	| 'd2'
+	| 'image'
+	| 'sketch'
+	| 'svg'
+	| 'kanban'
+	| 'prototype';
 
 export type AssistantContextMode = 'all' | 'selected' | 'none';
 
@@ -269,6 +277,8 @@ export type AssistantTaskInput =
 	| {
 			kind: 'vectorize_asset';
 			sourceArtifactType: 'image';
+			sourceArtifactId?: string;
+			sourceTaskType?: Extract<AssistantTaskType, 'generate_image'>;
 			outputTitle: string;
 	  }
 	| {

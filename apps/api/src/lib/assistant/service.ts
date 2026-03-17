@@ -20,6 +20,8 @@ import {
 	buildMermaidEditPrompt,
 	buildMermaidPrompt,
 	buildPrototypePrompt,
+	buildSvgEditPrompt,
+	buildSvgPrompt,
 	extractCodeBlock,
 } from './parsing';
 import { createAnthropicMessage } from './anthropic';
@@ -118,9 +120,30 @@ function isDiagramFollowUpRequest(message: string): boolean {
 	);
 }
 
+function getLastSvgSource(
+	history: AssistantServiceInput['history'],
+): string | null {
+	if (!Array.isArray(history)) {
+		return null;
+	}
+
+	for (const message of [...history].reverse()) {
+		if (message.role !== 'assistant' || message.generationMode !== 'svg') {
+			continue;
+		}
+
+		const code = extractCodeBlock(message.content, 'svg');
+		if (code) {
+			return code;
+		}
+	}
+
+	return null;
+}
+
 function getLastMediaGenerationMode(
 	history: AssistantServiceInput['history'],
-): Extract<GenerationMode, 'image' | 'sketch'> | null {
+): Extract<GenerationMode, 'image' | 'sketch' | 'svg'> | null {
 	if (!Array.isArray(history)) {
 		return null;
 	}
@@ -130,7 +153,11 @@ function getLastMediaGenerationMode(
 			continue;
 		}
 
-		if (message.generationMode === 'image' || message.generationMode === 'sketch') {
+		if (
+			message.generationMode === 'image'
+			|| message.generationMode === 'sketch'
+			|| message.generationMode === 'svg'
+		) {
 			return message.generationMode;
 		}
 	}
@@ -139,7 +166,7 @@ function getLastMediaGenerationMode(
 }
 
 function isImageFollowUpRequest(message: string): boolean {
-	return /\b(background|lighting|style|color|palette|scene|setting|composition|pose|expression|outfit|add|remove|change|adjust|update|refine|improve|variation|version|another|different|with|without|make it|keep the|same subject|same image|proceed|go ahead|do it|yes|yep|let's do|lets do|try that)\b/.test(
+	return /\b(background|lighting|style|color|palette|scene|setting|composition|pose|expression|outfit|add|remove|change|adjust|update|refine|improve|simplify|variation|version|another|different|with|without|make it|make the|keep the|same subject|same image|same svg|same icon|bigger|larger|smaller|proceed|go ahead|do it|yes|yep|let's do|lets do|try that)\b/.test(
 		message,
 	);
 }
@@ -150,13 +177,22 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 	}
 
 	const message = input.message.toLowerCase();
+	const hasVisualVerb = /\b(generate|create|creat|make|render|design|draw|illustrat(?:e|ion)|craft|build)\b/.test(
+		message,
+	);
 	const hasExplicitImageIntent =
-		/\b(generate|create|make|render|design)\s+(?:an?\s+)?(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\b/.test(
+		/\b(generate|create|creat|make|render|design|draw|illustrat(?:e|ion))\s+(?:an?\s+)?(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\b/.test(
 			message,
 		) ||
 		/\b(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\s+of\b/.test(
 			message,
 		);
+	const hasExplicitSvgIntent =
+		(/\b(svg|vector|vectorized|vectorizable|vector graphic|logo|icon|mascot|sticker)\b/.test(
+			message,
+		) &&
+			hasVisualVerb) ||
+		/\b(as|in)\s+svg\b/.test(message);
 
 	if (/\bd2\b/.test(message)) {
 		return 'd2';
@@ -174,6 +210,10 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 		)
 	) {
 		return 'mermaid';
+	}
+
+	if (hasExplicitSvgIntent) {
+		return 'svg';
 	}
 
 	if (/(wireframe|hand-drawn sketch|sketch this|whiteboard sketch)/.test(message)) {
@@ -215,6 +255,15 @@ function sentenceCase(text: string): string {
 	const trimmed = text.trim().replace(/\s+/g, ' ');
 	if (!trimmed) return 'Untitled';
 	return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function escapeSvgText(text: string): string {
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;');
 }
 
 function slug(text: string): string {
@@ -2714,6 +2763,29 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 					'The executor can attach a generated asset that stays in chat until you choose to insert it.',
 				].join('\n'),
 			};
+		case 'svg': {
+			const requestLabel = sentenceCase(input.message);
+			return {
+				content: [
+					'Prepared an SVG illustration draft for the canvas.',
+					'',
+					`Request: ${requestLabel}`,
+					'',
+					'```svg',
+					[
+						'<svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg">',
+						'  <rect width="480" height="320" rx="24" fill="#f8fafc"/>',
+						'  <rect x="36" y="120" width="180" height="132" rx="28" fill="#dbeafe"/>',
+						'  <circle cx="312" cy="174" r="54" fill="#bfdbfe"/>',
+						'  <path d="M252 252h120" stroke="#2563eb" stroke-width="18" stroke-linecap="round"/>',
+						`  <text x="36" y="70" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="600">${escapeSvgText(requestLabel)}</text>`,
+						'  <text x="36" y="98" fill="#475569" font-family="Arial, sans-serif" font-size="14">SVG placeholder draft. Refine with a more specific style or subject request.</text>',
+						'</svg>',
+					].join('\n'),
+					'```',
+				].join('\n'),
+			};
+		}
 		case 'prototype':
 			return buildPrototypeDraft(input);
 		case 'chat':
@@ -2835,6 +2907,32 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 				'The response includes a full multi-file prototype payload for the custom runtime.',
 			].join('\n'),
 			artifacts: [{ type: 'prototype-files', content: serializePrototypeArtifact(prototype) }],
+		};
+	}
+
+	if (generationMode === 'svg') {
+		const previous = getLastSvgSource(input.history);
+		const completion = await createAnthropicMessage(input.bindings, {
+			system: [
+				systemPrompt,
+				'When the user asks for an SVG, produce vector-friendly illustration markup only.',
+			].join('\n'),
+			messages: buildAnthropicConversation(
+				input,
+				previous
+					? buildSvgEditPrompt(input.message, previous)
+					: buildSvgPrompt(input.message),
+			),
+			maxTokens: 3000,
+		});
+		const svg = extractCodeBlock(completion.text, 'svg');
+		if (!svg) {
+			return null;
+		}
+		return {
+			content: ['Prepared an SVG illustration draft for the canvas.', '', '```svg', svg, '```'].join(
+				'\n',
+			),
 		};
 	}
 

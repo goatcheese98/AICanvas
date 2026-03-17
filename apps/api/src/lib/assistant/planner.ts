@@ -74,6 +74,8 @@ function buildTaskTitle(mode: GenerationMode): string {
 			return 'Generate Mermaid draft';
 		case 'd2':
 			return 'Generate D2 draft';
+		case 'svg':
+			return 'Generate SVG illustration';
 		case 'kanban':
 			return 'Generate Kanban operations';
 		case 'prototype':
@@ -123,6 +125,7 @@ function buildImagePipelineTasks(
 			input: {
 				kind: 'vectorize_asset',
 				sourceArtifactType: 'image',
+				sourceTaskType: 'generate_image',
 				outputTitle: 'Vectorized generated asset',
 			},
 		});
@@ -260,6 +263,8 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 											? shouldPatchKanban
 												? 'Prepared a reversible Kanban patch for the selected board.'
 												: 'Prepared a new Kanban board for insertion onto the canvas.'
+											: resolvedMode === 'svg'
+												? 'Prepared an SVG illustration draft.'
 											: resolvedMode === 'prototype'
 												? 'Prepared prototype files for the canvas.'
 												: shouldPatchMarkdown

@@ -4,6 +4,8 @@ import {
 	buildPlacementPlanArtifact,
 	buildResponseArtifacts,
 	buildResponseSummary,
+	createImageGenerationInput,
+	resolveSourceArtifactForTask,
 } from './task-execution';
 
 describe('assistant task execution helpers', () => {
@@ -109,5 +111,122 @@ describe('assistant task execution helpers', () => {
 		expect(summary).toContain('Generated an image preview ready to insert.');
 		expect(summary).not.toContain('asset brief');
 		expect(summary).not.toContain('placement plan');
+	});
+
+	it('resolves vectorization inputs from the referenced upstream image task', () => {
+		const artifact = resolveSourceArtifactForTask({
+			currentTaskId: 'task-vectorize',
+			sourceArtifactType: 'image',
+			sourceTaskType: 'generate_image',
+			tasks: [
+				{
+					id: 'task-generate-image',
+					runId: 'run-1',
+					type: 'generate_image',
+					status: 'completed',
+					title: 'Generate source image',
+					output: {
+						kind: 'artifact_created',
+						artifactIds: ['artifact-source-image'],
+					},
+					createdAt: '2026-03-07T00:00:00.000Z',
+					updatedAt: '2026-03-07T00:00:01.000Z',
+				},
+				{
+					id: 'task-generate-response',
+					runId: 'run-1',
+					type: 'generate_response',
+					status: 'completed',
+					title: 'Generate assistant response',
+					output: {
+						kind: 'artifact_created',
+						artifactIds: ['artifact-unrelated-image'],
+					},
+					createdAt: '2026-03-07T00:00:02.000Z',
+					updatedAt: '2026-03-07T00:00:03.000Z',
+				},
+				{
+					id: 'task-vectorize',
+					runId: 'run-1',
+					type: 'vectorize_asset',
+					status: 'queued',
+					title: 'Vectorize generated asset',
+					createdAt: '2026-03-07T00:00:04.000Z',
+					updatedAt: '2026-03-07T00:00:04.000Z',
+				},
+			],
+			artifacts: [
+				{
+					id: 'artifact-source-image',
+					runId: 'run-1',
+					taskId: 'task-generate-image',
+					type: 'image',
+					title: 'Generated source image',
+					content: '{}',
+					createdAt: '2026-03-07T00:00:01.000Z',
+				},
+				{
+					id: 'artifact-unrelated-image',
+					runId: 'run-1',
+					taskId: 'task-generate-response',
+					type: 'image',
+					title: 'Other image artifact',
+					content: '{}',
+					createdAt: '2026-03-07T00:00:03.000Z',
+				},
+			],
+		});
+
+		expect(artifact?.id).toBe('artifact-source-image');
+	});
+
+	it('falls back to the explicit source artifact id when provided', () => {
+		const artifact = resolveSourceArtifactForTask({
+			currentTaskId: 'task-vectorize',
+			sourceArtifactType: 'image',
+			sourceArtifactId: 'artifact-explicit',
+			sourceTaskType: 'generate_image',
+			tasks: [],
+			artifacts: [
+				{
+					id: 'artifact-latest',
+					runId: 'run-1',
+					taskId: 'task-other',
+					type: 'image',
+					title: 'Latest image artifact',
+					content: '{}',
+					createdAt: '2026-03-07T00:00:02.000Z',
+				},
+				{
+					id: 'artifact-explicit',
+					runId: 'run-1',
+					taskId: 'task-generate-image',
+					type: 'image',
+					title: 'Explicit image artifact',
+					content: '{}',
+					createdAt: '2026-03-07T00:00:01.000Z',
+				},
+			],
+		});
+
+		expect(artifact?.id).toBe('artifact-explicit');
+	});
+
+	it('adds anti-signature guidance to generated image prompts', () => {
+		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
+			'Do not include any signature, watermark, caption, label, or text.',
+		);
+		expect(createImageGenerationInput('draw an elephant', 'image').prompt).toContain(
+			'Do not include any signature, watermark, caption, label, or text.',
+		);
+		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
+			'solid pure white background (#FFFFFF)',
+		);
+		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
+			'avoid any artifact or residue touching the outer edges of the image',
+		);
+		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
+			'strong contour separation',
+		);
 	});
 });

@@ -201,6 +201,16 @@ export async function fetchAssistantThreads(
 	);
 }
 
+export async function fetchAssistantCapabilities(
+	headers: Record<string, string>,
+): Promise<{ vectorizationEnabled: boolean; svgGenerationEnabled: boolean }> {
+	const response = await observedFetch(toApiUrl('/api/assistant/capabilities'), { headers });
+	return readJsonOrThrow<{ vectorizationEnabled: boolean; svgGenerationEnabled: boolean }>(
+		response,
+		`Assistant capabilities fetch failed with status ${response.status}`,
+	);
+}
+
 export async function createAssistantThread(
 	input: { canvasId: string; title?: string },
 	headers: Record<string, string>,

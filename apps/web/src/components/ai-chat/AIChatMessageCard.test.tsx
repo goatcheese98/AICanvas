@@ -51,6 +51,7 @@ describe('AIChatMessageCard', () => {
 			id: 'assistant-image-1',
 			role: 'assistant',
 			content: 'Here is the generated image.',
+			generationMode: 'image',
 			artifacts: [artifact],
 			createdAt: '2026-03-15T10:00:00.000Z',
 		};
@@ -64,6 +65,152 @@ describe('AIChatMessageCard', () => {
 			);
 		});
 		expect(screen.getByRole('button', { name: 'Insert Image' })).toBeTruthy();
+	});
+
+	it('explains when vector sketch mode only returned a raster fallback', async () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
+			Authorization: 'Bearer test-token',
+		});
+		vi.mocked(api.fetchAssistantArtifactAsset).mockResolvedValue({
+			blob: new Blob(['preview'], { type: 'image/png' }),
+			mimeType: 'image/png',
+		});
+
+		const artifact: AssistantArtifact = {
+			type: 'image',
+			content: JSON.stringify({
+				kind: 'stored_asset',
+				r2Key: 'assistant-assets/run-1/image.png',
+				mimeType: 'image/png',
+				provider: 'cloudflare',
+				artifactId: 'artifact-sketch-1',
+				runId: 'run-1',
+			}),
+		};
+		const message: AssistantMessage = {
+			id: 'assistant-sketch-1',
+			role: 'assistant',
+			content: 'Generated a sketch preview ready to insert.',
+			generationMode: 'sketch',
+			artifacts: [artifact],
+			createdAt: '2026-03-15T10:02:00.000Z',
+		};
+
+		const { container } = render(
+			<MessageCard
+				message={message}
+				onInsertArtifact={vi.fn()}
+				onVectorizeArtifact={vi.fn()}
+			/>,
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Server vectorization was not available for this run.')).toBeTruthy();
+		});
+		expect(screen.getByRole('button', { name: 'Insert Native Vector' })).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Insert Raster Sketch' })).toBeTruthy();
+	});
+
+	it('keeps raster sketch insert actions available after an insertion has happened', async () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
+			Authorization: 'Bearer test-token',
+		});
+		vi.mocked(api.fetchAssistantArtifactAsset).mockResolvedValue({
+			blob: new Blob(['preview'], { type: 'image/png' }),
+			mimeType: 'image/png',
+		});
+
+		const artifact: AssistantArtifact = {
+			type: 'image',
+			content: JSON.stringify({
+				kind: 'stored_asset',
+				r2Key: 'assistant-assets/run-1/image.png',
+				mimeType: 'image/png',
+				provider: 'cloudflare',
+				artifactId: 'artifact-sketch-repeat',
+				runId: 'run-1',
+			}),
+		};
+		const message: AssistantMessage = {
+			id: 'assistant-sketch-repeat',
+			role: 'assistant',
+			content: 'Generated a sketch preview ready to insert.',
+			generationMode: 'sketch',
+			artifacts: [artifact],
+			createdAt: '2026-03-15T10:02:00.000Z',
+		};
+
+		const { container } = render(
+			<MessageCard
+				message={message}
+				onInsertArtifact={vi.fn()}
+				onVectorizeArtifact={vi.fn()}
+				onUndoInsertedArtifact={vi.fn()}
+				insertionStates={{
+					'assistant-sketch-repeat-image-0': {
+						status: 'inserted',
+						insertedElementIds: ['element-1'],
+					},
+				}}
+			/>,
+		);
+
+		await waitFor(() => {
+			expect(screen.getByText('Inserted Onto Canvas')).toBeTruthy();
+		});
+		expect(within(container).getByRole('button', { name: 'Undo Last Insert' })).toBeTruthy();
+		expect(within(container).getByRole('button', { name: 'Insert Native Vector' })).toBeTruthy();
+		expect(within(container).getByRole('button', { name: 'Insert Raster Sketch' })).toBeTruthy();
+	});
+
+	it('shows a native vector insert action when a vector artifact is present', async () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
+			Authorization: 'Bearer test-token',
+		});
+		vi.mocked(api.fetchAssistantArtifactAsset).mockResolvedValue({
+			blob: new Blob(['<svg></svg>'], { type: 'image/svg+xml' }),
+			mimeType: 'image/svg+xml',
+		});
+
+		const vectorArtifact: AssistantArtifact = {
+			type: 'image-vector',
+			content: JSON.stringify({
+				kind: 'stored_asset',
+				r2Key: 'assistant-assets/run-1/vector.svg',
+				mimeType: 'image/svg+xml',
+				provider: 'http-tool',
+				artifactId: 'artifact-vector-1',
+				runId: 'run-1',
+			}),
+		};
+		const message: AssistantMessage = {
+			id: 'assistant-vector-1',
+			role: 'assistant',
+			content: 'Generated a vector sketch ready to insert.',
+			generationMode: 'sketch',
+			artifacts: [vectorArtifact],
+			createdAt: '2026-03-15T10:03:00.000Z',
+		};
+
+		const { container } = render(<MessageCard message={message} onInsertArtifact={vi.fn()} />);
+
+		await waitFor(() => {
+			expect(
+				within(container).getByRole('button', { name: 'Insert Native Vector' }),
+			).toBeTruthy();
+		});
 	});
 
 	it('renders markdown artifacts and forwards insert actions', () => {
@@ -112,6 +259,29 @@ describe('AIChatMessageCard', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Insert As Markdown' }));
 
 		expect(onInsertMarkdown).toHaveBeenCalledWith(message);
+	});
+
+	it('offers inline native vector insertion for svg assistant messages', () => {
+		vi.mocked(useAuth).mockReturnValue({
+			getToken: vi.fn(async () => 'token'),
+			isSignedIn: true,
+		} as never);
+		const onInsertSvg = vi.fn();
+		const message: AssistantMessage = {
+			id: 'assistant-svg-1',
+			role: 'assistant',
+			generationMode: 'svg',
+			content: ['Prepared an SVG illustration draft.', '', '```svg', '<svg viewBox="0 0 10 10"></svg>', '```'].join('\n'),
+			createdAt: '2026-03-14T10:06:00.000Z',
+		};
+
+		const { container } = render(<MessageCard message={message} onInsertSvg={onInsertSvg} />);
+
+		fireEvent.click(
+			within(container).getByRole('button', { name: 'Insert Native Vector' }),
+		);
+
+		expect(onInsertSvg).toHaveBeenCalledWith(message);
 	});
 
 	it('renders header accessory content next to the message meta controls', () => {

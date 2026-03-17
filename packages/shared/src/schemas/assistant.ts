@@ -1,7 +1,16 @@
 import * as z from 'zod';
 import { overlaySchemas } from './overlay';
 
-const generationModeSchema = z.enum(['chat', 'mermaid', 'd2', 'image', 'sketch', 'kanban', 'prototype']);
+const generationModeSchema = z.enum([
+	'chat',
+	'mermaid',
+	'd2',
+	'image',
+	'sketch',
+	'svg',
+	'kanban',
+	'prototype',
+]);
 const threadTitleSchema = z
 	.string()
 	.trim()

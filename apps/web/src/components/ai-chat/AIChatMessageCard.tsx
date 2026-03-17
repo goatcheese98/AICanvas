@@ -3,7 +3,12 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
 import { filterVisibleArtifacts } from './assistant-artifacts';
-import { buildArtifactKey, canApplyMessageAsPrototype, canInsertMessageAsMarkdown } from './ai-chat-helpers';
+import {
+	buildArtifactKey,
+	canApplyMessageAsPrototype,
+	canInsertMessageAsMarkdown,
+	canInsertMessageAsSvg,
+} from './ai-chat-helpers';
 import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import { ArtifactCard } from './AIChatArtifactCard';
 import { CodeSnippet, CopyButton } from './AIChatArtifactPrimitives';
@@ -19,10 +24,12 @@ export function MessageCard({
 	message,
 	elements,
 	onInsertArtifact,
+	onVectorizeArtifact,
 	insertionStates,
 	onUndoInsertedArtifact,
 	onInsertMarkdown,
 	onInsertPrototype,
+	onInsertSvg,
 	onInsertRenderedDiagram,
 	patchStates,
 	markdownPatchReviewStates,
@@ -36,10 +43,12 @@ export function MessageCard({
 	message: AssistantMessage;
 	elements?: readonly CanvasElement[];
 	onInsertArtifact?: (artifactKey: string, artifact: AssistantArtifact) => void;
+	onVectorizeArtifact?: (artifactKey: string, artifact: AssistantArtifact) => void;
 	insertionStates?: Record<string, AssistantInsertionState>;
 	onUndoInsertedArtifact?: (artifactKey: string) => void;
 	onInsertMarkdown?: (message: AssistantMessage) => void;
 	onInsertPrototype?: (message: AssistantMessage) => void;
+	onInsertSvg?: (message: AssistantMessage) => void;
 	onInsertRenderedDiagram?: (artifactKey: string, input: DiagramInsertInput) => void;
 	patchStates?: Record<string, AssistantPatchApplyState>;
 	markdownPatchReviewStates?: Record<string, MarkdownPatchReviewState>;
@@ -61,7 +70,9 @@ export function MessageCard({
 	const isUser = message.role === 'user';
 	const visibleArtifacts = filterVisibleArtifacts(message.artifacts ?? []);
 	const messageActions =
-		!isUser && canInsertMessageAsMarkdown(message) && onInsertMarkdown ? (
+		!isUser &&
+		((canInsertMessageAsSvg(message) && onInsertSvg) ||
+			(canInsertMessageAsMarkdown(message) && onInsertMarkdown)) ? (
 			<div className="flex flex-wrap gap-2">
 				{canApplyMessageAsPrototype(message) && onInsertPrototype ? (
 					<button
@@ -72,13 +83,24 @@ export function MessageCard({
 						Apply Prototype
 					</button>
 				) : null}
-				<button
-					type="button"
-					onClick={() => onInsertMarkdown(message)}
-					className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-				>
-					Insert As Markdown
-				</button>
+				{canInsertMessageAsSvg(message) && onInsertSvg ? (
+					<button
+						type="button"
+						onClick={() => onInsertSvg(message)}
+						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+					>
+						Insert Native Vector
+					</button>
+				) : null}
+				{canInsertMessageAsMarkdown(message) && onInsertMarkdown ? (
+					<button
+						type="button"
+						onClick={() => onInsertMarkdown(message)}
+						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
+					>
+						Insert As Markdown
+					</button>
+				) : null}
 			</div>
 		) : null;
 
@@ -166,6 +188,7 @@ export function MessageCard({
 								artifactKey={artifactKey}
 								elements={elements}
 								onInsertArtifact={onInsertArtifact}
+								onVectorizeArtifact={onVectorizeArtifact}
 								insertionState={insertionStates?.[artifactKey]}
 								onUndoInsertedArtifact={onUndoInsertedArtifact}
 								onInsertRenderedDiagram={onInsertRenderedDiagram}
@@ -175,6 +198,10 @@ export function MessageCard({
 								onApplyPatch={onApplyPatch}
 								onUndoPatch={onUndoPatch}
 								onReapplyPatch={onReapplyPatch}
+								generationMode={message.generationMode}
+								hasVectorCompanionArtifact={visibleArtifacts.some(
+									(candidate) => candidate.type === 'image-vector',
+								)}
 							/>
 						);
 					})}

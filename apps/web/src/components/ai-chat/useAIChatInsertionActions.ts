@@ -27,6 +27,9 @@ import {
 } from './assistant-artifacts';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { svgToDataUrl } from '@/lib/assistant/diagram-renderer';
+import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vectorizer';
+import { vectorizeRasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
+import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import {
 	createCanvasImageElement,
 	getConvertToExcalidrawElements,
@@ -90,6 +93,39 @@ function constrainImageSize(input: { width: number; height: number }) {
 		width: Math.max(160, Math.round(width * scale)),
 		height: Math.max(120, Math.round(height * scale)),
 	};
+}
+
+function getElementsBounds(elements: readonly ExcalidrawElement[]) {
+	const left = Math.min(...elements.map((element) => element.x));
+	const top = Math.min(...elements.map((element) => element.y));
+	const right = Math.max(...elements.map((element) => element.x + Math.abs(element.width ?? 0)));
+	const bottom = Math.max(...elements.map((element) => element.y + Math.abs(element.height ?? 0)));
+	return {
+		left,
+		top,
+		right,
+		bottom,
+		width: right - left,
+		height: bottom - top,
+	};
+}
+
+function offsetInsertedElements(
+	elements: readonly ExcalidrawElement[],
+	offset: { x: number; y: number },
+): ExcalidrawElement[] {
+	return elements.map((element) => ({
+		...element,
+		x: element.x + offset.x,
+		y: element.y + offset.y,
+		updated: Date.now(),
+	}));
+}
+
+interface NativeVectorCompileResult {
+	elements: ExcalidrawElement[];
+	width: number;
+	height: number;
 }
 
 export function useAIChatInsertionActions({
@@ -238,6 +274,179 @@ export function useAIChatInsertionActions({
 		[elements, excalidrawApi, selectedElementIds, setChatError, setElements, setFiles],
 	);
 
+	const insertSvgMarkupOnCanvas = useCallback(
+		async (svgMarkup: string): Promise<AssistantInsertionState | null> => {
+			if (!excalidrawApi) {
+				setChatError('Canvas is not ready yet.');
+				return null;
+			}
+
+			try {
+				const compiled = compileSvgToExcalidraw(svgMarkup, {
+					customData: {
+						source: 'assistant-svg-message',
+					},
+				});
+				const bounds = getElementsBounds(compiled.elements);
+				const sceneCenter = resolveInsertionSceneCenter({
+					excalidrawApi,
+					elements,
+					selectedElementIds,
+					width: compiled.width,
+					height: compiled.height,
+				});
+				return applyInsertedElements({
+					excalidrawApi,
+					setElements,
+					insertedElements: offsetInsertedElements(compiled.elements, {
+						x: sceneCenter.x - (bounds.left + bounds.width / 2),
+						y: sceneCenter.y - (bounds.top + bounds.height / 2),
+					}),
+				});
+			} catch {
+				setChatError('This SVG could not be converted into native canvas elements.');
+				return null;
+			}
+		},
+		[elements, excalidrawApi, selectedElementIds, setChatError, setElements],
+	);
+
+	const insertNativeVectorElementsOnCanvas = useCallback(
+		async (compiled: NativeVectorCompileResult): Promise<AssistantInsertionState | null> => {
+			if (!excalidrawApi) {
+				setChatError('Canvas is not ready yet.');
+				return null;
+			}
+
+			const bounds = getElementsBounds(compiled.elements);
+			const sceneCenter = resolveInsertionSceneCenter({
+				excalidrawApi,
+				elements,
+				selectedElementIds,
+				width: compiled.width,
+				height: compiled.height,
+			});
+			return applyInsertedElements({
+				excalidrawApi,
+				setElements,
+				insertedElements: offsetInsertedElements(compiled.elements, {
+					x: sceneCenter.x - (bounds.left + bounds.width / 2),
+					y: sceneCenter.y - (bounds.top + bounds.height / 2),
+				}),
+			});
+		},
+		[elements, excalidrawApi, selectedElementIds, setChatError, setElements],
+	);
+
+	const compileRasterBlobToNativeVector = useCallback(
+		async (
+			blob: Blob,
+			customData: Record<string, unknown>,
+		): Promise<NativeVectorCompileResult> => {
+			try {
+				return await vectorizeRasterBlobToSketchElements(blob, {
+					maxElements: 120,
+					customData,
+				});
+			} catch {
+				const svgMarkup = await vectorizeRasterBlobToSvg(blob, {
+					maxSampleDimension: 192,
+					maxColors: 6,
+					suppressBottomSignature: true,
+				});
+				return compileSvgToExcalidraw(svgMarkup, {
+					maxPointsPerElement: 36,
+					maxElementCount: 120,
+					customData,
+				});
+			}
+		},
+		[],
+	);
+
+	const vectorizeRasterAssetOnCanvas = useCallback(
+		async (artifact: AssistantArtifact): Promise<AssistantInsertionState | null> => {
+			if (!excalidrawApi) {
+				setChatError('Canvas is not ready yet.');
+				return null;
+			}
+
+			const storedAsset = parseStoredAssistantAssetContent(artifact.content);
+			if (!storedAsset?.artifactId || !storedAsset.runId) {
+				setChatError('This generated asset is missing a downloadable reference.');
+				return null;
+			}
+
+			const headers = await getRequiredAuthHeaders(getToken);
+			const { blob, mimeType } = await fetchAssistantArtifactAsset(
+				storedAsset.runId,
+				storedAsset.artifactId,
+				headers,
+			);
+			const resolvedMimeType = mimeType || storedAsset.mimeType;
+			if (!resolvedMimeType.startsWith('image/') || resolvedMimeType === 'image/svg+xml') {
+				setChatError('Only raster image assets can be vectorized from this card.');
+				return null;
+			}
+
+			try {
+				const compiled = await compileRasterBlobToNativeVector(blob, {
+					source: 'assistant-raster-vectorizer',
+					provider: storedAsset.provider,
+					model: storedAsset.model,
+					prompt: storedAsset.prompt,
+					artifactType: artifact.type,
+				});
+				return insertNativeVectorElementsOnCanvas(compiled);
+			} catch (error) {
+				setChatError(
+					error instanceof Error
+						? error.message
+						: 'This raster sketch could not be vectorized natively.',
+				);
+				return null;
+			}
+		},
+		[
+			compileRasterBlobToNativeVector,
+			excalidrawApi,
+			getToken,
+			insertNativeVectorElementsOnCanvas,
+			setChatError,
+		],
+	);
+
+	const insertSourceRasterAsNativeVector = useCallback(
+		async (artifact: AssistantArtifact): Promise<AssistantInsertionState | null> => {
+			const storedAsset = parseStoredAssistantAssetContent(artifact.content);
+			if (!storedAsset?.sourceArtifactId || !storedAsset.runId) {
+				return null;
+			}
+
+			const headers = await getRequiredAuthHeaders(getToken);
+			const sourceAsset = await fetchAssistantArtifactAsset(
+				storedAsset.runId,
+				storedAsset.sourceArtifactId,
+				headers,
+			);
+			const sourceMimeType = sourceAsset.mimeType;
+			if (!sourceMimeType.startsWith('image/') || sourceMimeType === 'image/svg+xml') {
+				return null;
+			}
+
+			const compiled = await compileRasterBlobToNativeVector(sourceAsset.blob, {
+				source: 'assistant-source-raster-vectorizer',
+				provider: storedAsset.provider,
+				model: storedAsset.model,
+				prompt: storedAsset.prompt,
+				artifactType: artifact.type,
+				sourceArtifactId: storedAsset.sourceArtifactId,
+			});
+			return insertNativeVectorElementsOnCanvas(compiled);
+		},
+		[compileRasterBlobToNativeVector, getToken, insertNativeVectorElementsOnCanvas],
+	);
+
 	const insertStoredAssetOnCanvas = useCallback(
 		async (artifact: AssistantArtifact): Promise<AssistantInsertionState | null> => {
 			if (!excalidrawApi) {
@@ -257,6 +466,36 @@ export function useAIChatInsertionActions({
 				storedAsset.artifactId,
 				headers,
 			);
+
+			const resolvedMimeType = (mimeType || storedAsset.mimeType) as BinaryFileData['mimeType'];
+			if (artifact.type === 'image-vector') {
+				try {
+					const nativeSourceInsertion = await insertSourceRasterAsNativeVector(artifact);
+					if (nativeSourceInsertion) {
+						return nativeSourceInsertion;
+					}
+				} catch {
+					// Fall through to SVG/image insertion if the layered native path fails.
+				}
+			}
+
+			if (artifact.type === 'image-vector' && resolvedMimeType === 'image/svg+xml') {
+				try {
+					const svgMarkup = await blob.text();
+					const compiled = compileSvgToExcalidraw(svgMarkup, {
+						customData: {
+							provider: storedAsset.provider,
+							model: storedAsset.model,
+							prompt: storedAsset.prompt,
+							artifactType: artifact.type,
+						},
+					});
+					return insertNativeVectorElementsOnCanvas(compiled);
+				} catch {
+					// Fall back to inserting the SVG as an image asset so the user still gets a usable result.
+				}
+			}
+
 			const dataURL = await buildDataUrlFromBlob(blob);
 			const naturalSize = await getImageDimensions(dataURL);
 			const { width, height } = constrainImageSize(naturalSize);
@@ -264,7 +503,7 @@ export function useAIChatInsertionActions({
 			const now = Date.now();
 			const imageFile: BinaryFileData = {
 				id: fileId,
-				mimeType: (mimeType || storedAsset.mimeType) as BinaryFileData['mimeType'],
+				mimeType: resolvedMimeType,
 				dataURL,
 				created: now,
 			};
@@ -312,7 +551,17 @@ export function useAIChatInsertionActions({
 				insertedFileIds: [fileId],
 			};
 		},
-		[elements, excalidrawApi, getToken, selectedElementIds, setChatError, setElements, setFiles],
+		[
+			elements,
+			excalidrawApi,
+			getToken,
+			insertNativeVectorElementsOnCanvas,
+			insertSourceRasterAsNativeVector,
+			selectedElementIds,
+			setChatError,
+			setElements,
+			setFiles,
+		],
 	);
 
 	const rememberInsertionState = useCallback((artifactKey: string, insertionState: AssistantInsertionState) => {
@@ -508,6 +757,8 @@ export function useAIChatInsertionActions({
 		removeInsertedArtifact,
 		insertMarkdownOnCanvas,
 		insertRenderedDiagramOnCanvas,
+		insertSvgMarkupOnCanvas,
+		vectorizeRasterAssetOnCanvas,
 		insertStoredAssetOnCanvas,
 		rememberInsertionState,
 		insertArtifactOnCanvas,

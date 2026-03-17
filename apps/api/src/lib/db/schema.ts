@@ -126,7 +126,7 @@ export const assistantRuns = sqliteTable(
 		requestMessage: text('request_message').notNull(),
 		contextMode: text('context_mode', { enum: ['all', 'selected', 'none'] }).notNull(),
 		modeHint: text('mode_hint', {
-			enum: ['chat', 'mermaid', 'd2', 'image', 'sketch', 'kanban', 'prototype'],
+			enum: ['chat', 'mermaid', 'd2', 'image', 'sketch', 'svg', 'kanban', 'prototype'],
 		}),
 		requestHistoryJson: text('request_history_json'),
 		selectedElementIdsJson: text('selected_element_ids_json'),

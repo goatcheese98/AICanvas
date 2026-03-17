@@ -23,6 +23,7 @@ import {
 import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
 import { syncAppStoreFromExcalidraw } from './excalidraw-store-sync';
 import { normalizeSceneElements } from './scene-element-normalizer';
+import { normalizeAiVectorGroupResize } from './ai-vector-resize-normalizer';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
 const THUMBNAIL_MIME_TYPE = 'image/png';
@@ -261,6 +262,21 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 		[canvasId, scheduleServerSave],
 	);
 
+	const normalizeSceneChange = useCallback(
+		(
+			nextElements: readonly ExcalidrawElement[],
+			nextAppState: AppState,
+			_nextFiles: BinaryFiles,
+			previousElements: readonly ExcalidrawElement[],
+		) =>
+			normalizeAiVectorGroupResize({
+				previousElements,
+				nextElements,
+				selectedElementIds: (nextAppState.selectedElementIds ?? {}) as Record<string, boolean>,
+			}),
+		[],
+	);
+
 	// Load canvas data from API
 	const {
 		data: canvasQueryData,
@@ -359,6 +375,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 				canvasId={canvasId}
 				onSaveNeeded={handleSaveNeeded}
 				onSceneChange={collaboration.handleSceneChange}
+				normalizeSceneChange={normalizeSceneChange}
 				onPointerUpdate={collaboration.handlePointerUpdate}
 			/>
 			{excalidrawApi && <CanvasNotesLayer />}
