@@ -1,3 +1,12 @@
+# Multi-Agent Orchestration (Advanced/Legacy)
+
+> **Note:** This document describes an advanced multi-agent workflow with complex orchestration. For the recommended simpler workflow, see [`workflow-pragmatic.md`](./workflow-pragmatic.md).
+>
+> The pragmatic workflow is better suited for:
+> - Solo developers using AI assistance
+> - Quick feature branches with 1-2 worktrees
+> - One-command dev server startup (`bun run dev`)
+
 # Multi-Agent Orchestration
 
 This document defines how AI Canvas should be operated when multiple coding agents

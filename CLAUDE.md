@@ -1,6 +1,6 @@
 # AI Canvas
 
-This file intentionally mirrors `AGENTS.md` so Claude and Codex receive the same project guidance. Keep both files aligned unless a tool-specific difference is genuinely useful.
+This file intentionally mirrors `CLAUDE.md` so Codex and Claude receive the same project guidance. Keep both files aligned unless a tool-specific difference is genuinely useful.
 
 AI Canvas is a standalone collaborative canvas application built on Excalidraw with a custom overlay system for rich content (markdown notes, kanban boards, code editors, web embeds, prototypes). It is its own product with its own foundation — not a port or fork of another project.
 
@@ -119,50 +119,47 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - **Direct Excalidraw scene JSON from AI.** The assistant emits semantic mutations, not raw scene data.
 - **Large files.** Split at 300-400 lines. Extract UI regions first, then move state into hooks.
 
-## Multi-Agent Worktree Workflow
+## Worktree Workflow (Pragmatic)
 
-This repo is intended to support multiple coding agents working in parallel via Git worktrees.
+For parallel development with AI assistance. See `docs/workflow-pragmatic.md` for full details.
 
-Canonical reference:
-`docs/multi-agent-orchestration.md`
+### Quick Start
 
-### Roles
+```sh
+# Create a new worktree
+bun run worktree:new -- my-feature
 
-- **Orchestration worktree:** `/Users/rohanjasani/Desktop/Projects/AICanvas`
-  - Use this as the control center for `git worktree add`, `git worktree list`, branch management, monitoring, merge orchestration, and cleanup.
-  - Avoid using this folder as the main implementation workspace for Codex or Claude.
-- **Integration worktree:** `/Users/rohanjasani/Desktop/Projects/AICanvas-main`
-  - Keep this on `main`.
-  - Use it for integration, conflict resolution, final validation, and merge confidence checks.
-  - It should be opened less often than feature worktrees.
-- **Execution worktrees:** sibling folders such as `/Users/rohanjasani/Desktop/Projects/AICanvas-image-gen`
-  - One worktree per active task/feature.
-  - This is where agents actually make code changes.
+# In the new worktree, start all services
+cd ../AICanvas-my-feature
+bun run dev
+```
 
-### Operating rules
+This starts via Turbo:
+- **Web** (React frontend) → http://localhost:5181
+- **API** (Hono backend) → http://localhost:8791
+- **PartyKit** (WebSocket collaboration) → http://localhost:1999
 
-- Treat **one worktree as one branch, one agent task, and one preview URL**.
-- Prefer naming worktrees by **task/feature**, not by agent name.
-- Open each worktree as its **own workspace/project** in Codex or Claude. Do not rely on branch switching inside one shared folder.
-- If two agents are exploring the same idea independently, give them separate worktrees.
-- If two agents should collaborate on the exact same branch, they may share one worktree intentionally, but this should be the exception.
-- After a feature ships or is abandoned, prefer **removing** the worktree instead of renaming it.
+### Key Principles
 
-### Preview port convention
+- **Main worktree** (`AICanvas`): Your primary workspace on `main` branch
+- **Side worktrees** (`AICanvas-*`): 0-2 at a time, short-lived tasks, quick merges
+- **One command:** `bun run dev` starts everything (Web + API + PartyKit)
+- **One log stream:** All logs labeled `[web]`, `[api]`, `[partykit]` for easy debugging
 
-- Reserve `5173` / `8787` for the integration path when possible.
-- Assign each execution worktree its own stable web and API ports.
-- Current lane map: `main` `5173/8787`, `assistant-image-pipeline` `5181/8791`, `prototype-workflow` `5182/8792`, `kanban-ui-polish` `5183/8793`.
-- `apps/web/vite.config.ts` supports `VITE_PORT` (or `PORT`) and `VITE_API_PROXY_TARGET` (or `API_PROXY_TARGET`) for this reason.
+### Why This Works for AI
 
-### Suggested lifecycle
+- Copy-paste one terminal output for full context
+- AI sees frontend, backend, and WebSocket interactions together
+- No context switching between terminals
 
-1. Create a new feature worktree from `main`.
-2. Assign that worktree to one agent/task.
-3. Run its dev servers on dedicated ports.
-4. Make and validate changes inside that worktree.
-5. Integrate back through the `AICanvas-main` worktree.
-6. Remove the feature worktree and delete its branch after merge or cancellation.
+### Port Conventions
+
+| Worktree | Web | API | PartyKit |
+|----------|-----|-----|----------|
+| `AICanvas` (main) | 5173 | 8787 | 1999 |
+| `AICanvas-*` (side) | 5181, 5182... | 8791, 8792... | 1999 (shared) |
+
+The `bun run worktree:new` script auto-assigns ports and configures env files.
 
 ## Key Files for Orientation
 
@@ -182,15 +179,16 @@ Canonical reference:
 
 ## Documentation Index
 
-- `CLAUDE.md` — this file (project orientation, patterns, rules for Claude)
-- `AGENTS.md` — mirrored project orientation for Codex and other agent tooling
+- `AGENTS.md` — this file (project orientation, patterns, rules for Codex and other agent tooling)
+- `CLAUDE.md` — mirrored project orientation for Claude
 - `apps/web/CLAUDE.md` — frontend SPA patterns (components, state, styling, testing)
 - `apps/api/CLAUDE.md` — API patterns (routes, middleware, database, auth)
 - `packages/shared/CLAUDE.md` — shared package rules (schemas, types, constants)
 - `ARCHITECTURE.md` — tech stack decisions and rationale
 - `docs/overlay-authoring-pattern.md` — overlay composition specification
 - `docs/assistant-v2-architecture.md` — next-generation assistant architecture
-- `docs/multi-agent-orchestration.md` — delegation, worktree, branch, port, and merge operating model
+- `docs/workflow-pragmatic.md` — simplified worktree workflow for solo + AI development
+- `docs/multi-agent-orchestration.md` — advanced multi-agent orchestration (legacy)
 - `docs/overlay-lod-architecture.md` — overlay level-of-detail and performance model
 - `docs/observability.md` — current logging, tracing, and Sentry setup
 - `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan
