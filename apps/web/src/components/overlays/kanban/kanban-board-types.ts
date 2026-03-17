@@ -7,10 +7,11 @@ export type KanbanElement = ExcalidrawElement & {
 
 export interface KanbanBoardProps {
 	element: KanbanElement;
-	mode?: 'preview' | 'live';
+	mode: 'preview' | 'shell' | 'live';
 	isSelected: boolean;
+	isActive: boolean;
 	onChange: (elementId: string, data: KanbanOverlayCustomData) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }
 
 export interface KanbanBoardMutationOptions {

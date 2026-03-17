@@ -55,22 +55,28 @@ function getOverlayContainerStyle(
 interface OverlayContentProps {
 	element: TypedOverlayCanvasElement;
 	isSelected: boolean;
+	isActive: boolean;
+	mode: 'preview' | 'shell' | 'live';
 	onChange: (payload: OverlayUpdatePayloadMap[OverlayType]) => void;
-	onEditingChange: (isEditing: boolean) => void;
+	onActivityChange: (isActive: boolean) => void;
 }
 
 const OverlayContent = memo(function OverlayContent({
 	element,
 	isSelected,
+	isActive,
+	mode,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: OverlayContentProps) {
 	const definition = getOverlayDefinition(element.customData.type);
 	return definition.render({
 		element: element as never,
 		isSelected,
+		isActive,
+		mode,
 		onChange: onChange as never,
-		onEditingChange,
+		onActivityChange,
 	});
 });
 
@@ -107,10 +113,10 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 		},
 		[normalizedElement.id, type, updateOverlayElement],
 	);
-	const handleEditingChange = useCallback((nextIsEditing: boolean) => {
-		if (isEditingRef.current === nextIsEditing) return;
-		isEditingRef.current = nextIsEditing;
-		setIsEditing(nextIsEditing);
+	const handleActivityChange = useCallback((nextIsActive: boolean) => {
+		if (isEditingRef.current === nextIsActive) return;
+		isEditingRef.current = nextIsActive;
+		setIsEditing(nextIsActive);
 	}, []);
 
 	return (
@@ -128,8 +134,10 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 				<OverlayContent
 					element={normalizedElement}
 					isSelected={isSelected}
+					isActive={isEditing}
+					mode={isSelected ? 'live' : 'preview'}
 					onChange={handleChange as never}
-					onEditingChange={handleEditingChange}
+					onActivityChange={handleActivityChange}
 				/>
 			</div>
 		</div>

@@ -483,7 +483,9 @@ describe('assistant service', () => {
 		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
 		expect(result.message.artifacts?.[0]?.content).toContain('"eyebrow": "Playable prototype"');
 		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
-		expect(result.message.artifacts?.[0]?.content).toContain('Game over. Press restart to play again.');
+		expect(result.message.artifacts?.[0]?.content).toContain(
+			'Game over. Press restart to play again.',
+		);
 		expect(result.message.artifacts?.[0]?.content).not.toContain('Would you like me to');
 	});
 
@@ -529,7 +531,7 @@ describe('assistant service', () => {
 				template: 'react',
 				activeFile: '/App.jsx',
 				files: {
-					'/App.jsx': { code: "export default function App() { return <div>Placeholder</div>; }" },
+					'/App.jsx': { code: 'export default function App() { return <div>Placeholder</div>; }' },
 					'/index.jsx': { code: "import { createRoot } from 'react-dom/client';", hidden: true },
 					'/styles.css': { code: 'body { margin: 0; }' },
 				},

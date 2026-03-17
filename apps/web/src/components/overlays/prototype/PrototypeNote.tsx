@@ -13,9 +13,11 @@ type PrototypeElement = ExcalidrawElement & {
 
 interface PrototypeNoteProps {
 	element: PrototypeElement;
+	mode: 'preview' | 'shell' | 'live';
 	isSelected: boolean;
+	isActive: boolean;
 	onChange?: (elementId: string, updates: Partial<PrototypeOverlayCustomData>) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }
 
 function getPreviewStatusLabel(status: 'idle' | 'compiling' | 'running' | 'ready' | 'error') {

@@ -17,12 +17,21 @@ type WebEmbedElement = ExcalidrawElement & {
 
 interface WebEmbedProps {
 	element: WebEmbedElement;
+	mode: 'preview' | 'shell' | 'live';
 	isSelected: boolean;
+	isActive: boolean;
 	onChange: (elementId: string, url: string) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }
 
-export function WebEmbed({ element, isSelected, onChange, onEditingChange }: WebEmbedProps) {
+export function WebEmbed({
+	element,
+	mode,
+	isSelected,
+	isActive,
+	onChange,
+	onActivityChange,
+}: WebEmbedProps) {
 	const [urlInput, setUrlInput] = useState(element.customData.url);
 	const [isEditing, setIsEditing] = useState(!element.customData.url);
 	const [viewMode, setViewMode] = useState<WebEmbedViewMode>('inline');
@@ -32,7 +41,7 @@ export function WebEmbed({ element, isSelected, onChange, onEditingChange }: Web
 		height: typeof window === 'undefined' ? 900 : window.innerHeight,
 	});
 	const [pipPosition, setPipPosition] = useState(() => getDefaultPipPosition(viewport));
-	const onEditingChangeRef = useRef(onEditingChange);
+	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
 	const pipDragCleanupRef = useRef<(() => void) | null>(null);
 
@@ -42,8 +51,8 @@ export function WebEmbed({ element, isSelected, onChange, onEditingChange }: Web
 	}, []);
 
 	useEffect(() => {
-		onEditingChangeRef.current = onEditingChange;
-	}, [onEditingChange]);
+		onActivityChangeRef.current = onActivityChange;
+	}, [onActivityChange]);
 
 	useEffect(() => {
 		setUrlInput(element.customData.url);
@@ -56,19 +65,19 @@ export function WebEmbed({ element, isSelected, onChange, onEditingChange }: Web
 		}
 	}, [isSelected, viewMode]);
 
-	const isActivelyEditing = isEditing || viewMode !== 'inline';
+	const isActivelyActive = isEditing || viewMode !== 'inline';
 
 	useEffect(() => {
-		if (lastReportedEditingRef.current === isActivelyEditing) return;
-		lastReportedEditingRef.current = isActivelyEditing;
-		onEditingChangeRef.current?.(isActivelyEditing);
-	}, [isActivelyEditing]);
+		if (lastReportedEditingRef.current === isActivelyActive) return;
+		lastReportedEditingRef.current = isActivelyActive;
+		onActivityChangeRef.current?.(isActivelyActive);
+	}, [isActivelyActive]);
 
 	useEffect(
 		() => () => {
 			clearPipDragListeners();
 			if (lastReportedEditingRef.current) {
-				onEditingChangeRef.current?.(false);
+				onActivityChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
 		},

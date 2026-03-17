@@ -1,4 +1,7 @@
-import { parseStoredAssistantAssetContent, serializeStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
+import {
+	parseStoredAssistantAssetContent,
+	serializeStoredAssistantAssetContent,
+} from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
 	AssistantArtifactRecord,

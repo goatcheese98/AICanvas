@@ -56,9 +56,11 @@ interface UseKanbanBoardStateResult {
 
 export function useKanbanBoardState({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: KanbanBoardProps): UseKanbanBoardStateResult {
 	const normalizedInitialBoard = useMemo(
 		() => normalizeKanbanBoard(element.customData),
@@ -76,7 +78,7 @@ export function useKanbanBoardState({
 	const boardRef = useRef(board);
 	const boardTitleDraftRef = useRef(boardTitleDraft);
 	const onChangeRef = useRef(onChange);
-	const onEditingChangeRef = useRef(onEditingChange);
+	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
 	const hasReportedEditingRef = useRef(false);
 	const externalBoardSignatureRef = useRef(serializeKanbanBoard(normalizedInitialBoard));
@@ -96,8 +98,8 @@ export function useKanbanBoardState({
 	}, [onChange]);
 
 	useEffect(() => {
-		onEditingChangeRef.current = onEditingChange;
-	}, [onEditingChange]);
+		onActivityChangeRef.current = onActivityChange;
+	}, [onActivityChange]);
 
 	useEffect(() => {
 		setBoardTitleDraft(board.title);
@@ -148,7 +150,7 @@ export function useKanbanBoardState({
 		if (lastReportedEditingRef.current === isSelected) return;
 		hasReportedEditingRef.current = true;
 		lastReportedEditingRef.current = isSelected;
-		onEditingChangeRef.current?.(isSelected);
+		onActivityChangeRef.current?.(isSelected);
 	}, [isSelected]);
 
 	const persistBoard = useCallback(
@@ -199,7 +201,7 @@ export function useKanbanBoardState({
 				window.clearTimeout(resizeSettleTimeoutRef.current);
 			}
 			if (lastReportedEditingRef.current) {
-				onEditingChangeRef.current?.(false);
+				onActivityChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
 		},

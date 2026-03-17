@@ -225,7 +225,9 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 		return 'prototype';
 	}
 
-	if (/(generate an image|create an image|hero illustration|illustration|cover image)/.test(message)) {
+	if (
+		/(generate an image|create an image|hero illustration|illustration|cover image)/.test(message)
+	) {
 		return 'image';
 	}
 

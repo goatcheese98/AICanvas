@@ -1,10 +1,5 @@
-import {
-	assistantSchemas,
-	parseStoredAssistantAssetContent,
-} from '@ai-canvas/shared/schemas';
-import type {
-	AssistantContextSnapshot,
-} from '@ai-canvas/shared/types';
+import { assistantSchemas, parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
+import type { AssistantContextSnapshot } from '@ai-canvas/shared/types';
 import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';

@@ -33,7 +33,9 @@ describe('useMarkdownNoteState', () => {
 			(props: { element: MarkdownElement }) =>
 				useMarkdownNoteState({
 					element: props.element,
+					mode: 'live',
 					isSelected: false,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -62,7 +64,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -87,27 +91,29 @@ describe('useMarkdownNoteState', () => {
 		);
 	});
 
-	it('reports editing lifecycle changes when selection state changes', () => {
+	it('reports activity lifecycle changes when selection state changes', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const { rerender } = renderHook(
 			(props: { isSelected: boolean }) =>
 				useMarkdownNoteState({
 					element: createElement(),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
-					onEditingChange,
+					onActivityChange,
 				}),
 			{
 				initialProps: { isSelected: true },
 			},
 		);
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 
 		rerender({ isSelected: false });
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(false);
+		expect(onActivityChange).toHaveBeenLastCalledWith(false);
 	});
 
 	// --- Edge case tests ---
@@ -118,7 +124,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -141,7 +149,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -177,7 +187,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -199,7 +211,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -217,7 +231,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement({ title: 'MyNote' }),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -234,7 +250,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement({ title: 'MD' }),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -251,7 +269,9 @@ describe('useMarkdownNoteState', () => {
 			(props: { element: MarkdownElement }) =>
 				useMarkdownNoteState({
 					element: props.element,
+					mode: 'live',
 					isSelected: false,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -274,7 +294,9 @@ describe('useMarkdownNoteState', () => {
 			(props: { element: MarkdownElement }) =>
 				useMarkdownNoteState({
 					element: props.element,
+					mode: 'live',
 					isSelected: true,
+					isActive: true,
 					onChange,
 				}),
 			{
@@ -300,7 +322,9 @@ describe('useMarkdownNoteState', () => {
 			(props: { isSelected: boolean }) =>
 				useMarkdownNoteState({
 					element: createElement(),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
 				}),
 			{
@@ -321,27 +345,29 @@ describe('useMarkdownNoteState', () => {
 		expect(result.current.isCompactControlsVisible).toBe(false);
 	});
 
-	it('does not re-report the same editing state', () => {
+	it('does not re-report the same activity state', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const { rerender } = renderHook(
 			(props: { isSelected: boolean }) =>
 				useMarkdownNoteState({
 					element: createElement(),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
-					onEditingChange,
+					onActivityChange,
 				}),
 			{
 				initialProps: { isSelected: true },
 			},
 		);
 
-		const callCount = onEditingChange.mock.calls.length;
+		const callCount = onActivityChange.mock.calls.length;
 
 		// Re-render with same state
 		rerender({ isSelected: true });
-		expect(onEditingChange.mock.calls.length).toBe(callCount);
+		expect(onActivityChange.mock.calls.length).toBe(callCount);
 	});
 
 	it('handleCommit immediately persists current state', () => {
@@ -349,7 +375,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -372,7 +400,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -395,7 +425,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -422,7 +454,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -445,7 +479,9 @@ describe('useMarkdownNoteState', () => {
 		const { result } = renderHook(() =>
 			useMarkdownNoteState({
 				element: createElement({ content: '- [ ] unchecked\n- [x] checked' }),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);

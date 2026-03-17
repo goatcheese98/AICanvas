@@ -86,14 +86,16 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			}) as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 		},
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<MarkdownNote
 				element={element}
 				isSelected={isSelected}
+				isActive={isActive}
+				mode={mode}
 				onChange={(elementId, content, images, title, settings, editorMode, elementStyle) =>
 					onChange({ content, images, title, settings, editorMode, elementStyle })
 				}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>
 		),
 	},
@@ -135,12 +137,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<LexicalNote
 				element={element}
 				isSelected={isSelected}
+				isActive={isActive}
+				mode={mode}
 				onChange={(_elementId, updates) => onChange(updates)}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>
 		),
 	},
@@ -161,13 +165,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				...element,
 				customData: normalizeKanbanOverlay(payload),
 			}),
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<KanbanBoard
 				element={element}
-				mode={isSelected ? 'live' : 'preview'}
+				mode={mode}
 				isSelected={isSelected}
+				isActive={isActive}
 				onChange={(_elementId, data) => onChange(data)}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>
 		),
 	},
@@ -186,12 +191,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					url: payload.url,
 				}),
 			}),
-		render: ({ element, isSelected, onChange, onEditingChange }) => (
+		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<WebEmbed
 				element={element}
 				isSelected={isSelected}
+				isActive={isActive}
+				mode={mode}
 				onChange={(_elementId, url) => onChange({ url })}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>
 		),
 	},
@@ -236,8 +243,14 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					...payload,
 				}),
 			}),
-		render: ({ element, isSelected }) => (
-			<PrototypeNote element={element} isSelected={isSelected} />
+		render: ({ element, isSelected, isActive, mode, onActivityChange }) => (
+			<PrototypeNote
+				element={element}
+				isSelected={isSelected}
+				isActive={isActive}
+				mode={mode}
+				onActivityChange={onActivityChange}
+			/>
 		),
 	},
 };

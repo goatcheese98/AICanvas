@@ -1,7 +1,7 @@
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
-import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
+import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {

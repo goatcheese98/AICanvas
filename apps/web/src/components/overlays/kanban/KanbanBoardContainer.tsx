@@ -56,12 +56,21 @@ function PlusIcon() {
 
 export function KanbanBoardContainer({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: KanbanBoardProps) {
 	const settingsRef = useRef<HTMLDivElement>(null);
-	const state = useKanbanBoardState({ element, isSelected, onChange, onEditingChange });
+	const state = useKanbanBoardState({
+		element,
+		mode,
+		isSelected,
+		isActive,
+		onChange,
+		onActivityChange,
+	});
 	const drag = useKanbanDragState({
 		boardRef: state.boardRef,
 		updateBoard: state.updateBoard,

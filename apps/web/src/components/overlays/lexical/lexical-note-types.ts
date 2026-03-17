@@ -13,9 +13,11 @@ export interface LexicalNoteChangePayload {
 
 export interface LexicalNoteProps {
 	element: LexicalElement;
+	mode: 'preview' | 'shell' | 'live';
 	isSelected: boolean;
+	isActive: boolean;
 	onChange: (elementId: string, updates: LexicalNoteChangePayload) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }
 
 export type ReplyDraftByThread = Record<string, string>;

@@ -1,5 +1,5 @@
-import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { describe, expect, it, vi } from 'vitest';
 import {
 	resolveInsertionSceneCenter,

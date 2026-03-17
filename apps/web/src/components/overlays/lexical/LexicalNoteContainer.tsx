@@ -16,9 +16,11 @@ import { useLexicalNoteState } from './useLexicalNoteState';
 
 export function LexicalNoteContainer({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: LexicalNoteProps) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 	const renderCountRef = useRef(0);
@@ -57,9 +59,11 @@ export function LexicalNoteContainer({
 		orderedComments,
 	} = useLexicalNoteState({
 		element,
+		mode,
 		isSelected,
+		isActive,
 		onChange,
-		onEditingChange,
+		onActivityChange,
 	});
 
 	const expandForToolbar = useCallback(() => {

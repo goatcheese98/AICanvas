@@ -233,7 +233,11 @@ function main() {
 		worktreeWebEnvPath,
 		(text) => {
 			let nextText = upsertEnvLine(text, 'VITE_PORT', String(suggestedWebPort));
-			nextText = upsertEnvLine(nextText, 'VITE_API_BASE_URL', `http://localhost:${suggestedApiPort}`);
+			nextText = upsertEnvLine(
+				nextText,
+				'VITE_API_BASE_URL',
+				`http://localhost:${suggestedApiPort}`,
+			);
 			nextText = upsertEnvLine(
 				nextText,
 				'VITE_API_PROXY_TARGET',

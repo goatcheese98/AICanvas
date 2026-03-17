@@ -7,7 +7,9 @@ export type MarkdownElement = ExcalidrawElement & {
 
 export interface MarkdownNoteProps {
 	element: MarkdownElement;
+	mode: 'preview' | 'shell' | 'live';
 	isSelected: boolean;
+	isActive: boolean;
 	onChange: (
 		elementId: string,
 		content: string,
@@ -22,5 +24,5 @@ export interface MarkdownNoteProps {
 			roundness?: ExcalidrawElement['roundness'];
 		},
 	) => void;
-	onEditingChange?: (isEditing: boolean) => void;
+	onActivityChange?: (isActive: boolean) => void;
 }

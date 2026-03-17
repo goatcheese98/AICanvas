@@ -12,7 +12,7 @@ import type {
 } from '@ai-canvas/shared/types';
 import * as Sentry from '@sentry/cloudflare';
 import type { AppEnv } from '../../types';
-import { createDb } from '../db/client';
+import type { createDb } from '../db/client';
 import { logApiEvent } from '../observability';
 import {
 	loadAssistantAssetFromR2,

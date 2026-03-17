@@ -50,7 +50,9 @@ describe('useLexicalNoteState', () => {
 			(props: { element: LexicalElement }) =>
 				useLexicalNoteState({
 					element: props.element,
+					mode: 'live',
 					isSelected: true,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -93,23 +95,25 @@ describe('useLexicalNoteState', () => {
 	it('commits inline comments and reports editing lifecycle changes', () => {
 		vi.useFakeTimers();
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const { result } = renderHook(() =>
 			useLexicalNoteState({
 				element: createElement(),
+				mode: 'live',
 				isSelected: true,
+				isActive: false,
 				onChange,
-				onEditingChange,
+				onActivityChange,
 			}),
 		);
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(false);
+		expect(onActivityChange).toHaveBeenLastCalledWith(false);
 
 		act(() => {
 			result.current.handleRequestComment('Selected text');
 		});
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 
 		act(() => {
 			result.current.setCommentDraft('Discuss this paragraph');

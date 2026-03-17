@@ -22,9 +22,11 @@ interface UseLexicalNoteStateArgs extends LexicalNoteProps {}
 
 export function useLexicalNoteState({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: UseLexicalNoteStateArgs) {
 	const incomingTitle = element.customData.title?.trim() || DEFAULT_NEWLEX_TITLE;
 	const incomingLexicalState = element.customData.lexicalState || DEFAULT_NEWLEX_CONTENT;
@@ -42,7 +44,7 @@ export function useLexicalNoteState({
 	const [showCommentComposer, setShowCommentComposer] = useState(false);
 	const [commentDraft, setCommentDraft] = useState('');
 	const [pendingAnchorText, setPendingAnchorText] = useState('');
-	const onEditingChangeRef = useRef(onEditingChange);
+	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
 	const commentsRef = useRef(comments);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
@@ -61,8 +63,8 @@ export function useLexicalNoteState({
 		});
 
 	useEffect(() => {
-		onEditingChangeRef.current = onEditingChange;
-	}, [onEditingChange]);
+		onActivityChangeRef.current = onActivityChange;
+	}, [onActivityChange]);
 
 	useEffect(() => {
 		if (incomingTitle === externalTitleRef.current) return;
@@ -104,7 +106,7 @@ export function useLexicalNoteState({
 	useEffect(() => {
 		if (lastReportedEditingRef.current === isActivelyEditing) return;
 		lastReportedEditingRef.current = isActivelyEditing;
-		onEditingChangeRef.current?.(isActivelyEditing);
+		onActivityChangeRef.current?.(isActivelyEditing);
 	}, [isActivelyEditing]);
 
 	useEffect(
@@ -113,7 +115,7 @@ export function useLexicalNoteState({
 				window.clearTimeout(titleNoticeTimeoutRef.current);
 			}
 			if (lastReportedEditingRef.current) {
-				onEditingChangeRef.current?.(false);
+				onActivityChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
 		},

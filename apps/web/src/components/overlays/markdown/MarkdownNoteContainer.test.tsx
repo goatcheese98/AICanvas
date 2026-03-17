@@ -72,7 +72,15 @@ describe('MarkdownNoteContainer', () => {
 		vi.useFakeTimers();
 		const onChange = vi.fn();
 
-		render(<MarkdownNoteContainer element={createElement()} isSelected onChange={onChange} />);
+		render(
+			<MarkdownNoteContainer
+				element={createElement()}
+				mode="live"
+				isSelected
+				isActive
+				onChange={onChange}
+			/>,
+		);
 
 		fireEvent.change(screen.getByPlaceholderText('Write markdown...'), {
 			target: { value: 'Updated body copy' },
@@ -92,20 +100,22 @@ describe('MarkdownNoteContainer', () => {
 		);
 	});
 
-	it('commits before switching to preview and reports the editing lifecycle', () => {
+	it('commits before switching to preview and reports the activity lifecycle', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 
 		render(
 			<MarkdownNoteContainer
 				element={createElement()}
+				mode="live"
 				isSelected
+				isActive
 				onChange={onChange}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>,
 		);
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 		expect(screen.getByPlaceholderText('Write markdown...')).not.toBeNull();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
@@ -119,6 +129,6 @@ describe('MarkdownNoteContainer', () => {
 			'raw',
 		);
 		expect(screen.queryByPlaceholderText('Write markdown...')).toBeNull();
-		expect(onEditingChange).toHaveBeenLastCalledWith(false);
+		expect(onActivityChange).toHaveBeenLastCalledWith(false);
 	});
 });

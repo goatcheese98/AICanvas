@@ -255,22 +255,22 @@ function KanbanPreviewBoard({
 }
 
 export function KanbanBoard(props: KanbanBoardProps) {
-	const mode = props.mode ?? 'live';
-
 	useEffect(() => {
-		props.onEditingChange?.(mode === 'live' && props.isSelected);
-	}, [mode, props.isSelected, props.onEditingChange]);
+		props.onActivityChange?.(props.mode === 'live' && props.isSelected);
+	}, [props.mode, props.isSelected, props.onActivityChange]);
 
-	if (mode === 'preview') {
+	if (props.mode === 'preview') {
 		return <KanbanPreviewBoard element={props.element} isSelected={props.isSelected} />;
 	}
 
 	return (
 		<KanbanBoardContainer
 			element={props.element}
+			mode={props.mode}
 			isSelected={props.isSelected}
+			isActive={props.isActive}
 			onChange={props.onChange}
-			onEditingChange={props.onEditingChange}
+			onActivityChange={props.onActivityChange}
 		/>
 	);
 }

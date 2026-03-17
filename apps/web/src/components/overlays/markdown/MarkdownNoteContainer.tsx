@@ -7,11 +7,20 @@ import { useMarkdownNoteState } from './useMarkdownNoteState';
 
 export function MarkdownNoteContainer({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: MarkdownNoteProps) {
-	const state = useMarkdownNoteState({ element, isSelected, onChange, onEditingChange });
+	const state = useMarkdownNoteState({
+		element,
+		mode,
+		isSelected,
+		isActive,
+		onChange,
+		onActivityChange,
+	});
 
 	return (
 		<OverlaySurface

@@ -112,7 +112,7 @@ export function buildPrototypePrompt(userText: string, currentPrototypeJson?: st
 		'- For React prototypes, /index.jsx is the required runtime entry file.',
 		'- For vanilla prototypes, /index.js is the required runtime entry file.',
 		'- You may create any additional files and folders under / that help the implementation.',
-		"- Do not assume /App.jsx or /styles.css unless the request actually needs them.",
+		'- Do not assume /App.jsx or /styles.css unless the request actually needs them.',
 		'- files must be the complete post-edit file map, not a partial patch.',
 		'- Update both JSX and CSS when the request changes structure and styling.',
 		'- Replace any starter content entirely. Do not reuse PulseBoard, launch/pipeline/ops tabs, or the default template copy unless the user explicitly asks for them.',

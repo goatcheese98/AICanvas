@@ -44,6 +44,8 @@ describe('WebEmbed', () => {
 					} as never
 				}
 				isSelected
+				mode="live"
+				isActive
 				onChange={vi.fn()}
 			/>,
 		);

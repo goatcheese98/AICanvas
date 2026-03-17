@@ -56,6 +56,7 @@ function KanbanBoardHarness({ selected }: { selected: boolean }) {
 			element={element}
 			mode={selected ? 'live' : 'preview'}
 			isSelected={selected}
+			isActive={selected}
 			onChange={(_elementId, data) =>
 				setElement((current) => ({
 					...current,

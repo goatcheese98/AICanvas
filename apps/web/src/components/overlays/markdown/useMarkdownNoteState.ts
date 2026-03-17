@@ -67,9 +67,11 @@ interface UseMarkdownNoteStateResult {
 
 export function useMarkdownNoteState({
 	element,
+	mode,
 	isSelected,
+	isActive,
 	onChange,
-	onEditingChange,
+	onActivityChange,
 }: MarkdownNoteProps): UseMarkdownNoteStateResult {
 	const normalizedElement = useMemo(
 		() => normalizeMarkdownOverlay(element.customData),
@@ -96,9 +98,9 @@ export function useMarkdownNoteState({
 	const headerRef = useRef<HTMLDivElement>(null);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
 	const onChangeRef = useRef(onChange);
-	const onEditingChangeRef = useRef(onEditingChange);
-	const lastReportedEditingRef = useRef<boolean | null>(null);
-	const hasReportedEditingRef = useRef(false);
+	const onActivityChangeRef = useRef(onActivityChange);
+	const lastReportedActivityRef = useRef<boolean | null>(null);
+	const hasReportedActivityRef = useRef(false);
 	const externalSignatureRef = useRef(normalizedElementSignature);
 	const lastCommittedSignatureRef = useRef(externalSignatureRef.current);
 
@@ -107,8 +109,8 @@ export function useMarkdownNoteState({
 	}, [onChange]);
 
 	useEffect(() => {
-		onEditingChangeRef.current = onEditingChange;
-	}, [onEditingChange]);
+		onActivityChangeRef.current = onActivityChange;
+	}, [onActivityChange]);
 
 	useEffect(() => {
 		if (normalizedElementSignature === externalSignatureRef.current) return;
@@ -187,22 +189,22 @@ export function useMarkdownNoteState({
 	const isEditing = isSelected && (!isPreview || activeUtilityPanel !== 'none');
 
 	useEffect(() => {
-		if (!hasReportedEditingRef.current && !isEditing) {
-			hasReportedEditingRef.current = true;
-			lastReportedEditingRef.current = false;
+		if (!hasReportedActivityRef.current && !isEditing) {
+			hasReportedActivityRef.current = true;
+			lastReportedActivityRef.current = false;
 			return;
 		}
-		if (lastReportedEditingRef.current === isEditing) return;
-		hasReportedEditingRef.current = true;
-		lastReportedEditingRef.current = isEditing;
-		onEditingChangeRef.current?.(isEditing);
+		if (lastReportedActivityRef.current === isEditing) return;
+		hasReportedActivityRef.current = true;
+		lastReportedActivityRef.current = isEditing;
+		onActivityChangeRef.current?.(isEditing);
 	}, [isEditing]);
 
 	useEffect(
 		() => () => {
-			if (lastReportedEditingRef.current) {
-				onEditingChangeRef.current?.(false);
-				lastReportedEditingRef.current = false;
+			if (lastReportedActivityRef.current) {
+				onActivityChangeRef.current?.(false);
+				lastReportedActivityRef.current = false;
 			}
 		},
 		[],

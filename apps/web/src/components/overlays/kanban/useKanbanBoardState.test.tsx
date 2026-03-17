@@ -60,7 +60,9 @@ describe('useKanbanBoardState', () => {
 			(props: { element: KanbanElement }) =>
 				useKanbanBoardState({
 					element: props.element,
+					mode: 'live',
 					isSelected: false,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -88,7 +90,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -122,7 +126,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -143,7 +149,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -163,7 +171,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -183,7 +193,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -228,7 +240,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: false,
+				isActive: false,
 				onChange,
 			}),
 		);
@@ -248,7 +262,9 @@ describe('useKanbanBoardState', () => {
 			(props: { element: KanbanElement }) =>
 				useKanbanBoardState({
 					element: props.element,
+					mode: 'live',
 					isSelected: false,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -275,7 +291,9 @@ describe('useKanbanBoardState', () => {
 			(props: { element: KanbanElement }) =>
 				useKanbanBoardState({
 					element: props.element,
+					mode: 'live',
 					isSelected: false,
+					isActive: false,
 					onChange,
 				}),
 			{
@@ -311,7 +329,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -334,7 +354,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -351,7 +373,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(twocolBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -375,7 +399,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(twocolBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -396,7 +422,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -413,7 +441,9 @@ describe('useKanbanBoardState', () => {
 			(props: { element: KanbanElement }) =>
 				useKanbanBoardState({
 					element: props.element,
+					mode: 'live',
 					isSelected: true,
+					isActive: true,
 					onChange,
 				}),
 			{
@@ -442,7 +472,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(twocolBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -465,7 +497,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -489,7 +523,9 @@ describe('useKanbanBoardState', () => {
 			(props: { isSelected: boolean }) =>
 				useKanbanBoardState({
 					element: createElement(baseBoard),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
 				}),
 			{
@@ -510,47 +546,51 @@ describe('useKanbanBoardState', () => {
 
 	it('reports editing lifecycle on selection changes', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const { rerender } = renderHook(
 			(props: { isSelected: boolean }) =>
 				useKanbanBoardState({
 					element: createElement(baseBoard),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
-					onEditingChange,
+					onActivityChange,
 				}),
 			{
 				initialProps: { isSelected: true },
 			},
 		);
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 
 		rerender({ isSelected: false });
-		expect(onEditingChange).toHaveBeenLastCalledWith(false);
+		expect(onActivityChange).toHaveBeenLastCalledWith(false);
 	});
 
 	it('does not re-report the same editing state', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const { rerender } = renderHook(
 			(props: { isSelected: boolean }) =>
 				useKanbanBoardState({
 					element: createElement(baseBoard),
+					mode: 'live',
 					isSelected: props.isSelected,
+					isActive: props.isSelected,
 					onChange,
-					onEditingChange,
+					onActivityChange,
 				}),
 			{
 				initialProps: { isSelected: true },
 			},
 		);
 
-		const callCount = onEditingChange.mock.calls.length;
+		const callCount = onActivityChange.mock.calls.length;
 
 		// Re-render with same selection state
 		rerender({ isSelected: true });
-		expect(onEditingChange.mock.calls.length).toBe(callCount);
+		expect(onActivityChange.mock.calls.length).toBe(callCount);
 	});
 
 	it('handleAdjustFontSize clamps correctly from default', () => {
@@ -558,7 +598,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);
@@ -576,7 +618,9 @@ describe('useKanbanBoardState', () => {
 		const { result } = renderHook(() =>
 			useKanbanBoardState({
 				element: createElement(baseBoard),
+				mode: 'live',
 				isSelected: true,
+				isActive: true,
 				onChange,
 			}),
 		);

@@ -55,7 +55,15 @@ describe('KanbanBoardContainer', () => {
 	it('persists board title changes and add-card actions through the container boundary', () => {
 		const onChange = vi.fn();
 
-		render(<KanbanBoardContainer element={createElement()} isSelected onChange={onChange} />);
+		render(
+			<KanbanBoardContainer
+				element={createElement()}
+				mode="live"
+				isSelected
+				isActive
+				onChange={onChange}
+			/>,
+		);
 
 		const boardTitleInput = screen.getByDisplayValue('Board');
 		fireEvent.change(boardTitleInput, { target: { value: 'Updated Board' } });
@@ -89,7 +97,15 @@ describe('KanbanBoardContainer', () => {
 	});
 
 	it('opens board settings from the header and dismisses them on escape', () => {
-		render(<KanbanBoardContainer element={createElement()} isSelected onChange={vi.fn()} />);
+		render(
+			<KanbanBoardContainer
+				element={createElement()}
+				mode="live"
+				isSelected
+				isActive
+				onChange={vi.fn()}
+			/>,
+		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Board appearance' }));
 		expect(screen.getByText('Reset board')).not.toBeNull();

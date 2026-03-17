@@ -1,7 +1,4 @@
-export const DEFAULT_LOCAL_DEV_ORIGINS = [
-	'http://localhost:5173',
-	'http://127.0.0.1:5173',
-];
+export const DEFAULT_LOCAL_DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
 
 export const DEFAULT_PUBLIC_ORIGINS = ['https://roopstudio.com', 'https://www.roopstudio.com'];
 

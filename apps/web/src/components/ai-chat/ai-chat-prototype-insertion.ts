@@ -5,6 +5,7 @@ import {
 } from '@/components/canvas/element-factories';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import type { AssistantArtifact, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { getConvertToExcalidrawElements, getSelectedPrototypeElement } from './ai-chat-canvas';
@@ -14,7 +15,6 @@ import {
 	buildPrototypeFromArtifact,
 	buildPrototypeFromMessageContent,
 } from './assistant-artifacts';
-import type { AssistantArtifact, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 
 interface PrototypeInsertionContext {
 	excalidrawApi: ExcalidrawImperativeAPI;

@@ -60,7 +60,9 @@ describe('generation mode helpers', () => {
 		expect(inferPrototypeTemplate(createInput({ message: 'Build a vanilla js dashboard' }))).toBe(
 			'vanilla',
 		);
-		expect(inferPrototypeTemplate(createInput({ message: 'Build a react dashboard' }))).toBe('react');
+		expect(inferPrototypeTemplate(createInput({ message: 'Build a react dashboard' }))).toBe(
+			'react',
+		);
 	});
 
 	it('finds the last diagram artifact from history', () => {

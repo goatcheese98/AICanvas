@@ -81,27 +81,37 @@ afterEach(() => {
 
 describe('LexicalNoteContainer', () => {
 	it('hides the comments toggle when there are no comment threads yet', () => {
-		render(<LexicalNoteContainer element={createElement()} isSelected onChange={vi.fn()} />);
+		render(
+			<LexicalNoteContainer
+				element={createElement()}
+				mode="live"
+				isSelected
+				isActive={false}
+				onChange={vi.fn()}
+			/>,
+		);
 
 		expect(screen.queryByRole('button', { name: '0 comments' })).toBeNull();
 	});
 
 	it('commits title changes and opens the comments panel through the container boundary', () => {
 		const onChange = vi.fn();
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 
 		render(
 			<LexicalNoteContainer
 				element={createElement({
 					comments: [createCommentThread()],
 				})}
+				mode="live"
 				isSelected
+				isActive={false}
 				onChange={onChange}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>,
 		);
 
-		expect(onEditingChange).toHaveBeenLastCalledWith(false);
+		expect(onActivityChange).toHaveBeenLastCalledWith(false);
 
 		const titleInput = screen.getByLabelText('Rich text title');
 		fireEvent.change(titleInput, { target: { value: 'Revised title' } });
@@ -114,11 +124,11 @@ describe('LexicalNoteContainer', () => {
 		fireEvent.click(screen.getByRole('button', { name: '1 comments' }));
 
 		expect(screen.getByText('Discuss the intro')).not.toBeNull();
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 	});
 
 	it('prevents preview text selection when double-clicking into edit mode', () => {
-		const onEditingChange = vi.fn();
+		const onActivityChange = vi.fn();
 		const removeAllRanges = vi.fn();
 		vi.spyOn(window, 'getSelection').mockReturnValue({
 			removeAllRanges,
@@ -128,9 +138,11 @@ describe('LexicalNoteContainer', () => {
 		render(
 			<LexicalNoteContainer
 				element={createElement()}
+				mode="live"
 				isSelected
+				isActive={false}
 				onChange={vi.fn()}
-				onEditingChange={onEditingChange}
+				onActivityChange={onActivityChange}
 			/>,
 		);
 
@@ -140,7 +152,7 @@ describe('LexicalNoteContainer', () => {
 
 		expect(event.defaultPrevented).toBe(true);
 		expect(removeAllRanges).toHaveBeenCalledTimes(1);
-		expect(onEditingChange).toHaveBeenLastCalledWith(true);
+		expect(onActivityChange).toHaveBeenLastCalledWith(true);
 	});
 
 	it('expands the editor through the Excalidraw API boundary', () => {
@@ -152,7 +164,15 @@ describe('LexicalNoteContainer', () => {
 
 		useAppStore.setState({ excalidrawApi: excalidrawApi as never });
 
-		render(<LexicalNoteContainer element={createElement()} isSelected onChange={vi.fn()} />);
+		render(
+			<LexicalNoteContainer
+				element={createElement()}
+				mode="live"
+				isSelected
+				isActive={false}
+				onChange={vi.fn()}
+			/>,
+		);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 		fireEvent.click(screen.getByRole('button', { name: 'Expand' }));

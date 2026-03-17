@@ -28,7 +28,7 @@ export function updateOverlayElementById({
 	excalidrawApi: ExcalidrawImperativeAPI | null;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
 	targetId: string;
-	targetType: 'markdown' | 'kanban';
+	targetType: 'markdown' | 'kanban' | 'prototype';
 	payload: Record<string, unknown>;
 }) {
 	if (!excalidrawApi) {
