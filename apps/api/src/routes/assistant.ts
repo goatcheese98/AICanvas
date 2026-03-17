@@ -28,6 +28,7 @@ import {
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
 import { logApiEvent } from '../lib/observability';
+import { loadAssistantAssetFromR2 } from '../lib/storage/assistant-asset-storage';
 import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
 
