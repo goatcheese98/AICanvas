@@ -4,6 +4,7 @@ import {
 	buildD2Prompt,
 	buildKanbanPrompt,
 	buildMermaidPrompt,
+	buildPrototypePrompt,
 	extractCodeBlock,
 } from './parsing';
 
@@ -27,5 +28,19 @@ describe('assistant parsing helpers', () => {
 		expect(buildMermaidPrompt('Map login flow')).toContain('Mermaid');
 		expect(buildD2Prompt('Map login flow')).toContain('d2 code block');
 		expect(buildKanbanPrompt('Plan launch')).toContain('JSON kanban operations');
+	});
+
+	it('guides prototype generation toward request-specific responsive layouts', () => {
+		const prompt = buildPrototypePrompt('Create a calculator app');
+
+		expect(prompt).toContain('Start from a blank file graph');
+		expect(prompt).toContain('/index.jsx is the required runtime entry file');
+		expect(prompt).toContain('Do not assume /App.jsx or /styles.css');
+		expect(prompt).toContain('Choose the layout based on the requested workflow');
+		expect(prompt).toContain(
+			'build a working interactive product surface instead of a marketing site',
+		);
+		expect(prompt).toContain('Treat the canvas as a resizable container');
+		expect(prompt).toContain('Avoid in-app runtime labels like "Ready"');
 	});
 });

@@ -7,6 +7,7 @@ import type {
 	AssistantArtifact,
 	AssistantKanbanPatchArtifact,
 	AssistantMarkdownPatchArtifact,
+	AssistantPrototypePatchArtifact,
 	KanbanCard,
 	KanbanColumn,
 	KanbanOverlayCustomData,
@@ -253,6 +254,8 @@ export function buildMarkdownArtifactContent(artifact: AssistantArtifact): strin
 			return ['# Kanban Operations', '', '```json', artifact.content, '```'].join('\n');
 		case 'prototype-files':
 			return ['# Prototype Files', '', '```json', artifact.content, '```'].join('\n');
+		case 'prototype-patch':
+			return ['# Prototype Patch', '', '```json', artifact.content, '```'].join('\n');
 		case 'markdown-patch':
 		case 'kanban-patch':
 			return ['# Patch Artifact', '', '```json', artifact.content, '```'].join('\n');
@@ -309,6 +312,32 @@ export function parseKanbanPatchArtifact(
 			base: normalizeKanbanOverlay(parsed.base),
 			next: normalizeKanbanOverlay(parsed.next),
 			operations: Array.isArray(parsed.operations) ? parsed.operations : [],
+		};
+	} catch {
+		return null;
+	}
+}
+
+export function parsePrototypePatchArtifact(
+	artifact: AssistantArtifact,
+): AssistantPrototypePatchArtifact | null {
+	if (artifact.type !== 'prototype-patch') {
+		return null;
+	}
+
+	try {
+		const parsed = JSON.parse(artifact.content) as AssistantPrototypePatchArtifact;
+		if (parsed.kind !== 'prototype_patch' || typeof parsed.targetId !== 'string') {
+			return null;
+		}
+
+		return {
+			...parsed,
+			base: normalizePrototypeOverlay(parsed.base),
+			next: normalizePrototypeOverlay(parsed.next),
+			changedFiles: Array.isArray(parsed.changedFiles)
+				? parsed.changedFiles.filter((file) => typeof file === 'string')
+				: [],
 		};
 	} catch {
 		return null;

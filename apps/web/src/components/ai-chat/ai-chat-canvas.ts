@@ -1,4 +1,4 @@
-import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
+import { normalizeMarkdownOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
 import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 
@@ -21,6 +21,23 @@ export function resolveMarkdownContentFromElements(
 	}
 
 	return normalizeMarkdownOverlay(customData).content;
+}
+
+export function resolvePrototypeOverlayFromElements(
+	elements: readonly CanvasElement[],
+	targetId: string,
+) {
+	const match = elements.find((candidate) => String(candidate.id) === targetId);
+	if (!match) {
+		return null;
+	}
+
+	const customData = (match.customData as Record<string, unknown> | undefined) ?? {};
+	if (customData.type !== 'prototype') {
+		return null;
+	}
+
+	return normalizePrototypeOverlay(customData);
 }
 
 export function getSelectedPrototypeElement(

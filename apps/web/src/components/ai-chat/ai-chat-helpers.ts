@@ -63,8 +63,10 @@ export function canInsertMessageAsMarkdown(message: AssistantMessage): boolean {
 		!(message.artifacts ?? []).some(
 			(artifact) =>
 				artifact.type === 'kanban-ops' ||
+				artifact.type === 'prototype-files' ||
 				artifact.type === 'markdown-patch' ||
-				artifact.type === 'kanban-patch',
+				artifact.type === 'kanban-patch' ||
+				artifact.type === 'prototype-patch',
 		)
 	);
 }

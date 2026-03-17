@@ -7,13 +7,17 @@ import {
 	detectMarkdownPatchConflict,
 	parseKanbanPatchArtifact,
 	parseMarkdownPatchArtifact,
+	parsePrototypePatchArtifact,
 	summarizeKanbanPatchChanges,
 } from './assistant-artifacts';
 import {
 	PANEL_BUTTON,
 	PANEL_BUTTON_IDLE,
 } from './ai-chat-constants';
-import { resolveMarkdownContentFromElements } from './ai-chat-canvas';
+import {
+	resolveMarkdownContentFromElements,
+	resolvePrototypeOverlayFromElements,
+} from './ai-chat-canvas';
 import type {
 	AssistantPatchApplyOptions,
 	AssistantPatchApplyState,
@@ -51,8 +55,9 @@ export function PatchArtifactCard({
 }) {
 	const markdownPatch = useMemo(() => parseMarkdownPatchArtifact(artifact), [artifact]);
 	const kanbanPatch = useMemo(() => parseKanbanPatchArtifact(artifact), [artifact]);
+	const prototypePatch = useMemo(() => parsePrototypePatchArtifact(artifact), [artifact]);
 
-	if (!markdownPatch && !kanbanPatch) {
+	if (!markdownPatch && !kanbanPatch && !prototypePatch) {
 		return null;
 	}
 
@@ -267,7 +272,103 @@ export function PatchArtifactCard({
 	}
 
 	if (!kanbanPatch) {
-		return null;
+		if (!prototypePatch) {
+			return null;
+		}
+
+		const currentPrototype =
+			prototypePatch.targetId && elements
+				? resolvePrototypeOverlayFromElements(elements, prototypePatch.targetId)
+				: null;
+		const baseSignature = JSON.stringify(prototypePatch.base);
+		const nextSignature = JSON.stringify(prototypePatch.next);
+		const currentSignature = currentPrototype ? JSON.stringify(currentPrototype) : null;
+		const conflictState =
+			currentSignature === null
+				? 'missing'
+				: currentSignature === nextSignature
+					? 'already-applied'
+					: currentSignature === baseSignature
+						? 'clean'
+						: 'modified';
+		const isApplyBlocked = currentPrototype === null || conflictState === 'modified';
+		const changedFiles =
+			prototypePatch.changedFiles.length > 0
+				? prototypePatch.changedFiles
+				: Object.keys(prototypePatch.next.files).sort((left, right) => left.localeCompare(right));
+
+		return (
+			<div className="rounded-[10px] border border-sky-200 bg-sky-50 p-3">
+				<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-sky-700">
+					Prototype Patch
+				</div>
+				<div className="mb-3 text-[13px] text-stone-800">{prototypePatch.summary}</div>
+				{currentPrototype === null ? (
+					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
+						This prototype is no longer available on the canvas.
+					</div>
+				) : conflictState === 'modified' ? (
+					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
+						The selected prototype changed after this patch was prepared. Undo or regenerate before applying.
+					</div>
+				) : conflictState === 'already-applied' && applyState?.status !== 'applied' ? (
+					<div className="mb-3 rounded-[10px] border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">
+						The current prototype already matches this patch.
+					</div>
+				) : null}
+				<div className="rounded-[10px] border border-stone-200 bg-white p-3">
+					<div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] text-stone-600">
+						<div className="rounded-full border border-sky-200 bg-sky-50 px-2 py-1">
+							{changedFiles.length} changed file{changedFiles.length === 1 ? '' : 's'}
+						</div>
+						{prototypePatch.next.activeFile ? (
+							<div className="rounded-full border border-stone-200 bg-white px-2 py-1">
+								Active: {prototypePatch.next.activeFile}
+							</div>
+						) : null}
+					</div>
+					<div className="space-y-2">
+						{changedFiles.map((file) => (
+							<div
+								key={`${artifactKey}-prototype-${file}`}
+								className="rounded-[8px] bg-stone-50 px-3 py-2 text-[11px] text-stone-700"
+							>
+								{file}
+							</div>
+						))}
+					</div>
+				</div>
+				<div className="mt-3 flex flex-wrap gap-2">
+					{applyState?.status === 'applied' ? (
+						<button
+							type="button"
+							onClick={() => onUndoPatch?.(artifactKey, artifact)}
+							className={`${PANEL_BUTTON} border-rose-200 bg-white text-rose-700 hover:border-rose-300 hover:bg-rose-50`}
+						>
+							Undo Patch
+						</button>
+					) : applyState?.status === 'undone' ? (
+						<button
+							type="button"
+							onClick={() => onReapplyPatch?.(artifactKey, artifact)}
+							disabled={isApplyBlocked || conflictState === 'already-applied'}
+							className={`${PANEL_BUTTON} border-emerald-200 bg-white text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400`}
+						>
+							{conflictState === 'already-applied' ? 'Already Applied' : 'Reapply Patch'}
+						</button>
+					) : (
+						<button
+							type="button"
+							onClick={() => onApplyPatch?.(artifactKey, artifact)}
+							disabled={isApplyBlocked || conflictState === 'already-applied'}
+							className="inline-flex h-8 items-center justify-center rounded-[7px] border border-sky-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-sky-700 transition-colors hover:border-sky-400 hover:bg-sky-100 disabled:cursor-not-allowed disabled:border-stone-200 disabled:bg-stone-100 disabled:text-stone-400"
+						>
+							{conflictState === 'already-applied' ? 'Already Applied' : 'Apply Patch'}
+						</button>
+					)}
+				</div>
+			</div>
+		);
 	}
 
 	const kanbanChanges = summarizeKanbanPatchChanges(kanbanPatch);

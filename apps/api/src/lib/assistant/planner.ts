@@ -38,7 +38,7 @@ function getSelectedContexts(request: PlannerRequest) {
 
 function hasSingleSelectedContextKind(
 	request: PlannerRequest,
-	kind: 'kanban' | 'markdown',
+	kind: 'kanban' | 'markdown' | 'prototype',
 ): boolean {
 	const selectedContexts = getSelectedContexts(request);
 	return selectedContexts.length === 1 && selectedContexts[0]?.kind === kind;
@@ -66,6 +66,11 @@ function shouldPatchSelectedMarkdown(request: PlannerRequest): boolean {
 	return hasSingleSelectedContextKind(request, 'markdown')
 		&& isEditIntent(request.message)
 		&& !isCreateNewArtifactIntent(request.message);
+}
+
+function shouldPatchSelectedPrototype(request: PlannerRequest): boolean {
+	return hasSingleSelectedContextKind(request, 'prototype')
+		&& (isEditIntent(request.message) || /\bturn this into\b|working demo/i.test(request.message));
 }
 
 function buildTaskTitle(mode: GenerationMode): string {
@@ -198,6 +203,7 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 		contextMode: request.contextMode,
 		generationMode: request.modeHint,
 		history: request.history,
+		prototypeContext: request.prototypeContext,
 	});
 
 	const imageTasks =
@@ -228,23 +234,27 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 				: (() => {
 						const shouldPatchKanban = resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
 						const shouldPatchMarkdown = resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
+						const shouldPatchPrototype =
+							resolvedMode === 'prototype' && shouldPatchSelectedPrototype(request);
 						const includeArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban'
 								? shouldPatchKanban
 									? ['kanban-patch']
 									: ['kanban-ops']
 								: resolvedMode === 'prototype'
-									? ['prototype-files']
+									? shouldPatchPrototype
+										? ['prototype-patch']
+										: ['prototype-files']
 									: shouldPatchMarkdown
 										? ['markdown-patch']
 										: [];
 						const isInsertableCreation =
 							(resolvedMode === 'kanban' && !shouldPatchKanban)
-							|| resolvedMode === 'prototype';
+							|| (resolvedMode === 'prototype' && !shouldPatchPrototype);
 						const targetArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban' && !shouldPatchKanban
 								? ['kanban-ops']
-								: resolvedMode === 'prototype'
+								: resolvedMode === 'prototype' && !shouldPatchPrototype
 									? ['prototype-files']
 									: [];
 						return [
@@ -261,7 +271,9 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 												? 'Prepared a reversible Kanban patch for the selected board.'
 												: 'Prepared a new Kanban board for insertion onto the canvas.'
 											: resolvedMode === 'prototype'
-												? 'Prepared prototype files for the canvas.'
+												? shouldPatchPrototype
+													? 'Prepared a reversible prototype patch for the selected prototype.'
+													: 'Prepared prototype files for the canvas.'
 												: shouldPatchMarkdown
 													? 'Prepared a reversible markdown patch for the selected note.'
 													: 'Prepared an assistant response for the canvas.',

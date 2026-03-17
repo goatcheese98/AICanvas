@@ -83,10 +83,7 @@ export function buildKanbanPrompt(userText: string): string {
 	].join('\n');
 }
 
-export function buildMarkdownRewritePrompt(
-	userText: string,
-	currentMarkdown: string,
-): string {
+export function buildMarkdownRewritePrompt(userText: string, currentMarkdown: string): string {
 	return [
 		'Rewrite the selected markdown note to satisfy the edit request.',
 		'Rules:',
@@ -105,20 +102,28 @@ export function buildMarkdownRewritePrompt(
 	].join('\n');
 }
 
-export function buildPrototypePrompt(
-	userText: string,
-	currentPrototypeJson?: string,
-): string {
+export function buildPrototypePrompt(userText: string, currentPrototypeJson?: string): string {
 	return [
 		'Generate only JSON for the prototype tooling.',
 		'Rules:',
 		'- Return a single json code block.',
 		'- The JSON must include: title, template, activeFile, dependencies, preview, files.',
-		'- For React prototypes include /App.jsx, /index.jsx, and /styles.css.',
+		'- Start from a blank file graph instead of a starter template.',
+		'- For React prototypes, /index.jsx is the required runtime entry file.',
+		'- For vanilla prototypes, /index.js is the required runtime entry file.',
+		'- You may create any additional files and folders under / that help the implementation.',
+		"- Do not assume /App.jsx or /styles.css unless the request actually needs them.",
 		'- files must be the complete post-edit file map, not a partial patch.',
 		'- Update both JSX and CSS when the request changes structure and styling.',
 		'- Replace any starter content entirely. Do not reuse PulseBoard, launch/pipeline/ops tabs, or the default template copy unless the user explicitly asks for them.',
-		'- Make the JSX and CSS clearly reflect the request subject, industry, and page structure.',
+		'- Choose the layout based on the requested workflow instead of defaulting to a starter hero card.',
+		'- Make the JSX and CSS clearly reflect the request subject, industry, and interaction model.',
+		'- For app, tool, dashboard, and game requests, build a working interactive product surface instead of a marketing site, pricing page, waitlist, or hero/CTA landing page.',
+		'- Keep helper copy minimal. Do not add quick-check lists, KPI cards, status chips, or side notes unless the prompt explicitly asks for them.',
+		'- For calculator requests, prefer a compact working calculator with display + keypad, plus at most one short usage hint.',
+		'- For selected-prototype edits, return the full updated prototype JSON only. Do not answer with standalone JSX snippets or explanatory prose.',
+		'- Treat the canvas as a resizable container: use fluid grids, stacking regions, and container-query-friendly CSS so the prototype still reads well when resized.',
+		'- Avoid in-app runtime labels like "Ready" when that status already belongs to the surrounding canvas chrome.',
 		'- Keep dependencies limited to react, react-dom/client, framer-motion, lucide-react, @radix-ui/react-dialog, @radix-ui/react-tabs.',
 		'- preview must include: eyebrow, title, description, accent, background, badges, metrics.',
 		'',

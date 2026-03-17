@@ -200,6 +200,7 @@ export interface AssistantArtifact {
 		| 'image-vector'
 		| 'kanban-ops'
 		| 'kanban-patch'
+		| 'prototype-patch'
 		| 'prototype-files'
 		| 'markdown'
 		| 'markdown-patch'
@@ -231,6 +232,15 @@ export interface AssistantKanbanPatchArtifact {
 	operations: Array<Record<string, unknown>>;
 	base: KanbanOverlayCustomData;
 	next: KanbanOverlayCustomData;
+}
+
+export interface AssistantPrototypePatchArtifact {
+	kind: 'prototype_patch';
+	targetId: string;
+	summary: string;
+	base: PrototypeOverlayCustomData;
+	next: PrototypeOverlayCustomData;
+	changedFiles: string[];
 }
 
 export interface AssistantArtifactRecord {

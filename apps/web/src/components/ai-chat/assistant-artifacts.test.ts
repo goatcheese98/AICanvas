@@ -13,6 +13,7 @@ import {
 	getDiagramArtifactSource,
 	parseKanbanPatchArtifact,
 	parseMarkdownPatchArtifact,
+	parsePrototypePatchArtifact,
 	summarizeKanbanPatchChanges,
 } from './assistant-artifacts';
 
@@ -207,6 +208,42 @@ describe('assistant-artifacts', () => {
 
 		expect(patch?.targetId).toBe('note-1');
 		expect(diff.some((line) => line.type === 'add' && line.text.includes('AI Update'))).toBe(true);
+	});
+
+	it('parses prototype patch artifacts', () => {
+		const artifact: AssistantArtifact = {
+			type: 'prototype-patch',
+			content: JSON.stringify({
+				kind: 'prototype_patch',
+				targetId: 'prototype-1',
+				summary: 'Updates the selected prototype.',
+				base: {
+					type: 'prototype',
+					title: 'Prototype',
+					template: 'react',
+					activeFile: '/App.jsx',
+					files: {
+						'/App.jsx': { code: "export default function App() { return <div>Old</div>; }" },
+					},
+				},
+				next: {
+					type: 'prototype',
+					title: 'Working Demo',
+					template: 'react',
+					activeFile: '/App.jsx',
+					files: {
+						'/App.jsx': { code: "export default function App() { return <button>Play</button>; }" },
+					},
+				},
+				changedFiles: ['/App.jsx'],
+			}),
+		};
+
+		const patch = parsePrototypePatchArtifact(artifact);
+
+		expect(patch?.targetId).toBe('prototype-1');
+		expect(patch?.changedFiles).toEqual(['/App.jsx']);
+		expect(patch?.next.title).toBe('Working Demo');
 	});
 
 	it('groups markdown edits into multiple review hunks', () => {

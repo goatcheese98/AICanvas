@@ -233,4 +233,73 @@ describe('assistant planner', () => {
 			requiredArtifactTypes: ['kanban-patch'],
 		});
 	});
+
+	it('expects prototype patches for selected prototype edit runs', () => {
+		const plan = planAssistantRun({
+			message: 'turn this into an actual working demo',
+			contextMode: 'selected',
+			contextSnapshot: {
+				canvasId: 'canvas-1',
+				totalElementCount: 1,
+				selectedElementIds: ['prototype-1'],
+				selectedElementCount: 1,
+				selectedOverlayTypes: ['prototype'],
+				canvasSummary: {
+					elementTypeCounts: { rectangle: 1 },
+					overlayTypeCounts: { prototype: 1 },
+					textBearingElementCount: 1,
+					editableOverlayCount: 1,
+					selectedCount: 1,
+					hasKanban: false,
+					hasMarkdown: false,
+					hasPrototype: true,
+					highlights: ['Tetris Game'],
+				},
+				selectionSummary: [
+					{
+						id: 'prototype-1',
+						elementType: 'rectangle',
+						overlayType: 'prototype',
+						label: 'Tetris Game',
+					},
+				],
+				selectedContexts: [
+					{
+						kind: 'prototype',
+						id: 'prototype-1',
+						priority: 2,
+						elementType: 'rectangle',
+						overlayType: 'prototype',
+						label: 'Tetris Game',
+						textExcerpt: 'Tetris Game',
+						prototype: {
+							title: 'Tetris Game',
+							template: 'react',
+							activeFile: '/App.jsx',
+							filePaths: ['/App.jsx', '/styles.css'],
+							dependencies: [],
+						},
+					},
+				],
+			},
+			prototypeContext: {
+				type: 'prototype',
+				title: 'Tetris Game',
+				template: 'react',
+				files: {},
+				activeFile: '/App.jsx',
+			},
+		});
+
+		expect(plan.resolvedMode).toBe('prototype');
+		expect(plan.tasks).toHaveLength(2);
+		expect(plan.tasks[0]?.input).toMatchObject({
+			kind: 'generate_response',
+			includeArtifactTypes: ['prototype-patch'],
+		});
+		expect(plan.tasks[1]?.input).toMatchObject({
+			kind: 'verify_run',
+			requiredArtifactTypes: ['prototype-patch'],
+		});
+	});
 });

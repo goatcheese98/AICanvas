@@ -205,24 +205,67 @@ describe('overlay schemas', () => {
 			template: 'react',
 			dependencies: {},
 			preview: {
-				eyebrow: 'PulseBoard',
+				eyebrow: 'React Prototype',
 				title: 'Prototype',
 			},
-			activeFile: '/App.jsx',
+			activeFile: '/index.jsx',
 			showEditor: true,
 			showPreview: true,
 		});
-		expect(normalized.files['/App.jsx']?.active).toBe(true);
-		expect(normalized.files['/styles.css']).toBeDefined();
-		expect(normalized.files['/styles.css']?.code).toContain('overflow-y: auto;');
-		expect(normalized.files['/styles.css']?.code).toContain('min-height: calc(100vh - 24px);');
+		expect(normalized.files['/App.jsx']).toBeUndefined();
+		expect(normalized.files['/styles.css']).toBeUndefined();
 		expect(normalized.files['/index.jsx']?.code).toContain("import { createRoot } from 'react-dom/client';");
-		expect(normalized.files['/index.jsx']?.code).toContain("const root = createRoot(container);");
+		expect(normalized.files['/index.jsx']?.code).toContain('BlankPrototype');
 		expect(normalized.files['/index.jsx']?.hidden).toBe(true);
 		expect(normalized.files['/index.html']).toBeUndefined();
 		expect(normalized.files['/package.json']).toBeUndefined();
 		expect(normalized.files['/vite.config.js']).toBeUndefined();
 		expect(normalized.files['/public/index.html']).toBeUndefined();
+	});
+
+	it('preserves a custom react file graph without re-injecting starter files', () => {
+		const normalized = normalizePrototypeOverlay({
+			template: 'react',
+			activeFile: '/components/CalculatorScreen.jsx',
+			files: {
+				'/index.jsx': {
+					code: "import { createRoot } from 'react-dom/client';\nimport { CalculatorScreen } from './components/CalculatorScreen';\n\nconst container = document.getElementById('root');\nif (container) {\n  createRoot(container).render(<CalculatorScreen />);\n}\n",
+					hidden: true,
+				},
+				'/components/CalculatorScreen.jsx': {
+					code: 'export function CalculatorScreen() { return <main>Calculator</main>; }',
+				},
+				'/components/theme.css': {
+					code: 'main { min-height: 100vh; }',
+				},
+			},
+		});
+
+		expect(normalized.activeFile).toBe('/components/CalculatorScreen.jsx');
+		expect(normalized.files['/index.jsx']).toBeDefined();
+		expect(normalized.files['/components/CalculatorScreen.jsx']).toBeDefined();
+		expect(normalized.files['/components/theme.css']).toBeDefined();
+		expect(normalized.files['/App.jsx']).toBeUndefined();
+		expect(normalized.files['/styles.css']).toBeUndefined();
+	});
+
+	it('adds only the required runtime entry file for non-empty custom react payloads', () => {
+		const normalized = normalizePrototypeOverlay({
+			template: 'react',
+			files: {
+				'/components/CalculatorScreen.jsx': {
+					code: 'export function CalculatorScreen() { return <main />; }',
+					active: true,
+				},
+			},
+		});
+
+		expect(normalized.files['/components/CalculatorScreen.jsx']).toBeDefined();
+		expect(normalized.files['/index.jsx']?.code).toContain('BlankPrototype');
+		expect(normalized.files['/index.jsx']?.hidden).toBe(true);
+		expect(normalized.files['/App.jsx']).toBeUndefined();
+		expect(normalized.files['/styles.css']).toBeUndefined();
+		expect(normalized.activeFile).toBe('/components/CalculatorScreen.jsx');
 	});
 
 	it('repairs the legacy react entry file used by early prototype studio sandboxes', () => {

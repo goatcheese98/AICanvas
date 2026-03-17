@@ -54,6 +54,7 @@ export type {
 	AssistantArtifact,
 	AssistantMarkdownPatchArtifact,
 	AssistantKanbanPatchArtifact,
+	AssistantPrototypePatchArtifact,
 	AssistantArtifactRecord,
 	GenerationMode,
 	AssistantContextMode,

@@ -152,7 +152,7 @@ Canonical reference:
 
 - Reserve `5173` / `8787` for the integration path when possible.
 - Assign each execution worktree its own stable web and API ports.
-- Current lane map: `main` `5173/8787`, `assistant-image-pipeline` `5181/8791`, `prototype-workflow` `5182/8792`.
+- Current lane map: `main` `5173/8787`, `assistant-image-pipeline` `5181/8791`, `prototype-workflow` `5182/8792`, `kanban-ui-polish` `5183/8793`.
 - `apps/web/vite.config.ts` supports `VITE_PORT` (or `PORT`) and `VITE_API_PROXY_TARGET` (or `API_PROXY_TARGET`) for this reason.
 
 ### Suggested lifecycle
