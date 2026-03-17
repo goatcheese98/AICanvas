@@ -214,10 +214,10 @@ describe('assistant task execution helpers', () => {
 
 	it('adds anti-signature guidance to generated image prompts', () => {
 		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
-			'Do not include any signature, watermark, caption, label, or text.',
+			'no signature, watermark, caption, label, or text',
 		);
 		expect(createImageGenerationInput('draw an elephant', 'image').prompt).toContain(
-			'Do not include any signature, watermark, caption, label, or text.',
+			'no signature, watermark, caption, label, or text',
 		);
 		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
 			'solid pure white background (#FFFFFF)',
@@ -226,7 +226,7 @@ describe('assistant task execution helpers', () => {
 			'avoid any artifact or residue touching the outer edges of the image',
 		);
 		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
-			'strong contour separation',
+			'dark contour lines should be continuous, smooth, and flow naturally',
 		);
 	});
 });

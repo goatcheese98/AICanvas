@@ -151,15 +151,18 @@ export function normalizeAiVectorGroupResize(params: {
 
 	const previousBounds = getBounds(previousGroup);
 	const nextBounds = getBounds(nextGroup);
-	const previousAspectRatio = previousBounds.width / previousBounds.height;
-	const nextAspectRatio = nextBounds.width / nextBounds.height;
-	const aspectRatioDelta = Math.abs(nextAspectRatio - previousAspectRatio) / previousAspectRatio;
 
-	if (aspectRatioDelta < 0.08) {
+	// Skip if the group hasn't meaningfully changed size (avoid infinite update loops).
+	const widthRatio = nextBounds.width / previousBounds.width;
+	const heightRatio = nextBounds.height / previousBounds.height;
+	if (Math.abs(widthRatio - 1) < 0.001 && Math.abs(heightRatio - 1) < 0.001) {
 		return null;
 	}
 
-	const scale = Math.min(nextBounds.width / previousBounds.width, nextBounds.height / previousBounds.height);
+	// Always enforce uniform scale so all sub-elements resize together.
+	// Excalidraw's native group resize does not reliably re-scale `line` element
+	// point arrays, so we must always apply the correction here.
+	const scale = Math.min(widthRatio, heightRatio);
 	const scaledWidth = previousBounds.width * scale;
 	const scaledHeight = previousBounds.height * scale;
 	const offsetX = (nextBounds.width - scaledWidth) / 2;

@@ -326,14 +326,56 @@ export function useAIChatInsertionActions({
 				width: compiled.width,
 				height: compiled.height,
 			});
-			return applyInsertedElements({
-				excalidrawApi,
-				setElements,
-				insertedElements: offsetInsertedElements(compiled.elements, {
-					x: sceneCenter.x - (bounds.left + bounds.width / 2),
-					y: sceneCenter.y - (bounds.top + bounds.height / 2),
-				}),
+			const positioned = offsetInsertedElements(compiled.elements, {
+				x: sceneCenter.x - (bounds.left + bounds.width / 2),
+				y: sceneCenter.y - (bounds.top + bounds.height / 2),
 			});
+
+			// Group consecutive elements by backgroundColor — each unique color is one SVG layer.
+			// Elements are pre-sorted lightest→darkest, so layers build up naturally.
+			type ElementWithBg = ExcalidrawElement & { backgroundColor?: string };
+			const layers: ExcalidrawElement[][] = [];
+			let currentBatch: ExcalidrawElement[] = [];
+			let currentFill: string | undefined;
+			for (const el of positioned) {
+				const fill = (el as ElementWithBg).backgroundColor;
+				if (fill !== currentFill && currentBatch.length > 0) {
+					layers.push(currentBatch);
+					currentBatch = [];
+				}
+				currentFill = fill;
+				currentBatch.push(el);
+			}
+			if (currentBatch.length > 0) layers.push(currentBatch);
+
+			// Insert one layer at a time so each fill layer renders before the next is placed.
+			// This creates a visible build-up and prevents Excalidraw from rendering all
+			// complex polygons in the same layout pass, which can cause Rough.js to skip fills.
+			const LAYER_DELAY_MS = 80;
+			const allInsertedIds: string[] = [];
+
+			for (let i = 0; i < layers.length; i += 1) {
+				const layer = layers[i];
+				const current = excalidrawApi.getSceneElements();
+				for (const el of layer) allInsertedIds.push(String(el.id));
+
+				excalidrawApi.updateScene({
+					elements: [...current, ...layer],
+					appState: {
+						isCropping: false,
+						croppingElementId: null,
+						selectedElementIds: Object.fromEntries(allInsertedIds.map((id) => [id, true])),
+					},
+				});
+
+				if (i < layers.length - 1) {
+					await new Promise<void>((resolve) => { setTimeout(resolve, LAYER_DELAY_MS); });
+				}
+			}
+
+			restoreCanvasSelectionState(excalidrawApi);
+			syncAppStoreFromExcalidraw(excalidrawApi);
+			return { status: 'inserted', insertedElementIds: allInsertedIds };
 		},
 		[elements, excalidrawApi, selectedElementIds, setChatError, setElements],
 	);
@@ -351,8 +393,7 @@ export function useAIChatInsertionActions({
 			} catch {
 				const svgMarkup = await vectorizeRasterBlobToSvg(blob, {
 					maxSampleDimension: 192,
-					maxColors: 6,
-					suppressBottomSignature: true,
+					maxColors: 5,
 				});
 				return compileSvgToExcalidraw(svgMarkup, {
 					maxPointsPerElement: 36,

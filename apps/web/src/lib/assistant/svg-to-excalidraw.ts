@@ -177,6 +177,50 @@ function roundNumber(value: number) {
 	return Math.round(value * 100) / 100;
 }
 
+/**
+ * Graham scan convex hull — guarantees a convex polygon output.
+ * Used for all closed filled shapes so Rough.js never encounters concave or
+ * self-intersecting geometry, which causes it to silently drop the fill on
+ * any re-render (selection, point edit, or resize).
+ */
+function convexHull(points: SvgPoint[]): SvgPoint[] {
+	if (points.length <= 3) return points;
+	// Find bottommost-then-leftmost anchor point
+	let lo = 0;
+	for (let i = 1; i < points.length; i += 1) {
+		if (
+			points[i].y > points[lo].y ||
+			(points[i].y === points[lo].y && points[i].x < points[lo].x)
+		) {
+			lo = i;
+		}
+	}
+	const pivot = points[lo];
+	const rest = points.filter((_, i) => i !== lo).sort((a, b) => {
+		// Sort CCW by polar angle, break ties by distance (keep farthest)
+		const cross =
+			(a.x - pivot.x) * (b.y - pivot.y) - (a.y - pivot.y) * (b.x - pivot.x);
+		if (Math.abs(cross) > 1e-9) return cross > 0 ? -1 : 1;
+		return (
+			(a.x - pivot.x) ** 2 +
+			(a.y - pivot.y) ** 2 -
+			((b.x - pivot.x) ** 2 + (b.y - pivot.y) ** 2)
+		);
+	});
+	const hull: SvgPoint[] = [pivot];
+	for (const p of rest) {
+		while (hull.length >= 2) {
+			const a = hull[hull.length - 2];
+			const b = hull[hull.length - 1];
+			const cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);
+			if (cross <= 0) hull.pop();
+			else break;
+		}
+		hull.push(p);
+	}
+	return hull.length >= 3 ? hull : points;
+}
+
 function isVisibleStyle(style: CompiledSvgStyle) {
 	return (
 		(style.fill !== 'transparent' && style.fillOpacity * style.opacity > 0.01) ||
@@ -186,8 +230,11 @@ function isVisibleStyle(style: CompiledSvgStyle) {
 	);
 }
 
-function inferRoughness(style: CompiledSvgStyle) {
-	return style.fill === 'transparent' ? 0.7 : 0.35;
+function inferRoughness(_style: CompiledSvgStyle) {
+	// Roughness=0 ensures deterministic rendering for computer-traced paths.
+	// Non-zero roughness causes Rough.js to produce degenerate (invisible) fills
+	// for tightly-packed contour polygons when elements are re-rendered on interaction.
+	return 0;
 }
 
 function createLineSkeleton(
@@ -200,6 +247,7 @@ function createLineSkeleton(
 		return null;
 	}
 
+	const isFilled = closed && style.fill !== 'transparent' && style.stroke === 'transparent';
 	const simplifyTolerance = closed
 		? Math.max(1.6, 2.4 / Math.max(context.scale, 0.01))
 		: Math.max(1.2, 1.75 / Math.max(context.scale, 0.01));
@@ -212,10 +260,24 @@ function createLineSkeleton(
 		return null;
 	}
 
-	const normalizedPoints = closed && distributed.length > 2
-		? [...distributed.slice(0, -1), distributed[0]]
-		: distributed;
+	// Closed filled polygons are enforced to their convex hull so Rough.js never
+	// encounters concave or self-intersecting geometry. Non-convex polygons cause
+	// Rough.js to silently drop the fill on any re-render triggered by selection,
+	// point editing, or resize — producing the "goes transparent" effect.
+	const finalPoints = isFilled ? convexHull(distributed) : distributed;
+	if (finalPoints.length < (closed ? 3 : 2)) {
+		return null;
+	}
+
+	const normalizedPoints = closed && finalPoints.length > 2
+		? [...finalPoints.slice(0, -1), finalPoints[0]]
+		: finalPoints;
 	const bounds = getPointBounds(normalizedPoints);
+
+	// Discard degenerate thin shapes that Rough.js cannot render as a meaningful fill.
+	if (closed && (bounds.right - bounds.left < 3 || bounds.bottom - bounds.top < 3)) {
+		return null;
+	}
 	const x = roundNumber(bounds.left);
 	const y = roundNumber(bounds.top);
 	const localPoints = normalizedPoints.map((point) => [
@@ -503,9 +565,13 @@ export function compileSvgToExcalidraw(
 		throw new Error('No supported vector shapes were found');
 	}
 
-	return {
-		elements: convertToExcalidrawElements(trimmed) as ExcalidrawElement[],
-		width: constrained.width,
-		height: constrained.height,
-	};
+	// convertToExcalidrawElements applies Excalidraw's own defaults which can
+	// override the roughness: 0 we set in every skeleton. Force it back to 0
+	// post-conversion so Rough.js never re-randomizes fills on interaction.
+	const converted = convertToExcalidrawElements(trimmed);
+	const elements = converted.map((el) =>
+		({ ...el, roughness: 0 }) as ExcalidrawElement,
+	);
+
+	return { elements, width: constrained.width, height: constrained.height };
 }
