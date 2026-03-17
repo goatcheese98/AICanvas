@@ -248,8 +248,9 @@ function main() {
 	updateFile(
 		worktreeApiEnvPath,
 		(text) => {
-			let nextText = upsertEnvLine(
-				text,
+			let nextText = upsertEnvLine(text, 'API_PORT', String(suggestedApiPort));
+			nextText = upsertEnvLine(
+				nextText,
 				'CORS_ALLOWED_ORIGINS',
 				`http://localhost:${suggestedWebPort},http://127.0.0.1:${suggestedWebPort},https://roopstudio.com,https://www.roopstudio.com`,
 			);
@@ -266,9 +267,7 @@ function main() {
 	console.log('');
 	console.log('Next steps');
 	console.log(`- Open ${worktreePath} as its own workspace.`);
-	console.log(
-		`- API lane: cd ${path.join(worktreePath, 'apps/api')} && bun run dev -- --port ${suggestedApiPort}`,
-	);
+	console.log(`- API lane: cd ${path.join(worktreePath, 'apps/api')} && bun run dev`);
 	console.log(`- Web lane: cd ${path.join(worktreePath, 'apps/web')} && bun run dev`);
 	console.log(`- Push when ready: git -C ${worktreePath} push -u origin ${branchName}`);
 }

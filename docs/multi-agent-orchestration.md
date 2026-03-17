@@ -49,7 +49,6 @@ Examples:
 
 - `/Users/rohanjasani/Desktop/Projects/AICanvas-assistant-image-pipeline`
 - `/Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow`
-- `/Users/rohanjasani/Desktop/Projects/AICanvas-kanban-ui-polish`
 
 Purpose:
 
@@ -75,7 +74,6 @@ Examples:
 
 - `AICanvas-assistant-image-pipeline`
 - `AICanvas-prototype-workflow`
-- `AICanvas-kanban-ui-polish`
 
 ### Branch names
 
@@ -102,7 +100,6 @@ Example:
 - `AICanvas-main` -> web `5173`
 - `AICanvas-assistant-image-pipeline` -> web `5181`
 - `AICanvas-prototype-workflow` -> web `5182`
-- `AICanvas-kanban-ui-polish` -> web `5183`
 
 `apps/web/vite.config.ts` supports:
 
@@ -120,13 +117,13 @@ pair always share the same trailing digits:
 
 - `AICanvas-assistant-image-pipeline` -> web `5181`, api `8791`
 - `AICanvas-prototype-workflow` -> web `5182`, api `8792`
-- `AICanvas-kanban-ui-polish` -> web `5183`, api `8793`
 
 Going forward, new execution lanes continue from that pattern:
 
 - next frontend port starts at `5181`
 - next API port starts at `8791`
 - frontend/backend pairs should keep matching final digits
+- the next available execution pair is currently `5183` / `8793`
 
 Each worktree's `apps/web/.env.local` and `apps/api/.dev.vars` should be
 patched to that worktree's own lane. Do not rely on a shared API by default.
@@ -147,6 +144,14 @@ Missing `apps/web/.env.local` causes the frontend to fail early with
 
 Missing or stale `apps/api/.dev.vars` can cause CORS failures or Clerk token
 verification failures even if the frontend boots correctly.
+
+`apps/api/.dev.vars` should also carry that lane's `API_PORT`, and
+`apps/api/package.json` reads it so plain `bun run dev` binds to the correct
+backend port for that worktree.
+
+The API dev launcher also applies local D1 migrations before starting Wrangler,
+so a fresh or stale worktree is less likely to fail with a misleading generic
+auth error caused by an out-of-date `users` table.
 
 Preferred shortcut:
 
@@ -246,32 +251,18 @@ cd /Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow/apps/web
 VITE_PORT=5182 VITE_API_PROXY_TARGET=http://localhost:8792 bun run dev
 ```
 
-### Kanban UI polish lane
-
-```sh
-cd /Users/rohanjasani/Desktop/Projects/AICanvas-kanban-ui-polish/apps/web
-VITE_PORT=5183 VITE_API_PROXY_TARGET=http://localhost:8793 bun run dev
-```
-
 ### Assistant image pipeline API
 
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas-assistant-image-pipeline/apps/api
-bun run dev -- --port 8791
+bun run dev
 ```
 
 ### Prototype workflow API
 
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas-prototype-workflow/apps/api
-bun run dev -- --port 8792
-```
-
-### Kanban UI polish API
-
-```sh
-cd /Users/rohanjasani/Desktop/Projects/AICanvas-kanban-ui-polish/apps/api
-bun run dev -- --port 8793
+bun run dev
 ```
 
 ## PR and Merge Management
