@@ -3,7 +3,7 @@ import type { AssistantArtifact } from '@ai-canvas/shared/types';
 export type AssistantPatchApplyState = {
 	status: 'idle' | 'applied' | 'undone';
 	targetId: string;
-	targetType: 'markdown' | 'kanban';
+	targetType: 'markdown' | 'kanban' | 'prototype';
 	previousCustomData: Record<string, unknown>;
 };
 

@@ -41,6 +41,9 @@ function manualChunks(id: string) {
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), '');
 	const releaseName = env.VITE_SENTRY_RELEASE || env.SENTRY_RELEASE;
+	const devServerPort = Number.parseInt(env.VITE_PORT || env.PORT || '5173', 10);
+	const apiProxyTarget = (env.VITE_API_PROXY_TARGET || env.API_PROXY_TARGET || 'http://localhost:8787')
+		.trim();
 	const shouldUploadSourcemaps = Boolean(
 		env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT,
 	);
@@ -76,10 +79,11 @@ export default defineConfig(({ mode }) => {
 			alias: [{ find: '@', replacement: path.resolve(__dirname, './src') }],
 		},
 		server: {
-			port: 5173,
+			port: Number.isNaN(devServerPort) ? 5173 : devServerPort,
+			strictPort: true,
 			proxy: {
 				'/api': {
-					target: 'http://localhost:8787',
+					target: apiProxyTarget,
 					changeOrigin: true,
 				},
 			},

@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('assistant route helpers', () => {
     describe('getArtifactTitle', () => {
         function getArtifactTitle(
-            type: 'mermaid' | 'd2' | 'kanban-ops' | 'kanban-patch' | 'prototype-files' | 'markdown-patch',
+            type: 'mermaid' | 'd2' | 'kanban-ops' | 'kanban-patch' | 'prototype-patch' | 'prototype-files' | 'markdown-patch',
         ): string {
             switch (type) {
                 case 'mermaid':
@@ -17,6 +17,8 @@ describe('assistant route helpers', () => {
                     return 'Generated Kanban operations';
                 case 'kanban-patch':
                     return 'Generated Kanban patch';
+                case 'prototype-patch':
+                    return 'Generated prototype patch';
                 case 'prototype-files':
                     return 'Generated prototype files';
                 case 'markdown-patch':
@@ -42,6 +44,10 @@ describe('assistant route helpers', () => {
 
         it('returns correct title for prototype-files type', () => {
             expect(getArtifactTitle('prototype-files')).toBe('Generated prototype files');
+        });
+
+        it('returns correct title for prototype-patch type', () => {
+            expect(getArtifactTitle('prototype-patch')).toBe('Generated prototype patch');
         });
 
         it('returns correct title for markdown-patch type', () => {

@@ -8,7 +8,7 @@ Two separate Clerk instances are used:
 
 | Instance | Type | Used by |
 |---|---|---|
-| Development | `pk_test_...` / `sk_test_...` | Local dev (`localhost:5173`) |
+| Development | `pk_test_...` / `sk_test_...` | Local dev (`localhost:5173` for main, `localhost:5181+` for execution lanes) |
 | Production | `pk_live_...` / `sk_live_...` | `roopstudio.com` |
 
 Both live under the same Clerk application (`RoopStudio`). Switching between them is done via the instance selector in the Clerk dashboard.
@@ -30,8 +30,15 @@ VITE_PARTYKIT_HOST=localhost:1999
 CLERK_SECRET_KEY=sk_test_...
 CLERK_PUBLISHABLE_KEY=pk_test_...
 ANTHROPIC_API_KEY=sk-ant-...
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,https://roopstudio.com,https://www.roopstudio.com
+CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175,http://localhost:5176,http://127.0.0.1:5176,http://localhost:5177,http://127.0.0.1:5177,https://roopstudio.com,https://www.roopstudio.com
 ```
+
+These files are intentionally gitignored, so `git worktree add` does not copy
+them into fresh sibling worktrees by itself.
+
+For the integration lane, keep the backend matched to `5173`/`8787`.
+For execution worktrees, use dedicated matching pairs like `5181`/`8791`, `5182`/`8792`, `5183`/`8793`,
+and set that worktree's `CORS_ALLOWED_ORIGINS` / `CLERK_AUTHORIZED_PARTIES` to its own frontend port.
 
 Both `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_PUBLISHABLE_KEY` should use the **development** instance keys (`pk_test_...`, `sk_test_...`).
 

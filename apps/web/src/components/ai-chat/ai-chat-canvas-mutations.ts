@@ -1,6 +1,7 @@
 import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
+	normalizePrototypeOverlay,
 } from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
 import type {
@@ -37,7 +38,7 @@ export function updateOverlayElementById({
 	excalidrawApi: ExcalidrawImperativeAPI | null;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
 	targetId: string;
-	targetType: 'markdown' | 'kanban';
+	targetType: 'markdown' | 'kanban' | 'prototype';
 	payload: Record<string, unknown>;
 }) {
 	if (!excalidrawApi) {
@@ -65,6 +66,20 @@ export function updateOverlayElementById({
 				images: markdown.images,
 				settings: markdown.settings,
 				editorMode: markdown.editorMode,
+			}) as typeof candidate;
+		}
+
+		if (targetType === 'prototype') {
+			const prototype = normalizePrototypeOverlay(payload);
+			return applyOverlayUpdateByType('prototype', candidate as never, {
+				title: prototype.title,
+				template: prototype.template,
+				files: prototype.files,
+				dependencies: prototype.dependencies,
+				preview: prototype.preview,
+				activeFile: prototype.activeFile,
+				showEditor: prototype.showEditor,
+				showPreview: prototype.showPreview,
 			}) as typeof candidate;
 		}
 

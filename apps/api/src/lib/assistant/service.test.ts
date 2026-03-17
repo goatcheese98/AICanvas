@@ -23,7 +23,8 @@ describe('assistant service', () => {
 
 	it('returns reversible markdown patch artifacts for selected markdown edit requests', async () => {
 		const result = await generateAssistantResponse({
-			message: 'I unfortunately do not have beef chuck or brisket. Can you adjust the list accordingly?',
+			message:
+				'I unfortunately do not have beef chuck or brisket. Can you adjust the list accordingly?',
 			contextMode: 'selected',
 			contextSnapshot: {
 				canvasId: 'canvas-1',
@@ -131,18 +132,19 @@ describe('assistant service', () => {
 	});
 
 	it('uses Anthropic to rewrite selected markdown when a valid full document is returned', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: ['```markdown', '## Toppings', '', '- [ ] Jalapenos', '```'].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: ['```markdown', '## Toppings', '', '- [ ] Jalapenos', '```'].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -174,7 +176,15 @@ describe('assistant service', () => {
 						markdown: {
 							type: 'markdown',
 							title: 'Notes',
-							content: ['## Protein', '', '- [ ] Chicken thighs', '', '## Toppings', '', '- [ ] Jalapenos'].join('\n'),
+							content: [
+								'## Protein',
+								'',
+								'- [ ] Chicken thighs',
+								'',
+								'## Toppings',
+								'',
+								'- [ ] Jalapenos',
+							].join('\n'),
 						},
 					},
 				],
@@ -188,24 +198,31 @@ describe('assistant service', () => {
 			},
 		});
 
-		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as { next: { content: string } };
+		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
+			next: { content: string };
+		};
 		expect(patch.next.content).toBe('## Toppings\n\n- [ ] Jalapenos');
 		expect(result.message.artifacts?.[0]?.content).toContain('Rewrites the selected markdown note');
 	});
 
 	it('falls back from Anthropic markdown rewrite when the model parrots the prompt', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: ['```markdown', '- Great. Can you actually remove the protein section from the grocery list?', '```'].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```markdown',
+									'- Great. Can you actually remove the protein section from the grocery list?',
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -237,7 +254,15 @@ describe('assistant service', () => {
 						markdown: {
 							type: 'markdown',
 							title: 'Notes',
-							content: ['## Protein', '', '- [ ] Chicken thighs', '', '## Toppings', '', '- [ ] Jalapenos'].join('\n'),
+							content: [
+								'## Protein',
+								'',
+								'- [ ] Chicken thighs',
+								'',
+								'## Toppings',
+								'',
+								'- [ ] Jalapenos',
+							].join('\n'),
 						},
 					},
 				],
@@ -251,7 +276,9 @@ describe('assistant service', () => {
 			},
 		});
 
-		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as { next: { content: string } };
+		const patch = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
+			next: { content: string };
+		};
 		expect(patch.next.content).toContain('## Toppings');
 		expect(patch.next.content).not.toContain('Great. Can you actually remove');
 	});
@@ -357,7 +384,9 @@ describe('assistant service', () => {
 		expect(result.message.generationMode).toBe('prototype');
 		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-files' });
 		expect(result.message.content).toContain('Prepared prototype files');
-		expect(result.message.artifacts?.[0]?.content).toContain('prompt workflows');
+		expect(result.message.artifacts?.[0]?.content).toContain('Blank prototype scaffold');
+		expect(result.message.artifacts?.[0]?.content).toContain('/index.jsx');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('/App.jsx');
 		expect(result.message.artifacts?.[0]?.content).not.toContain('PulseBoard');
 	});
 
@@ -370,8 +399,15 @@ describe('assistant service', () => {
 
 		expect(result.message.artifacts?.[0]?.content).toContain('/components/CalculatorButton.jsx');
 		expect(result.message.artifacts?.[0]?.content).toContain('evaluateExpression');
+		expect(result.message.artifacts?.[0]?.content).toContain('container-type: inline-size');
+		expect(result.message.artifacts?.[0]?.content).toContain('Expression Lab');
 		expect(result.message.artifacts?.[0]?.content).toContain("label: '='");
+		expect(result.message.artifacts?.[0]?.content).not.toContain('const overview = [');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('const tips = [');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('history.map((item)');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Quick checks');
 		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('className="status-pill"');
 	});
 
 	it('builds a vanilla calculator app when requested', async () => {
@@ -384,7 +420,129 @@ describe('assistant service', () => {
 		expect(result.message.artifacts?.[0]?.content).toContain('"template": "vanilla"');
 		expect(result.message.artifacts?.[0]?.content).toContain('/index.html');
 		expect(result.message.artifacts?.[0]?.content).toContain('/index.js');
+		expect(result.message.artifacts?.[0]?.content).toContain('container-type: inline-size');
 		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('>READY<');
+	});
+
+	it('strips prompt filler from calculator prototype titles', async () => {
+		const result = await generateAssistantResponse({
+			message: 'Please create calculator prototype',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+		});
+
+		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Calculator App"');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Please Calculator App');
+		expect(result.message.artifacts?.[0]?.content).toContain('Expression Lab');
+	});
+
+	it('truncates longer calculator titles so themed prompts do not fail schema validation', async () => {
+		const result = await generateAssistantResponse({
+			message: 'Can you create a prototype of a calculator theme like Pokemon.',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+		});
+		const artifact = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
+			title: string;
+		};
+
+		expect(result.message.generationMode).toBe('prototype');
+		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-files' });
+		expect(artifact.title.length).toBeLessThanOrEqual(32);
+		expect(artifact.title.startsWith('Of ')).toBe(false);
+	});
+
+	it('builds a playable game prototype instead of a landing page for game requests', async () => {
+		const result = await generateAssistantResponse({
+			message: 'Create a tetris game prototype',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+		});
+
+		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
+		expect(result.message.artifacts?.[0]?.content).toContain('Playable prototype');
+		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
+		expect(result.message.artifacts?.[0]?.content).toContain('Arrow keys move');
+		expect(result.message.artifacts?.[0]?.content).toContain('Hard Drop');
+		expect(result.message.artifacts?.[0]?.content).toContain('lockPiece');
+		expect(result.message.artifacts?.[0]?.content).toContain('useEffect');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Conversion-ready website');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Book Demo');
+	});
+
+	it('keeps longer tetris app requests on the playable prototype path', async () => {
+		const result = await generateAssistantResponse({
+			message: 'Make an actual application for Tetris with the proper UI in your prototype.',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+		});
+
+		expect(result.message.generationMode).toBe('prototype');
+		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
+		expect(result.message.artifacts?.[0]?.content).toContain('"eyebrow": "Playable prototype"');
+		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
+		expect(result.message.artifacts?.[0]?.content).toContain('Game over. Press restart to play again.');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Would you like me to');
+	});
+
+	it('returns a reversible prototype patch for selected prototype edit requests', async () => {
+		const result = await generateAssistantResponse({
+			message: 'Can you actually turn this into an actual working demo?',
+			contextMode: 'selected',
+			contextSnapshot: {
+				canvasId: 'canvas-1',
+				totalElementCount: 1,
+				selectedElementIds: ['prototype-1'],
+				selectedElementCount: 1,
+				selectedOverlayTypes: ['prototype'],
+				selectionSummary: [
+					{
+						id: 'prototype-1',
+						elementType: 'rectangle',
+						overlayType: 'prototype',
+						label: 'Tetris Game',
+					},
+				],
+				selectedContexts: [
+					{
+						kind: 'prototype',
+						id: 'prototype-1',
+						priority: 1,
+						elementType: 'rectangle',
+						overlayType: 'prototype',
+						label: 'Tetris Game',
+						prototype: {
+							title: 'Tetris Game',
+							template: 'react',
+							activeFile: '/App.jsx',
+							filePaths: ['/App.jsx', '/index.jsx', '/styles.css'],
+							dependencies: [],
+						},
+					},
+				],
+			},
+			prototypeContext: {
+				type: 'prototype',
+				title: 'Tetris Game',
+				template: 'react',
+				activeFile: '/App.jsx',
+				files: {
+					'/App.jsx': { code: "export default function App() { return <div>Placeholder</div>; }" },
+					'/index.jsx': { code: "import { createRoot } from 'react-dom/client';", hidden: true },
+					'/styles.css': { code: 'body { margin: 0; }' },
+				},
+			},
+		});
+
+		expect(result.message.generationMode).toBe('prototype');
+		expect(result.message.content).toContain('Prepared reversible selection edits.');
+		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-patch' });
+		expect(result.message.artifacts?.[0]?.content).toContain('"kind": "prototype_patch"');
+		expect(result.message.artifacts?.[0]?.content).toContain('"targetId": "prototype-1"');
+		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
+		expect(result.message.artifacts?.[0]?.content).toContain('lockPiece');
 	});
 
 	it('infers a structured mode from a freeform request', async () => {
@@ -409,6 +567,20 @@ describe('assistant service', () => {
 				prototypeContext: {
 					type: 'prototype',
 					title: 'Prototype',
+					template: 'react',
+					files: {},
+					activeFile: '/App.jsx',
+				},
+			}),
+		).toBe('prototype');
+
+		expect(
+			resolveGenerationMode({
+				message: 'Can you actually turn this into an actual working demo?',
+				contextMode: 'selected',
+				prototypeContext: {
+					type: 'prototype',
+					title: 'Tetris Game',
 					template: 'react',
 					files: {},
 					activeFile: '/App.jsx',
@@ -470,7 +642,8 @@ describe('assistant service', () => {
 									r2Key: 'assistant-assets/run-1/pelican.png',
 									mimeType: 'image/png',
 									provider: 'cloudflare',
-									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+									prompt:
+										'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
 								}),
 							},
 						],
@@ -498,7 +671,8 @@ describe('assistant service', () => {
 									r2Key: 'assistant-assets/run-1/pelican.png',
 									mimeType: 'image/png',
 									provider: 'cloudflare',
-									prompt: 'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
+									prompt:
+										'Create a polished image for: Can you create an image of a pelican riding a bicycle?',
 								}),
 							},
 						],
@@ -510,18 +684,19 @@ describe('assistant service', () => {
 	});
 
 	it('builds diagram edit prompts from the previous diagram source', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: '```d2\na -> c\n```',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: '```d2\na -> c\n```',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -550,7 +725,9 @@ describe('assistant service', () => {
 		expect(result.message.generationMode).toBe('d2');
 		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'd2', content: 'a -> c' });
 
-		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as RequestInit | undefined;
+		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as
+			| RequestInit
+			| undefined;
 		const body = JSON.parse(String(init?.body));
 		expect(body.messages.at(-1)?.content).toContain('Current D2 source:');
 		expect(body.messages.at(-1)?.content).toContain('The app renders D2 directly.');
@@ -558,18 +735,19 @@ describe('assistant service', () => {
 	});
 
 	it('uses Anthropic for chat mode when bindings are configured', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: 'This is an Anthropic-generated response.',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: 'This is an Anthropic-generated response.',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -591,18 +769,19 @@ describe('assistant service', () => {
 	});
 
 	it('passes recent conversation history to Anthropic', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: 'Follow-up response.',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: 'Follow-up response.',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -633,7 +812,9 @@ describe('assistant service', () => {
 			},
 		});
 
-		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as RequestInit | undefined;
+		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as
+			| RequestInit
+			| undefined;
 		expect(JSON.parse(String(init?.body))).toMatchObject({
 			messages: [
 				{ role: 'user', content: 'Draft a resume summary' },
@@ -644,37 +825,41 @@ describe('assistant service', () => {
 	});
 
 	it('falls back to a functional app when Anthropic returns a marketing prototype for an app request', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					content: [
-						{
-							type: 'text',
-							text: [
-								'```json',
-								JSON.stringify(
-									{
-										title: 'A Calculator Website',
-										template: 'react',
-										activeFile: '/App.jsx',
-										files: {
-											'/App.jsx': {
-												code: "export default function App() { return <main><button>Start Free</button><button>See the tour</button></main>; }",
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'A Calculator Website',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/App.jsx': {
+													code: 'export default function App() { return <main><button>Start Free</button><button>See the tour</button></main>; }',
+												},
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/styles.css': { code: 'main { padding: 24px; }' },
 											},
-											'/index.jsx': { code: "import { createRoot } from 'react-dom/client';", hidden: true },
-											'/styles.css': { code: 'main { padding: 24px; }' },
 										},
-									},
-									null,
-									2,
-								),
-								'```',
-							].join('\n'),
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -693,5 +878,166 @@ describe('assistant service', () => {
 
 		expect(result.message.artifacts?.[0]?.content).toContain('/components/CalculatorButton.jsx');
 		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
+	});
+
+	it('falls back to a playable game when Anthropic returns an interactive landing page for a game request', async () => {
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'Tetris Website',
+											template: 'react',
+											activeFile: '/App.jsx',
+											preview: {
+												eyebrow: 'Launch faster',
+												title: 'Tetris for modern teams',
+												description: 'An interactive waitlist and pricing surface.',
+												accent: '#7c3aed',
+												background: '#0f172a',
+												badges: ['Pricing', 'Waitlist'],
+												metrics: [{ label: 'Plans', value: '3' }],
+											},
+											files: {
+												'/App.jsx': {
+													code: [
+														"import { useState } from 'react';",
+														'',
+														'export default function App() {',
+														"  const [plan, setPlan] = useState('solo');",
+														'  return (',
+														'    <main className="landing-frame">',
+														'      <h1>Tetris for modern teams</h1>',
+														'      <p>Compare pricing and join the waitlist.</p>',
+														"      <button onClick={() => setPlan('solo')}>Solo</button>",
+														"      <button onClick={() => setPlan('team')}>Team</button>",
+														'      <div>{plan}</div>',
+														'    </main>',
+														'  );',
+														'}',
+													].join('\n'),
+												},
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/styles.css': { code: '.landing-frame { padding: 24px; }' },
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
+		);
+		globalThis.fetch = fetchMock as typeof fetch;
+
+		const result = await generateAssistantResponse({
+			message: 'Create a tetris game prototype',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+			bindings: {
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'clerk',
+				ANTHROPIC_API_KEY: 'anthropic',
+				ENVIRONMENT: 'test',
+			},
+		});
+
+		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
+		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
+		expect(result.message.artifacts?.[0]?.content).toContain('Move Left');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('"title": "Tetris Website"');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('join the waitlist');
+	});
+
+	it('falls back to a blank scaffold when Anthropic returns a starter-shaped landing page', async () => {
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'A Pok Website',
+											template: 'react',
+											activeFile: '/App.jsx',
+											preview: {
+												eyebrow: 'Conversion-ready website',
+												title: 'A Pok Website',
+												description: 'Launch a sharper story and faster conversion.',
+												accent: '#2563eb',
+												background: '#eff6ff',
+												badges: ['Launch', 'Conversion'],
+												metrics: [{ label: 'Visitors', value: '24k' }],
+											},
+											files: {
+												'/App.jsx': {
+													code: [
+														'export default function App() {',
+														'  return (',
+														'    <main className="landing-frame">',
+														'      <h1>Launch a pok mon with a sharper story.</h1>',
+														'      <button>Start Free</button>',
+														'      <button>See the tour</button>',
+														'    </main>',
+														'  );',
+														'}',
+													].join('\n'),
+												},
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/styles.css': { code: '.landing-frame { padding: 24px; }' },
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
+		);
+		globalThis.fetch = fetchMock as typeof fetch;
+
+		const result = await generateAssistantResponse({
+			message: 'Can you please create a prototype of a Pokemon landing page?',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+			bindings: {
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'clerk',
+				ANTHROPIC_API_KEY: 'anthropic',
+				ENVIRONMENT: 'test',
+			},
+		});
+
+		expect(result.message.artifacts?.[0]?.content).toContain('Blank prototype scaffold');
+		expect(result.message.artifacts?.[0]?.content).toContain('/index.jsx');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('/App.jsx');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
+		expect(result.message.artifacts?.[0]?.content).not.toContain('PulseBoard');
 	});
 });

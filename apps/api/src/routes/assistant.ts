@@ -63,7 +63,14 @@ interface StoredAssistantAssetContent {
 }
 
 function getArtifactTitle(
-	type: 'mermaid' | 'd2' | 'kanban-ops' | 'kanban-patch' | 'prototype-files' | 'markdown-patch',
+	type:
+		| 'mermaid'
+		| 'd2'
+		| 'kanban-ops'
+		| 'kanban-patch'
+		| 'prototype-patch'
+		| 'prototype-files'
+		| 'markdown-patch',
 ): string {
 	switch (type) {
 		case 'mermaid':
@@ -74,6 +81,8 @@ function getArtifactTitle(
 			return 'Generated Kanban operations';
 		case 'kanban-patch':
 			return 'Generated Kanban patch';
+		case 'prototype-patch':
+			return 'Generated prototype patch';
 		case 'prototype-files':
 			return 'Generated prototype files';
 		case 'markdown-patch':
@@ -424,6 +433,7 @@ async function executeAssistantRun(
 								artifact.type === 'd2' ||
 								artifact.type === 'kanban-ops' ||
 								artifact.type === 'kanban-patch' ||
+								artifact.type === 'prototype-patch' ||
 								artifact.type === 'prototype-files' ||
 								artifact.type === 'markdown-patch'
 							) {

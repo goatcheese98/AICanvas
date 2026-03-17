@@ -72,6 +72,10 @@ export function applyPrototypeStudioCommand(
 			});
 		}
 		case 'write_file': {
+			if (state.files[command.path]?.readOnly) {
+				return state;
+			}
+
 			const nextFiles = {
 				...state.files,
 				[command.path]: {
@@ -106,7 +110,12 @@ export function applyPrototypeStudioCommand(
 			});
 		}
 		case 'rename_file': {
-			if (!state.files[command.from] || command.from === command.to) {
+			if (
+				!state.files[command.from] ||
+				state.files[command.from]?.readOnly ||
+				command.from === command.to ||
+				state.files[command.to]
+			) {
 				return state;
 			}
 
@@ -124,7 +133,7 @@ export function applyPrototypeStudioCommand(
 			});
 		}
 		case 'delete_file': {
-			if (!state.files[command.path]) {
+			if (!state.files[command.path] || state.files[command.path]?.readOnly) {
 				return state;
 			}
 

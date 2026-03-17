@@ -23,6 +23,7 @@ const assistantMessageSchema = z.object({
 					'image-vector',
 					'kanban-ops',
 					'kanban-patch',
+					'prototype-patch',
 					'prototype-files',
 					'markdown',
 					'markdown-patch',

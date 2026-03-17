@@ -140,7 +140,11 @@ export function ArtifactCard({
 		);
 	}
 
-	if (artifact.type === 'markdown-patch' || artifact.type === 'kanban-patch') {
+	if (
+		artifact.type === 'markdown-patch' ||
+		artifact.type === 'kanban-patch' ||
+		artifact.type === 'prototype-patch'
+	) {
 		return (
 			<PatchArtifactCard
 				artifact={artifact}
