@@ -1,17 +1,17 @@
-import React, { useEffect, useRef } from 'react';
 import katex from 'katex';
 import {
 	$applyNodeReplacement,
-	DecoratorNode,
 	type DOMConversionMap,
 	type DOMConversionOutput,
 	type DOMExportOutput,
+	DecoratorNode,
 	type EditorConfig,
 	type LexicalNode,
 	type NodeKey,
 	type SerializedLexicalNode,
 	type Spread,
 } from 'lexical';
+import React, { useEffect, useRef } from 'react';
 
 export type SerializedEquationNode = Spread<
 	{

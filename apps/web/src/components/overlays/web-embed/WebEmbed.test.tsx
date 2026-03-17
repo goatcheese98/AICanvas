@@ -59,12 +59,18 @@ describe('WebEmbed', () => {
 			fireEvent.mouseDown(dragSurface as Element, { clientX: 100, clientY: 120 });
 		});
 
-		expect(addEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mousemove')).toBe(true);
+		expect(addEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mousemove')).toBe(
+			true,
+		);
 		expect(addEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mouseup')).toBe(true);
 
 		unmount();
 
-		expect(removeEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mousemove')).toBe(true);
-		expect(removeEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mouseup')).toBe(true);
+		expect(removeEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mousemove')).toBe(
+			true,
+		);
+		expect(removeEventListenerSpy.mock.calls.some(([type]) => String(type) === 'mouseup')).toBe(
+			true,
+		);
 	});
 });

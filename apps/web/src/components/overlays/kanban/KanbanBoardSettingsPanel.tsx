@@ -1,9 +1,5 @@
 import type { RefObject } from 'react';
-import {
-	KANBAN_FONT_OPTIONS,
-	KANBAN_FONT_SIZE_RANGE,
-	clampKanbanFontSize,
-} from './kanban-theme';
+import { KANBAN_FONT_OPTIONS, KANBAN_FONT_SIZE_RANGE, clampKanbanFontSize } from './kanban-theme';
 import { KANBAN_BUTTON, KANBAN_ICON_BUTTON, getKanbanPanelStyle } from './kanban-ui';
 
 interface KanbanBoardSettingsPanelProps {

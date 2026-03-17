@@ -1,5 +1,5 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
 	id: text('id').primaryKey(),
@@ -126,7 +126,7 @@ export const assistantRuns = sqliteTable(
 		requestMessage: text('request_message').notNull(),
 		contextMode: text('context_mode', { enum: ['all', 'selected', 'none'] }).notNull(),
 		modeHint: text('mode_hint', {
-			enum: ['chat', 'mermaid', 'd2', 'image', 'sketch', 'kanban', 'prototype'],
+			enum: ['chat', 'mermaid', 'd2', 'image', 'sketch', 'svg', 'kanban', 'prototype'],
 		}),
 		requestHistoryJson: text('request_history_json'),
 		selectedElementIdsJson: text('selected_element_ids_json'),
@@ -289,7 +289,10 @@ export const assistantThreadsRelations = relations(assistantThreads, ({ one, man
 
 export const assistantRunsRelations = relations(assistantRuns, ({ one, many }) => ({
 	user: one(users, { fields: [assistantRuns.userId], references: [users.id] }),
-	thread: one(assistantThreads, { fields: [assistantRuns.threadId], references: [assistantThreads.id] }),
+	thread: one(assistantThreads, {
+		fields: [assistantRuns.threadId],
+		references: [assistantThreads.id],
+	}),
 	events: many(assistantRunEvents),
 	tasks: many(assistantTasks),
 	artifacts: many(assistantArtifacts),
@@ -305,5 +308,8 @@ export const assistantTasksRelations = relations(assistantTasks, ({ one }) => ({
 
 export const assistantArtifactsRelations = relations(assistantArtifacts, ({ one }) => ({
 	run: one(assistantRuns, { fields: [assistantArtifacts.runId], references: [assistantRuns.id] }),
-	task: one(assistantTasks, { fields: [assistantArtifacts.taskId], references: [assistantTasks.id] }),
+	task: one(assistantTasks, {
+		fields: [assistantArtifacts.taskId],
+		references: [assistantTasks.id],
+	}),
 }));

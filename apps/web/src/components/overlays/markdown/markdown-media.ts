@@ -75,7 +75,13 @@ function extractExcalidrawDataUrl(text: string): string | null {
 
 function extractImageSrcFromHtml(html: string): string | null {
 	if (!html) return null;
-	return new DOMParser().parseFromString(html, 'text/html').querySelector('img')?.getAttribute('src')?.trim() ?? null;
+	return (
+		new DOMParser()
+			.parseFromString(html, 'text/html')
+			.querySelector('img')
+			?.getAttribute('src')
+			?.trim() ?? null
+	);
 }
 
 function insertMarkdownAtCursor(
@@ -214,7 +220,13 @@ export async function handleImagePasteAsMarkdown({
 		const compressed = await compressImageDataUrl(await readBlobAsDataUrl(file));
 		const imageId = createImageId();
 		onImageAdd(imageId, compressed);
-		insertMarkdownAtCursor(target, value, `${MARKDOWN_IMAGE_SCHEME}${imageId}`, onChange, file.name || 'image');
+		insertMarkdownAtCursor(
+			target,
+			value,
+			`${MARKDOWN_IMAGE_SCHEME}${imageId}`,
+			onChange,
+			file.name || 'image',
+		);
 		return true;
 	}
 
@@ -226,7 +238,13 @@ export async function handleImagePasteAsMarkdown({
 			const compressed = await compressImageDataUrl(imageDataUrl);
 			const imageId = createImageId();
 			onImageAdd(imageId, compressed);
-			insertMarkdownAtCursor(target, value, `${MARKDOWN_IMAGE_SCHEME}${imageId}`, onChange, 'canvas-image');
+			insertMarkdownAtCursor(
+				target,
+				value,
+				`${MARKDOWN_IMAGE_SCHEME}${imageId}`,
+				onChange,
+				'canvas-image',
+			);
 		}
 		return true;
 	}

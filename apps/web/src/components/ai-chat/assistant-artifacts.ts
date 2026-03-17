@@ -1,8 +1,5 @@
-import {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
-} from '@ai-canvas/shared/schemas';
+import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
+import { normalizeKanbanOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
 	AssistantKanbanPatchArtifact,
@@ -14,21 +11,6 @@ import type {
 	MarkdownOverlayCustomData,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
-
-export interface StoredAssistantAssetContent {
-	kind: 'stored_asset';
-	r2Key: string;
-	mimeType: string;
-	provider: string;
-	model?: string;
-	prompt?: string;
-	revisedPrompt?: string;
-	tool?: string;
-	byteSize?: number;
-	sourceArtifactId?: string;
-	artifactId?: string;
-	runId?: string;
-}
 
 interface PrototypeArtifactPayload {
 	title?: string;
@@ -134,9 +116,7 @@ interface NormalizedKanbanCard {
 	checklist?: KanbanCard['checklist'];
 }
 
-function normalizeChecklistItems(
-	checklist: unknown,
-): KanbanCard['checklist'] {
+function normalizeChecklistItems(checklist: unknown): KanbanCard['checklist'] {
 	if (!Array.isArray(checklist)) {
 		return [];
 	}
@@ -212,15 +192,6 @@ function createDefaultKanbanBoard(title = 'AI Kanban Board'): KanbanOverlayCusto
 	};
 }
 
-export function parseStoredAssistantAssetContent(content: string): StoredAssistantAssetContent | null {
-	try {
-		const parsed = JSON.parse(content) as StoredAssistantAssetContent;
-		return parsed.kind === 'stored_asset' ? parsed : null;
-	} catch {
-		return null;
-	}
-}
-
 export function describeAssistantArtifact(artifact: AssistantArtifact): string {
 	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
 	if (!storedAsset) {
@@ -229,7 +200,11 @@ export function describeAssistantArtifact(artifact: AssistantArtifact): string {
 
 	const lines = [
 		`Provider: ${storedAsset.provider}`,
-		storedAsset.model ? `Model: ${storedAsset.model}` : storedAsset.tool ? `Tool: ${storedAsset.tool}` : null,
+		storedAsset.model
+			? `Model: ${storedAsset.model}`
+			: storedAsset.tool
+				? `Tool: ${storedAsset.tool}`
+				: null,
 		storedAsset.mimeType ? `MIME: ${storedAsset.mimeType}` : null,
 		storedAsset.prompt ? `Prompt: ${storedAsset.prompt}` : null,
 		storedAsset.revisedPrompt ? `Revised prompt: ${storedAsset.revisedPrompt}` : null,
@@ -466,7 +441,8 @@ export function buildMarkdownPatchHunks(
 			chunkIndex += 1;
 		}
 
-		const trailingEqualLines = chunks[chunkIndex]?.type === 'equal' ? chunks[chunkIndex]?.lines ?? [] : [];
+		const trailingEqualLines =
+			chunks[chunkIndex]?.type === 'equal' ? (chunks[chunkIndex]?.lines ?? []) : [];
 		for (const line of trailingEqualLines.slice(0, contextLineCount)) {
 			lines.push({ type: 'context', text: line });
 		}
@@ -544,9 +520,7 @@ export function detectMarkdownPatchConflict(
 	return 'modified';
 }
 
-export function summarizeKanbanPatchChanges(
-	patch: AssistantKanbanPatchArtifact,
-): string[] {
+export function summarizeKanbanPatchChanges(patch: AssistantKanbanPatchArtifact): string[] {
 	const changes: string[] = [];
 	const baseColumnsById = new Map(patch.base.columns.map((column) => [column.id, column]));
 
@@ -582,9 +556,9 @@ export function buildPrototypeFromArtifact(
 	try {
 		const parsed = JSON.parse(artifact.content) as PrototypeArtifactPayload;
 		return normalizePrototypeOverlay(
-			(typeof parsed.prototype === 'object' && parsed.prototype !== null ? parsed.prototype : parsed) as
-				| PrototypeOverlayCustomData
-				| PrototypeArtifactPayload,
+			(typeof parsed.prototype === 'object' && parsed.prototype !== null
+				? parsed.prototype
+				: parsed) as PrototypeOverlayCustomData | PrototypeArtifactPayload,
 		);
 	} catch {
 		return normalizePrototypeOverlay();
@@ -712,8 +686,7 @@ export function buildPrototypeFromMessageContent(
 			files: {
 				'/App.jsx': { code: jsx },
 				'/index.jsx': {
-					code:
-						"import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nimport App from './App';\n\nconst container = document.getElementById('root');\n\nif (container) {\n  const root = createRoot(container);\n  root.render(\n    <StrictMode>\n      <App />\n    </StrictMode>\n  );\n}\n",
+					code: "import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nimport App from './App';\n\nconst container = document.getElementById('root');\n\nif (container) {\n  const root = createRoot(container);\n  root.render(\n    <StrictMode>\n      <App />\n    </StrictMode>\n  );\n}\n",
 					hidden: true,
 				},
 				'/styles.css': { code: css },
@@ -863,7 +836,10 @@ export function buildKanbanFromArtifact(
 		}
 
 		if ('op' in op && op.op === 'move_card') {
-			const fromColumn = findColumnByReference(workingBoard.columns, op.fromColumn ?? op.from_column);
+			const fromColumn = findColumnByReference(
+				workingBoard.columns,
+				op.fromColumn ?? op.from_column,
+			);
 			const toColumn = findColumnByReference(workingBoard.columns, op.toColumn ?? op.to_column);
 			const cardIndex = op.cardIndex ?? op.card_index ?? -1;
 			const targetIndex = op.targetIndex ?? op.target_index ?? -1;
@@ -913,7 +889,9 @@ export function buildKanbanFromArtifact(
 
 	return normalizeKanbanOverlay({
 		...workingBoard,
-		title: baseColumns.some((column) => column.title === 'AI Next') ? 'AI Next Board' : workingBoard.title,
+		title: baseColumns.some((column) => column.title === 'AI Next')
+			? 'AI Next Board'
+			: workingBoard.title,
 		columns: baseColumns,
 	});
 }

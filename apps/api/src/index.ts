@@ -1,27 +1,41 @@
 import * as Sentry from '@sentry/cloudflare';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { logger } from 'hono/logger';
 import { HTTPException } from 'hono/http-exception';
-import { canvasRoutes } from './routes/canvas';
-import { assistantRoutes } from './routes/assistant';
-import { getCorsAllowedOrigins } from './lib/local-dev-origins';
+import { logger } from 'hono/logger';
 import { getRequestLogFields, logApiEvent, parseSampleRate } from './lib/observability';
 import { requestContext } from './middleware/request-context';
+import { assistantRoutes } from './routes/assistant';
+import { canvasRoutes } from './routes/canvas';
 import { userRoutes } from './routes/user';
 import { waitlistRoutes } from './routes/waitlist';
 import type { AppEnv } from './types';
 
+const DEFAULT_ALLOWED_ORIGINS = [
+	'http://localhost:5173',
+	'http://127.0.0.1:5173',
+	'https://roopstudio.com',
+	'https://www.roopstudio.com',
+];
+
+function getAllowedOrigins(bindings: AppEnv['Bindings']) {
+	const configuredOrigins = bindings.CORS_ALLOWED_ORIGINS?.split(',')
+		.map((origin) => origin.trim())
+		.filter(Boolean);
+
+	return configuredOrigins && configuredOrigins.length > 0
+		? configuredOrigins
+		: DEFAULT_ALLOWED_ORIGINS;
+}
+
 const app = new Hono<AppEnv>()
 	.use('*', requestContext)
 	.use('*', logger())
-	.use(
-		'*',
-		async (c, next) =>
-			cors({
-				origin: getCorsAllowedOrigins(c.env.CORS_ALLOWED_ORIGINS, c.env.ENVIRONMENT),
-				credentials: true,
-			})(c, next),
+	.use('*', async (c, next) =>
+		cors({
+			origin: getAllowedOrigins(c.env),
+			credentials: true,
+		})(c, next),
 	)
 	.route('/api/canvas', canvasRoutes)
 	.route('/api/assistant', assistantRoutes)
@@ -69,13 +83,13 @@ const workerHandler: ExportedHandler<AppEnv['Bindings']> = {
 export default Sentry.withSentry(
 	(env: AppEnv['Bindings']) =>
 		env.SENTRY_DSN
-				? {
-						dsn: env.SENTRY_DSN,
-						environment: env.ENVIRONMENT,
-						release: env.SENTRY_RELEASE,
-						tracesSampleRate: parseSampleRate(
-							env.SENTRY_TRACES_SAMPLE_RATE,
-							env.ENVIRONMENT === 'production' ? 0.1 : 1,
+			? {
+					dsn: env.SENTRY_DSN,
+					environment: env.ENVIRONMENT,
+					release: env.SENTRY_RELEASE,
+					tracesSampleRate: parseSampleRate(
+						env.SENTRY_TRACES_SAMPLE_RATE,
+						env.ENVIRONMENT === 'production' ? 0.1 : 1,
 					),
 					sendDefaultPii: false,
 					integrations: [Sentry.honoIntegration()],

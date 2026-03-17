@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { AssistantRunEvent } from '@ai-canvas/shared/types';
+import { describe, expect, it } from 'vitest';
 import {
 	applyAssistantRunEvent,
 	createAssistantRunProgress,

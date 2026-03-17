@@ -189,9 +189,13 @@ describe('assistant context', () => {
 		});
 
 		expect(summary).toContain('Canvas title: "Launch canvas".');
-		expect(summary).toContain('Canvas summary: 4 text-bearing elements, 2 editable overlays, 2 selected.');
+		expect(summary).toContain(
+			'Canvas summary: 4 text-bearing elements, 2 editable overlays, 2 selected.',
+		);
 		expect(summary).toContain('Relevant canvas elements: rectangle | "Prototype shell".');
-		expect(summary).toContain('Nearby selection context: ellipse | "Launch milestone" | distance 24.');
+		expect(summary).toContain(
+			'Nearby selection context: ellipse | "Launch milestone" | distance 24.',
+		);
 		expect(summary).toContain('Canvas snapshot: 8 elements.');
 		expect(summary).toContain('Selected overlay types: markdown, prototype.');
 		expect(summary).toContain('Release checklist');

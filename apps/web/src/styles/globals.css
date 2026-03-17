@@ -1,10 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
-@import 'tailwindcss';
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Anonymous+Pro:wght@400;700&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap");
 
 :root {
-	--font-sans: 'DM Sans', 'Segoe UI', sans-serif;
-	--font-display: 'Playfair Display', Georgia, serif;
-	--font-mono: 'Anonymous Pro', 'SFMono-Regular', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+	--font-sans: "DM Sans", "Segoe UI", sans-serif;
+	--font-display: "Playfair Display", Georgia, serif;
+	--font-mono: "Anonymous Pro", "SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, monospace;
 	--color-canvas-bg: #f5f5f7;
 	--color-surface: rgba(255, 255, 255, 0.78);
 	--color-surface-strong: rgba(255, 255, 255, 0.9);
@@ -27,13 +27,14 @@
 	--color-success-text: #557768;
 	--shadow-panel: 0 14px 40px rgba(31, 36, 48, 0.08);
 	--shadow-float: 0 18px 48px rgba(31, 36, 48, 0.11);
-	--app-shell-gradient:
-		radial-gradient(circle at top left, rgba(236, 239, 248, 0.95), transparent 32%),
-		radial-gradient(circle at top right, rgba(232, 238, 248, 0.86), transparent 24%),
+	--app-shell-gradient: radial-gradient(
+			circle at top left,
+			rgba(236, 239, 248, 0.95),
+			transparent 32%
+		), radial-gradient(circle at top right, rgba(232, 238, 248, 0.86), transparent 24%),
 		radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.72), transparent 34%),
 		linear-gradient(180deg, #fafbfd 0%, #f3f5f8 46%, #eff2f7 100%);
-	--app-grid:
-		linear-gradient(rgba(31, 36, 48, 0.04) 1px, transparent 1px),
+	--app-grid: linear-gradient(rgba(31, 36, 48, 0.04) 1px, transparent 1px),
 		linear-gradient(90deg, rgba(31, 36, 48, 0.04) 1px, transparent 1px);
 	--radius-panel: 24px;
 	--radius-card: 14px;
@@ -60,13 +61,14 @@
 		--color-success-text: #a6c9ba;
 		--shadow-panel: 0 18px 60px rgba(0, 0, 0, 0.28);
 		--shadow-float: 0 28px 80px rgba(0, 0, 0, 0.32);
-		--app-shell-gradient:
-			radial-gradient(circle at top left, rgba(60, 65, 92, 0.24), transparent 30%),
-			radial-gradient(circle at top right, rgba(61, 81, 107, 0.22), transparent 22%),
+		--app-shell-gradient: radial-gradient(
+				circle at top left,
+				rgba(60, 65, 92, 0.24),
+				transparent 30%
+			), radial-gradient(circle at top right, rgba(61, 81, 107, 0.22), transparent 22%),
 			radial-gradient(circle at 50% 18%, rgba(52, 60, 76, 0.24), transparent 30%),
 			linear-gradient(180deg, #16181d 0%, #121418 100%);
-		--app-grid:
-			linear-gradient(rgba(237, 241, 246, 0.04) 1px, transparent 1px),
+		--app-grid: linear-gradient(rgba(237, 241, 246, 0.04) 1px, transparent 1px),
 			linear-gradient(90deg, rgba(237, 241, 246, 0.04) 1px, transparent 1px);
 	}
 }
@@ -104,7 +106,12 @@ body {
 .app-grid {
 	background-image: var(--app-grid);
 	background-size: 36px 36px;
-	mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.86), rgba(0, 0, 0, 0.24) 72%, transparent 100%);
+	mask-image: linear-gradient(
+		180deg,
+		rgba(0, 0, 0, 0.86),
+		rgba(0, 0, 0, 0.24) 72%,
+		transparent 100%
+	);
 }
 
 .app-panel {
@@ -120,11 +127,8 @@ body {
 }
 
 .app-card-hover {
-	transition:
-		transform 180ms ease,
-		border-color 180ms ease,
-		box-shadow 180ms ease,
-		background-color 180ms ease;
+	transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-color
+		180ms ease;
 }
 
 .app-card-hover:hover {
@@ -151,7 +155,7 @@ body {
 }
 
 .app-kicker::before {
-	content: '';
+	content: "";
 	width: 0.65rem;
 	height: 0.65rem;
 	border-radius: 999px;
@@ -277,10 +281,7 @@ body {
 	background: rgba(255, 255, 255, 0.72);
 	color: var(--color-text-primary);
 	box-sizing: border-box;
-	transition:
-		border-color 160ms ease,
-		background-color 160ms ease,
-		box-shadow 160ms ease;
+	transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
 .app-input::placeholder,
@@ -337,11 +338,8 @@ body {
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: var(--color-text-secondary);
-	transition:
-		border-color 160ms ease,
-		background-color 160ms ease,
-		color 160ms ease,
-		transform 160ms ease;
+	transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease, transform
+		160ms ease;
 }
 
 .app-toolbar-chip:hover {

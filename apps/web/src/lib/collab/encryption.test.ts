@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { decryptData, encryptData, exportKey, generateEncryptionKey, importKey } from './encryption';
+import {
+	decryptData,
+	encryptData,
+	exportKey,
+	generateEncryptionKey,
+	importKey,
+} from './encryption';
 
 describe('collab encryption', () => {
 	it('round-trips keys and encrypted payloads', async () => {

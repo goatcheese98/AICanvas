@@ -1,10 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type BufferedCommitReason =
-	| 'debounce'
-	| 'editing-exit'
-	| 'deselect'
-	| 'unmount';
+export type BufferedCommitReason = 'debounce' | 'editing-exit' | 'deselect' | 'unmount';
 
 export interface BufferedDocumentDebugState {
 	isDirty: boolean;

@@ -1,12 +1,3 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type {
-	AppState,
-	BinaryFileData,
-	BinaryFiles,
-	Collaborator,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
 	cloneExcalidrawAppState,
 	syncAppStoreFromExcalidraw,
@@ -14,6 +5,15 @@ import {
 } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type {
+	AppState,
+	BinaryFileData,
+	BinaryFiles,
+	Collaborator,
+	ExcalidrawImperativeAPI,
+} from '@excalidraw/excalidraw/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface CameraTarget {
 	x: number;
@@ -138,28 +138,31 @@ export function useCanvasTourSceneController({
 		[viewportSize.height, viewportSize.width],
 	);
 
-	const createCameraFromAppState = useCallback((appState: Partial<AppState>): CameraTarget => {
-		const zoom =
-			typeof appState.zoom?.value === 'number' && appState.zoom.value > 0
-				? appState.zoom.value
-				: 1;
-		const width =
-			typeof appState.width === 'number' && appState.width > 0
-				? appState.width
-				: viewportSize.width;
-		const height =
-			typeof appState.height === 'number' && appState.height > 0
-				? appState.height
-				: viewportSize.height;
-		const scrollX = typeof appState.scrollX === 'number' ? appState.scrollX : 0;
-		const scrollY = typeof appState.scrollY === 'number' ? appState.scrollY : 0;
+	const createCameraFromAppState = useCallback(
+		(appState: Partial<AppState>): CameraTarget => {
+			const zoom =
+				typeof appState.zoom?.value === 'number' && appState.zoom.value > 0
+					? appState.zoom.value
+					: 1;
+			const width =
+				typeof appState.width === 'number' && appState.width > 0
+					? appState.width
+					: viewportSize.width;
+			const height =
+				typeof appState.height === 'number' && appState.height > 0
+					? appState.height
+					: viewportSize.height;
+			const scrollX = typeof appState.scrollX === 'number' ? appState.scrollX : 0;
+			const scrollY = typeof appState.scrollY === 'number' ? appState.scrollY : 0;
 
-		return {
-			x: width / (2 * zoom) - scrollX,
-			y: height / (2 * zoom) - scrollY,
-			zoom,
-		};
-	}, [viewportSize.height, viewportSize.width]);
+			return {
+				x: width / (2 * zoom) - scrollX,
+				y: height / (2 * zoom) - scrollY,
+				zoom,
+			};
+		},
+		[viewportSize.height, viewportSize.width],
+	);
 
 	const buildExploreAppState = useCallback(
 		(targetCamera: CameraTarget): Partial<AppState> => ({
@@ -191,19 +194,16 @@ export function useCanvasTourSceneController({
 	}, []);
 
 	const applySceneSnapshot = useCallback(
-		(
-			snapshot: CanvasSceneSnapshot,
-			options?: ApplySceneSnapshotOptions,
-		) => {
+		(snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => {
 			const api = excalidrawApiRef.current;
 			if (!api) return;
 
 			const baseAppState = cloneAppState(snapshot.appState);
 			const nextAppState = options?.cameraOverride
 				? {
-					...baseAppState,
-					...getViewportAppState(options.cameraOverride, viewportSize.width, viewportSize.height),
-				}
+						...baseAppState,
+						...getViewportAppState(options.cameraOverride, viewportSize.width, viewportSize.height),
+					}
 				: baseAppState;
 
 			if (!options?.preserveSelection) {
@@ -366,7 +366,15 @@ export function useCanvasTourSceneController({
 		return () => {
 			isDisposed = true;
 		};
-	}, [defaultScene.files, guideBaseline.elements, imageId, initialCamera, setAppState, setElements, setFiles]);
+	}, [
+		defaultScene.files,
+		guideBaseline.elements,
+		imageId,
+		initialCamera,
+		setAppState,
+		setElements,
+		setFiles,
+	]);
 
 	useEffect(() => {
 		if (excalidrawApiRef.current && isGuideMode && cameraRef.current) {

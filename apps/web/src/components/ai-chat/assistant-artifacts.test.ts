@@ -1,13 +1,13 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	applyAcceptedMarkdownPatchHunks,
 	buildKanbanFromArtifact,
 	buildMarkdownArtifactContent,
 	buildMarkdownPatchDiff,
 	buildMarkdownPatchHunks,
-	buildPrototypeFromMessageContent,
 	buildPrototypeFromArtifact,
+	buildPrototypeFromMessageContent,
 	detectMarkdownPatchConflict,
 	filterVisibleArtifacts,
 	getDiagramArtifactSource,
@@ -52,7 +52,10 @@ describe('assistant-artifacts', () => {
 
 	it('keeps markdown-wrapped diagrams visible when no native artifact exists', () => {
 		const artifacts: AssistantArtifact[] = [
-			{ type: 'markdown', content: ['# Mermaid Draft', '', '```mermaid', 'flowchart TD', 'A --> B', '```'].join('\n') },
+			{
+				type: 'markdown',
+				content: ['# Mermaid Draft', '', '```mermaid', 'flowchart TD', 'A --> B', '```'].join('\n'),
+			},
 		];
 
 		expect(filterVisibleArtifacts(artifacts)).toEqual(artifacts);
@@ -284,7 +287,9 @@ describe('assistant-artifacts', () => {
 		expect(hunks).toHaveLength(2);
 		expect(hunks[0]?.removedLineCount).toBe(2);
 		expect(hunks[0]?.addedLineCount).toBe(1);
-		expect(hunks[1]?.lines.some((line) => line.type === 'add' && line.text === '- Smoked paprika')).toBe(true);
+		expect(
+			hunks[1]?.lines.some((line) => line.type === 'add' && line.text === '- Smoked paprika'),
+		).toBe(true);
 	});
 
 	it('applies only accepted markdown hunks', () => {
@@ -319,11 +324,15 @@ describe('assistant-artifacts', () => {
 	});
 
 	it('detects markdown patch conflicts against live note content', () => {
-		const baseContent = ['# Grocery List', '', '## Protein', '- Beef chuck', '- Brisket'].join('\n');
+		const baseContent = ['# Grocery List', '', '## Protein', '- Beef chuck', '- Brisket'].join(
+			'\n',
+		);
 		const nextContent = ['# Grocery List', '', '## Protein', '- Chicken thighs'].join('\n');
 
 		expect(detectMarkdownPatchConflict(baseContent, baseContent, nextContent)).toBe('clean');
-		expect(detectMarkdownPatchConflict(nextContent, baseContent, nextContent)).toBe('already-applied');
+		expect(detectMarkdownPatchConflict(nextContent, baseContent, nextContent)).toBe(
+			'already-applied',
+		);
 		expect(
 			detectMarkdownPatchConflict(
 				['# Grocery List', '', '## Protein', '- Tofu'].join('\n'),
@@ -382,7 +391,9 @@ describe('assistant-artifacts', () => {
 				template: 'react',
 				activeFile: '/App.jsx',
 				files: {
-					'/App.jsx': { code: 'export default function App() { return <main>PromptVault</main>; }' },
+					'/App.jsx': {
+						code: 'export default function App() { return <main>PromptVault</main>; }',
+					},
 					'/index.jsx': { code: "import { createRoot } from 'react-dom/client';" },
 					'/styles.css': { code: 'main { color: #111827; }' },
 				},
@@ -397,21 +408,23 @@ describe('assistant-artifacts', () => {
 	});
 
 	it('builds a vanilla prototype overlay from assistant message code blocks', () => {
-		const prototype = buildPrototypeFromMessageContent([
-			'# Calculator App',
-			'',
-			'```html',
-			'<!DOCTYPE html><html><body><div id="app"></div><script type="module" src="./index.js"></script></body></html>',
-			'```',
-			'',
-			'```css',
-			'body { background: #f8fafc; }',
-			'```',
-			'',
-			'```javascript',
-			"document.getElementById('app').textContent = 'ready';",
-			'```',
-		].join('\n'));
+		const prototype = buildPrototypeFromMessageContent(
+			[
+				'# Calculator App',
+				'',
+				'```html',
+				'<!DOCTYPE html><html><body><div id="app"></div><script type="module" src="./index.js"></script></body></html>',
+				'```',
+				'',
+				'```css',
+				'body { background: #f8fafc; }',
+				'```',
+				'',
+				'```javascript',
+				"document.getElementById('app').textContent = 'ready';",
+				'```',
+			].join('\n'),
+		);
 
 		expect(prototype?.template).toBe('vanilla');
 		expect(prototype?.files['/index.html']?.code).toContain('<div id="app">');

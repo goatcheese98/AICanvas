@@ -10,7 +10,9 @@ import {
 describe('markdown-utils', () => {
 	it('creates markdown image tokens with the custom image scheme', () => {
 		expect(createMarkdownImageToken('img-1')).toBe(`![image](${MARKDOWN_IMAGE_SCHEME}img-1)`);
-		expect(createMarkdownImageToken('img-2', 'diagram')).toBe(`![diagram](${MARKDOWN_IMAGE_SCHEME}img-2)`);
+		expect(createMarkdownImageToken('img-2', 'diagram')).toBe(
+			`![diagram](${MARKDOWN_IMAGE_SCHEME}img-2)`,
+		);
 	});
 
 	it('resolves custom image references from the overlay image map', () => {

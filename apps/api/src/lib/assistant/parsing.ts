@@ -133,3 +133,35 @@ export function buildPrototypePrompt(userText: string, currentPrototypeJson?: st
 			: []),
 	].join('\n');
 }
+
+export function buildSvgPrompt(userText: string): string {
+	return [
+		'Generate only a single SVG illustration.',
+		'Rules:',
+		'- Return only a single svg code block.',
+		'- The output must be valid standalone SVG markup with an xmlns attribute on the root <svg>.',
+		'- Prefer simple geometric shapes, paths, and fills over filters or embedded raster images.',
+		'- Keep the illustration editable and scalable.',
+		'- Do not include prose before or after the SVG block.',
+		'',
+		`Request: ${userText}`,
+	].join('\n');
+}
+
+export function buildSvgEditPrompt(userText: string, currentSvg: string): string {
+	return [
+		'Update the existing SVG illustration.',
+		'Rules:',
+		'- Return only a single svg code block.',
+		'- Return the full updated SVG, not a diff or explanation.',
+		'- Keep the SVG valid and standalone with an xmlns attribute on the root <svg>.',
+		'- Preserve the subject unless the request explicitly changes it.',
+		'',
+		'Current SVG:',
+		'```svg',
+		currentSvg,
+		'```',
+		'',
+		`Edit request: ${userText}`,
+	].join('\n');
+}

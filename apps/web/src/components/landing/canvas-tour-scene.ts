@@ -1,8 +1,8 @@
-import { FONT_FAMILY, convertToExcalidrawElements } from '@excalidraw/excalidraw';
-import type { BinaryFileData, BinaryFiles } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { OverlayType } from '@ai-canvas/shared/types';
 import { createOverlayElementDraft } from '@/components/canvas/element-factories';
+import type { OverlayType } from '@ai-canvas/shared/types';
+import { FONT_FAMILY, convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { BinaryFileData, BinaryFiles } from '@excalidraw/excalidraw/types';
 
 export interface DemoScene {
 	elements: ExcalidrawElement[];
@@ -616,13 +616,16 @@ function createBoundCard({
 	const horizontalPadding = 28;
 	const verticalPadding = 22;
 	const measuredWidth = typeof textElement.width === 'number' ? textElement.width : minWidth - 56;
-	const measuredHeight = typeof textElement.height === 'number' ? textElement.height : fontSize * 1.4;
-	const width = typeof explicitWidth === 'number'
-		? Math.max(explicitWidth, minWidth)
-		: Math.max(minWidth, measuredWidth + horizontalPadding * 2);
-	const height = typeof explicitHeight === 'number'
-		? Math.max(explicitHeight, minHeight)
-		: Math.max(minHeight, measuredHeight + verticalPadding * 2);
+	const measuredHeight =
+		typeof textElement.height === 'number' ? textElement.height : fontSize * 1.4;
+	const width =
+		typeof explicitWidth === 'number'
+			? Math.max(explicitWidth, minWidth)
+			: Math.max(minWidth, measuredWidth + horizontalPadding * 2);
+	const height =
+		typeof explicitHeight === 'number'
+			? Math.max(explicitHeight, minHeight)
+			: Math.max(minHeight, measuredHeight + verticalPadding * 2);
 
 	const [containerElement] = createRawElements([
 		{
@@ -777,17 +780,15 @@ export function createCanvasTourScene(imageId: string): DemoScene {
 		...nodes.prompt.elements,
 		...nodes.hallucination.elements,
 		...nodes.ragPipeline.elements,
-		...DEFAULT_TOUR_SCENE_STATE.arrows
-			.slice(0, 2)
-			.map((arrow) =>
-				createArrowBetween({
-					source: nodes[arrow.source],
-					target: nodes[arrow.target],
-					sourceAnchor: arrow.sourceAnchor,
-					targetAnchor: arrow.targetAnchor,
-					strokeColor: arrow.strokeColor,
-				}),
-			),
+		...DEFAULT_TOUR_SCENE_STATE.arrows.slice(0, 2).map((arrow) =>
+			createArrowBetween({
+				source: nodes[arrow.source],
+				target: nodes[arrow.target],
+				sourceAnchor: arrow.sourceAnchor,
+				targetAnchor: arrow.targetAnchor,
+				strokeColor: arrow.strokeColor,
+			}),
+		),
 		createFreeText(DEFAULT_TOUR_SCENE_STATE.lectureClipLabel),
 		createCanvasImageElement({
 			fileId: imageId as BinaryFileData['id'],
@@ -796,17 +797,15 @@ export function createCanvasTourScene(imageId: string): DemoScene {
 		createFreeText(DEFAULT_TOUR_SCENE_STATE.ragFlowLabel),
 		...nodes.question.elements,
 		...nodes.retriever.elements,
-		...DEFAULT_TOUR_SCENE_STATE.arrows
-			.slice(2)
-			.map((arrow) =>
-				createArrowBetween({
-					source: nodes[arrow.source],
-					target: nodes[arrow.target],
-					sourceAnchor: arrow.sourceAnchor,
-					targetAnchor: arrow.targetAnchor,
-					strokeColor: arrow.strokeColor,
-				}),
-			),
+		...DEFAULT_TOUR_SCENE_STATE.arrows.slice(2).map((arrow) =>
+			createArrowBetween({
+				source: nodes[arrow.source],
+				target: nodes[arrow.target],
+				sourceAnchor: arrow.sourceAnchor,
+				targetAnchor: arrow.targetAnchor,
+				strokeColor: arrow.strokeColor,
+			}),
+		),
 		...nodes.generator.elements,
 		...nodes.studyNote.elements,
 		...nodes.checklistNote.elements,

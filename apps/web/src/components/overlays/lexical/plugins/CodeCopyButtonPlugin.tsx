@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $isCodeNode, CodeNode } from '@lexical/code';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey } from 'lexical';
+import { useEffect } from 'react';
 
 const BTN_CLASS = 'canvas-code-copy';
 

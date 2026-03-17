@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
+import { describe, expect, it } from 'vitest';
 import {
 	applyPrototypeStudioCommand,
 	applyPrototypeStudioCommands,

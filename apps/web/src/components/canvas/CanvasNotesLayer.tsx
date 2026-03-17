@@ -1,27 +1,18 @@
-import {
-	memo,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useSyncExternalStore,
-	type CSSProperties,
-} from 'react';
-import type { AppState } from '@excalidraw/excalidraw/types';
-import type { OverlayType } from '@ai-canvas/shared/types';
 import { useAppStore } from '@/stores/store';
+import type { OverlayType } from '@ai-canvas/shared/types';
+import type { AppState } from '@excalidraw/excalidraw/types';
+import { type CSSProperties, memo, useCallback, useMemo, useRef, useState } from 'react';
+import {
+	type OverlayUpdatePayloadMap,
+	type TypedOverlayCanvasElement,
+	getOverlayDefinition,
+	normalizeOverlayElement,
+} from './overlay-definitions';
 import {
 	applyOverlayUpdateByType,
 	collectOverlayElements,
 	getOverlayZIndex,
 } from './overlay-registry';
-import {
-	getOverlayDefinition,
-	normalizeOverlayElement,
-	type OverlayRenderMode,
-	type OverlayUpdatePayloadMap,
-	type TypedOverlayCanvasElement,
-} from './overlay-definitions';
 
 const EMPTY_SELECTED_ELEMENT_IDS: NonNullable<AppState['selectedElementIds']> = {};
 
@@ -61,107 +52,25 @@ function getOverlayContainerStyle(
 	} satisfies CSSProperties;
 }
 
-interface OverlayRuntimeStore {
-	getIsActive: (elementId: string) => boolean;
-	setIsActive: (elementId: string, isActive: boolean) => void;
-	subscribe: (elementId: string, listener: () => void) => () => void;
-	prune: (elementIds: readonly string[]) => void;
-}
-
-function createOverlayRuntimeStore(): OverlayRuntimeStore {
-	const activeOverlayIds = new Set<string>();
-	const listenersById = new Map<string, Set<() => void>>();
-
-	const emit = (elementId: string) => {
-		const listeners = listenersById.get(elementId);
-		if (!listeners) return;
-		for (const listener of listeners) listener();
-	};
-
-	return {
-		getIsActive: (elementId) => activeOverlayIds.has(elementId),
-		setIsActive: (elementId, isActive) => {
-			const wasActive = activeOverlayIds.has(elementId);
-			if (wasActive === isActive) return;
-
-			if (isActive) {
-				activeOverlayIds.add(elementId);
-			} else {
-				activeOverlayIds.delete(elementId);
-			}
-
-			emit(elementId);
-		},
-		subscribe: (elementId, listener) => {
-			let listeners = listenersById.get(elementId);
-			if (!listeners) {
-				listeners = new Set();
-				listenersById.set(elementId, listeners);
-			}
-
-			listeners.add(listener);
-
-			return () => {
-				const currentListeners = listenersById.get(elementId);
-				if (!currentListeners) return;
-				currentListeners.delete(listener);
-				if (currentListeners.size === 0) {
-					listenersById.delete(elementId);
-				}
-			};
-		},
-		prune: (elementIds) => {
-			const activeElementIds = new Set(elementIds);
-			for (const elementId of activeOverlayIds) {
-				if (activeElementIds.has(elementId)) continue;
-				activeOverlayIds.delete(elementId);
-				emit(elementId);
-			}
-		},
-	};
-}
-
-function getOverlayRenderMode(isSelected: boolean, isActive: boolean): OverlayRenderMode {
-	if (isActive) return 'live';
-	return isSelected ? 'shell' : 'preview';
-}
-
-function useOverlayActivity(runtimeStore: OverlayRuntimeStore, elementId: string) {
-	return useSyncExternalStore(
-		useCallback((listener: () => void) => runtimeStore.subscribe(elementId, listener), [
-			elementId,
-			runtimeStore,
-		]),
-		useCallback(() => runtimeStore.getIsActive(elementId), [elementId, runtimeStore]),
-		useCallback(() => false, []),
-	);
-}
-
 interface OverlayContentProps {
 	element: TypedOverlayCanvasElement;
-	mode: OverlayRenderMode;
 	isSelected: boolean;
-	isActive: boolean;
 	onChange: (payload: OverlayUpdatePayloadMap[OverlayType]) => void;
-	onActivityChange: (isActive: boolean) => void;
+	onEditingChange: (isEditing: boolean) => void;
 }
 
 const OverlayContent = memo(function OverlayContent({
 	element,
-	mode,
 	isSelected,
-	isActive,
 	onChange,
-	onActivityChange,
+	onEditingChange,
 }: OverlayContentProps) {
 	const definition = getOverlayDefinition(element.customData.type);
 	return definition.render({
 		element: element as never,
-		mode,
 		isSelected,
-		isActive,
 		onChange: onChange as never,
-		onActivityChange,
+		onEditingChange,
 	});
 });
 
@@ -169,7 +78,6 @@ interface OverlayItemProps {
 	element: TypedOverlayCanvasElement;
 	stackIndex: number;
 	appState: ReturnType<typeof getNormalizedAppState>;
-	runtimeStore: OverlayRuntimeStore;
 	updateOverlayElement: <K extends OverlayType>(
 		elementId: string,
 		type: K,
@@ -177,65 +85,51 @@ interface OverlayItemProps {
 	) => void;
 }
 
-function OverlayItem({
-	element,
-	stackIndex,
-	appState,
-	runtimeStore,
-	updateOverlayElement,
-}: OverlayItemProps) {
+function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: OverlayItemProps) {
+	const [isEditing, setIsEditing] = useState(false);
+	const isEditingRef = useRef(false);
 	const type = element.customData.type;
 	const normalizedElement = normalizeOverlayElement(type, element);
 	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
-	const isActive = useOverlayActivity(runtimeStore, normalizedElement.id);
-	const mode = getOverlayRenderMode(isSelected, isActive);
-	const isPinned = isSelected || isActive;
 	const containerStyle = useMemo(
 		() =>
 			getOverlayContainerStyle(
 				normalizedElement,
 				appState,
-				getOverlayZIndex(isSelected, isActive, stackIndex),
+				getOverlayZIndex(isSelected, isEditing, stackIndex),
 			),
-		[appState, isActive, isSelected, normalizedElement, stackIndex],
+		[appState, isEditing, isSelected, normalizedElement, stackIndex],
 	);
-	const interactionEnabled = isSelected || isActive;
+	const interactionEnabled = isSelected;
 	const handleChange = useCallback(
 		(payload: OverlayUpdatePayloadMap[typeof type]) => {
 			updateOverlayElement(normalizedElement.id, type, payload);
 		},
 		[normalizedElement.id, type, updateOverlayElement],
 	);
-	const handleActivityChange = useCallback(
-		(nextIsActive: boolean) => {
-			runtimeStore.setIsActive(normalizedElement.id, nextIsActive);
-		},
-		[normalizedElement.id, runtimeStore],
-	);
+	const handleEditingChange = useCallback((nextIsEditing: boolean) => {
+		if (isEditingRef.current === nextIsEditing) return;
+		isEditingRef.current = nextIsEditing;
+		setIsEditing(nextIsEditing);
+	}, []);
 
 	return (
 		<div
 			className="absolute"
 			data-testid={`overlay-item-${normalizedElement.id}`}
-			data-overlay-active={isActive ? 'true' : 'false'}
 			data-overlay-id={normalizedElement.id}
-			data-overlay-mode={mode}
-			data-overlay-pinned={isPinned ? 'true' : 'false'}
 			data-overlay-type={type}
 			style={{
 				...containerStyle,
-				contain: 'layout paint',
 				pointerEvents: interactionEnabled ? 'auto' : 'none',
 			}}
 		>
 			<div className="h-full w-full">
 				<OverlayContent
 					element={normalizedElement}
-					mode={mode}
 					isSelected={isSelected}
-					isActive={isActive}
 					onChange={handleChange as never}
-					onActivityChange={handleActivityChange}
+					onEditingChange={handleEditingChange}
 				/>
 			</div>
 		</div>
@@ -250,11 +144,6 @@ export function CanvasNotesLayer() {
 	const selectedElementIds = useAppStore(
 		(s) => s.appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
 	);
-	const runtimeStoreRef = useRef<OverlayRuntimeStore | null>(null);
-	if (runtimeStoreRef.current === null) {
-		runtimeStoreRef.current = createOverlayRuntimeStore();
-	}
-	const runtimeStore = runtimeStoreRef.current;
 
 	const overlayElements = useMemo(() => collectOverlayElements(elements), [elements]);
 	const normalizedAppState = useMemo(
@@ -267,10 +156,6 @@ export function CanvasNotesLayer() {
 			}),
 		[scrollX, scrollY, selectedElementIds, zoomValue],
 	);
-
-	useEffect(() => {
-		runtimeStore.prune(overlayElements.map((element) => element.id));
-	}, [overlayElements, runtimeStore]);
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
@@ -297,17 +182,13 @@ export function CanvasNotesLayer() {
 	);
 
 	return (
-		<div
-			className="pointer-events-none absolute inset-0 overflow-hidden"
-			style={{ zIndex: 2 }}
-		>
+		<div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 2 }}>
 			{overlayElements.map((element, stackIndex) => (
 				<OverlayItem
 					key={element.id}
 					element={element}
 					stackIndex={stackIndex}
 					appState={normalizedAppState}
-					runtimeStore={runtimeStore}
 					updateOverlayElement={updateOverlayElement}
 				/>
 			))}

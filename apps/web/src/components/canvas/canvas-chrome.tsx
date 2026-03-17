@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react';
+import type { ReactNode, PointerEvent as ReactPointerEvent } from 'react';
 
 export const CHROME_BUTTON_BASE =
 	'inline-flex h-9 items-center justify-center gap-2 rounded-[8px] border px-3.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors shadow-sm';

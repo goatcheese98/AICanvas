@@ -1,7 +1,7 @@
 import { and, eq, ne } from 'drizzle-orm';
-import { users } from '../db/schema';
-import type { Database } from '../db/client';
 import type { AuthUser } from '../../types';
+import type { Database } from '../db/client';
+import { users } from '../db/schema';
 
 export async function syncAuthenticatedUser(db: Database, user: AuthUser): Promise<void> {
 	// If a different user row already owns this email (e.g. after a Clerk instance migration),

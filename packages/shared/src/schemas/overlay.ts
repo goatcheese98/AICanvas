@@ -19,19 +19,12 @@ export const markdownEditorModeSchema = z.enum(['raw', 'hybrid']);
 
 export const markdownNoteSettingsSchema = z.object({
 	font: z.string().trim().min(1).max(160).default(DEFAULT_MARKDOWN_NOTE_SETTINGS.font),
-	fontSize: z
-		.coerce
+	fontSize: z.coerce
 		.number()
 		.transform((value) => Math.min(28, Math.max(8, value)))
 		.default(DEFAULT_MARKDOWN_NOTE_SETTINGS.fontSize),
-	background: z
-		.string()
-		.trim()
-		.min(1)
-		.max(32)
-		.default(DEFAULT_MARKDOWN_NOTE_SETTINGS.background),
-	lineHeight: z
-		.coerce
+	background: z.string().trim().min(1).max(32).default(DEFAULT_MARKDOWN_NOTE_SETTINGS.background),
+	lineHeight: z.coerce
 		.number()
 		.transform((value) => Math.min(2.2, Math.max(1.2, value)))
 		.default(DEFAULT_MARKDOWN_NOTE_SETTINGS.lineHeight),
@@ -54,7 +47,11 @@ export const markdownOverlaySchema = z.object({
 });
 
 export const newLexCommentReplySchema = z.object({
-	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
+	id: z
+		.string()
+		.trim()
+		.min(1)
+		.default(() => crypto.randomUUID()),
 	author: z.string().trim().min(1).default('You'),
 	message: z.string().default(''),
 	createdAt: z.coerce.number().default(() => Date.now()),
@@ -62,7 +59,11 @@ export const newLexCommentReplySchema = z.object({
 });
 
 export const newLexCommentThreadSchema = z.object({
-	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
+	id: z
+		.string()
+		.trim()
+		.min(1)
+		.default(() => crypto.randomUUID()),
 	author: z.string().trim().min(1).default('You'),
 	comment: z.string().default(''),
 	commentDeleted: z.boolean().optional(),
@@ -88,7 +89,11 @@ export const kanbanChecklistItemSchema = z.object({
 });
 
 export const kanbanCardSchema = z.object({
-	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
+	id: z
+		.string()
+		.trim()
+		.min(1)
+		.default(() => crypto.randomUUID()),
 	title: z
 		.string()
 		.max(120)
@@ -102,7 +107,11 @@ export const kanbanCardSchema = z.object({
 });
 
 export const kanbanColumnSchema = z.object({
-	id: z.string().trim().min(1).default(() => crypto.randomUUID()),
+	id: z
+		.string()
+		.trim()
+		.min(1)
+		.default(() => crypto.randomUUID()),
 	title: z
 		.string()
 		.max(80)
@@ -122,8 +131,7 @@ export const kanbanOverlaySchema = z.object({
 	columns: z.array(kanbanColumnSchema).default([]),
 	bgTheme: z.string().optional(),
 	fontId: z.string().optional(),
-	fontSize: z
-		.coerce
+	fontSize: z.coerce
 		.number()
 		.transform((value) => Math.min(18, Math.max(12, value)))
 		.optional(),
@@ -232,7 +240,12 @@ export const prototypeCardPreviewSchema = z.object({
 	title: z.string().trim().min(1).max(48).default('Launch cockpit'),
 	description: z.string().trim().min(1).max(140).default('A polished interactive concept.'),
 	accent: z.string().trim().min(1).max(32).default('#3b82f6'),
-	background: z.string().trim().min(1).max(160).default('linear-gradient(135deg, #eff6ff, #eef2ff)'),
+	background: z
+		.string()
+		.trim()
+		.min(1)
+		.max(160)
+		.default('linear-gradient(135deg, #eff6ff, #eef2ff)'),
 	badges: z.array(z.string().trim().min(1).max(24)).max(5).default([]),
 	metrics: z.array(prototypeCardMetricSchema).max(4).default([]),
 });
@@ -278,15 +291,6 @@ const LEGACY_REACT_PROTOTYPE_INDEX_CODE =
 const DEFAULT_REACT_PROTOTYPE_INDEX_CODE =
 	"import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nimport App from './App';\n\nconst container = document.getElementById('root');\n\nif (container) {\n  const root = createRoot(container);\n  root.render(\n    <StrictMode>\n      <App />\n    </StrictMode>\n  );\n}\n";
 
-const BLANK_REACT_PROTOTYPE_INDEX_CODE =
-	"import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\n\nconst container = document.getElementById('root');\n\nfunction BlankPrototype() {\n  return <main />;\n}\n\nif (container) {\n  const root = createRoot(container);\n  root.render(\n    <StrictMode>\n      <BlankPrototype />\n    </StrictMode>\n  );\n}\n";
-
-const BLANK_VANILLA_PROTOTYPE_INDEX_CODE =
-	"const app = document.getElementById('app');\n\nif (app) {\n  app.innerHTML = '';\n}\n";
-
-const BLANK_PROTOTYPE_STYLES_CODE =
-	"html,\nbody,\n#root,\n#app {\n  min-height: 100%;\n}\n\nbody {\n  margin: 0;\n  background: transparent;\n}\n";
-
 const LEGACY_REACT_PROTOTYPE_RUNTIME_FILES = [
 	'/public/index.html',
 	'/index.html',
@@ -301,9 +305,7 @@ function normalizePrototypeSource(value?: string) {
 function isLegacyReactPrototypeEntryFile(
 	files: Record<string, z.infer<typeof prototypeOverlayFileSchema>>,
 ) {
-	const indexCode = normalizePrototypeSource(
-		files['/index.jsx']?.code ?? files['/index.js']?.code,
-	);
+	const indexCode = normalizePrototypeSource(files['/index.jsx']?.code ?? files['/index.js']?.code);
 	return (
 		indexCode === normalizePrototypeSource(LEGACY_REACT_PROTOTYPE_INDEX_CODE) ||
 		indexCode.includes('window.__prototypeStudioRoot')
@@ -347,52 +349,21 @@ function stripLegacyReactPrototypeRuntimeFiles(
 	return nextFiles;
 }
 
-function ensurePrototypeRuntimeEntryFile(
-	template: z.infer<typeof prototypeTemplateSchema>,
-	files: Record<string, z.infer<typeof prototypeOverlayFileSchema>>,
-) {
-	if (template === 'react') {
-		if (files['/index.jsx']) {
-			return files;
-		}
-
-		const hasAppFile = Boolean(files['/App.jsx'] || files['/App.js']);
-		return {
-			...files,
-			'/index.jsx': {
-				code: hasAppFile ? DEFAULT_REACT_PROTOTYPE_INDEX_CODE : BLANK_REACT_PROTOTYPE_INDEX_CODE,
-				hidden: true,
-			},
-		};
-	}
-
-	if (files['/index.js']) {
-		return files;
-	}
-
-	return {
-		...files,
-		'/index.js': {
-			code: BLANK_VANILLA_PROTOTYPE_INDEX_CODE,
-			hidden: true,
-		},
-	};
-}
-
 function isLegacyReactPrototypeStarter(
 	files: Record<string, z.infer<typeof prototypeOverlayFileSchema>>,
 ) {
-	const appCode = normalizePrototypeSource(
-		files['/App.jsx']?.code ?? files['/App.js']?.code,
-	);
+	const appCode = normalizePrototypeSource(files['/App.jsx']?.code ?? files['/App.js']?.code);
 	const stylesCode = normalizePrototypeSource(files['/styles.css']?.code);
 
-	if (appCode === LEGACY_REACT_PROTOTYPE_APP_CODE && stylesCode === LEGACY_REACT_PROTOTYPE_STYLES_CODE) {
+	if (
+		appCode === LEGACY_REACT_PROTOTYPE_APP_CODE &&
+		stylesCode === LEGACY_REACT_PROTOTYPE_STYLES_CODE
+	) {
 		return true;
 	}
 
 	return (
-		appCode.includes("const views = {") &&
+		appCode.includes('const views = {') &&
 		appCode.includes('dashboard-frame') &&
 		appCode.includes('sidebar-stack') &&
 		appCode.includes('summary-ring') &&
@@ -408,9 +379,7 @@ function isLegacyReactPrototypeStarter(
 function needsReactPrototypeScrollRepair(
 	files: Record<string, z.infer<typeof prototypeOverlayFileSchema>>,
 ) {
-	const appCode = normalizePrototypeSource(
-		files['/App.jsx']?.code ?? files['/App.js']?.code,
-	);
+	const appCode = normalizePrototypeSource(files['/App.jsx']?.code ?? files['/App.js']?.code);
 	const stylesCode = normalizePrototypeSource(files['/styles.css']?.code);
 
 	return (
@@ -428,19 +397,26 @@ function createDefaultPrototypeFiles(
 	if (template === 'vanilla') {
 		return {
 			'/index.js': {
-				code: "import './styles.css';\n\nconst app = document.getElementById('app');\n\nif (app) {\n  app.innerHTML = '';\n}\n",
+				code: "import './styles.css';\n\nconst app = document.getElementById('app');\n\nif (app) {\n  app.innerHTML = `\n    <main class=\"prototype-shell\">\n      <section class=\"card\">\n        <span class=\"eyebrow\">Prototype</span>\n        <h1>Interactive canvas concept</h1>\n        <p>Edit this project with AI or directly in the canvas.</p>\n        <button id=\"cta\" type=\"button\">Cycle theme</button>\n      </section>\n    </main>\n  `;\n\n  const themes = ['theme-peach', 'theme-mint', 'theme-sky'];\n  let index = 0;\n  const shell = app.querySelector('.prototype-shell');\n  const button = document.getElementById('cta');\n\n  button?.addEventListener('click', () => {\n    index = (index + 1) % themes.length;\n    shell?.setAttribute('data-theme', themes[index]);\n  });\n}\n",
 				active: true,
 			},
 			'/styles.css': {
-				code: BLANK_PROTOTYPE_STYLES_CODE,
+				code: ":root {\n  font-family: Inter, ui-sans-serif, system-ui, sans-serif;\n  color: #0f172a;\n  background: linear-gradient(135deg, #fff7ed, #fffbeb 45%, #ecfeff);\n}\n\n* {\n  box-sizing: border-box;\n}\n\nbody {\n  margin: 0;\n}\n\n.prototype-shell {\n  min-height: 100vh;\n  display: grid;\n  place-items: center;\n  padding: 24px;\n}\n\n.card {\n  width: min(100%, 420px);\n  border-radius: 24px;\n  padding: 24px;\n  background: rgba(255, 255, 255, 0.82);\n  border: 1px solid rgba(15, 23, 42, 0.08);\n  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);\n}\n\n.eyebrow {\n  display: inline-flex;\n  margin-bottom: 12px;\n  border-radius: 999px;\n  padding: 6px 10px;\n  background: rgba(15, 23, 42, 0.08);\n  font-size: 11px;\n  font-weight: 700;\n  letter-spacing: 0.16em;\n  text-transform: uppercase;\n}\n\nh1 {\n  margin: 0 0 12px;\n  font-size: 32px;\n  line-height: 1.05;\n}\n\np {\n  margin: 0 0 18px;\n  color: #475569;\n  line-height: 1.5;\n}\n\nbutton {\n  border: 0;\n  border-radius: 999px;\n  padding: 12px 18px;\n  background: #0f172a;\n  color: white;\n  font-weight: 700;\n  cursor: pointer;\n}\n\n.prototype-shell[data-theme='theme-mint'] {\n  background: linear-gradient(135deg, #ecfdf5, #f0fdf4 42%, #ecfeff);\n}\n\n.prototype-shell[data-theme='theme-sky'] {\n  background: linear-gradient(135deg, #eff6ff, #eef2ff 42%, #fdf2f8);\n}\n",
 			},
 		};
 	}
 
 	return {
 		'/index.jsx': {
-			code: BLANK_REACT_PROTOTYPE_INDEX_CODE,
+			code: DEFAULT_REACT_PROTOTYPE_INDEX_CODE,
 			hidden: true,
+		},
+		'/App.jsx': {
+			code: DEFAULT_REACT_PROTOTYPE_APP_CODE,
+			active: true,
+		},
+		'/styles.css': {
+			code: DEFAULT_REACT_PROTOTYPE_STYLES_CODE,
 		},
 	};
 }
@@ -449,14 +425,34 @@ function createDefaultPrototypePreview(
 	title: string,
 	template: z.infer<typeof prototypeTemplateSchema>,
 ): z.infer<typeof prototypeCardPreviewSchema> {
+	if (template === 'vanilla') {
+		return {
+			eyebrow: 'Interaction Study',
+			title,
+			description: 'A quick single-page prototype with theme states and a clean CTA flow.',
+			accent: '#0f766e',
+			background: 'linear-gradient(135deg, #ecfeff, #ccfbf1 42%, #f0fdfa)',
+			badges: ['Vanilla JS', 'Fast', 'Theme toggle'],
+			metrics: [
+				{ label: 'States', value: '03' },
+				{ label: 'Surface', value: '1 page' },
+				{ label: 'Speed', value: 'Instant' },
+			],
+		};
+	}
+
 	return {
-		eyebrow: template === 'vanilla' ? 'Vanilla Prototype' : 'React Prototype',
+		eyebrow: 'PulseBoard',
 		title,
-		description: 'An empty prototype surface ready for generated files.',
-		accent: '#64748b',
-		background: 'linear-gradient(135deg, #f8fafc, #eef2f7)',
-		badges: [],
-		metrics: [],
+		description: 'A product command center with launch metrics, priorities, and executive status.',
+		accent: '#2563eb',
+		background: 'linear-gradient(135deg, #eff6ff, #dbeafe 38%, #fef3c7)',
+		badges: ['React', 'Dashboard', 'Launch ops'],
+		metrics: [
+			{ label: 'Revenue', value: '$128k' },
+			{ label: 'Conv.', value: '8.2%' },
+			{ label: 'Blockers', value: '03' },
+		],
 	};
 }
 
@@ -542,7 +538,8 @@ export function summarizeKanbanOverlay(
 			const priority = card.priority ?? 'medium';
 			priorityCounts[priority] += 1;
 
-			const hasDescription = typeof card.description === 'string' && card.description.trim().length > 0;
+			const hasDescription =
+				typeof card.description === 'string' && card.description.trim().length > 0;
 			if (hasDescription) {
 				cardsWithDescriptions += 1;
 			}
@@ -553,7 +550,9 @@ export function summarizeKanbanOverlay(
 			totalChecklistItemCount += checklist.length;
 
 			const labels = Array.isArray(card.labels)
-				? card.labels.filter((label): label is string => typeof label === 'string' && label.trim().length > 0)
+				? card.labels.filter(
+						(label): label is string => typeof label === 'string' && label.trim().length > 0,
+					)
 				: [];
 			for (const label of labels) {
 				labelSet.add(label);
@@ -617,35 +616,29 @@ export function normalizePrototypeOverlay(
 		...(input ?? {}),
 	});
 	const defaultFiles = createDefaultPrototypeFiles(parsed.template);
-	const hasProvidedFiles = Object.keys(parsed.files).length > 0;
 	const nextFiles =
-		hasProvidedFiles
+		Object.keys(parsed.files).length > 0
 			? {
+					...defaultFiles,
 					...parsed.files,
 				}
 			: defaultFiles;
 	const extensionRepairedFiles =
-		parsed.template === 'react'
-			? repairReactPrototypeSourceFileExtensions(nextFiles)
-			: nextFiles;
-	const runtimeEntryReadyFiles = ensurePrototypeRuntimeEntryFile(
-		parsed.template,
-		extensionRepairedFiles,
-	);
+		parsed.template === 'react' ? repairReactPrototypeSourceFileExtensions(nextFiles) : nextFiles;
 	const migratedFiles =
-		parsed.template === 'react' && isLegacyReactPrototypeStarter(runtimeEntryReadyFiles)
+		parsed.template === 'react' && isLegacyReactPrototypeStarter(extensionRepairedFiles)
 			? {
-					...runtimeEntryReadyFiles,
+					...extensionRepairedFiles,
 					'/App.jsx': {
-						...runtimeEntryReadyFiles['/App.jsx'],
+						...extensionRepairedFiles['/App.jsx'],
 						code: DEFAULT_REACT_PROTOTYPE_APP_CODE,
 					},
 					'/styles.css': {
-						...runtimeEntryReadyFiles['/styles.css'],
+						...extensionRepairedFiles['/styles.css'],
 						code: DEFAULT_REACT_PROTOTYPE_STYLES_CODE,
 					},
 				}
-			: runtimeEntryReadyFiles;
+			: extensionRepairedFiles;
 	const repairedFiles =
 		parsed.template === 'react' && isLegacyReactPrototypeEntryFile(migratedFiles)
 			? {
@@ -677,16 +670,12 @@ export function normalizePrototypeOverlay(
 			: parsed.activeFile === '/index.js'
 				? '/index.jsx'
 				: parsed.activeFile;
-	const firstVisibleFile = Object.entries(runtimeReadyFiles).find(([, file]) => file.hidden !== true)?.[0];
-	const runtimeEntryPath = parsed.template === 'react' ? '/index.jsx' : '/index.js';
 	const activeFile =
 		normalizedActiveFile && runtimeReadyFiles[normalizedActiveFile]
 			? normalizedActiveFile
-			: Object.entries(runtimeReadyFiles).find(([, file]) => file.active)?.[0]
-				?? firstVisibleFile
-				?? (runtimeReadyFiles[runtimeEntryPath] ? runtimeEntryPath : undefined)
-				?? Object.keys(runtimeReadyFiles)[0]
-				?? (parsed.template === 'react' ? '/App.jsx' : '/index.js');
+			: (Object.entries(runtimeReadyFiles).find(([, file]) => file.active)?.[0] ??
+				Object.keys(runtimeReadyFiles)[0] ??
+				'/App.jsx');
 
 	return {
 		...parsed,

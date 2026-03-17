@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { compressImageDataUrl } from '@/lib/image-compression';
+import { captureBrowserException } from '@/lib/observability';
+import { $isAutoLinkNode, $isLinkNode, type LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $findMatchingParent, $wrapNodeInElement, mergeRegister } from '@lexical/utils';
 import {
@@ -15,17 +17,15 @@ import {
 	DRAGOVER_COMMAND,
 	DRAGSTART_COMMAND,
 	DROP_COMMAND,
-	createCommand,
-	getDOMSelectionFromTarget,
-	isHTMLElement,
 	type LexicalCommand,
 	type LexicalEditor,
 	type LexicalNode,
+	createCommand,
+	getDOMSelectionFromTarget,
+	isHTMLElement,
 } from 'lexical';
-import { $isAutoLinkNode, $isLinkNode, LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
+import { useEffect } from 'react';
 import { $createImageNode, $isImageNode, ImageNode, type ImagePayload } from '../nodes/ImageNode';
-import { compressImageDataUrl } from '@/lib/image-compression';
-import { captureBrowserException } from '@/lib/observability';
 
 export const INSERT_IMAGE_COMMAND: LexicalCommand<ImagePayload> =
 	createCommand('INSERT_IMAGE_COMMAND');

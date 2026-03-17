@@ -12,12 +12,15 @@ function isValidFractionalIndex(idx: string): boolean {
 
 export function normalizeSceneElement<T extends ExcalidrawElement>(element: T): T {
 	const rawIndex =
-		'index' in element && typeof (element as ExcalidrawElement & { index?: string }).index === 'string'
+		'index' in element &&
+		typeof (element as ExcalidrawElement & { index?: string }).index === 'string'
 			? (element as ExcalidrawElement & { index?: string }).index!
 			: null;
 	return {
 		...element,
-		index: (rawIndex && isValidFractionalIndex(rawIndex) ? rawIndex : 'a0') as ExcalidrawElement['index'],
+		index: (rawIndex && isValidFractionalIndex(rawIndex)
+			? rawIndex
+			: 'a0') as ExcalidrawElement['index'],
 		angle: typeof element.angle === 'number' ? element.angle : 0,
 		strokeColor: element.strokeColor ?? '#000000',
 		backgroundColor: element.backgroundColor ?? '#ffffff',
@@ -42,7 +45,8 @@ export function normalizeSceneElement<T extends ExcalidrawElement>(element: T): 
 				? ((element as ExcalidrawElement & { boundElements?: unknown }).boundElements ?? null)
 				: null,
 		updated:
-			'updated' in element && typeof (element as ExcalidrawElement & { updated?: number }).updated === 'number'
+			'updated' in element &&
+			typeof (element as ExcalidrawElement & { updated?: number }).updated === 'number'
 				? (element as ExcalidrawElement & { updated?: number }).updated!
 				: Date.now(),
 		link:
@@ -57,12 +61,15 @@ export function normalizeSceneElement<T extends ExcalidrawElement>(element: T): 
 				: Math.floor(Math.random() * 2 ** 31),
 		isDeleted: Boolean((element as ExcalidrawElement & { isDeleted?: boolean }).isDeleted),
 		seed:
-			'seed' in element && typeof (element as ExcalidrawElement & { seed?: number }).seed === 'number'
+			'seed' in element &&
+			typeof (element as ExcalidrawElement & { seed?: number }).seed === 'number'
 				? (element as ExcalidrawElement & { seed?: number }).seed!
 				: Math.floor(Math.random() * 100000),
 	} as T;
 }
 
-export function normalizeSceneElements(elements: readonly ExcalidrawElement[]): ExcalidrawElement[] {
+export function normalizeSceneElements(
+	elements: readonly ExcalidrawElement[],
+): ExcalidrawElement[] {
 	return elements.map((element) => normalizeSceneElement(element));
 }

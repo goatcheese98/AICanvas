@@ -51,8 +51,7 @@ const BLOCKED_SITES = [
 	},
 	{
 		domain: 'youtube.com',
-		message:
-			"YouTube homepages can't be previewed here. Try pasting a specific video URL instead.",
+		message: "YouTube homepages can't be previewed here. Try pasting a specific video URL instead.",
 	},
 	{
 		domain: 'facebook.com',
@@ -60,11 +59,13 @@ const BLOCKED_SITES = [
 	},
 	{
 		domain: 'twitter.com',
-		message: "X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
+		message:
+			"X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
 	},
 	{
 		domain: 'x.com',
-		message: "X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
+		message:
+			"X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
 	},
 	{
 		domain: 'instagram.com',
@@ -73,8 +74,7 @@ const BLOCKED_SITES = [
 	},
 	{
 		domain: 'linkedin.com',
-		message:
-			"LinkedIn doesn't allow its pages to be previewed here. Open it in a new tab instead.",
+		message: "LinkedIn doesn't allow its pages to be previewed here. Open it in a new tab instead.",
 	},
 	{
 		domain: 'reddit.com',

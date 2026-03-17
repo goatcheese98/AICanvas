@@ -137,7 +137,9 @@ function ToggleRow({
 		>
 			<div>
 				<div className="text-sm font-semibold text-[var(--color-text-primary)]">{label}</div>
-				<div className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">{description}</div>
+				<div className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+					{description}
+				</div>
 			</div>
 			<div
 				aria-hidden="true"
@@ -170,7 +172,9 @@ function MenuAction({
 		>
 			<div>
 				<div className="text-sm font-semibold text-[var(--color-text-primary)]">{label}</div>
-				<div className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">{description}</div>
+				<div className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
+					{description}
+				</div>
 			</div>
 			<div className="mt-0.5 shrink-0">
 				<ChevronRightIcon />
@@ -332,7 +336,11 @@ export function DashboardProfileMenu({
 								<div className="flex items-start justify-between gap-3 rounded-[14px] bg-[var(--color-accent-bg)]/60 px-4 py-4">
 									<div className="flex min-w-0 items-center gap-3">
 										{imageUrl ? (
-											<img src={imageUrl} alt="" className="h-12 w-12 rounded-[12px] object-cover" />
+											<img
+												src={imageUrl}
+												alt=""
+												className="h-12 w-12 rounded-[12px] object-cover"
+											/>
 										) : (
 											<div className="flex h-12 w-12 items-center justify-center rounded-[12px] bg-white text-sm font-semibold uppercase tracking-[0.16em] text-[var(--color-accent-text)]">
 												{initials}
@@ -342,7 +350,9 @@ export function DashboardProfileMenu({
 											<div className="truncate text-base font-semibold text-[var(--color-text-primary)]">
 												{displayName}
 											</div>
-											<div className="truncate text-sm text-[var(--color-text-secondary)]">{email}</div>
+											<div className="truncate text-sm text-[var(--color-text-secondary)]">
+												{email}
+											</div>
 										</div>
 									</div>
 
@@ -391,7 +401,9 @@ export function DashboardProfileMenu({
 									className="flex w-full items-start rounded-[12px] px-3 py-3 text-left transition hover:bg-[var(--color-danger-bg)]"
 								>
 									<div>
-										<div className="text-sm font-semibold text-[var(--color-danger-text)]">Sign out</div>
+										<div className="text-sm font-semibold text-[var(--color-danger-text)]">
+											Sign out
+										</div>
 										<div className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
 											End this session and return to the sign-in screen.
 										</div>
@@ -451,7 +463,8 @@ export function DashboardProfileMenu({
 										>
 											<div className="text-sm font-semibold">Public by default</div>
 											<div className="mt-1 text-xs leading-5 text-[var(--color-text-secondary)]">
-												Useful if your canvases are mostly for demos, reviews, or open collaboration.
+												Useful if your canvases are mostly for demos, reviews, or open
+												collaboration.
 											</div>
 										</button>
 									</div>

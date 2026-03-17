@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
 import type { AssistantMessage } from '@ai-canvas/shared/types';
+import { describe, expect, it } from 'vitest';
 import {
 	buildArtifactKey,
 	getLatestPendingPatchArtifacts,
@@ -10,13 +10,9 @@ import {
 
 describe('ai chat helpers', () => {
 	it('builds stable artifact keys', () => {
-		expect(
-			buildArtifactKey(
-				'message-1',
-				{ type: 'markdown', content: '# Hello' },
-				2,
-			),
-		).toBe('message-1-markdown-2');
+		expect(buildArtifactKey('message-1', { type: 'markdown', content: '# Hello' }, 2)).toBe(
+			'message-1-markdown-2',
+		);
 	});
 
 	it('finds the latest pending patch artifacts only', () => {
@@ -32,8 +28,20 @@ describe('ai chat helpers', () => {
 						content: JSON.stringify({
 							summary: 'Patch one',
 							targetId: 'note-1',
-							base: { title: 'Old', content: 'before', images: [], settings: {}, editorMode: 'split' },
-							next: { title: 'New', content: 'after', images: [], settings: {}, editorMode: 'split' },
+							base: {
+								title: 'Old',
+								content: 'before',
+								images: [],
+								settings: {},
+								editorMode: 'split',
+							},
+							next: {
+								title: 'New',
+								content: 'after',
+								images: [],
+								settings: {},
+								editorMode: 'split',
+							},
 						}),
 					},
 				],

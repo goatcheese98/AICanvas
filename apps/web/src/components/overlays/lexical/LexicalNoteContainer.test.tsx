@@ -1,13 +1,11 @@
+import { useAppStore } from '@/stores/store';
+import type { NewLexCommentThread, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import { cleanup, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { NewLexCommentThread, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
-import { useAppStore } from '@/stores/store';
 import { LexicalNoteContainer } from './LexicalNoteContainer';
 import type { LexicalNoteProps } from './lexical-note-types';
 
-function createCommentThread(
-	overrides?: Partial<NewLexCommentThread>,
-): NewLexCommentThread {
+function createCommentThread(overrides?: Partial<NewLexCommentThread>): NewLexCommentThread {
 	return {
 		id: 'thread-1',
 		author: 'You',
@@ -83,9 +81,7 @@ afterEach(() => {
 
 describe('LexicalNoteContainer', () => {
 	it('hides the comments toggle when there are no comment threads yet', () => {
-		render(
-			<LexicalNoteContainer element={createElement()} isSelected onChange={vi.fn()} />,
-		);
+		render(<LexicalNoteContainer element={createElement()} isSelected onChange={vi.fn()} />);
 
 		expect(screen.queryByRole('button', { name: '0 comments' })).toBeNull();
 	});

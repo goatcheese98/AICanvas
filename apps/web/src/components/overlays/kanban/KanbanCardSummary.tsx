@@ -1,5 +1,6 @@
-import type { FormEvent, MouseEvent } from 'react';
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
+import type { FormEvent, MouseEvent } from 'react';
+import { getLabelTone } from './kanban-card-helpers';
 import {
 	KANBAN_ACCENT_BORDER,
 	KANBAN_ACCENT_SURFACE,
@@ -7,7 +8,6 @@ import {
 	formatDueDate,
 	isKanbanCardOverdue,
 } from './kanban-theme';
-import { getLabelTone } from './kanban-card-helpers';
 
 const PRIORITY_META = {
 	low: {
@@ -379,7 +379,8 @@ export function KanbanCardSummary({
 						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
 							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',
@@ -408,7 +409,8 @@ export function KanbanCardSummary({
 						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
 							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
 							backgroundImage: 'var(--kanban-sketch-control-texture)',
 							color: 'var(--color-text-tertiary)',

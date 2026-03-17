@@ -1,5 +1,5 @@
-import { AutoLinkPlugin as LexicalAutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 import { createLinkMatcherWithRegExp } from '@lexical/link';
+import { AutoLinkPlugin as LexicalAutoLinkPlugin } from '@lexical/react/LexicalAutoLinkPlugin';
 
 const URL_REGEX = /https?:\/\/[^\s]+/i;
 const WWW_URL_REGEX = /www\.[^\s]+/i;

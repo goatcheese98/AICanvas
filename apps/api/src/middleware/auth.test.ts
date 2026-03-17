@@ -1,19 +1,15 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Hono } from 'hono';
 import type { User } from '@clerk/backend';
+import { Hono } from 'hono';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { requireAuth } from './auth';
 
-const {
-	verifyTokenMock,
-	getUserMock,
-	syncAuthenticatedUserMock,
-	applySentryUserContextMock,
-} = vi.hoisted(() => ({
-	verifyTokenMock: vi.fn(),
-	getUserMock: vi.fn(),
-	syncAuthenticatedUserMock: vi.fn(),
-	applySentryUserContextMock: vi.fn(),
-}));
+const { verifyTokenMock, getUserMock, syncAuthenticatedUserMock, applySentryUserContextMock } =
+	vi.hoisted(() => ({
+		verifyTokenMock: vi.fn(),
+		getUserMock: vi.fn(),
+		syncAuthenticatedUserMock: vi.fn(),
+		applySentryUserContextMock: vi.fn(),
+	}));
 
 vi.mock('@clerk/backend', () => ({
 	createClerkClient: () => ({
@@ -60,9 +56,7 @@ const clerkUser = {
 } as unknown as User;
 
 function createTestApp() {
-	return new Hono()
-		.use('*', requireAuth)
-		.get('/protected', (c) => c.json({ user: c.get('user') }));
+	return new Hono().use('*', requireAuth).get('/protected', (c) => c.json({ user: c.get('user') }));
 }
 
 describe('requireAuth', () => {

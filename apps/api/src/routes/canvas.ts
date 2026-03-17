@@ -1,19 +1,19 @@
-import { Hono } from 'hono';
-import { zValidator } from '@hono/zod-validator';
-import { eq, desc, and, like } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import { canvasSchemas, getCanvasTitleKey } from '@ai-canvas/shared/schemas';
-import { requireAuth } from '../middleware/auth';
+import { zValidator } from '@hono/zod-validator';
+import { and, desc, eq, like } from 'drizzle-orm';
+import { Hono } from 'hono';
+import { nanoid } from 'nanoid';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
-import {
-	saveCanvasToR2,
-	loadCanvasFromR2,
-	saveThumbnailToR2,
-	loadThumbnailFromR2,
-	deleteCanvasFromR2,
-} from '../lib/storage/canvas-storage';
 import { logApiEvent } from '../lib/observability';
+import {
+	deleteCanvasFromR2,
+	loadCanvasFromR2,
+	loadThumbnailFromR2,
+	saveCanvasToR2,
+	saveThumbnailToR2,
+} from '../lib/storage/canvas-storage';
+import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
 
 const canvasSelect = {
@@ -29,7 +29,9 @@ const canvasSelect = {
 	updatedAt: canvases.updatedAt,
 } as const;
 
-function withVersionedThumbnailUrl<T extends { thumbnailUrl: string | null; updatedAt: Date }>(canvas: T) {
+function withVersionedThumbnailUrl<T extends { thumbnailUrl: string | null; updatedAt: Date }>(
+	canvas: T,
+) {
 	return {
 		...canvas,
 		thumbnailUrl: canvas.thumbnailUrl
@@ -150,7 +152,10 @@ export const canvasRoutes = new Hono<AppEnv>()
 		const thumbnailUrl = `/api/canvas/${id}/thumbnail`;
 		// Also update updatedAt so the versioned thumbnail URL (?v=<timestamp>) changes,
 		// which busts the CanvasPreviewThumbnail React Query cache on the dashboard.
-		await db.update(canvases).set({ thumbnailUrl, updatedAt: new Date() }).where(eq(canvases.id, id));
+		await db
+			.update(canvases)
+			.set({ thumbnailUrl, updatedAt: new Date() })
+			.where(eq(canvases.id, id));
 
 		return c.json({ thumbnailUrl });
 	})
@@ -212,10 +217,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 
 		if (nextNormalizedTitle !== canvas.normalizedTitle) {
 			const duplicate = await db.query.canvases.findFirst({
-				where: and(
-					eq(canvases.userId, user.id),
-					eq(canvases.normalizedTitle, nextNormalizedTitle),
-				),
+				where: and(eq(canvases.userId, user.id), eq(canvases.normalizedTitle, nextNormalizedTitle)),
 				columns: { id: true },
 			});
 
@@ -310,10 +312,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 
 		if (!canvas) return c.json({ error: 'Not found' }, 404);
 
-		await db
-			.update(canvases)
-			.set({ isFavorite: !canvas.isFavorite })
-			.where(eq(canvases.id, id));
+		await db.update(canvases).set({ isFavorite: !canvas.isFavorite }).where(eq(canvases.id, id));
 
 		return c.json({ isFavorite: !canvas.isFavorite });
 	});

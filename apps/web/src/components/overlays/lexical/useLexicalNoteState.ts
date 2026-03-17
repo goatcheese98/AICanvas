@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NewLexCommentThread } from '@ai-canvas/shared/types';
-import { useBufferedDocument } from './useBufferedDocument';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	CONTENT_COMMIT_DEBOUNCE_MS,
 	DEFAULT_NEWLEX_CONTENT,
@@ -17,6 +16,7 @@ import type {
 	ReplyDraftByThread,
 	UpdateThreadFn,
 } from './lexical-note-types';
+import { useBufferedDocument } from './useBufferedDocument';
 
 interface UseLexicalNoteStateArgs extends LexicalNoteProps {}
 
@@ -31,8 +31,12 @@ export function useLexicalNoteState({
 	const [isEditing, setIsEditing] = useState(false);
 	const [title, setTitle] = useState(incomingTitle);
 	const [titleNotice, setTitleNotice] = useState(false);
-	const [comments, setComments] = useState<NewLexCommentThread[]>(element.customData.comments ?? []);
-	const [commentsPanelOpen, setCommentsPanelOpen] = useState(Boolean(element.customData.commentsPanelOpen));
+	const [comments, setComments] = useState<NewLexCommentThread[]>(
+		element.customData.comments ?? [],
+	);
+	const [commentsPanelOpen, setCommentsPanelOpen] = useState(
+		Boolean(element.customData.commentsPanelOpen),
+	);
 	const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
 	const [replyDraftByThread, setReplyDraftByThread] = useState<ReplyDraftByThread>({});
 	const [showCommentComposer, setShowCommentComposer] = useState(false);
@@ -47,19 +51,14 @@ export function useLexicalNoteState({
 	const lastCommittedTitleRef = useRef(incomingTitle);
 	const [debugEnabled] = useState(() => shouldShowLexicalDebugPanel());
 
-	const {
-		editorInitialValue,
-		editorInstanceKey,
-		scheduleLocalChange,
-		flush,
-		debugState,
-	} = useBufferedDocument({
-		remoteValue: incomingLexicalState,
-		isEditing,
-		debounceMs: CONTENT_COMMIT_DEBOUNCE_MS,
-		onCommit: (lexicalState) => onChange(element.id, { lexicalState }),
-		enableDebugMetrics: debugEnabled,
-	});
+	const { editorInitialValue, editorInstanceKey, scheduleLocalChange, flush, debugState } =
+		useBufferedDocument({
+			remoteValue: incomingLexicalState,
+			isEditing,
+			debounceMs: CONTENT_COMMIT_DEBOUNCE_MS,
+			onCommit: (lexicalState) => onChange(element.id, { lexicalState }),
+			enableDebugMetrics: debugEnabled,
+		});
 
 	useEffect(() => {
 		onEditingChangeRef.current = onEditingChange;
@@ -77,7 +76,9 @@ export function useLexicalNoteState({
 		const nextSignature = serializeComments(nextComments);
 		if (nextSignature === externalCommentsRef.current) return;
 		externalCommentsRef.current = nextSignature;
-		setComments((current) => (serializeComments(current) === nextSignature ? current : nextComments));
+		setComments((current) =>
+			serializeComments(current) === nextSignature ? current : nextComments,
+		);
 	}, [element.customData.comments]);
 
 	useEffect(() => {
@@ -129,14 +130,11 @@ export function useLexicalNoteState({
 	}, [element.id, onChange, title]);
 
 	const persistComments = useCallback(
-		(
-			nextComments: NewLexCommentThread[],
-			options?: PersistCommentsOptions,
-		) => {
+		(nextComments: NewLexCommentThread[], options?: PersistCommentsOptions) => {
 			const nextOpen = options?.nextOpen ?? commentsPanelOpen;
 			const nextSelectedCommentId =
 				options && 'nextSelectedCommentId' in options
-					? options.nextSelectedCommentId ?? null
+					? (options.nextSelectedCommentId ?? null)
 					: selectedCommentId;
 
 			setComments(nextComments);
@@ -149,7 +147,9 @@ export function useLexicalNoteState({
 	);
 
 	const handleRequestComment = useCallback((selectedText: string) => {
-		setPendingAnchorText(selectedText.length > 100 ? `${selectedText.slice(0, 99)}...` : selectedText);
+		setPendingAnchorText(
+			selectedText.length > 100 ? `${selectedText.slice(0, 99)}...` : selectedText,
+		);
 		setCommentDraft('');
 		setShowCommentComposer(true);
 	}, []);

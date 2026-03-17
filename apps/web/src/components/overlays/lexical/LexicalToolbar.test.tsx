@@ -59,11 +59,13 @@ vi.mock('@lexical/link', () => ({
 
 vi.mock('@lexical/utils', () => ({
 	$getNearestNodeOfType: vi.fn(() => null),
-	mergeRegister: (...cleanups: Array<() => void>) => () => {
-		for (const cleanup of cleanups) {
-			cleanup();
-		}
-	},
+	mergeRegister:
+		(...cleanups: Array<() => void>) =>
+		() => {
+			for (const cleanup of cleanups) {
+				cleanup();
+			}
+		},
 }));
 
 vi.mock('@lexical/table', () => ({

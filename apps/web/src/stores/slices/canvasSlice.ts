@@ -1,7 +1,7 @@
-import type { StateCreator } from 'zustand';
-import type { ExcalidrawImperativeAPI, AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { PersistenceState } from '@/lib/persistence/CanvasPersistenceCoordinator';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { StateCreator } from 'zustand';
 import type { AppStore } from '../store';
 
 export interface CanvasSlice {

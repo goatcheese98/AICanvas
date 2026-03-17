@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	buildPersistedCanvasData,
-	shouldWaitForCanvasHydration,
-} from './canvas-persistence-utils';
+import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
 
 describe('buildPersistedCanvasData', () => {
 	it('drops volatile app state fields before persistence', () => {

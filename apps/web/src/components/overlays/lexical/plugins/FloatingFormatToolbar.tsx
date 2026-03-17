@@ -1,9 +1,9 @@
+import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
+import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND } from 'lexical';
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
-import { $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
 
 const TOOLBAR_HEIGHT = 34;
 const OFFSET_Y = 8;
@@ -22,7 +22,16 @@ function computePosition(rect: DOMRect, toolbarWidth: number) {
 
 function LinkIcon() {
 	return (
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+		<svg
+			width="13"
+			height="13"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2.2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
 			<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
 			<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
 		</svg>
@@ -97,7 +106,12 @@ export default function FloatingFormatToolbar() {
 	useEffect(() => {
 		const onSelectionChange = () => {
 			const domSelection = window.getSelection();
-			if (!domSelection || domSelection.isCollapsed || domSelection.rangeCount === 0 || domSelection.toString().trim() === '') {
+			if (
+				!domSelection ||
+				domSelection.isCollapsed ||
+				domSelection.rangeCount === 0 ||
+				domSelection.toString().trim() === ''
+			) {
 				if (toolbarRef.current) toolbarRef.current.style.visibility = 'hidden';
 				isVisibleRef.current = false;
 				setShowColors(false);
@@ -110,7 +124,11 @@ export default function FloatingFormatToolbar() {
 
 	const syncState = useCallback(() => {
 		const selection = $getSelection();
-		if (!$isRangeSelection(selection) || selection.isCollapsed() || selection.getTextContent().length === 0) {
+		if (
+			!$isRangeSelection(selection) ||
+			selection.isCollapsed() ||
+			selection.getTextContent().length === 0
+		) {
 			if (toolbarRef.current) toolbarRef.current.style.visibility = 'hidden';
 			isVisibleRef.current = false;
 			setShowColors(false);
@@ -142,9 +160,13 @@ export default function FloatingFormatToolbar() {
 		isVisibleRef.current = true;
 	}, []);
 
-	useEffect(() => editor.registerUpdateListener(({ editorState }) => {
-		editorState.read(() => syncState());
-	}), [editor, syncState]);
+	useEffect(
+		() =>
+			editor.registerUpdateListener(({ editorState }) => {
+				editorState.read(() => syncState());
+			}),
+		[editor, syncState],
+	);
 
 	const applyTextTransform = useCallback(
 		(transform: 'uppercase' | 'lowercase' | 'capitalize') => {
@@ -228,40 +250,101 @@ export default function FloatingFormatToolbar() {
 				}}
 				onMouseDown={(event) => event.preventDefault()}
 			>
-				<button type="button" style={{ ...buttonStyle(isBold), fontFamily: 'Georgia, serif', fontWeight: 700, fontSize: 14 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')} title="Bold">
+				<button
+					type="button"
+					style={{
+						...buttonStyle(isBold),
+						fontFamily: 'Georgia, serif',
+						fontWeight: 700,
+						fontSize: 14,
+					}}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
+					title="Bold"
+				>
 					B
 				</button>
-				<button type="button" style={{ ...buttonStyle(isItalic), fontStyle: 'italic', fontFamily: 'Georgia, serif', fontSize: 14 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')} title="Italic">
+				<button
+					type="button"
+					style={{
+						...buttonStyle(isItalic),
+						fontStyle: 'italic',
+						fontFamily: 'Georgia, serif',
+						fontSize: 14,
+					}}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic')}
+					title="Italic"
+				>
 					I
 				</button>
-				<button type="button" style={{ ...buttonStyle(isUnderline), textDecoration: 'underline', fontSize: 13 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')} title="Underline">
+				<button
+					type="button"
+					style={{ ...buttonStyle(isUnderline), textDecoration: 'underline', fontSize: 13 }}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline')}
+					title="Underline"
+				>
 					U
 				</button>
-				<button type="button" style={{ ...buttonStyle(isStrikethrough), textDecoration: 'line-through', fontSize: 13 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')} title="Strikethrough">
+				<button
+					type="button"
+					style={{ ...buttonStyle(isStrikethrough), textDecoration: 'line-through', fontSize: 13 }}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
+					title="Strikethrough"
+				>
 					S
 				</button>
 				<div style={separatorStyle} />
-				<button type="button" style={{ ...buttonStyle(isSuperscript), fontSize: 11 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'superscript')} title="Superscript">
+				<button
+					type="button"
+					style={{ ...buttonStyle(isSuperscript), fontSize: 11 }}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'superscript')}
+					title="Superscript"
+				>
 					x<sup style={{ fontSize: 8 }}>2</sup>
 				</button>
-				<button type="button" style={{ ...buttonStyle(isSubscript), fontSize: 11 }} onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'subscript')} title="Subscript">
+				<button
+					type="button"
+					style={{ ...buttonStyle(isSubscript), fontSize: 11 }}
+					onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'subscript')}
+					title="Subscript"
+				>
 					x<sub style={{ fontSize: 8 }}>2</sub>
 				</button>
 				<div style={separatorStyle} />
-				<button type="button" style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }} onClick={() => applyTextTransform('uppercase')} title="Uppercase">
+				<button
+					type="button"
+					style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }}
+					onClick={() => applyTextTransform('uppercase')}
+					title="Uppercase"
+				>
 					AA
 				</button>
-				<button type="button" style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }} onClick={() => applyTextTransform('lowercase')} title="Lowercase">
+				<button
+					type="button"
+					style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }}
+					onClick={() => applyTextTransform('lowercase')}
+					title="Lowercase"
+				>
 					aa
 				</button>
-				<button type="button" style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }} onClick={() => applyTextTransform('capitalize')} title="Capitalize">
+				<button
+					type="button"
+					style={{ ...buttonStyle(false), fontSize: 11, minWidth: 26 }}
+					onClick={() => applyTextTransform('capitalize')}
+					title="Capitalize"
+				>
 					Aa
 				</button>
 				<div style={separatorStyle} />
 				<button
 					ref={colorButtonRef}
 					type="button"
-					style={{ ...buttonStyle(showColors), flexDirection: 'column', gap: 2, padding: '3px 5px', height: 28 }}
+					style={{
+						...buttonStyle(showColors),
+						flexDirection: 'column',
+						gap: 2,
+						padding: '3px 5px',
+						height: 28,
+					}}
 					onClick={() => {
 						if (!colorButtonRef.current) return;
 						const rect = colorButtonRef.current.getBoundingClientRect();
@@ -270,11 +353,20 @@ export default function FloatingFormatToolbar() {
 					}}
 					title="Text color"
 				>
-					<span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1, fontFamily: 'serif' }}>A</span>
-					<span style={{ width: 14, height: 2.5, background: textColor || '#000', borderRadius: 1 }} />
+					<span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1, fontFamily: 'serif' }}>
+						A
+					</span>
+					<span
+						style={{ width: 14, height: 2.5, background: textColor || '#000', borderRadius: 1 }}
+					/>
 				</button>
 				<div style={separatorStyle} />
-				<button type="button" style={buttonStyle(isLink)} onClick={handleLinkToggle} title="Toggle link">
+				<button
+					type="button"
+					style={buttonStyle(isLink)}
+					onClick={handleLinkToggle}
+					title="Toggle link"
+				>
 					<LinkIcon />
 				</button>
 			</div>

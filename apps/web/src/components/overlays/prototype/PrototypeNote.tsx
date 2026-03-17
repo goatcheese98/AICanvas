@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { OverlaySurface } from '@/components/overlays/overlay-surface';
+import { Route as CanvasRoute } from '@/routes/_app/canvas.$id';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { Route as CanvasRoute } from '@/routes/_app/canvas.$id';
-import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { getPrototypeStudioPath } from './prototype-utils';
+import { useMemo } from 'react';
 import { usePrototypePreview } from './prototype-preview-runtime';
+import { getPrototypeStudioPath } from './prototype-utils';
 
 type PrototypeElement = ExcalidrawElement & {
 	customData: PrototypeOverlayCustomData;
@@ -36,13 +36,22 @@ function getPreviewStatusLabel(status: 'idle' | 'compiling' | 'running' | 'ready
 
 export function PrototypeNote({ element, isSelected }: PrototypeNoteProps) {
 	const { id: canvasId } = CanvasRoute.useParams();
-	const prototype = useMemo(() => normalizePrototypeOverlay(element.customData), [element.customData]);
-	const visibleFiles = Object.keys(prototype.files).filter((path) => !prototype.files[path]?.hidden);
+	const prototype = useMemo(
+		() => normalizePrototypeOverlay(element.customData),
+		[element.customData],
+	);
+	const visibleFiles = Object.keys(prototype.files).filter(
+		(path) => !prototype.files[path]?.hidden,
+	);
 	const studioPath = getPrototypeStudioPath(canvasId, element.id);
 	const preview = usePrototypePreview(prototype);
 
 	return (
-		<OverlaySurface element={element} isSelected={isSelected} className="flex h-full flex-col bg-[#f7f7f4]">
+		<OverlaySurface
+			element={element}
+			isSelected={isSelected}
+			className="flex h-full flex-col bg-[#f7f7f4]"
+		>
 			<div className="flex h-full min-h-0 flex-col">
 				<div className="flex items-center justify-between gap-3 border-b border-stone-200 bg-white/90 px-4 py-3">
 					<div className="min-w-0">

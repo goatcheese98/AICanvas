@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAppStore } from '@/stores/store';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
 
 describe('updateSceneAndSyncAppStore', () => {

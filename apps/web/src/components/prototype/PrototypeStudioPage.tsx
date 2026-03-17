@@ -1,20 +1,16 @@
-import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useBlocker, useNavigate } from '@tanstack/react-router';
-import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
-import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
-import { captureBrowserException } from '@/lib/observability';
-import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
-import {
-	getPrototypeStudioStatusCopy,
-	shouldSyncPrototypeStudioDraft,
-} from './prototype-studio-utils';
+import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { captureBrowserException } from '@/lib/observability';
+import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
+import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { useEffect, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
@@ -27,9 +23,6 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	const queryClient = useQueryClient();
 	const [draft, setDraft] = useState<PrototypeOverlayCustomData | null>(null);
 	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
-	const [persistedSignature, setPersistedSignature] = useState('');
-	const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
-	const persistedSignatureRef = useRef('');
 
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -75,42 +68,14 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		() => (normalizedPrototype ? serializePrototypeState(normalizedPrototype) : ''),
 		[normalizedPrototype],
 	);
-	const activeDraft = draft ?? normalizedPrototype;
-	const draftSignature = useMemo(
-		() => (activeDraft ? serializePrototypeState(activeDraft) : ''),
-		[activeDraft],
-	);
-	const baselineSignature = persistedSignature || savedSignature;
-	const isDirty = Boolean(activeDraft && draftSignature !== baselineSignature);
-	const saveStatusText = getPrototypeStudioStatusCopy({ saveState, isDirty });
+	const draftSignature = useMemo(() => (draft ? serializePrototypeState(draft) : ''), [draft]);
+	const isDirty = Boolean(draft && savedSignature && draftSignature !== savedSignature);
 
 	useEffect(() => {
 		if (!normalizedPrototype) return;
-
-		setDraft((currentDraft) => {
-			const currentSignature = currentDraft ? serializePrototypeState(currentDraft) : '';
-			return shouldSyncPrototypeStudioDraft({
-				draftSignature: currentSignature,
-				persistedSignature: persistedSignatureRef.current,
-				nextPersistedSignature: savedSignature,
-			})
-				? normalizedPrototype
-				: currentDraft;
-		});
-		persistedSignatureRef.current = savedSignature;
-		setPersistedSignature(savedSignature);
-		setSaveErrorMessage(null);
-	}, [normalizedPrototype, savedSignature]);
-
-	useEffect(() => {
-		if (saveState !== 'saved') return;
-
-		const timeoutId = window.setTimeout(() => {
-			setSaveState((current) => (current === 'saved' ? 'idle' : current));
-		}, 2200);
-
-		return () => window.clearTimeout(timeoutId);
-	}, [saveState]);
+		setDraft(normalizedPrototype);
+		setSaveState('idle');
+	}, [normalizedPrototype]);
 
 	useEffect(() => {
 		if (!fallbackPrototypeElement || matchedPrototypeElement || canvasQuery.isLoading) {
@@ -133,20 +98,12 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		navigate,
 	]);
 
-	const navigationBlocker = useBlocker({
-		shouldBlockFn: () => isDirty,
-		enableBeforeUnload: () => isDirty,
-		withResolver: true,
-		disabled: !isDirty,
-	});
+	const activeDraft = draft ?? normalizedPrototype;
 
-	const saveDraft = useEffectEvent(async () => {
-		if (!activeDraft || !prototypeElement || !canvasQuery.data?.data) {
-			return false;
-		}
+	async function saveDraft() {
+		if (!draft || !prototypeElement || !canvasQuery.data?.data) return;
 
 		setSaveState('saving');
-		setSaveErrorMessage(null);
 
 		try {
 			const nextElements = elements.map((element) => {
@@ -155,14 +112,14 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 					'prototype',
 					element as ExcalidrawElement & { customData: PrototypeOverlayCustomData },
 					{
-						title: activeDraft.title,
-						template: activeDraft.template,
-						files: activeDraft.files,
-						dependencies: activeDraft.dependencies,
-						preview: activeDraft.preview,
-						activeFile: activeDraft.activeFile,
-						showEditor: activeDraft.showEditor,
-						showPreview: activeDraft.showPreview,
+						title: draft.title,
+						template: draft.template,
+						files: draft.files,
+						dependencies: draft.dependencies,
+						preview: draft.preview,
+						activeFile: draft.activeFile,
+						showEditor: draft.showEditor,
+						showPreview: draft.showPreview,
 					},
 				) as unknown as ExcalidrawElement;
 			});
@@ -184,18 +141,10 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 				throw new Error(await response.text());
 			}
 
-			const nextPersistedSignature = serializePrototypeState(activeDraft);
-			persistedSignatureRef.current = nextPersistedSignature;
-			setPersistedSignature(nextPersistedSignature);
 			await queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] });
 			setSaveState('saved');
-			return true;
 		} catch (error) {
 			console.error('Failed to save prototype draft', error);
-			const message =
-				error instanceof Error && error.message.trim().length > 0
-					? error.message
-					: 'Failed to save prototype draft.';
 			captureBrowserException(error, {
 				tags: {
 					area: 'prototype.studio',
@@ -207,33 +156,8 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 				},
 			});
 			setSaveState('error');
-			setSaveErrorMessage(message);
-			return false;
 		}
-	});
-
-	const saveAndLeave = useEffectEvent(async () => {
-		const didSave = await saveDraft();
-		if (didSave && navigationBlocker.status === 'blocked') {
-			navigationBlocker.proceed();
-		}
-	});
-
-	useEffect(() => {
-		const handleKeydown = (event: KeyboardEvent) => {
-			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
-				event.preventDefault();
-				if (!isDirty || saveState === 'saving') {
-					return;
-				}
-
-				void saveDraft();
-			}
-		};
-
-		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
-	}, [isDirty, saveDraft, saveState]);
+	}
 
 	if (canvasQuery.isLoading) {
 		return (
@@ -293,26 +217,29 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 						Prototype Studio
 					</div>
 					<div className="mt-1 text-sm text-stone-600">
-						Edit files outside the canvas. Changes stay local to this studio until you save them
-						back to the canvas.
+						Edit files outside the canvas. The canvas now renders the same live prototype runtime
+						preview.
 					</div>
 				</div>
 				<div className="flex items-center gap-3">
-					<div className="text-right">
-						<div className="text-xs text-stone-500" aria-live="polite">
-							{saveStatusText}
-						</div>
-						<div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-							Cmd/Ctrl+S to save
-						</div>
+					<div className="text-xs text-stone-500">
+						{saveState === 'saving'
+							? 'Saving...'
+							: saveState === 'saved'
+								? 'Saved'
+								: saveState === 'error'
+									? 'Save failed'
+									: draft && isDirty
+										? 'Unsaved changes'
+										: 'Up to date'}
 					</div>
 					<button
 						type="button"
 						onClick={() => void saveDraft()}
-						disabled={!activeDraft || !isDirty || saveState === 'saving'}
+						disabled={!draft || !isDirty || saveState === 'saving'}
 						className="rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-40"
 					>
-						{saveState === 'saving' ? 'Saving...' : 'Save'}
+						Save
 					</button>
 					<Link
 						to="/canvas/$id"
@@ -327,62 +254,6 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			<div className="min-h-0 flex-1 p-6">
 				<PrototypeStudioEditor value={activeDraft} onChange={setDraft} />
 			</div>
-
-			{navigationBlocker.status === 'blocked' ? (
-				<div className="app-dialog-backdrop fixed inset-0 z-40 flex items-center justify-center p-4">
-					<div
-						role="dialog"
-						aria-modal="true"
-						aria-labelledby="prototype-leave-dialog-title"
-						className="app-panel app-panel-strong w-full max-w-lg overflow-hidden rounded-[20px] border border-stone-200 bg-white/96 shadow-[0_32px_80px_rgba(15,23,42,0.18)] backdrop-blur"
-					>
-						<div className="px-6 py-6">
-							<h2
-								id="prototype-leave-dialog-title"
-								className="text-xl font-semibold text-stone-900"
-							>
-								Leave without saving?
-							</h2>
-							<p className="mt-3 text-sm leading-6 text-stone-600">
-								Changes to <span className="font-semibold text-stone-900">{activeDraft.title}</span>{' '}
-								are still local to Prototype Studio. Save first if you want the canvas version to
-								match what you see here.
-							</p>
-							{saveErrorMessage ? (
-								<div className="mt-4 rounded-[14px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-									{saveErrorMessage}
-								</div>
-							) : null}
-						</div>
-						<div className="flex flex-wrap items-center justify-end gap-3 border-t border-stone-200 px-6 py-4">
-							<button
-								type="button"
-								onClick={() => navigationBlocker.reset()}
-								disabled={saveState === 'saving'}
-								className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 disabled:cursor-not-allowed disabled:opacity-40"
-							>
-								Continue editing
-							</button>
-							<button
-								type="button"
-								onClick={() => navigationBlocker.proceed()}
-								disabled={saveState === 'saving'}
-								className="rounded-full border border-stone-300 bg-stone-100 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 disabled:cursor-not-allowed disabled:opacity-40"
-							>
-								Discard changes
-							</button>
-							<button
-								type="button"
-								onClick={() => void saveAndLeave()}
-								disabled={saveState === 'saving'}
-								className="rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-40"
-							>
-								{saveState === 'saving' ? 'Saving...' : 'Save and leave'}
-							</button>
-						</div>
-					</div>
-				</div>
-			) : null}
 		</div>
 	);
 }

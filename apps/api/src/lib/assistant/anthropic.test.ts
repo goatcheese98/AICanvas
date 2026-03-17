@@ -10,19 +10,20 @@ afterEach(() => {
 
 describe('anthropic adapter', () => {
 	it('calls the Anthropic messages API and extracts text content', async () => {
-		const fetchMock = vi.fn(async () =>
-			new Response(
-				JSON.stringify({
-					model: 'claude-3-5-haiku-latest',
-					content: [
-						{
-							type: 'text',
-							text: 'Anthropic output',
-						},
-					],
-				}),
-				{ status: 200, headers: { 'Content-Type': 'application/json' } },
-			),
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						model: 'claude-3-5-haiku-latest',
+						content: [
+							{
+								type: 'text',
+								text: 'Anthropic output',
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
 		globalThis.fetch = fetchMock as typeof fetch;
 
@@ -43,7 +44,9 @@ describe('anthropic adapter', () => {
 		expect(result.text).toBe('Anthropic output');
 		expect(result.model).toBe('claude-3-5-haiku-latest');
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as RequestInit | undefined;
+		const init = (fetchMock.mock.calls.at(0) as unknown[] | undefined)?.at(1) as
+			| RequestInit
+			| undefined;
 		expect(JSON.parse(String(init?.body))).toMatchObject({
 			system: 'You are AI Canvas.',
 			messages: [{ role: 'user', content: 'Say hello.' }],

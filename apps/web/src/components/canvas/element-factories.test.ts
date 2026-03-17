@@ -1,8 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
 import type { KanbanOverlayCustomData, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
-import { buildOverlayInsertionScene, createOverlayCustomData, getOverlayDefaults } from './element-factories';
+import { describe, expect, it, vi } from 'vitest';
+import {
+	buildOverlayInsertionScene,
+	createOverlayCustomData,
+	getOverlayDefaults,
+} from './element-factories';
 
 const DEFAULT_MARKDOWN_CONTENT = `# <img src="https://cdn.jsdelivr.net/gh/dcurtis/markdown-mark/svg/markdown-mark.svg" alt="Markdown icon" width="28" height="28" /> New Note
 

@@ -1,7 +1,7 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { MAX_MARKDOWN_TITLE_LENGTH } from './markdown-note-helpers';
 import { MarkdownEditorSurface } from './MarkdownEditorSurface';
 import { MarkdownNoteHeader } from './MarkdownNoteHeader';
+import { MAX_MARKDOWN_TITLE_LENGTH } from './markdown-note-helpers';
 import type { MarkdownNoteProps } from './markdown-note-types';
 import { useMarkdownNoteState } from './useMarkdownNoteState';
 
@@ -89,7 +89,9 @@ export function MarkdownNoteContainer({
 					editorMode={state.editorMode}
 					isPreview={state.isPreview}
 					onContentChange={state.setContent}
-					onImageAdd={(id, dataUrl) => state.setImages((current) => ({ ...current, [id]: dataUrl }))}
+					onImageAdd={(id, dataUrl) =>
+						state.setImages((current) => ({ ...current, [id]: dataUrl }))
+					}
 					onEditorCheckboxToggle={state.handleEditorCheckboxToggle}
 					onPreviewCheckboxToggle={state.handlePreviewCheckboxToggle}
 				/>

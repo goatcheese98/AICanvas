@@ -17,9 +17,44 @@ export interface VectorizedAsset {
 	model?: string;
 }
 
-function decodeBase64(value: string): Uint8Array {
-	const binary = atob(value);
-	return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+interface OpenRouterImageRef {
+	image_url?:
+		| {
+				url?: string;
+		  }
+		| string;
+	url?: string;
+}
+
+interface OpenRouterMessageContentPart {
+	type?: string;
+	text?: string;
+	image_url?:
+		| {
+				url?: string;
+		  }
+		| string;
+	url?: string;
+}
+
+interface OpenRouterImageGenerationPayload {
+	choices?: Array<{
+		message?: {
+			content?: OpenRouterMessageContent;
+			images?: OpenRouterImageRef[];
+		};
+	}>;
+}
+
+type OpenRouterMessageContent = string | OpenRouterMessageContentPart[];
+
+function decodeBase64(value: string, fallback: string): Uint8Array {
+	try {
+		const binary = atob(value);
+		return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+	} catch {
+		throw new Error(fallback);
+	}
 }
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
@@ -39,6 +74,129 @@ function getCloudflareImageModel(bindings: AppEnv['Bindings']): string {
 	return bindings.CLOUDFLARE_IMAGE_MODEL ?? '@cf/black-forest-labs/flux-2-klein-4b';
 }
 
+function ensureNonEmptyBytes(bytes: Uint8Array, fallback: string): Uint8Array {
+	if (bytes.byteLength === 0) {
+		throw new Error(fallback);
+	}
+
+	return bytes;
+}
+
+function decodeGeneratedImageBytes(
+	encoded: string,
+	options: {
+		invalidPayloadMessage: string;
+		emptyPayloadMessage: string;
+	},
+): ArrayBuffer {
+	return toArrayBuffer(
+		ensureNonEmptyBytes(
+			decodeBase64(encoded, options.invalidPayloadMessage),
+			options.emptyPayloadMessage,
+		),
+	);
+}
+
+function getOpenRouterImageUrl(
+	reference: OpenRouterImageRef | OpenRouterMessageContentPart,
+): string | null {
+	if (typeof reference.image_url === 'string') {
+		return reference.image_url;
+	}
+
+	if (typeof reference.image_url?.url === 'string') {
+		return reference.image_url.url;
+	}
+
+	if (typeof reference.url === 'string') {
+		return reference.url;
+	}
+
+	return null;
+}
+
+function extractOpenRouterRevisedPrompt(
+	content: OpenRouterMessageContent | undefined,
+): string | undefined {
+	if (typeof content === 'string') {
+		const trimmed = content.trim();
+		return trimmed.length > 0 ? trimmed : undefined;
+	}
+
+	if (!Array.isArray(content)) {
+		return undefined;
+	}
+
+	const text = content
+		.map((part) => (typeof part.text === 'string' ? part.text.trim() : ''))
+		.filter((part) => part.length > 0)
+		.join('\n')
+		.trim();
+
+	return text.length > 0 ? text : undefined;
+}
+
+function parseOpenRouterInlineImage(payload: OpenRouterImageGenerationPayload): {
+	imageUrl: string;
+	revisedPrompt?: string;
+} {
+	const message = payload.choices?.[0]?.message;
+	const imageUrl =
+		message?.images
+			?.map((image) => getOpenRouterImageUrl(image))
+			.find((candidate): candidate is string => Boolean(candidate)) ??
+		(Array.isArray(message?.content)
+			? message.content
+					.map((part) => getOpenRouterImageUrl(part))
+					.find((candidate): candidate is string => Boolean(candidate))
+			: null);
+
+	if (!imageUrl?.startsWith('data:')) {
+		throw new Error('OpenRouter image generation returned no inline image payload');
+	}
+
+	return {
+		imageUrl,
+		revisedPrompt: extractOpenRouterRevisedPrompt(message?.content),
+	};
+}
+
+function parseInlineImageDataUrl(
+	imageUrl: string,
+	fallbackPrefix: string,
+): { mimeType: string; bytes: ArrayBuffer } {
+	const [header, encoded] = imageUrl.split(',', 2);
+	if (!encoded) {
+		throw new Error(`${fallbackPrefix} returned an invalid data URL`);
+	}
+
+	const mimeType = header.match(/^data:([^;]+);base64$/)?.[1];
+	if (!mimeType?.startsWith('image/')) {
+		throw new Error(`${fallbackPrefix} returned an unsupported image MIME type`);
+	}
+
+	return {
+		mimeType,
+		bytes: decodeGeneratedImageBytes(encoded, {
+			invalidPayloadMessage: `${fallbackPrefix} returned an invalid image payload`,
+			emptyPayloadMessage: `${fallbackPrefix} returned an empty image payload`,
+		}),
+	};
+}
+
+function normalizeSvgContent(svg: string, fallbackPrefix: string): string {
+	const normalized = svg.trim();
+	if (normalized.length === 0) {
+		throw new Error(`${fallbackPrefix} returned an empty SVG payload`);
+	}
+
+	if (!/^<svg\b/i.test(normalized)) {
+		throw new Error(`${fallbackPrefix} returned invalid SVG content`);
+	}
+
+	return normalized;
+}
+
 function ensureFetchOk(response: Response, fallback: string): Promise<Response> {
 	if (response.ok) {
 		return Promise.resolve(response);
@@ -52,6 +210,44 @@ function ensureFetchOk(response: Response, fallback: string): Promise<Response> 
 		.catch((error) => {
 			throw error instanceof Error ? error : new Error(fallback);
 		});
+}
+
+function extractProviderErrorCode(message: string): string | null {
+	const directMatch = message.match(/\berror code:\s*([A-Za-z0-9_-]+)/i);
+	if (directMatch?.[1]) {
+		return directMatch[1];
+	}
+
+	const jsonCodeMatch = message.match(/"code"\s*:\s*"?([A-Za-z0-9_-]+)"?/i);
+	return jsonCodeMatch?.[1] ?? null;
+}
+
+function normalizeImageGenerationError(
+	error: unknown,
+	options: {
+		provider: 'cloudflare' | 'openrouter';
+		style: 'image' | 'sketch';
+	},
+): Error {
+	if (!(error instanceof Error)) {
+		return new Error(
+			options.style === 'sketch'
+				? 'Sketch generation failed. Try again in a moment, or switch to SVG illustration.'
+				: 'Image generation failed. Try again in a moment.',
+		);
+	}
+
+	const message = error.message.trim();
+	const providerLabel = options.provider === 'cloudflare' ? 'image provider' : 'image API';
+	const generatedAssetLabel = options.style === 'sketch' ? 'Sketch generation' : 'Image generation';
+	const errorCode = extractProviderErrorCode(message);
+	if (errorCode) {
+		return new Error(
+			`${generatedAssetLabel} is temporarily unavailable from the ${providerLabel} (code ${errorCode}). Try again in a moment, or switch to SVG illustration.`,
+		);
+	}
+
+	return error;
 }
 
 async function generateCloudflareImageAsset(
@@ -76,24 +272,37 @@ async function generateCloudflareImageAsset(
 	const formBody = serializedForm.body ?? (await serializedForm.arrayBuffer());
 	const contentType = serializedForm.headers.get('content-type') ?? 'multipart/form-data';
 
-	const payload = (await bindings.AI.run(
-		getCloudflareImageModel(bindings) as Parameters<Ai['run']>[0],
-		{
-			multipart: {
-				body: formBody,
-				contentType,
-			},
-		} as unknown as Parameters<Ai['run']>[1],
-	)) as {
+	let payload: {
 		image?: string;
 	};
+	try {
+		payload = (await bindings.AI.run(
+			getCloudflareImageModel(bindings) as Parameters<Ai['run']>[0],
+			{
+				multipart: {
+					body: formBody,
+					contentType,
+				},
+			} as unknown as Parameters<Ai['run']>[1],
+		)) as {
+			image?: string;
+		};
+	} catch (error) {
+		throw normalizeImageGenerationError(error, {
+			provider: 'cloudflare',
+			style: input.style,
+		});
+	}
 
 	if (!payload.image) {
 		throw new Error('Cloudflare image generation returned no image payload');
 	}
 
 	return {
-		bytes: toArrayBuffer(decodeBase64(payload.image)),
+		bytes: decodeGeneratedImageBytes(payload.image, {
+			invalidPayloadMessage: 'Cloudflare image generation returned an invalid image payload',
+			emptyPayloadMessage: 'Cloudflare image generation returned an empty image payload',
+		}),
 		mimeType: 'image/png',
 		provider: 'cloudflare',
 		model: getCloudflareImageModel(bindings),
@@ -135,32 +344,17 @@ export async function generateImageAsset(
 		}),
 	});
 
-	const okResponse = await ensureFetchOk(response, 'OpenRouter image generation failed');
-		const payload = (await okResponse.json()) as {
-			choices?: Array<{
-				message?: {
-					content?: string;
-					images?: Array<{
-						image_url?: {
-							url?: string;
-						} | string;
-					}>;
-				};
-			}>;
-		};
-		const imageRef = payload.choices?.[0]?.message?.images?.[0]?.image_url;
-		const imageUrl = typeof imageRef === 'string' ? imageRef : imageRef?.url;
-
-	if (!imageUrl?.startsWith('data:')) {
-		throw new Error('OpenRouter image generation returned no inline image payload');
-	}
-
-	const [header, encoded] = imageUrl.split(',', 2);
-	if (!encoded) {
-		throw new Error('OpenRouter image generation returned an invalid data URL');
-	}
-	const mimeType = header.match(/^data:([^;]+);base64$/)?.[1] ?? 'image/png';
-	const bytes = toArrayBuffer(decodeBase64(encoded));
+	const okResponse = await ensureFetchOk(response, 'OpenRouter image generation failed').catch(
+		(error) => {
+			throw normalizeImageGenerationError(error, {
+				provider: 'openrouter',
+				style: input.style,
+			});
+		},
+	);
+	const payload = (await okResponse.json()) as OpenRouterImageGenerationPayload;
+	const { imageUrl, revisedPrompt } = parseOpenRouterInlineImage(payload);
+	const { mimeType, bytes } = parseInlineImageDataUrl(imageUrl, 'OpenRouter image generation');
 
 	return {
 		bytes,
@@ -168,10 +362,7 @@ export async function generateImageAsset(
 		provider: 'openrouter',
 		model: bindings.OPENROUTER_IMAGE_MODEL ?? 'google/gemini-2.5-flash-image-preview',
 		prompt: input.prompt,
-		revisedPrompt:
-			typeof payload.choices?.[0]?.message?.content === 'string'
-				? payload.choices[0].message.content
-				: undefined,
+		revisedPrompt,
 	};
 }
 
@@ -220,7 +411,7 @@ export async function vectorizeImageAsset(
 	}
 
 	return {
-		content: svg,
+		content: normalizeSvgContent(svg, 'Vectorization tool'),
 		mimeType: 'image/svg+xml',
 		provider: 'http-tool',
 		tool: payload.tool ?? 'vectorize_asset',

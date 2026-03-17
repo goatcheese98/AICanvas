@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot } from 'lexical';
+import { useEffect, useState } from 'react';
 
 function countWords(text: string): number {
 	const trimmed = text.trim();
@@ -44,9 +44,13 @@ export default function WordCountPlugin({ show }: { show: boolean }) {
 				flexShrink: 0,
 			}}
 		>
-			<span>{words} {words === 1 ? 'word' : 'words'}</span>
+			<span>
+				{words} {words === 1 ? 'word' : 'words'}
+			</span>
 			<span style={{ color: '#d6d3d1' }}>·</span>
-			<span>{characters} {characters === 1 ? 'character' : 'characters'}</span>
+			<span>
+				{characters} {characters === 1 ? 'character' : 'characters'}
+			</span>
 		</div>
 	);
 }

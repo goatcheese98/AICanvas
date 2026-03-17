@@ -1,7 +1,7 @@
-import type { RefObject } from 'react';
 import { DEFAULT_MARKDOWN_NOTE_SETTINGS } from '@ai-canvas/shared/schemas';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { RefObject } from 'react';
 import {
 	FONT_OPTIONS_WITH_MARKDOWN_EXTRAS,
 	NOTE_EDGE_OPTIONS,
@@ -40,9 +40,7 @@ interface MarkdownUtilityPanelProps {
 		strokeWidth?: number;
 		roundness?: ExcalidrawElement['roundness'];
 	}) => void;
-	onSettingsChange: (
-		updater: (current: MarkdownNoteSettings) => MarkdownNoteSettings,
-	) => void;
+	onSettingsChange: (updater: (current: MarkdownNoteSettings) => MarkdownNoteSettings) => void;
 	onRequestImagePicker: () => void;
 }
 
@@ -143,7 +141,9 @@ export function MarkdownUtilityPanel({
 							<select
 								value={getRoundnessOptionId(roundness)}
 								onChange={(event) => {
-									const selected = NOTE_EDGE_OPTIONS.find((option) => option.id === event.target.value);
+									const selected = NOTE_EDGE_OPTIONS.find(
+										(option) => option.id === event.target.value,
+									);
 									onSurfaceStyleChange({
 										roundness: selected?.roundness ?? null,
 									});
@@ -361,7 +361,14 @@ export function MarkdownUtilityPanel({
 							onClick={onRequestImagePicker}
 							className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-[8px] border border-[var(--color-accent-border)] bg-[var(--color-accent-bg)] px-2.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--color-accent-text)]"
 						>
-							<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+							<svg
+								width="12"
+								height="12"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="2"
+							>
 								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
 								<path d="M7 10l5-5 5 5" />
 								<path d="M12 15V5" />
@@ -372,7 +379,9 @@ export function MarkdownUtilityPanel({
 							<div>
 								{imageCount} image{imageCount === 1 ? '' : 's'} attached to this note.
 							</div>
-							<div className="mt-1">You can also paste images directly while editing in raw or hybrid mode.</div>
+							<div className="mt-1">
+								You can also paste images directly while editing in raw or hybrid mode.
+							</div>
 						</div>
 					</div>
 				</div>
@@ -399,7 +408,14 @@ export function MarkdownUtilityPanel({
 					})
 				}
 			>
-				<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+				<svg
+					width="11"
+					height="11"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+				>
 					<path d="M4 12h16" />
 					<path d="M4 6h16" />
 					<path d="M4 18h16" />

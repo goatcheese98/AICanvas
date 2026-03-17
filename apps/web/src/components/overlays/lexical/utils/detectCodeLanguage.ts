@@ -17,7 +17,10 @@ const LANG_RULES: Array<{ lang: string; rules: Rule[] }> = [
 		lang: 'css',
 		rules: [
 			{ re: /@(media|keyframes|import|charset|layer)\b/, score: 5 },
-			{ re: /\b(color|background|font-size|margin|padding|border|display|flex|grid)\s*:/, score: 3 },
+			{
+				re: /\b(color|background|font-size|margin|padding|border|display|flex|grid)\s*:/,
+				score: 3,
+			},
 			{ re: /:(hover|focus|active|before|after|not|nth-child|root)\b/, score: 3 },
 			{ re: /\b\d+(px|em|rem|vw|vh|%)\b/, score: 2 },
 		],

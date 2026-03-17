@@ -1,7 +1,7 @@
 import type {
 	AssistantArtifact,
-	AssistantContextSnapshot,
 	AssistantContextMode,
+	AssistantContextSnapshot,
 	AssistantMessage,
 	GenerationMode,
 	PrototypeOverlayCustomData,

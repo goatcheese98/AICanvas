@@ -1,9 +1,5 @@
 import type { CSSProperties } from 'react';
-import {
-	KANBAN_ACCENT_BORDER,
-	KANBAN_ACCENT_SURFACE,
-	KANBAN_ACCENT_TEXT,
-} from './kanban-theme';
+import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_SURFACE, KANBAN_ACCENT_TEXT } from './kanban-theme';
 import { KANBAN_ICON_BUTTON, getKanbanPanelStyle } from './kanban-ui';
 
 interface KanbanBoardHeaderProps {
@@ -114,7 +110,8 @@ export function KanbanBoardHeader({
 }: KanbanBoardHeaderProps) {
 	const searchStyle: CSSProperties = {
 		borderColor: searchFocused || searchQuery ? KANBAN_ACCENT_BORDER : 'var(--color-border)',
-		backgroundColor: searchFocused || searchQuery ? KANBAN_ACCENT_SURFACE : 'var(--color-surface-strong)',
+		backgroundColor:
+			searchFocused || searchQuery ? KANBAN_ACCENT_SURFACE : 'var(--color-surface-strong)',
 		backgroundImage: 'var(--kanban-sketch-control-texture)',
 		color: searchQuery ? KANBAN_ACCENT_TEXT : 'var(--color-text-secondary)',
 		height: '2rem',

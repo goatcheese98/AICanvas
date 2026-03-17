@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { assistantSchemas } from './assistant';
+import {
+	assistantSchemas,
+	parseStoredAssistantAssetContent,
+	serializeStoredAssistantAssetContent,
+} from './assistant';
 
 describe('assistant schemas', () => {
 	it('requires threadId for run creation', () => {
@@ -50,44 +54,44 @@ describe('assistant schemas', () => {
 			message: 'Update this note',
 			contextMode: 'selected',
 			selectedElementIds: ['note-1'],
-				contextSnapshot: {
-					canvasId: 'canvas-1',
-					totalElementCount: 3,
-					selectedElementIds: ['note-1'],
-					selectedElementCount: 1,
-					selectedOverlayTypes: ['markdown'],
-					canvasMeta: {
-						title: 'Launch canvas',
+			contextSnapshot: {
+				canvasId: 'canvas-1',
+				totalElementCount: 3,
+				selectedElementIds: ['note-1'],
+				selectedElementCount: 1,
+				selectedOverlayTypes: ['markdown'],
+				canvasMeta: {
+					title: 'Launch canvas',
+				},
+				canvasSummary: {
+					elementTypeCounts: { rectangle: 3 },
+					overlayTypeCounts: { markdown: 1 },
+					textBearingElementCount: 1,
+					editableOverlayCount: 1,
+					selectedCount: 1,
+					hasKanban: false,
+					hasMarkdown: true,
+					hasPrototype: false,
+					highlights: ['Release checklist'],
+				},
+				canvasElementSummaries: [
+					{
+						id: 'shape-1',
+						elementType: 'rectangle',
+						label: 'Launch milestone',
 					},
-					canvasSummary: {
-						elementTypeCounts: { rectangle: 3 },
-						overlayTypeCounts: { markdown: 1 },
-						textBearingElementCount: 1,
-						editableOverlayCount: 1,
-						selectedCount: 1,
-						hasKanban: false,
-						hasMarkdown: true,
-						hasPrototype: false,
-						highlights: ['Release checklist'],
+				],
+				selectionEnvironment: [
+					{
+						id: 'shape-2',
+						elementType: 'ellipse',
+						label: 'Nearby idea',
+						distanceFromSelection: 18,
 					},
-					canvasElementSummaries: [
-						{
-							id: 'shape-1',
-							elementType: 'rectangle',
-							label: 'Launch milestone',
-						},
-					],
-					selectionEnvironment: [
-						{
-							id: 'shape-2',
-							elementType: 'ellipse',
-							label: 'Nearby idea',
-							distanceFromSelection: 18,
-						},
-					],
-					selectionSummary: [
-						{
-							id: 'note-1',
+				],
+				selectionSummary: [
+					{
+						id: 'note-1',
 						elementType: 'rectangle',
 						overlayType: 'markdown',
 						label: 'Release checklist',
@@ -130,5 +134,51 @@ describe('assistant schemas', () => {
 			kind: 'markdown',
 			id: 'note-1',
 		});
+	});
+
+	it('serializes and parses stored assistant asset content', () => {
+		const serialized = serializeStoredAssistantAssetContent({
+			kind: 'stored_asset',
+			r2Key: 'assistant-assets/run-1/image.png',
+			mimeType: 'image/png',
+			provider: 'openrouter',
+			model: 'image-v1',
+			prompt: 'Draw a mascot',
+			revisedPrompt: 'Draw a mascot on white background',
+			tool: 'vectorize_asset',
+			byteSize: 1234,
+			sourceArtifactId: 'artifact-source',
+			artifactId: 'artifact-1',
+			runId: 'run-1',
+		});
+
+		expect(parseStoredAssistantAssetContent(serialized)).toEqual({
+			kind: 'stored_asset',
+			r2Key: 'assistant-assets/run-1/image.png',
+			mimeType: 'image/png',
+			provider: 'openrouter',
+			model: 'image-v1',
+			prompt: 'Draw a mascot',
+			revisedPrompt: 'Draw a mascot on white background',
+			tool: 'vectorize_asset',
+			byteSize: 1234,
+			sourceArtifactId: 'artifact-source',
+			artifactId: 'artifact-1',
+			runId: 'run-1',
+		});
+	});
+
+	it('rejects invalid stored assistant asset content', () => {
+		expect(parseStoredAssistantAssetContent('not json')).toBeNull();
+		expect(
+			parseStoredAssistantAssetContent(
+				JSON.stringify({
+					kind: 'stored_asset',
+					r2Key: '',
+					mimeType: 'image/png',
+					provider: 'openrouter',
+				}),
+			),
+		).toBeNull();
 	});
 });

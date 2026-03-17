@@ -1,8 +1,8 @@
+import { useAppStore } from '@/stores/store';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { CanvasCore } from './CanvasCore';
-import { useAppStore } from '@/stores/store';
 
 let latestExcalidrawProps: Record<string, unknown> | null = null;
 
@@ -43,11 +43,7 @@ describe('CanvasCore', () => {
 		const onSaveNeeded = vi.fn();
 
 		render(
-			<CanvasCore
-				canvasId="canvas-1"
-				onSceneChange={onSceneChange}
-				onSaveNeeded={onSaveNeeded}
-			/>,
+			<CanvasCore canvasId="canvas-1" onSceneChange={onSceneChange} onSaveNeeded={onSaveNeeded} />,
 		);
 
 		expect(latestExcalidrawProps).not.toBeNull();
@@ -79,11 +75,13 @@ describe('CanvasCore', () => {
 		};
 
 		act(() => {
-			(latestExcalidrawProps?.onChange as (
-				elements: readonly ExcalidrawElement[],
-				appState: typeof sourceAppState,
-				files: typeof sourceFiles,
-			) => void)(sourceElements, sourceAppState, sourceFiles);
+			(
+				latestExcalidrawProps?.onChange as (
+					elements: readonly ExcalidrawElement[],
+					appState: typeof sourceAppState,
+					files: typeof sourceFiles,
+				) => void
+			)(sourceElements, sourceAppState, sourceFiles);
 		});
 
 		const state = useAppStore.getState();
@@ -202,5 +200,75 @@ describe('CanvasCore', () => {
 		expect(state.appState).not.toBe(liveAppState);
 		expect(state.files).toEqual(liveFiles);
 		expect(state.files).not.toBe(liveFiles);
+	});
+
+	it('applies normalized scene changes before syncing ai-managed vector resizes', () => {
+		const updateScene = vi.fn();
+		const onSceneChange = vi.fn();
+		const onSaveNeeded = vi.fn();
+		const stableApi = {
+			updateScene,
+		} as never;
+
+		render(
+			<CanvasCore
+				canvasId="canvas-1"
+				onSceneChange={onSceneChange}
+				onSaveNeeded={onSaveNeeded}
+				normalizeSceneChange={(elements) =>
+					elements.map((element) => ({
+						...element,
+						x: element.x + 40,
+					})) as ExcalidrawElement[]
+				}
+			/>,
+		);
+
+		act(() => {
+			(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+		});
+
+		const sourceElements = [
+			{
+				id: 'vector-1',
+				type: 'line',
+				x: 10,
+				y: 20,
+				width: 100,
+				height: 40,
+				angle: 0,
+			},
+		] as unknown as readonly ExcalidrawElement[];
+		const sourceAppState = {
+			scrollX: 0,
+			scrollY: 0,
+			selectedElementIds: { 'vector-1': true },
+			zoom: { value: 1 },
+		};
+		const sourceFiles = {};
+
+		act(() => {
+			(
+				latestExcalidrawProps?.onChange as (
+					elements: readonly ExcalidrawElement[],
+					appState: typeof sourceAppState,
+					files: typeof sourceFiles,
+				) => void
+			)(sourceElements, sourceAppState, sourceFiles);
+		});
+
+		expect(updateScene).toHaveBeenCalledWith({
+			elements: [
+				expect.objectContaining({
+					id: 'vector-1',
+					x: 50,
+				}),
+			],
+			appState: {
+				selectedElementIds: { 'vector-1': true },
+			},
+		});
+		expect(onSceneChange).not.toHaveBeenCalled();
+		expect(onSaveNeeded).not.toHaveBeenCalled();
 	});
 });

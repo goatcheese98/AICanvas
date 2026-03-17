@@ -1,6 +1,6 @@
+import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { KanbanBoardContainer } from './KanbanBoardContainer';
 import type { KanbanBoardProps } from './kanban-board-types';
 
@@ -83,9 +83,9 @@ describe('KanbanBoardContainer', () => {
 				],
 			}),
 		);
-		expect(
-			(onChange.mock.lastCall?.[1] as KanbanOverlayCustomData).columns[0]?.cards,
-		).toHaveLength(2);
+		expect((onChange.mock.lastCall?.[1] as KanbanOverlayCustomData).columns[0]?.cards).toHaveLength(
+			2,
+		);
 	});
 
 	it('opens board settings from the header and dismisses them on escape', () => {

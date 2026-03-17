@@ -1,9 +1,9 @@
-import type { CSSProperties, PropsWithChildren } from 'react';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import {
 	getExcalidrawCornerRadius,
 	getExcalidrawSurfaceStyle,
 } from '@/components/canvas/excalidraw-element-style';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { CSSProperties, PropsWithChildren } from 'react';
 
 interface OverlaySurfaceProps extends PropsWithChildren {
 	element: ExcalidrawElement;

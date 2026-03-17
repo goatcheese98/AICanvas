@@ -4,7 +4,6 @@ import type {
 	AssistantKanbanPatchArtifact,
 	AssistantMarkdownPatchArtifact,
 	AssistantMessage,
-	AssistantPrototypePatchArtifact,
 	AssistantSelectedContext,
 	GenerationMode,
 	KanbanOverlayCustomData,
@@ -13,6 +12,14 @@ import type {
 import { nanoid } from 'nanoid';
 import { createAnthropicMessage } from './anthropic';
 import { summarizeAssistantContextSnapshot } from './context';
+export { resolveGenerationMode } from './generation-mode';
+import {
+	buildAnthropicConversation,
+	getLastDiagramArtifact,
+	getLastSvgSource,
+	inferPrototypeTemplate,
+	resolveGenerationMode,
+} from './generation-mode';
 import {
 	buildD2EditPrompt,
 	buildD2Prompt,
@@ -21,228 +28,25 @@ import {
 	buildMermaidEditPrompt,
 	buildMermaidPrompt,
 	buildPrototypePrompt,
+	buildSvgEditPrompt,
+	buildSvgPrompt,
 	extractCodeBlock,
 } from './parsing';
 import type { AssistantDraft, AssistantServiceInput, AssistantServiceResult } from './types';
-
-function sanitizeHistoryMessages(history: AssistantServiceInput['history']): AssistantMessage[] {
-	if (!Array.isArray(history)) {
-		return [];
-	}
-
-	return history
-		.filter(
-			(message) =>
-				(message.role === 'user' || message.role === 'assistant') &&
-				typeof message.content === 'string',
-		)
-		.slice(-12)
-		.map((message) => ({
-			id: message.id,
-			role: message.role,
-			content: message.content.trim().slice(0, 4000),
-			generationMode: message.generationMode,
-			artifacts: message.artifacts,
-			createdAt: message.createdAt,
-		}))
-		.filter((message) => message.content.length > 0);
-}
-
-function buildAnthropicConversation(
-	input: AssistantServiceInput,
-	currentUserContent: string,
-): Array<{ role: 'user' | 'assistant'; content: string }> {
-	return [
-		...sanitizeHistoryMessages(input.history).map((message) => ({
-			role: message.role,
-			content: message.content,
-		})),
-		{
-			role: 'user',
-			content: currentUserContent,
-		},
-	];
-}
-
-function inferPrototypeTemplate(
-	input: AssistantServiceInput,
-): PrototypeOverlayCustomData['template'] {
-	const message = input.message.toLowerCase();
-
-	if (
-		/(vanilla|html\s*\/\s*css|html css|plain javascript|plain js|vanilla js|vanilla javascript)/.test(
-			message,
-		)
-	) {
-		return 'vanilla';
-	}
-
-	if (/(react|jsx|tsx)/.test(message)) {
-		return 'react';
-	}
-
-	return input.prototypeContext?.template ?? 'react';
-}
-
-function buildPrototypeRequestSeed(
-	input: Pick<AssistantServiceInput, 'message' | 'prototypeContext'>,
-): string {
-	const parts = [input.message.trim()];
-	const currentTitle = input.prototypeContext?.title?.trim();
-
-	if (currentTitle && !new RegExp(currentTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(input.message)) {
-		parts.push(`Selected prototype: ${currentTitle}`);
-	}
-
-	return parts.filter(Boolean).join('\n');
-}
-
-function getLastDiagramArtifact(
-	history: AssistantServiceInput['history'],
-): { mode: Extract<GenerationMode, 'mermaid' | 'd2'>; content: string } | null {
-	if (!Array.isArray(history)) {
-		return null;
-	}
-
-	for (const message of [...history].reverse()) {
-		for (const artifact of [...(message.artifacts ?? [])].reverse()) {
-			if (
-				(artifact.type === 'mermaid' || artifact.type === 'd2') &&
-				artifact.content.trim().length > 0
-			) {
-				return { mode: artifact.type, content: artifact.content.trim() };
-			}
-		}
-
-		if (message.role !== 'assistant') {
-			continue;
-		}
-
-		if (message.generationMode === 'mermaid') {
-			const code = extractCodeBlock(message.content, 'mermaid');
-			if (code) {
-				return { mode: 'mermaid', content: code };
-			}
-		}
-
-		if (message.generationMode === 'd2') {
-			const code = extractCodeBlock(message.content, 'd2');
-			if (code) {
-				return { mode: 'd2', content: code };
-			}
-		}
-	}
-
-	return null;
-}
-
-function isDiagramFollowUpRequest(message: string): boolean {
-	return /(fix|update|adjust|change|edit|refine|improve|render|rerender|re-render|correct|repair|clean up|arrow|edge|line|label|node|spacing|align|move|swap|reverse|rotate|that|it|this|same diagram)/.test(
-		message,
-	);
-}
-
-function getLastMediaGenerationMode(
-	history: AssistantServiceInput['history'],
-): Extract<GenerationMode, 'image' | 'sketch'> | null {
-	if (!Array.isArray(history)) {
-		return null;
-	}
-
-	for (const message of [...history].reverse()) {
-		if (message.role !== 'assistant') {
-			continue;
-		}
-
-		if (message.generationMode === 'image' || message.generationMode === 'sketch') {
-			return message.generationMode;
-		}
-	}
-
-	return null;
-}
-
-function isImageFollowUpRequest(message: string): boolean {
-	return /\b(background|lighting|style|color|palette|scene|setting|composition|pose|expression|outfit|add|remove|change|adjust|update|refine|improve|variation|version|another|different|with|without|make it|keep the|same subject|same image|proceed|go ahead|do it|yes|yep|let's do|lets do|try that)\b/.test(
-		message,
-	);
-}
-
-export function resolveGenerationMode(input: AssistantServiceInput): GenerationMode {
-	if (input.generationMode) {
-		return input.generationMode;
-	}
-
-	const message = input.message.toLowerCase();
-	const hasExplicitImageIntent =
-		/\b(generate|create|make|render|design)\s+(?:an?\s+)?(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\b/.test(
-			message,
-		) ||
-		/\b(?:image|illustration|photo|poster|artwork|hero image|hero illustration|cover image)\s+of\b/.test(
-			message,
-		);
-
-	if (/\bd2\b/.test(message)) {
-		return 'd2';
-	}
-
-	if (/(kanban|backlog|sprint board|task board|turn this into tasks|plan tasks)/.test(message)) {
-		return 'kanban';
-	}
-
-	if (
-		/(mermaid|flowchart|sequence diagram|state diagram|architecture diagram|diagram this|diagram the)/.test(
-			message,
-		)
-	) {
-		return 'mermaid';
-	}
-
-	if (/(wireframe|hand-drawn sketch|sketch this|whiteboard sketch)/.test(message)) {
-		return 'sketch';
-	}
-
-	if (hasExplicitImageIntent) {
-		return 'image';
-	}
-
-	if (
-		/(prototype|protoype|prototype|propotype|mockup|landing page|landing-page|react app|dashboard ui|ui prototype|build a component|build a page|vanilla js|vanilla javascript|html css|jsx|tsx)/.test(
-			message,
-		) ||
-		(Boolean(input.prototypeContext) &&
-			(
-				/(react|vanilla|html|css|javascript|js|jsx|tsx|convert|rewrite|migrate|refactor|restyle|rebuild)/.test(
-					message,
-				) || isEditableSelectionRequest(message)
-			))
-	) {
-		return 'prototype';
-	}
-
-	if (
-		/(generate an image|create an image|hero illustration|illustration|cover image)/.test(message)
-	) {
-		return 'image';
-	}
-
-	const lastDiagramArtifact = getLastDiagramArtifact(input.history);
-	if (lastDiagramArtifact && isDiagramFollowUpRequest(message)) {
-		return lastDiagramArtifact.mode;
-	}
-
-	const lastMediaGenerationMode = getLastMediaGenerationMode(input.history);
-	if (lastMediaGenerationMode && isImageFollowUpRequest(message)) {
-		return lastMediaGenerationMode;
-	}
-
-	return 'chat';
-}
 
 function sentenceCase(text: string): string {
 	const trimmed = text.trim().replace(/\s+/g, ' ');
 	if (!trimmed) return 'Untitled';
 	return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+function escapeSvgText(text: string): string {
+	return text
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&apos;');
 }
 
 function slug(text: string): string {
@@ -278,8 +82,7 @@ function isCreateNewArtifactIntent(message: string): boolean {
 
 function getSelectedEditableContexts(input: AssistantServiceInput): AssistantSelectedContext[] {
 	return (input.contextSnapshot?.selectedContexts ?? []).filter(
-		(context) =>
-			context.kind === 'markdown' || context.kind === 'kanban' || context.kind === 'prototype',
+		(context) => context.kind === 'markdown' || context.kind === 'kanban',
 	);
 }
 
@@ -862,135 +665,15 @@ async function createKanbanPatchArtifact(
 	};
 }
 
-function listChangedPrototypeFiles(
-	base: PrototypeOverlayCustomData,
-	next: PrototypeOverlayCustomData,
-): string[] {
-	const filePaths = new Set([...Object.keys(base.files), ...Object.keys(next.files)]);
-
-	return [...filePaths]
-		.filter((path) => {
-			const baseFile = base.files[path];
-			const nextFile = next.files[path];
-			return JSON.stringify(baseFile ?? null) !== JSON.stringify(nextFile ?? null);
-		})
-		.sort((left, right) => left.localeCompare(right));
-}
-
-async function createPrototypePatchArtifact(
-	context: Extract<AssistantSelectedContext, { kind: 'prototype' }>,
-	input: AssistantServiceInput,
-	bindings?: AssistantServiceInput['bindings'],
-): Promise<AssistantArtifact> {
-	const base = normalizePrototypeOverlay(
-		input.prototypeContext ?? {
-			type: 'prototype',
-			title: context.prototype.title,
-			template: context.prototype.template,
-			activeFile: context.prototype.activeFile,
-			files: {},
-		},
-	);
-	const requestSeed = buildPrototypeRequestSeed({
-		message: input.message,
-		prototypeContext: base,
-	});
-
-	if (bindings?.ANTHROPIC_API_KEY) {
-		try {
-			const completion = await createAnthropicMessage(bindings, {
-				system: [
-					'You are AI Canvas, editing a selected prototype.',
-					'Return ONLY a JSON object for the full updated prototype state.',
-					'Do not return prose, JSX snippets, markdown fences, or explanations.',
-				].join('\n'),
-				messages: [
-					{
-						role: 'user',
-						content: buildPrototypePrompt(
-							input.message,
-							JSON.stringify(
-								{
-									title: base.title,
-									template: base.template,
-									activeFile: base.activeFile,
-									dependencies: base.dependencies ?? {},
-									preview: base.preview,
-									files: base.files,
-								},
-								null,
-								2,
-							),
-						),
-					},
-				],
-				maxTokens: 4000,
-			});
-
-			const responseText = completion.text.trim();
-			const jsonText = responseText
-				.replace(/^```(?:json)?\s*/i, '')
-				.replace(/\s*```$/, '')
-				.trim();
-			const nextPrototype = parsePrototypeArtifactContent(jsonText);
-
-			if (
-				nextPrototype &&
-				!isStarterPrototypeOutput(nextPrototype) &&
-				(!expectsFunctionalPrototype(requestSeed) ||
-					isFunctionalPrototypeOutput(nextPrototype, requestSeed))
-			) {
-				const patch: AssistantPrototypePatchArtifact = {
-					kind: 'prototype_patch',
-					targetId: context.id,
-					summary: `Updates the selected prototype "${base.title}" to satisfy the edit request.`,
-					base,
-					next: nextPrototype,
-					changedFiles: listChangedPrototypeFiles(base, nextPrototype),
-				};
-				return {
-					type: 'prototype-patch',
-					content: JSON.stringify(patch, null, 2),
-				};
-			}
-		} catch {
-			// Fall back to the deterministic prototype builder below.
-		}
-	}
-
-	const nextPrototype = buildPromptDrivenPrototype({
-		...input,
-		prototypeContext: base,
-	});
-	const patch: AssistantPrototypePatchArtifact = {
-		kind: 'prototype_patch',
-		targetId: context.id,
-		summary: `Updates the selected prototype "${base.title}" to satisfy the edit request.`,
-		base,
-		next: nextPrototype,
-		changedFiles: listChangedPrototypeFiles(base, nextPrototype),
-	};
-
-	return {
-		type: 'prototype-patch',
-		content: JSON.stringify(patch, null, 2),
-	};
-}
-
 async function buildSelectedEditDraft(
 	input: AssistantServiceInput,
 	generationMode: GenerationMode,
 ): Promise<AssistantDraft | null> {
-	const editableContexts = getSelectedEditableContexts(input);
-	const isSinglePrototypeEdit =
-		editableContexts.length === 1 && editableContexts[0]?.kind === 'prototype';
-	if (
-		!isEditableSelectionRequest(input.message) ||
-		(isCreateNewArtifactIntent(input.message) && !isSinglePrototypeEdit)
-	) {
+	if (!isEditableSelectionRequest(input.message) || isCreateNewArtifactIntent(input.message)) {
 		return null;
 	}
 
+	const editableContexts = getSelectedEditableContexts(input);
 	if (editableContexts.length === 0) {
 		return null;
 	}
@@ -1019,11 +702,6 @@ async function buildSelectedEditDraft(
 
 		if (context.kind === 'kanban' && (generationMode === 'chat' || generationMode === 'kanban')) {
 			artifacts.push(await createKanbanPatchArtifact(context, input.message, input.bindings));
-			continue;
-		}
-
-		if (context.kind === 'prototype' && (generationMode === 'chat' || generationMode === 'prototype')) {
-			artifacts.push(await createPrototypePatchArtifact(context, input, input.bindings));
 		}
 	}
 
@@ -1031,11 +709,9 @@ async function buildSelectedEditDraft(
 		return null;
 	}
 
-	const artifactLabels = artifacts.map((artifact) => {
-		if (artifact.type === 'markdown-patch') return 'markdown patch';
-		if (artifact.type === 'kanban-patch') return 'kanban patch';
-		return 'prototype patch';
-	});
+	const artifactLabels = artifacts.map((artifact) =>
+		artifact.type === 'markdown-patch' ? 'markdown patch' : 'kanban patch',
+	);
 
 	return {
 		content: [
@@ -1058,30 +734,14 @@ function extractPrototypeSubject(message: string): string {
 	const match = message.match(/\b(?:for|about|around|targeting)\s+(.+)$/i);
 	const subject = (match?.[1] ?? message)
 		.replace(
-			/\b(please|kindly|just|can you|could you|would you|help me|i need|i want|show me|give me|create|build|make|design|prototype|website|landing page|landing-page|page|dashboard|tool)\b/gi,
+			/\b(create|build|make|design|prototype|website|landing page|landing-page|page|dashboard|app)\b/gi,
 			' ',
 		)
-		.replace(/\b(with|using|including|featuring)\b[\s\S]*$/i, ' ')
 		.replace(/[^\w\s-]/g, ' ')
 		.replace(/\s+/g, ' ')
-		.trimStart()
-		.replace(/^(of\s+)?(a|an|the)\s+/i, '')
-		.replace(/^of\s+/i, '')
 		.trim();
 	return subject || 'AI Product';
 }
-
-function buildPrototypeAppTitle(subjectTitle: string): string {
-	return /\b(app|studio|workspace|dashboard|tool)\b$/i.test(subjectTitle)
-		? subjectTitle
-		: `${subjectTitle} App`;
-}
-
-function buildPrototypeGameTitle(subjectTitle: string): string {
-	return /\b(game|arcade|puzzle)\b$/i.test(subjectTitle) ? subjectTitle : `${subjectTitle} Game`;
-}
-
-type PrototypeRequestVariant = 'calculator' | 'dashboard' | 'game' | 'app' | 'landing';
 
 function toTitleWords(text: string): string {
 	return text
@@ -1130,27 +790,9 @@ function expectsFunctionalPrototype(message: string): boolean {
 		return false;
 	}
 
-	return /calculator|todo|timer|tracker|converter|quiz|editor|generator|planner|tool|utility|app|game|play|arcade|puzzle|level|score|board/.test(
+	return /(calculator|todo|timer|tracker|converter|quiz|editor|generator|planner|tool|utility|app)/.test(
 		normalized,
 	);
-}
-
-function inferPrototypeVariant(message: string): PrototypeRequestVariant {
-	const normalized = message.toLowerCase();
-
-	if (/calculator/.test(normalized)) {
-		return 'calculator';
-	}
-
-	if (/dashboard|admin|analytics|workspace|portal|command center/.test(normalized)) {
-		return 'dashboard';
-	}
-
-	if (/game|arcade|puzzle|tetris|platformer|runner|shooter/.test(normalized)) {
-		return 'game';
-	}
-
-	return expectsFunctionalPrototype(message) ? 'app' : 'landing';
 }
 
 function pickPrototypePalette(seed: string) {
@@ -1179,297 +821,7 @@ function buildCalculatorPrototype(
 	palette: { accent: string; background: string },
 	template: PrototypeOverlayCustomData['template'],
 ): PrototypeOverlayCustomData {
-	const title = truncateTitle(buildPrototypeAppTitle(subjectTitle));
-	const introCopy =
-		'Tap the keypad to build an expression, then press = to evaluate it.';
-	const sharedCalculatorCss = `* {
-  box-sizing: border-box;
-}
-
-:root {
-  font-family: "Söhne", "Inter", "Segoe UI", sans-serif;
-  color: #e2e8f0;
-}
-
-html,
-body,
-#root {
-  min-height: 100%;
-}
-
-body {
-  margin: 0;
-  background: #0f172a;
-}
-
-button {
-  border: 0;
-  cursor: pointer;
-}
-
-.calc-shell {
-  min-height: 100%;
-  padding: clamp(12px, 2.4vw, 20px);
-  background:
-    radial-gradient(circle at top left, color-mix(in srgb, ${palette.accent} 26%, transparent) 0, transparent 44%),
-    radial-gradient(circle at bottom right, rgba(250, 204, 21, 0.18) 0, transparent 36%),
-    linear-gradient(160deg, #0b1120 0%, #101828 56%, #172554 100%);
-}
-
-.calc-stage {
-  min-height: calc(100vh - 32px);
-  display: grid;
-  gap: 18px;
-  padding: clamp(16px, 3.6cqi, 30px);
-  border-radius: 32px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62)),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 45%);
-  box-shadow: 0 36px 120px rgba(15, 23, 42, 0.42);
-  container-type: inline-size;
-}
-
-.calc-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.9fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.calc-kicker,
-.calc-panel-label,
-.calc-overview-label,
-.calc-side-title {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(226, 232, 240, 0.62);
-}
-
-.calc-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.calc-kicker::before {
-  content: "";
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: ${palette.accent};
-  box-shadow: 0 0 18px color-mix(in srgb, ${palette.accent} 60%, white);
-}
-
-h1 {
-  margin: 12px 0 0;
-  max-width: 10ch;
-  font-size: clamp(36px, 8cqi, 68px);
-  line-height: 0.92;
-  letter-spacing: -0.04em;
-}
-
-p {
-  margin: 12px 0 0;
-  max-width: 46ch;
-  color: rgba(226, 232, 240, 0.74);
-  line-height: 1.58;
-}
-
-.calc-overview {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.calc-overview-card {
-  padding: 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(14px);
-}
-
-.calc-overview-value {
-  display: block;
-  margin-top: 8px;
-  font-size: clamp(18px, 4.4cqi, 28px);
-  font-weight: 800;
-  color: white;
-}
-
-.calc-workbench {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-  min-height: 0;
-}
-
-.calc-main {
-  display: grid;
-  gap: 14px;
-}
-
-.calc-display-panel {
-  padding: 18px;
-  border-radius: 26px;
-  background:
-    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.78)),
-    linear-gradient(135deg, color-mix(in srgb, ${palette.accent} 18%, transparent), transparent 48%);
-  border: 1px solid rgba(148, 163, 184, 0.16);
-}
-
-.calc-expression {
-  margin-top: 14px;
-  color: white;
-  font-size: clamp(34px, 10cqi, 72px);
-  font-weight: 800;
-  line-height: 0.92;
-  text-align: right;
-  word-break: break-all;
-}
-
-.calc-hint {
-  margin-top: 10px;
-  color: rgba(226, 232, 240, 0.56);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.calc-keypad-panel,
-.calc-side-section {
-  border-radius: 26px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(248, 250, 252, 0.97);
-  color: #0f172a;
-}
-
-.calc-keypad-panel {
-  padding: 14px;
-  display: grid;
-  gap: 10px;
-}
-
-.keypad-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.calc-button {
-  min-height: clamp(56px, 11cqi, 78px);
-  border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #edf2f7 100%);
-  color: #0f172a;
-  font-size: clamp(20px, 4.5cqi, 28px);
-  font-weight: 800;
-  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.calc-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.1);
-}
-
-.calc-button--accent {
-  background: linear-gradient(180deg, ${palette.accent} 0%, color-mix(in srgb, ${palette.accent} 72%, #7c2d12) 100%);
-  color: white;
-}
-
-.calc-button--ghost {
-  background: linear-gradient(180deg, #dbe3ef 0%, #cbd5e1 100%);
-  color: #334155;
-}
-
-.calc-button--wide {
-  grid-column: span 2;
-}
-
-.calc-side-panel {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-}
-
-.calc-side-section {
-  padding: 16px;
-}
-
-.calc-side-section--accent {
-  background: linear-gradient(160deg, color-mix(in srgb, ${palette.accent} 14%, white), #fff8eb 100%);
-}
-
-.calc-side-title {
-  color: #64748b;
-}
-
-.calc-history-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.calc-history-row,
-.calc-tip {
-  border-radius: 16px;
-  background: #f8fafc;
-  padding: 12px 14px;
-  color: #334155;
-  line-height: 1.4;
-}
-
-.calc-tip-list {
-  display: grid;
-  gap: 10px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-@container (max-width: 940px) {
-  .calc-header,
-  .calc-workbench {
-    grid-template-columns: 1fr;
-  }
-
-  .calc-overview {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@container (max-width: 640px) {
-  .calc-stage {
-    min-height: auto;
-    gap: 14px;
-    padding: 14px;
-  }
-
-  .calc-overview {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .keypad-row {
-    gap: 8px;
-  }
-}
-
-@container (max-width: 460px) {
-  h1 {
-    max-width: none;
-  }
-
-  .calc-overview {
-    grid-template-columns: 1fr;
-  }
-
-  .calc-button {
-    min-height: 52px;
-    border-radius: 18px;
-  }
-}`;
+	const title = `${subjectTitle} App`;
 	if (template === 'vanilla') {
 		const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1480,25 +832,26 @@ p {
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="calc-shell">
-      <section class="calc-stage">
-        <header class="calc-header">
-          <div class="calc-header-copy">
-            <div class="calc-kicker">Expression lab</div>
+    <main class="prototype-shell">
+      <section class="calculator-card">
+        <header class="calculator-header">
+          <div>
+            <div class="eyebrow">Interactive prototype</div>
             <h1>${title}</h1>
-            <p>${introCopy}</p>
+            <p>Use the live keypad, test operations, and validate the behavior directly on the canvas.</p>
           </div>
+          <div class="status-pill">Ready</div>
         </header>
-
-        <section class="calc-workbench">
-          <section class="calc-main">
-            <section class="calc-display-panel">
-              <div class="calc-panel-label">Expression</div>
-              <div id="display" class="calc-expression">12+8</div>
-              <div class="calc-hint">Supports multi-step arithmetic like (12+8)*3 or 48/6+7.</div>
-            </section>
-            <section id="keypad" class="calc-keypad-panel"></section>
-          </section>
+        <section class="calculator-grid">
+          <div class="display-panel">
+            <div class="display-label">Expression</div>
+            <div id="display" class="display-value">12+8</div>
+          </div>
+          <div id="keypad" class="keypad-panel"></div>
+          <aside class="history-panel">
+            <div class="panel-title">Recent calculations</div>
+            <div id="history" class="app-list"></div>
+          </aside>
         </section>
       </section>
     </main>
@@ -1539,7 +892,10 @@ p {
 
 const display = document.getElementById('display');
 const keypad = document.getElementById('keypad');
+const history = document.getElementById('history');
+
 let expression = '12+8';
+let historyItems = ['12 + 8 = 20', '9 × 7 = 63'];
 
 function evaluateExpression(value) {
   const sanitized = value.replace(/[^0-9+\\-*/.()]/g, '');
@@ -1556,6 +912,16 @@ function evaluateExpression(value) {
   }
 }
 
+function renderHistory() {
+  history.innerHTML = '';
+  historyItems.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'history-row';
+    row.textContent = item;
+    history.appendChild(row);
+  });
+}
+
 function renderDisplay() {
   display.textContent = expression;
 }
@@ -1570,6 +936,10 @@ function handleKey(key) {
     expression = expression === 'Error' ? '0' : expression.slice(0, -1) || '0';
   } else if (key.action === 'evaluate') {
     const result = evaluateExpression(expression);
+    if (result !== 'Error') {
+      historyItems = [\`\${expression.replace(/\\*/g, '×').replace(/\\//g, '÷')} = \${result}\`, ...historyItems].slice(0, 6);
+      renderHistory();
+    }
     expression = result;
   }
 
@@ -1591,8 +961,172 @@ rows.forEach((row) => {
 });
 
 renderDisplay();
+renderHistory();
 `;
-		const css = sharedCalculatorCss;
+		const css = `* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: #0f172a;
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: ${palette.background};
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.prototype-shell {
+  min-height: 100vh;
+  padding: 16px;
+  display: grid;
+  place-items: center;
+}
+
+.calculator-card {
+  width: min(100%, 920px);
+  border-radius: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  padding: 22px;
+  box-shadow: 0 28px 84px rgba(15, 23, 42, 0.14);
+}
+
+.calculator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.eyebrow, .display-label, .panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+h1 {
+  margin: 10px 0 0;
+  font-size: 40px;
+  line-height: 0.96;
+}
+
+p {
+  margin: 12px 0 0;
+  max-width: 54ch;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.status-pill {
+  border-radius: 999px;
+  background: color-mix(in srgb, ${palette.accent} 14%, white);
+  color: ${palette.accent};
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.display-panel, .keypad-panel, .history-panel {
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.display-panel {
+  grid-column: 1 / 2;
+  padding: 18px;
+  background: #0f172a;
+}
+
+.display-label {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.display-value {
+  margin-top: 12px;
+  color: white;
+  font-size: clamp(28px, 6vw, 54px);
+  font-weight: 800;
+  text-align: right;
+  min-height: 64px;
+  word-break: break-all;
+}
+
+.keypad-panel {
+  grid-column: 1 / 2;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.keypad-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calc-button {
+  min-height: 64px;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.calc-button--accent {
+  background: ${palette.accent};
+  color: white;
+}
+
+.calc-button--ghost {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.calc-button--wide {
+  grid-column: span 2;
+}
+
+.history-panel {
+  padding: 18px;
+}
+
+.history-row {
+  margin-top: 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  color: #334155;
+}
+
+@media (max-width: 860px) {
+  .calculator-grid {
+    grid-template-columns: 1fr;
+  }
+}`;
 		return normalizePrototypeOverlay({
 			title,
 			template: 'vanilla',
@@ -1603,14 +1137,18 @@ renderDisplay();
 				'/styles.css': createPrototypeFile(css),
 			},
 			preview: {
-				eyebrow: 'Expression Lab',
+				eyebrow: 'Interactive prototype',
 				title,
 				description:
-					'A working calculator with live arithmetic controls in a canvas-friendly layout.',
+					'A functional calculator with live arithmetic controls and calculation history.',
 				accent: palette.accent,
 				background: palette.background,
-				badges: ['Calculator', 'Responsive', 'Vanilla'],
-				metrics: [],
+				badges: ['Calculator', 'Interactive', 'Vanilla'],
+				metrics: [
+					{ label: 'Mode', value: 'Live' },
+					{ label: 'Keys', value: '19' },
+					{ label: 'History', value: '6' },
+				],
 			},
 		});
 	}
@@ -1679,6 +1217,7 @@ const rows = [
 
 export default function App() {
   const [expression, setExpression] = useState('12+8');
+  const [history, setHistory] = useState(['12 + 8 = 20', '9 × 7 = 63']);
 
   const appendValue = (value) => {
     setExpression((current) => (current === '0' || current === 'Error' ? value : \`\${current}\${value}\`));
@@ -1705,30 +1244,33 @@ export default function App() {
 
     if (key.action === 'evaluate') {
       const result = evaluateExpression(expression);
+      if (result !== 'Error') {
+        setHistory((current) => [\`\${expression.replace(/\\*/g, '×').replace(/\\//g, '÷')} = \${result}\`, ...current].slice(0, 6));
+      }
       setExpression(result);
     }
   };
 
   return (
-    <main className="calc-shell">
-      <section className="calc-stage">
-        <header className="calc-header">
-          <div className="calc-header-copy">
-            <span className="calc-kicker">Expression lab</span>
-            <h1>${title}</h1>
-            <p>${introCopy}</p>
-          </div>
-        </header>
+    <main className="prototype-shell" style={{ '--accent': '${palette.accent}', '--page-bg': '${palette.background}' }}>
+      <section className="calculator-frame">
+        <div className="calculator-card">
+          <header className="calculator-header">
+            <div>
+              <span className="eyebrow">Interactive prototype</span>
+              <h1>${title}</h1>
+              <p>Use the live keypad, test operations, and validate the functional behavior directly on the canvas.</p>
+            </div>
+            <div className="status-pill">Ready</div>
+          </header>
 
-        <section className="calc-workbench">
-          <section className="calc-main">
-            <section className="calc-display-panel">
-              <div className="calc-panel-label">Expression</div>
-              <div className="calc-expression">{expression}</div>
-              <div className="calc-hint">Supports multi-step arithmetic like (12+8)*3 or 48/6+7.</div>
-            </section>
+          <section className="calculator-grid">
+            <div className="display-panel">
+              <div className="display-label">Expression</div>
+              <div className="display-value">{expression}</div>
+            </div>
 
-            <section className="calc-keypad-panel">
+            <div className="keypad-panel">
               {rows.map((row, rowIndex) => (
                 <div key={rowIndex} className="keypad-row">
                   {row.map((key) => (
@@ -1741,15 +1283,208 @@ export default function App() {
                   ))}
                 </div>
               ))}
-            </section>
+            </div>
+
+            <aside className="history-panel">
+              <div className="panel-title">Recent calculations</div>
+              {history.map((item) => (
+                <div key={item} className="history-row">{item}</div>
+              ))}
+            </aside>
           </section>
-        </section>
+        </div>
       </section>
     </main>
   );
 }
 `;
-	const css = sharedCalculatorCss;
+	const css = `* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: #0f172a;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.prototype-shell {
+  min-height: 100%;
+  padding: 16px;
+  background: var(--page-bg);
+}
+
+.calculator-frame {
+  min-height: calc(100vh - 32px);
+  display: grid;
+  place-items: center;
+}
+
+.calculator-card {
+  width: min(100%, 980px);
+  border-radius: 28px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 22px;
+  box-shadow: 0 28px 84px rgba(15, 23, 42, 0.14);
+}
+
+.calculator-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.eyebrow,
+.display-label,
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+h1 {
+  margin: 10px 0 0;
+  font-size: 40px;
+  line-height: 0.96;
+}
+
+p {
+  margin: 12px 0 0;
+  max-width: 54ch;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.status-pill {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 14%, white);
+  color: var(--accent);
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.display-panel,
+.keypad-panel,
+.history-panel {
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.display-panel {
+  grid-column: 1 / 2;
+  padding: 18px;
+  background: #0f172a;
+}
+
+.display-label {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.display-value {
+  margin-top: 12px;
+  color: white;
+  font-size: clamp(28px, 6vw, 54px);
+  font-weight: 800;
+  text-align: right;
+  min-height: 64px;
+  word-break: break-all;
+}
+
+.keypad-panel {
+  grid-column: 1 / 2;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.keypad-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calc-button {
+  min-height: 64px;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 22px;
+  font-weight: 700;
+  transition: transform 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.calc-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.1);
+}
+
+.calc-button--accent {
+  background: var(--accent);
+  color: white;
+}
+
+.calc-button--ghost {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.calc-button--wide {
+  grid-column: span 2;
+}
+
+.history-panel {
+  padding: 18px;
+}
+
+.history-row {
+  margin-top: 12px;
+  border-radius: 16px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  color: #334155;
+}
+
+@media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
+  .calculator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+`;
 	const base = normalizePrototypeOverlay({
 		title,
 		template: 'react',
@@ -1768,392 +1503,295 @@ export default function App() {
 			'/lib/calc.js': createPrototypeFile(calculatorLogic),
 		},
 		preview: {
-			eyebrow: 'Expression Lab',
+			eyebrow: 'Interactive prototype',
 			title,
-			description:
-				'A working calculator with live arithmetic controls in a canvas-friendly layout.',
+			description: 'A functional calculator with live arithmetic controls and calculation history.',
 			accent: palette.accent,
 			background: palette.background,
-			badges: ['Calculator', 'Responsive', 'React'],
-			metrics: [],
+			badges: ['Calculator', 'Interactive', 'React'],
+			metrics: [
+				{ label: 'Mode', value: 'Live' },
+				{ label: 'Keys', value: '19' },
+				{ label: 'History', value: '6' },
+			],
 		},
 	});
 }
 
 function buildPromptDrivenPrototype(input: AssistantServiceInput): PrototypeOverlayCustomData {
-	const requestSeed = buildPrototypeRequestSeed(input);
-	const subject = extractPrototypeSubject(requestSeed);
+	const subject = extractPrototypeSubject(input.message);
 	const subjectTitle = toTitleWords(subject).slice(0, 36);
 	const brand = subjectTitle.split(/\s+/).slice(0, 2).join(' ') || 'Canvas Forge';
-	const palette = pickPrototypePalette(input.prototypeContext?.title ?? subject);
+	const keywords = extractPromptKeywords(subject);
+	const palette = pickPrototypePalette(subject);
 	const template = inferPrototypeTemplate(input);
-	const variant = inferPrototypeVariant(requestSeed);
+	const variant = /calculator/i.test(input.message)
+		? 'calculator'
+		: /dashboard|admin|analytics|workspace|portal|command center/i.test(input.message)
+			? 'dashboard'
+			: expectsFunctionalPrototype(input.message)
+				? 'app'
+				: 'landing';
 
 	if (variant === 'calculator') {
 		return buildCalculatorPrototype(subjectTitle, palette, template);
 	}
-	if (variant !== 'game') {
-		const title = truncateTitle(
-			variant === 'dashboard'
-				? `${brand} Dashboard`
-				: variant === 'app'
-					? buildPrototypeAppTitle(subjectTitle)
-					: `${brand} Website`,
-		);
-
-		return normalizePrototypeOverlay({
-			title,
-			template,
-			preview: {
-				eyebrow:
-					variant === 'dashboard'
-						? 'Dashboard Concept'
-						: variant === 'app'
-							? 'App Concept'
-							: 'Landing Concept',
-				title,
-				description: `Blank prototype scaffold for ${subjectTitle || 'the requested concept'}.`,
-				accent: palette.accent,
-				background: palette.background,
-				badges: [],
-				metrics: [],
-			},
-		});
-	}
-	const title = truncateTitle(buildPrototypeGameTitle(subjectTitle));
-	const headline = `Play ${subjectTitle.toLowerCase()} directly on the canvas.`;
-	const summary = `Prototype the moment-to-moment feel of ${subject.toLowerCase()} with a playable board, visible scoring, and responsive controls that adapt as the canvas resizes.`;
-	const previewDescription =
-		'A playable game board with responsive controls, visible scoring, and canvas-friendly resizing.';
-	const badges = ['Playable', 'Responsive', 'Canvas'];
-	const metrics = [
-		{ label: 'Score', value: '0000' },
-		{ label: 'Lines', value: '0' },
-		{ label: 'Level', value: '1' },
-	];
+	const headline =
+		variant === 'dashboard'
+			? `Operate ${subjectTitle.toLowerCase()} from one live workspace.`
+			: variant === 'app'
+				? `Use ${subjectTitle.toLowerCase()} through a live working interface.`
+				: `Launch ${subjectTitle.toLowerCase()} with a sharper story and faster conversion.`;
+	const summary =
+		variant === 'dashboard'
+			? `Track the main signals for ${subject.toLowerCase()}, coordinate teams, and move from insight to action in one interface.`
+			: variant === 'app'
+				? `Work with ${subject.toLowerCase()} directly in the prototype, validate behavior, and refine the interaction model without leaving the canvas.`
+				: `Present the value of ${subject.toLowerCase()} with clear positioning, focused benefits, and a decisive call to action.`;
+	const badges =
+		keywords.length > 0 ? keywords.slice(0, 4).map(toTitleWords) : ['Strategy', 'Design', 'Launch'];
+	const features = (
+		keywords.length > 0 ? keywords : ['workflow', 'conversion', 'automation']
+	).slice(0, 3);
+	const metrics =
+		variant === 'dashboard'
+			? [
+					{ label: 'Active', value: '142' },
+					{ label: 'At Risk', value: '09' },
+					{ label: 'Win Rate', value: '38%' },
+				]
+			: [
+					{ label: 'Visitors', value: '24k' },
+					{ label: 'Conversion', value: '7.4%' },
+					{ label: 'Pipeline', value: '$186k' },
+				];
 	const jsx =
-		`import { useEffect, useState } from 'react';
-import './styles.css';
+		variant === 'dashboard'
+			? `import './styles.css';
 
-const BOARD_ROWS = 16;
-const BOARD_COLUMNS = 10;
-const LINE_SCORES = { 0: 0, 1: 100, 2: 300, 3: 500, 4: 800 };
-const PIECES = {
-  I: [[1, 1, 1, 1]],
-  O: [[1, 1], [1, 1]],
-  T: [[0, 1, 0], [1, 1, 1]],
-  L: [[1, 0], [1, 0], [1, 1]],
-  J: [[0, 1], [0, 1], [1, 1]],
-  S: [[0, 1, 1], [1, 1, 0]],
-  Z: [[1, 1, 0], [0, 1, 1]],
-};
-const PIECE_TYPES = Object.keys(PIECES);
-
-function createEmptyBoard() {
-  return Array.from({ length: BOARD_ROWS }, () => Array(BOARD_COLUMNS).fill(0));
-}
-
-function randomPieceType() {
-  return PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
-}
-
-function createPiece(type) {
-  const shape = PIECES[type];
-  return {
-    type,
-    shape,
-    row: 0,
-    column: Math.floor((BOARD_COLUMNS - shape[0].length) / 2),
-  };
-}
-
-function rotateShape(shape) {
-  return shape[0].map((_, columnIndex) => shape.map((row) => row[columnIndex]).reverse());
-}
-
-function collides(board, piece, shape = piece.shape, row = piece.row, column = piece.column) {
-  for (let rowIndex = 0; rowIndex < shape.length; rowIndex += 1) {
-    for (let columnIndex = 0; columnIndex < shape[rowIndex].length; columnIndex += 1) {
-      if (!shape[rowIndex][columnIndex]) continue;
-
-      const nextRow = row + rowIndex;
-      const nextColumn = column + columnIndex;
-
-      if (nextColumn < 0 || nextColumn >= BOARD_COLUMNS || nextRow >= BOARD_ROWS) {
-        return true;
-      }
-
-      if (nextRow >= 0 && board[nextRow][nextColumn]) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-function mergePiece(board, piece) {
-  return board.map((row, rowIndex) =>
-    row.map((cell, columnIndex) => {
-      const occupiesCell = piece.shape.some((shapeRow, shapeRowIndex) =>
-        shapeRow.some(
-          (value, shapeColumnIndex) =>
-            value &&
-            piece.row + shapeRowIndex === rowIndex &&
-            piece.column + shapeColumnIndex === columnIndex,
-        ),
-      );
-      return occupiesCell ? 1 : cell;
-    }),
-  );
-}
-
-function clearCompletedLines(board) {
-  const remainingRows = board.filter((row) => row.some((cell) => cell === 0));
-  const cleared = BOARD_ROWS - remainingRows.length;
-  const paddingRows = Array.from({ length: cleared }, () => Array(BOARD_COLUMNS).fill(0));
-
-  return {
-    board: [...paddingRows, ...remainingRows],
-    cleared,
-  };
-}
-
-function createDisplayBoard(board, piece) {
-  return board.map((row) => [...row]).map((row, rowIndex) =>
-    row.map((cell, columnIndex) => {
-      const isActive = piece.shape.some((shapeRow, shapeRowIndex) =>
-        shapeRow.some(
-          (value, shapeColumnIndex) =>
-            value &&
-            piece.row + shapeRowIndex === rowIndex &&
-            piece.column + shapeColumnIndex === columnIndex,
-        ),
-      );
-
-      return isActive ? 2 : cell;
-    }),
-  );
-}
-
-function createInitialGame() {
-  const currentType = randomPieceType();
-  const nextType = randomPieceType();
-
-  return {
-    board: createEmptyBoard(),
-    piece: createPiece(currentType),
-    nextType,
-    score: 0,
-    lines: 0,
-    status: 'Arrow keys move, Arrow Down drops, and Space hard drops.',
-    gameOver: false,
-  };
-}
-
-function lockPiece(state, piece) {
-  const mergedBoard = mergePiece(state.board, piece);
-  const { board, cleared } = clearCompletedLines(mergedBoard);
-  const lines = state.lines + cleared;
-  const score = state.score + 12 + (LINE_SCORES[cleared] ?? 0);
-  const nextPiece = createPiece(state.nextType);
-  const nextType = randomPieceType();
-  const gameOver = collides(board, nextPiece);
-
-  return {
-    board,
-    piece: nextPiece,
-    nextType,
-    score,
-    lines,
-    status: gameOver
-      ? 'Game over. Press restart to play again.'
-      : cleared > 0
-        ? 'Cleared ' + cleared + ' line' + (cleared === 1 ? '' : 's') + '.'
-        : 'Piece locked. Keep the stack flat to avoid topping out.',
-    gameOver,
-  };
-}
+const metrics = ${JSON.stringify(metrics, null, 2)};
+const priorities = ${JSON.stringify(
+					features.map((feature, index) => `${toTitleWords(feature)} stream ${index + 1}`),
+					null,
+					2,
+				)};
+const updates = ${JSON.stringify(
+					[
+						`${brand} approvals waiting on design review`,
+						`Critical ${features[0] ?? 'workflow'} automation needs refinement`,
+						`Leadership update scheduled for tomorrow morning`,
+					],
+					null,
+					2,
+				)};
 
 export default function App() {
-  const [game, setGame] = useState(() => createInitialGame());
-  const level = Math.floor(game.lines / 5) + 1;
-  const displayBoard = createDisplayBoard(game.board, game.piece);
-
-  const moveHorizontal = (delta) => {
-    setGame((current) => {
-      if (current.gameOver) return current;
-      const nextPiece = { ...current.piece, column: current.piece.column + delta };
-      return collides(current.board, nextPiece) ? current : { ...current, piece: nextPiece };
-    });
-  };
-
-  const rotateCurrent = () => {
-    setGame((current) => {
-      if (current.gameOver) return current;
-      const rotated = rotateShape(current.piece.shape);
-      const kickOffsets = [0, -1, 1, -2, 2];
-
-      for (const offset of kickOffsets) {
-        const candidate = {
-          ...current.piece,
-          shape: rotated,
-          column: current.piece.column + offset,
-        };
-        if (!collides(current.board, candidate)) {
-          return { ...current, piece: candidate };
-        }
-      }
-
-      return current;
-    });
-  };
-
-  const softDrop = () => {
-    setGame((current) => {
-      if (current.gameOver) return current;
-      const nextPiece = { ...current.piece, row: current.piece.row + 1 };
-      return collides(current.board, nextPiece)
-        ? lockPiece(current, current.piece)
-        : { ...current, piece: nextPiece };
-    });
-  };
-
-  const hardDrop = () => {
-    setGame((current) => {
-      if (current.gameOver) return current;
-      let droppedPiece = current.piece;
-      while (!collides(current.board, { ...droppedPiece, row: droppedPiece.row + 1 })) {
-        droppedPiece = { ...droppedPiece, row: droppedPiece.row + 1 };
-      }
-      return lockPiece(current, droppedPiece);
-    });
-  };
-
-  const restart = () => {
-    setGame(createInitialGame());
-  };
-
-  useEffect(() => {
-    if (game.gameOver) {
-      return undefined;
-    }
-
-    const delay = Math.max(180, 700 - (level - 1) * 45);
-    const timer = window.setInterval(() => {
-      setGame((current) => {
-        if (current.gameOver) return current;
-        const nextPiece = { ...current.piece, row: current.piece.row + 1 };
-        return collides(current.board, nextPiece)
-          ? lockPiece(current, current.piece)
-          : { ...current, piece: nextPiece };
-      });
-    }, delay);
-
-    return () => window.clearInterval(timer);
-  }, [game.gameOver, level]);
-
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.repeat) return;
-
-      if (['ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp', ' '].includes(event.key)) {
-        event.preventDefault();
-      }
-
-      if (event.key === 'ArrowLeft') moveHorizontal(-1);
-      if (event.key === 'ArrowRight') moveHorizontal(1);
-      if (event.key === 'ArrowDown') softDrop();
-      if (event.key === 'ArrowUp') rotateCurrent();
-      if (event.key === ' ') hardDrop();
-    };
-
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  });
-
   return (
     <main className="prototype-shell" style={{ '--accent': '${palette.accent}', '--page-bg': '${palette.background}' }}>
-      <section className="app-frame game-frame">
-        <header className="game-header">
-          <div>
-            <div className="eyebrow">Playable prototype</div>
-            <h1>${headline}</h1>
-            <p>${summary}</p>
+      <section className="app-frame dashboard-frame">
+        <aside className="sidebar">
+          <div className="brand-lockup">
+            <div className="brand-mark">${brand
+							.split(/\s+/)
+							.map((word) => word[0])
+							.join('')
+							.slice(0, 2)}</div>
+            <div>
+              <div className="eyebrow">Live operations</div>
+              <div className="brand-name">${brand}</div>
+            </div>
           </div>
-          <div className="game-metrics">
-            {[
-              { label: 'Score', value: String(game.score).padStart(4, '0') },
-              { label: 'Lines', value: String(game.lines) },
-              { label: 'Level', value: String(level) },
-            ].map((metric) => (
+          <div className="sidebar-copy">${badges.join(' · ')}</div>
+          <div className="sidebar-panel">
+            <span>Focus areas</span>
+            {priorities.map((item) => (
+              <div key={item} className="sidebar-chip">{item}</div>
+            ))}
+          </div>
+        </aside>
+
+        <section className="content">
+          <header className="hero-card">
+            <div>
+              <span className="eyebrow">${subjectTitle}</span>
+              <h1>${headline}</h1>
+              <p>${summary}</p>
+            </div>
+            <div className="hero-badge">Control Room</div>
+          </header>
+
+          <section className="metric-grid">
+            {metrics.map((metric) => (
               <article key={metric.label} className="metric-card">
                 <span>{metric.label}</span>
                 <strong>{metric.value}</strong>
               </article>
             ))}
-          </div>
-        </header>
-
-        <section className="game-layout">
-          <section className="board-shell">
-            <div className="board-hud">
-              <div>
-                <div className="panel-title">Current piece</div>
-                <strong>{game.piece.type}</strong>
-              </div>
-              <div className="board-score">
-                <span>Next {game.nextType}</span>
-                <span>{game.gameOver ? 'Game over' : 'Live demo'}</span>
-              </div>
-            </div>
-
-            <div className="game-board" aria-label="${title} board">
-              {displayBoard.flatMap((row, rowIndex) =>
-                row.map((cell, columnIndex) => (
-                  <div
-                    key={rowIndex + '-' + columnIndex}
-                    className={[
-                      'board-cell',
-                      cell === 1 ? 'board-cell--filled' : '',
-                      cell === 2 ? 'board-cell--active' : '',
-                    ].filter(Boolean).join(' ')}
-                  />
-                )),
-              )}
-            </div>
           </section>
 
-          <aside className="game-sidebar">
-            <section className="panel">
-              <div className="panel-title">Controls</div>
-              <div className="control-grid">
-                <button type="button" className="primary-button" onClick={() => moveHorizontal(-1)}>Move Left</button>
-                <button type="button" className="primary-button" onClick={() => moveHorizontal(1)}>Move Right</button>
-                <button type="button" className="secondary-button" onClick={rotateCurrent}>Rotate</button>
-                <button type="button" className="secondary-button" onClick={softDrop}>Soft Drop</button>
-                <button type="button" className="secondary-button" onClick={hardDrop}>Hard Drop</button>
-                <button type="button" className="secondary-button" onClick={restart}>Restart</button>
+          <section className="panel-grid">
+            <article className="panel">
+              <div className="panel-title">Priority queue</div>
+              <div className="stack-list">
+                {priorities.map((item, index) => (
+                  <div key={item} className="stack-row">
+                    <span className="stack-index">0{index + 1}</span>
+                    <span>{item}</span>
+                  </div>
+                ))}
               </div>
-            </section>
+            </article>
+            <article className="panel panel-accent">
+              <div className="panel-title panel-title-inverse">Executive updates</div>
+              <div className="update-list">
+                {updates.map((item) => (
+                  <div key={item} className="update-row">{item}</div>
+                ))}
+              </div>
+            </article>
+          </section>
+        </section>
+      </section>
+    </main>
+  );
+}`
+			: variant === 'app'
+				? `import { useState } from 'react';
+import './styles.css';
 
-            <section className="panel panel-accent-soft">
-              <div className="panel-title">Status</div>
-              <div className="app-list">
-                <div className="proof-row">{game.status}</div>
-                <div className="proof-row">Arrow keys move, Arrow Up rotates, and Space hard drops.</div>
-              </div>
-            </section>
+const starterItems = ${JSON.stringify(
+						features.map((feature, index) => ({
+							id: `item-\${index + 1}`,
+							label: `${toTitleWords(feature)} task`,
+						})),
+						null,
+						2,
+					)};
 
-            <section className="panel">
-              <div className="panel-title">Next piece</div>
-              <div className="queue-card">
-                <strong>{game.nextType} queued</strong>
-                <p>Keep the stack flat so the next spawn still has room.</p>
-                <button type="button" className="secondary-button" onClick={restart}>Restart run</button>
-              </div>
-            </section>
-          </aside>
+export default function App() {
+  const [items, setItems] = useState(starterItems);
+  const [draft, setDraft] = useState('');
+
+  const addItem = () => {
+    if (!draft.trim()) return;
+    setItems((current) => [...current, { id: crypto.randomUUID(), label: draft.trim() }]);
+    setDraft('');
+  };
+
+  return (
+    <main className="prototype-shell" style={{ '--accent': '${palette.accent}', '--page-bg': '${palette.background}' }}>
+      <section className="app-frame landing-frame">
+        <header className="nav-bar">
+          <div className="brand-lockup">
+            <div className="brand-mark">${brand
+							.split(/\s+/)
+							.map((word) => word[0])
+							.join('')
+							.slice(0, 2)}</div>
+            <div>
+              <div className="eyebrow">Interactive app</div>
+              <div className="brand-name">${brand}</div>
+            </div>
+          </div>
+          <div className="hero-badge">Prototype</div>
+        </header>
+
+        <section className="hero-card hero-card--landing">
+          <div>
+            <span className="eyebrow">${subjectTitle}</span>
+            <h1>${headline}</h1>
+            <p>${summary}</p>
+          </div>
+          <div className="hero-panel">
+            <div className="hero-panel-title">Live editor</div>
+            <div className="app-editor">
+              <input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Add an item" />
+              <button type="button" className="primary-button" onClick={addItem}>Add</button>
+            </div>
+            <div className="app-list">
+              {items.map((item) => (
+                <div key={item.id} className="proof-row">{item.label}</div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}`
+				: `import './styles.css';
+
+const features = ${JSON.stringify(
+						features.map((feature) => ({
+							title: toTitleWords(feature),
+							copy: `Built to improve ${feature} outcomes with faster execution and cleaner collaboration.`,
+						})),
+						null,
+						2,
+					)};
+const proofPoints = ${JSON.stringify(
+						[
+							`Teams adopt ${brand} in under 14 days`,
+							`${brand} shortens planning cycles by 32%`,
+							`Customers use ${subject.toLowerCase()} workflows daily`,
+						],
+						null,
+						2,
+					)};
+
+export default function App() {
+  return (
+    <main className="prototype-shell" style={{ '--accent': '${palette.accent}', '--page-bg': '${palette.background}' }}>
+      <section className="app-frame landing-frame">
+        <header className="nav-bar">
+          <div className="brand-lockup">
+            <div className="brand-mark">${brand
+							.split(/\s+/)
+							.map((word) => word[0])
+							.join('')
+							.slice(0, 2)}</div>
+            <div>
+              <div className="eyebrow">${subjectTitle}</div>
+              <div className="brand-name">${brand}</div>
+            </div>
+          </div>
+          <button type="button" className="primary-button">Book Demo</button>
+        </header>
+
+        <section className="hero-card hero-card--landing">
+          <div>
+            <span className="eyebrow">Conversion-ready website</span>
+            <h1>${headline}</h1>
+            <p>${summary}</p>
+            <div className="hero-actions">
+              <button type="button" className="primary-button">Start Free</button>
+              <button type="button" className="secondary-button">See the tour</button>
+            </div>
+          </div>
+          <div className="hero-panel">
+            <div className="hero-panel-title">Why teams choose ${brand}</div>
+            {proofPoints.map((item) => (
+              <div key={item} className="proof-row">{item}</div>
+            ))}
+          </div>
+        </section>
+
+        <section className="feature-grid">
+          {features.map((feature) => (
+            <article key={feature.title} className="feature-card">
+              <span className="feature-kicker">${subjectTitle}</span>
+              <h2>{feature.title}</h2>
+              <p>{feature.copy}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="cta-band">
+          <div>
+            <span className="eyebrow">Ready to launch</span>
+            <h2>Turn ${subject.toLowerCase()} into a clearer growth story.</h2>
+          </div>
+          <button type="button" className="primary-button">Create Your Site</button>
         </section>
       </section>
     </main>
@@ -2206,104 +1844,11 @@ button {
   grid-template-rows: auto auto auto auto;
   gap: 18px;
   padding: 18px;
-  container-type: inline-size;
 }
 
 .dashboard-frame {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
-  container-type: inline-size;
-}
-
-.game-frame {
-  display: grid;
-  gap: 18px;
-  padding: 18px;
-  container-type: inline-size;
-}
-
-.game-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.game-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
-  gap: 18px;
-}
-
-.board-shell {
-  display: grid;
-  gap: 14px;
-  border-radius: 24px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.92));
-  color: white;
-  padding: 18px;
-}
-
-.board-hud {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.board-score {
-  display: grid;
-  gap: 6px;
-  text-align: right;
-  color: rgba(226, 232, 240, 0.8);
-  font-size: 14px;
-}
-
-.game-board {
-  display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 6px;
-  min-height: clamp(320px, 56cqi, 640px);
-}
-
-.board-cell {
-  aspect-ratio: 1 / 1;
-  border-radius: 10px;
-  background: rgba(148, 163, 184, 0.14);
-  border: 1px solid rgba(148, 163, 184, 0.08);
-}
-
-.board-cell--filled {
-  background: rgba(59, 130, 246, 0.4);
-}
-
-.board-cell--active {
-  background: var(--accent);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 54%, transparent);
-}
-
-.game-sidebar,
-.game-metrics {
-  display: grid;
-  gap: 14px;
-}
-
-.control-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.panel-accent-soft {
-  background: color-mix(in srgb, var(--accent) 12%, white);
-}
-
-.queue-card {
-  display: grid;
-  gap: 12px;
-  margin-top: 12px;
 }
 
 .nav-bar,
@@ -2590,8 +2135,6 @@ p {
   }
 
   .dashboard-frame,
-  .game-header,
-  .game-layout,
   .hero-card,
   .feature-grid,
   .metric-grid,
@@ -2604,36 +2147,25 @@ p {
     display: block;
   }
 }
-
-@container (max-width: 760px) {
-  .game-header,
-  .game-layout,
-  .hero-card,
-  .panel-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@container (max-width: 520px) {
-  .game-board {
-    gap: 4px;
-  }
-
-  .control-grid,
-  .feature-grid,
-  .metric-grid {
-    grid-template-columns: 1fr;
-  }
-}
 `;
 	const base = normalizePrototypeOverlay({
-		title,
+		title:
+			variant === 'dashboard'
+				? `${brand} Dashboard`
+				: variant === 'app'
+					? `${brand} App`
+					: `${brand} Website`,
 		template,
 	});
 
 	return normalizePrototypeOverlay({
 		...base,
-		title,
+		title:
+			variant === 'dashboard'
+				? `${brand} Dashboard`
+				: variant === 'app'
+					? `${brand} App`
+					: `${brand} Website`,
 		dependencies: {},
 		activeFile: '/App.jsx',
 		files: {
@@ -2643,9 +2175,19 @@ p {
 			'/styles.css': createPrototypeFile(css),
 		},
 		preview: {
-			eyebrow: 'Playable prototype',
-			title,
-			description: previewDescription,
+			eyebrow:
+				variant === 'dashboard'
+					? 'Live workspace'
+					: variant === 'app'
+						? 'Interactive app'
+						: 'Prototype website',
+			title:
+				variant === 'dashboard'
+					? `${brand} Dashboard`
+					: variant === 'app'
+						? `${brand} App`
+						: `${brand} Website`,
+			description: summary,
 			accent: palette.accent,
 			background: palette.background,
 			badges,
@@ -2706,133 +2248,33 @@ function isStarterPrototypeOutput(prototype: PrototypeOverlayCustomData): boolea
 	);
 }
 
-function collectPrototypeSourceText(prototype: PrototypeOverlayCustomData): string {
-	return [
-		prototype.title,
-		JSON.stringify(prototype.preview ?? {}),
-		...Object.values(prototype.files).map((file) => file.code ?? ''),
-	].join('\n');
-}
-
-function countPrototypePatternMatches(text: string, patterns: RegExp[]): number {
-	return patterns.reduce((count, pattern) => count + (pattern.test(text) ? 1 : 0), 0);
-}
-
-function hasInteractivePrototypeBehavior(appCode: string): boolean {
-	const hasState = /useState|useReducer/.test(appCode);
-	const hasInteraction =
-		/onClick|onSubmit|onChange|onKeyDown|onKeyUp|addEventListener\(['"]keydown/.test(appCode);
-
-	return hasState && hasInteraction;
-}
-
-function looksLikeMarketingPrototype(sourceText: string): boolean {
-	const exactMatches = [
-		/Start Free/i,
-		/Book Demo/i,
-		/See the tour/i,
-		/Conversion-ready website/i,
-		/landing page/i,
-		/marketing site/i,
-		/landing-frame/i,
-		/hero-card--landing/i,
-		/\bhomepage\b/i,
-	];
-	if (exactMatches.some((pattern) => pattern.test(sourceText))) {
-		return true;
-	}
-
-	return (
-		countPrototypePatternMatches(sourceText, [
-			/\bpricing\b/i,
-			/\bwaitlist\b/i,
-			/\btestimonials?\b/i,
-			/\bcase studies?\b/i,
-			/\bcontact sales\b/i,
-			/\bfree trial\b/i,
-			/\brequest access\b/i,
-			/\bjoin the beta\b/i,
-			/\bcta-band\b/i,
-			/\bbook a demo\b/i,
-			/\bget started free\b/i,
-		]) >= 2
-	);
-}
-
-function hasGamePrototypeScaffolding(sourceText: string): boolean {
-	const boardSignals =
-		/game-board|playfield|board|arena|grid|cell|tile|tetromino|piece|boardRows|boardColumns/i;
-	const scoreSignals =
-		/\bscore\b|\blines\b|\blevel\b|\bcombo\b|\bqueue\b|\bnext piece\b|\bhigh score\b/i;
-	const controlSignals =
-		/move left|move right|rotate|hard drop|drop|restart|pause|ArrowLeft|ArrowRight|ArrowDown|keydown|onKeyDown/i;
-
-	return (
-		[boardSignals, scoreSignals, controlSignals].filter((pattern) => pattern.test(sourceText))
-			.length >= 2
-	);
-}
-
-function hasDashboardPrototypeScaffolding(sourceText: string): boolean {
-	return (
-		countPrototypePatternMatches(sourceText, [
-			/metric-grid|metric-card/i,
-			/\bsidebar\b/i,
-			/\bpanel\b/i,
-			/\btable\b/i,
-			/\bactivity\b/i,
-			/\banalytics\b/i,
-			/\bfilters?\b/i,
-			/\bcommand center\b/i,
-		]) >= 2
-	);
-}
-
-function hasAppPrototypeScaffolding(sourceText: string): boolean {
-	return (
-		countPrototypePatternMatches(sourceText, [
-			/<input\b/i,
-			/<textarea\b/i,
-			/<select\b/i,
-			/<form\b/i,
-			/\.map\(/,
-			/\bset[A-Z][A-Za-z0-9_]*\(/,
-			/\b(items?|tasks?|entries?|results?|filters?|workspace|editor|preview|list|queue|board)\b/i,
-			/\baddItem\b|\baddTask\b|\bremoveItem\b|\btoggleItem\b/i,
-		]) >= 3
-	);
-}
-
 function isFunctionalPrototypeOutput(
 	prototype: PrototypeOverlayCustomData,
 	message: string,
 ): boolean {
-	const variant = inferPrototypeVariant(message);
-	const appCode = normalizeSource(prototype.files['/App.jsx']?.code);
-	const sourceText = collectPrototypeSourceText(prototype);
-
-	if (looksLikeMarketingPrototype(sourceText)) {
-		return false;
+	if (!expectsFunctionalPrototype(message)) {
+		return true;
 	}
 
-	if (variant === 'calculator') {
+	const appCode = normalizeSource(prototype.files['/App.jsx']?.code);
+	const hasState = appCode.includes('useState');
+	const hasInteraction = appCode.includes('onClick') || appCode.includes('onSubmit');
+	const looksLikeMarketing =
+		appCode.includes('Start Free') ||
+		appCode.includes('Book Demo') ||
+		appCode.includes('See the tour') ||
+		appCode.includes('Conversion-ready website');
+
+	if (/calculator/i.test(message)) {
 		const hasCalculatorBehavior =
 			appCode.includes('evaluateExpression') ||
 			appCode.includes('CalculatorButton') ||
 			appCode.includes("label: '='") ||
 			appCode.includes("label: '÷'");
-		return hasInteractivePrototypeBehavior(appCode) && hasCalculatorBehavior;
+		return hasState && hasInteraction && hasCalculatorBehavior && !looksLikeMarketing;
 	}
 
-	if (variant === 'game') {
-		return hasInteractivePrototypeBehavior(appCode) && hasGamePrototypeScaffolding(sourceText);
-	}
-
-	if (variant === 'dashboard') {
-		return hasDashboardPrototypeScaffolding(sourceText);
-	}
-
-	return hasInteractivePrototypeBehavior(appCode) && hasAppPrototypeScaffolding(sourceText);
+	return hasState && hasInteraction && !looksLikeMarketing;
 }
 
 function buildMermaidDraft(
@@ -3133,8 +2575,32 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 					'The executor can attach a generated asset that stays in chat until you choose to insert it.',
 				].join('\n'),
 			};
+		case 'svg': {
+			const requestLabel = sentenceCase(input.message);
+			return {
+				content: [
+					'Prepared an SVG illustration draft for the canvas.',
+					'',
+					`Request: ${requestLabel}`,
+					'',
+					'```svg',
+					[
+						'<svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg">',
+						'  <rect width="480" height="320" rx="24" fill="#f8fafc"/>',
+						'  <rect x="36" y="120" width="180" height="132" rx="28" fill="#dbeafe"/>',
+						'  <circle cx="312" cy="174" r="54" fill="#bfdbfe"/>',
+						'  <path d="M252 252h120" stroke="#2563eb" stroke-width="18" stroke-linecap="round"/>',
+						`  <text x="36" y="70" fill="#0f172a" font-family="Arial, sans-serif" font-size="24" font-weight="600">${escapeSvgText(requestLabel)}</text>`,
+						'  <text x="36" y="98" fill="#475569" font-family="Arial, sans-serif" font-size="14">SVG placeholder draft. Refine with a more specific style or subject request.</text>',
+						'</svg>',
+					].join('\n'),
+					'```',
+				].join('\n'),
+			};
+		}
 		case 'prototype':
 			return buildPrototypeDraft(input);
+		case 'chat':
 		default:
 			return buildChatDraft(input);
 	}
@@ -3217,8 +2683,6 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 	}
 
 	if (generationMode === 'prototype') {
-		const prototypeRequestSeed = buildPrototypeRequestSeed(input);
-		const prototypeRequestVariant = inferPrototypeVariant(prototypeRequestSeed);
 		const currentPrototypeJson = input.prototypeContext
 			? JSON.stringify(
 					{
@@ -3243,13 +2707,10 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 		});
 		const json = extractCodeBlock(completion.text, 'json') ?? completion.text.trim();
 		const prototype = parsePrototypeArtifactContent(json);
-		const sourceText = prototype ? collectPrototypeSourceText(prototype) : '';
 		if (
 			!prototype ||
 			isStarterPrototypeOutput(prototype) ||
-			(prototypeRequestVariant === 'landing' && looksLikeMarketingPrototype(sourceText)) ||
-			(expectsFunctionalPrototype(prototypeRequestSeed) &&
-				!isFunctionalPrototypeOutput(prototype, prototypeRequestSeed))
+			!isFunctionalPrototypeOutput(prototype, input.message)
 		) {
 			return null;
 		}
@@ -3262,6 +2723,34 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 				'The response includes a full multi-file prototype payload for the custom runtime.',
 			].join('\n'),
 			artifacts: [{ type: 'prototype-files', content: serializePrototypeArtifact(prototype) }],
+		};
+	}
+
+	if (generationMode === 'svg') {
+		const previous = getLastSvgSource(input.history);
+		const completion = await createAnthropicMessage(input.bindings, {
+			system: [
+				systemPrompt,
+				'When the user asks for an SVG, produce vector-friendly illustration markup only.',
+			].join('\n'),
+			messages: buildAnthropicConversation(
+				input,
+				previous ? buildSvgEditPrompt(input.message, previous) : buildSvgPrompt(input.message),
+			),
+			maxTokens: 3000,
+		});
+		const svg = extractCodeBlock(completion.text, 'svg');
+		if (!svg) {
+			return null;
+		}
+		return {
+			content: [
+				'Prepared an SVG illustration draft for the canvas.',
+				'',
+				'```svg',
+				svg,
+				'```',
+			].join('\n'),
 		};
 	}
 

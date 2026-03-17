@@ -1,12 +1,12 @@
-import { createMiddleware } from 'hono/factory';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { eq } from 'drizzle-orm';
+import { createMiddleware } from 'hono/factory';
+import { buildAuthUser } from '../lib/auth/build-auth-user';
+import { syncAuthenticatedUser } from '../lib/auth/sync-user';
 import { createDb } from '../lib/db/client';
 import { users } from '../lib/db/schema';
 import { getAuthorizedParties } from '../lib/local-dev-origins';
 import { applySentryUserContext, logApiEvent } from '../lib/observability';
-import { buildAuthUser } from '../lib/auth/build-auth-user';
-import { syncAuthenticatedUser } from '../lib/auth/sync-user';
 import type { AppEnv } from '../types';
 import type { AuthUser } from '../types';
 
@@ -45,11 +45,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 
 		// Check if the user already exists in D1. For returning users this avoids
 		// a Clerk API call on every request, which is both faster and more resilient.
-		const existingRows = await db
-			.select()
-			.from(users)
-			.where(eq(users.id, session.sub))
-			.limit(1);
+		const existingRows = await db.select().from(users).where(eq(users.id, session.sub)).limit(1);
 
 		let user: AuthUser;
 

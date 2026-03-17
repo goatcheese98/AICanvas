@@ -1,20 +1,11 @@
-import { useCallback, type Dispatch, type SetStateAction } from 'react';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
-import type {
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import {
-	parseKanbanPatchArtifact,
-	parseMarkdownPatchArtifact,
-	parsePrototypePatchArtifact,
-} from './assistant-artifacts';
-import { clonePatchCustomData } from './ai-chat-helpers';
+import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import { updateOverlayElementById } from './ai-chat-canvas-mutations';
-import type {
-	AssistantPatchApplyOptions,
-	AssistantPatchApplyState,
-} from './ai-chat-types';
+import { clonePatchCustomData } from './ai-chat-helpers';
+import type { AssistantPatchApplyOptions, AssistantPatchApplyState } from './ai-chat-types';
+import { parseKanbanPatchArtifact, parseMarkdownPatchArtifact } from './assistant-artifacts';
 
 export function useAIChatPatchActions({
 	excalidrawApi,
@@ -57,7 +48,7 @@ export function useAIChatPatchActions({
 										settings: markdownPatch.next.settings,
 										editorMode: markdownPatch.next.editorMode,
 									},
-							  });
+								});
 
 					if (mode === 'reapply') {
 						updateOverlayElementById({
@@ -99,7 +90,7 @@ export function useAIChatPatchActions({
 									targetId: kanbanPatch.targetId,
 									targetType: 'kanban',
 									payload: kanbanPatch.next as unknown as Record<string, unknown>,
-							  });
+								});
 
 					if (mode === 'reapply') {
 						updateOverlayElementById({
@@ -117,41 +108,6 @@ export function useAIChatPatchActions({
 							status: 'applied',
 							targetId: kanbanPatch.targetId,
 							targetType: 'kanban',
-							previousCustomData: clonePatchCustomData(previousCustomData),
-						},
-					}));
-					return true;
-				}
-
-				const prototypePatch = parsePrototypePatchArtifact(artifact);
-				if (prototypePatch) {
-					const previousCustomData =
-						mode === 'reapply'
-							? assistantPatchStates[artifactKey]?.previousCustomData
-							: updateOverlayElementById({
-									excalidrawApi,
-									setElements,
-									targetId: prototypePatch.targetId,
-									targetType: 'prototype',
-									payload: prototypePatch.next as unknown as Record<string, unknown>,
-							  });
-
-					if (mode === 'reapply') {
-						updateOverlayElementById({
-							excalidrawApi,
-							setElements,
-							targetId: prototypePatch.targetId,
-							targetType: 'prototype',
-							payload: prototypePatch.next as unknown as Record<string, unknown>,
-						});
-					}
-
-					setAssistantPatchStates((current) => ({
-						...current,
-						[artifactKey]: {
-							status: 'applied',
-							targetId: prototypePatch.targetId,
-							targetType: 'prototype',
 							previousCustomData: clonePatchCustomData(previousCustomData),
 						},
 					}));

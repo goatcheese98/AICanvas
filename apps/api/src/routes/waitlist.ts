@@ -1,15 +1,13 @@
-import { Hono } from 'hono';
+import { waitlistSchemas } from '@ai-canvas/shared/schemas';
 import { zValidator } from '@hono/zod-validator';
 import { eq } from 'drizzle-orm';
-import { waitlistSchemas } from '@ai-canvas/shared/schemas';
+import { Hono } from 'hono';
 import { createDb } from '../lib/db/client';
 import { waitlistSubscriptions } from '../lib/db/schema';
 import type { AppEnv } from '../types';
 
 function isUniqueWaitlistEmailError(error: unknown): boolean {
-	return (
-		error instanceof Error && error.message.includes('waitlist_subscriptions_email_unique')
-	);
+	return error instanceof Error && error.message.includes('waitlist_subscriptions_email_unique');
 }
 
 export const waitlistRoutes = new Hono<AppEnv>().post(
@@ -25,10 +23,12 @@ export const waitlistRoutes = new Hono<AppEnv>().post(
 		});
 
 		if (existing) {
-			return c.json(waitlistSchemas.response.parse({
-				status: 'duplicate',
-				message: "You're already on the RoopStudio waitlist.",
-			}));
+			return c.json(
+				waitlistSchemas.response.parse({
+					status: 'duplicate',
+					message: "You're already on the RoopStudio waitlist.",
+				}),
+			);
 		}
 
 		try {
@@ -39,10 +39,12 @@ export const waitlistRoutes = new Hono<AppEnv>().post(
 			});
 		} catch (error) {
 			if (isUniqueWaitlistEmailError(error)) {
-				return c.json(waitlistSchemas.response.parse({
-					status: 'duplicate',
-					message: "You're already on the RoopStudio waitlist.",
-				}));
+				return c.json(
+					waitlistSchemas.response.parse({
+						status: 'duplicate',
+						message: "You're already on the RoopStudio waitlist.",
+					}),
+				);
 			}
 
 			throw error;

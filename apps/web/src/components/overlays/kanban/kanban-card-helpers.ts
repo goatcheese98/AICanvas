@@ -1,8 +1,4 @@
-import {
-	KANBAN_ACCENT_BORDER,
-	KANBAN_ACCENT_SURFACE,
-	KANBAN_ACCENT_TEXT,
-} from './kanban-theme';
+import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_TEXT } from './kanban-theme';
 
 const LABEL_TONES = [
 	{

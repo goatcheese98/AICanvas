@@ -1,3 +1,4 @@
+import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { describe, expect, it } from 'vitest';
 import {
 	createStarterKanbanColumns,
@@ -8,7 +9,6 @@ import {
 	normalizeKanbanBoard,
 	pushKanbanHistory,
 } from './kanban-utils';
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const board: KanbanOverlayCustomData = {
 	type: 'kanban',
@@ -17,7 +17,10 @@ const board: KanbanOverlayCustomData = {
 		{
 			id: 'todo',
 			title: 'To Do',
-			cards: [{ id: 'a', title: 'Task A' }, { id: 'b', title: 'Task B' }],
+			cards: [
+				{ id: 'a', title: 'Task A' },
+				{ id: 'b', title: 'Task B' },
+			],
 		},
 		{
 			id: 'done',

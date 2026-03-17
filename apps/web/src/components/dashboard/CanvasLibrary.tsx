@@ -1,16 +1,16 @@
-import { startTransition, useDeferredValue, useMemo, useState } from 'react';
+import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { canvasSchemas } from '@ai-canvas/shared/schemas';
+import type { Canvas } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { canvasSchemas } from '@ai-canvas/shared/schemas';
-import type { Canvas } from '@ai-canvas/shared/types';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { startTransition, useDeferredValue, useMemo, useState } from 'react';
 import { CanvasPreviewThumbnail } from './CanvasPreviewThumbnail';
 import {
+	type DashboardSortOption,
 	filterAndSortCanvases,
 	formatCanvasUpdatedAt,
 	hasCanvasTitleConflict,
-	type DashboardSortOption,
 } from './dashboard-utils';
 
 interface CanvasFormState {
@@ -51,9 +51,15 @@ function CanvasDetailsDialog({
 					<div className="flex items-start justify-between gap-4">
 						<div>
 							<p className="app-kicker">Canvas Details</p>
-							<h2 className="mt-3 text-2xl font-semibold text-[var(--color-text-primary)]">{title}</h2>
+							<h2 className="mt-3 text-2xl font-semibold text-[var(--color-text-primary)]">
+								{title}
+							</h2>
 						</div>
-						<button type="button" onClick={onClose} className="app-button app-button-secondary px-4 py-2.5">
+						<button
+							type="button"
+							onClick={onClose}
+							className="app-button app-button-secondary px-4 py-2.5"
+						>
 							Close
 						</button>
 					</div>
@@ -156,7 +162,11 @@ function CanvasCard({
 					/>
 
 					<div className="absolute left-3 top-3 flex flex-wrap gap-2">
-						<span className={canvas.isPublic ? 'app-badge app-badge-accent' : 'app-badge app-badge-muted'}>
+						<span
+							className={
+								canvas.isPublic ? 'app-badge app-badge-accent' : 'app-badge app-badge-muted'
+							}
+						>
 							{canvas.isPublic ? 'Public' : 'Private'}
 						</span>
 						{canvas.isFavorite ? <span className="app-badge app-badge-muted">Favorite</span> : null}
@@ -329,7 +339,9 @@ export function CanvasLibrary() {
 			void queryClient.invalidateQueries({ queryKey: ['canvases'] });
 		},
 		onError: (error) => {
-			setDeleteError(error instanceof Error ? error.message : 'Failed to delete canvas. Please try again.');
+			setDeleteError(
+				error instanceof Error ? error.message : 'Failed to delete canvas. Please try again.',
+			);
 		},
 	});
 
@@ -447,7 +459,9 @@ export function CanvasLibrary() {
 					Unable to load your canvases.
 				</div>
 				<p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--color-danger-text)]">
-					{canvasesQuery.error instanceof Error ? canvasesQuery.error.message : 'Failed to load canvases.'}
+					{canvasesQuery.error instanceof Error
+						? canvasesQuery.error.message
+						: 'Failed to load canvases.'}
 				</p>
 			</div>
 		);
@@ -483,11 +497,13 @@ export function CanvasLibrary() {
 					</label>
 
 					<div className="flex flex-wrap items-center gap-2">
-						{([
-							['recent', 'Recent'],
-							['alphabetical', 'A-Z'],
-							['favorites', 'Favorites'],
-						] as const).map(([value, label]) => (
+						{(
+							[
+								['recent', 'Recent'],
+								['alphabetical', 'A-Z'],
+								['favorites', 'Favorites'],
+							] as const
+						).map(([value, label]) => (
 							<button
 								key={value}
 								type="button"
@@ -515,11 +531,17 @@ export function CanvasLibrary() {
 			{filtered.length === 0 ? (
 				<div className="app-panel app-panel-strong rounded-[16px] px-8 py-14 text-center">
 					<div className="mx-auto max-w-xl">
-						<h2 className="text-2xl font-semibold text-[var(--color-text-primary)]">No canvases yet</h2>
+						<h2 className="text-2xl font-semibold text-[var(--color-text-primary)]">
+							No canvases yet
+						</h2>
 						<p className="mt-3 text-sm leading-7 text-[var(--color-text-secondary)]">
 							Create your first canvas to get started.
 						</p>
-						<button type="button" onClick={openCreateDialog} className="app-button app-button-primary mt-6">
+						<button
+							type="button"
+							onClick={openCreateDialog}
+							className="app-button app-button-primary mt-6"
+						>
 							Create Canvas
 						</button>
 					</div>
@@ -533,9 +555,9 @@ export function CanvasLibrary() {
 							onOpen={() => void navigate({ to: '/canvas/$id', params: { id: canvas.id } })}
 							onRename={() => openRenameDialog(canvas)}
 							onDelete={() => {
-						setDeleteError(null);
-						setDeleteTarget(canvas);
-					}}
+								setDeleteError(null);
+								setDeleteTarget(canvas);
+							}}
 							onToggleFavorite={() => toggleFavorite.mutate(canvas.id)}
 						/>
 					))}
@@ -578,7 +600,9 @@ export function CanvasLibrary() {
 				<div className="app-dialog-backdrop fixed inset-0 z-40 flex items-center justify-center p-4">
 					<div className="app-panel app-panel-strong w-full max-w-md overflow-hidden rounded-[18px]">
 						<div className="px-6 py-6">
-							<h2 className="text-xl font-semibold text-[var(--color-text-primary)]">Delete Canvas</h2>
+							<h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+								Delete Canvas
+							</h2>
 							<p className="mt-3 text-sm leading-6 text-[var(--color-text-secondary)]">
 								Are you sure you want to delete{' '}
 								<span className="font-semibold text-[var(--color-text-primary)]">

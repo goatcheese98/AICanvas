@@ -1,7 +1,48 @@
 import * as z from 'zod';
+import type { StoredAssistantAssetContent } from '../types/assistant';
 import { overlaySchemas } from './overlay';
 
-const generationModeSchema = z.enum(['chat', 'mermaid', 'd2', 'image', 'sketch', 'kanban', 'prototype']);
+const generationModeSchema = z.enum([
+	'chat',
+	'mermaid',
+	'd2',
+	'image',
+	'sketch',
+	'svg',
+	'kanban',
+	'prototype',
+]);
+export const storedAssistantAssetContentSchema: z.ZodType<StoredAssistantAssetContent> = z.object({
+	kind: z.literal('stored_asset'),
+	r2Key: z.string().min(1).max(2000),
+	mimeType: z.string().min(1).max(200),
+	provider: z.string().min(1).max(200),
+	model: z.string().min(1).max(200).optional(),
+	prompt: z.string().min(1).max(50000).optional(),
+	revisedPrompt: z.string().min(1).max(50000).optional(),
+	tool: z.string().min(1).max(200).optional(),
+	byteSize: z.number().int().nonnegative().optional(),
+	sourceArtifactId: z.string().min(1).max(200).optional(),
+	artifactId: z.string().min(1).max(200).optional(),
+	runId: z.string().min(1).max(200).optional(),
+});
+
+export function serializeStoredAssistantAssetContent(content: StoredAssistantAssetContent): string {
+	return JSON.stringify(storedAssistantAssetContentSchema.parse(content));
+}
+
+export function parseStoredAssistantAssetContent(
+	value: string,
+): StoredAssistantAssetContent | null {
+	try {
+		const parsed = JSON.parse(value) as unknown;
+		const result = storedAssistantAssetContentSchema.safeParse(parsed);
+		return result.success ? result.data : null;
+	} catch {
+		return null;
+	}
+}
+
 const threadTitleSchema = z
 	.string()
 	.trim()
@@ -130,26 +171,30 @@ const assistantContextSnapshotSchema = z.object({
 							high: z.number().int().min(0),
 						}),
 						labels: z.array(z.string().min(1).max(200)).max(500),
-						columns: z.array(
-							z.object({
-								id: z.string().min(1).max(200),
-								title: z.string().min(1).max(240),
-								cardCount: z.number().int().min(0),
-								cards: z.array(
-									z.object({
-										id: z.string().min(1).max(200),
-										title: z.string().min(1).max(240),
-										priority: z.enum(['low', 'medium', 'high']),
-										labels: z.array(z.string().min(1).max(200)).max(100),
-										hasDescription: z.boolean(),
-										dueDate: z.string().min(1).max(100).optional(),
-										isOverdue: z.boolean(),
-										completedChecklistItemCount: z.number().int().min(0),
-										totalChecklistItemCount: z.number().int().min(0),
-									}),
-								).max(2000),
-							}),
-						).max(200),
+						columns: z
+							.array(
+								z.object({
+									id: z.string().min(1).max(200),
+									title: z.string().min(1).max(240),
+									cardCount: z.number().int().min(0),
+									cards: z
+										.array(
+											z.object({
+												id: z.string().min(1).max(200),
+												title: z.string().min(1).max(240),
+												priority: z.enum(['low', 'medium', 'high']),
+												labels: z.array(z.string().min(1).max(200)).max(100),
+												hasDescription: z.boolean(),
+												dueDate: z.string().min(1).max(100).optional(),
+												isOverdue: z.boolean(),
+												completedChecklistItemCount: z.number().int().min(0),
+												totalChecklistItemCount: z.number().int().min(0),
+											}),
+										)
+										.max(2000),
+								}),
+							)
+							.max(200),
 					}),
 				}),
 				assistantSelectedContextBaseSchema.extend({

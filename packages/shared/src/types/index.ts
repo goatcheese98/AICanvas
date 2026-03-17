@@ -52,6 +52,7 @@ export type {
 	AssistantSelectedGenericContext,
 	AssistantMessage,
 	AssistantArtifact,
+	StoredAssistantAssetContent,
 	AssistantMarkdownPatchArtifact,
 	AssistantKanbanPatchArtifact,
 	AssistantPrototypePatchArtifact,

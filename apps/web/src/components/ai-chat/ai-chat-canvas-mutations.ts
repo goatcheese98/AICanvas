@@ -1,21 +1,11 @@
-import {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
-} from '@ai-canvas/shared/schemas';
-import type { CanvasElement } from '@ai-canvas/shared/types';
-import type {
-	BinaryFiles,
-	ExcalidrawImperativeAPI,
-} from '@excalidraw/excalidraw/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { getViewportSceneCenter } from '@/components/canvas/element-factories';
-import {
-	getSelectedSceneBounds,
-	getViewportSceneBounds,
-} from './ai-chat-canvas';
+import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
+import { normalizeKanbanOverlay, normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
+import type { CanvasElement } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import { getSelectedSceneBounds, getViewportSceneBounds } from './ai-chat-canvas';
 import { clonePatchCustomData } from './ai-chat-helpers';
 import type { AssistantInsertionState } from './ai-chat-types';
 
@@ -38,7 +28,7 @@ export function updateOverlayElementById({
 	excalidrawApi: ExcalidrawImperativeAPI | null;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
 	targetId: string;
-	targetType: 'markdown' | 'kanban' | 'prototype';
+	targetType: 'markdown' | 'kanban';
 	payload: Record<string, unknown>;
 }) {
 	if (!excalidrawApi) {
@@ -66,20 +56,6 @@ export function updateOverlayElementById({
 				images: markdown.images,
 				settings: markdown.settings,
 				editorMode: markdown.editorMode,
-			}) as typeof candidate;
-		}
-
-		if (targetType === 'prototype') {
-			const prototype = normalizePrototypeOverlay(payload);
-			return applyOverlayUpdateByType('prototype', candidate as never, {
-				title: prototype.title,
-				template: prototype.template,
-				files: prototype.files,
-				dependencies: prototype.dependencies,
-				preview: prototype.preview,
-				activeFile: prototype.activeFile,
-				showEditor: prototype.showEditor,
-				showPreview: prototype.showPreview,
 			}) as typeof candidate;
 		}
 

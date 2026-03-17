@@ -1,7 +1,7 @@
+import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { KanbanBoard } from './KanbanBoard';
 import type { KanbanBoardProps } from './kanban-board-types';
 

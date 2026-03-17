@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
-import { useAuth } from '@clerk/clerk-react';
-import type { AssistantThread, CanvasElement } from '@ai-canvas/shared/types';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '@/lib/api';
 import { useAppStore } from '@/stores/store';
+import type { AssistantThread, CanvasElement } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIChatPanel } from './AIChatPanel';
 
 vi.mock('@clerk/clerk-react', () => ({
@@ -19,6 +19,7 @@ vi.mock('@/lib/api', async (importOriginal) => {
 	return {
 		...original,
 		getRequiredAuthHeaders: vi.fn(),
+		fetchAssistantCapabilities: vi.fn(),
 		fetchAssistantThreads: vi.fn(),
 	};
 });
@@ -70,6 +71,10 @@ describe('AIChatPanel characterization', () => {
 		vi.mocked(api.getRequiredAuthHeaders).mockResolvedValue({
 			Authorization: 'Bearer test-token',
 		});
+		vi.mocked(api.fetchAssistantCapabilities).mockResolvedValue({
+			vectorizationEnabled: false,
+			svgGenerationEnabled: true,
+		});
 		vi.mocked(api.fetchAssistantThreads).mockResolvedValue([]);
 	});
 
@@ -80,9 +85,13 @@ describe('AIChatPanel characterization', () => {
 			screen.getByPlaceholderText('Describe the result you want on the canvas...'),
 		).toBeTruthy();
 		expect(screen.getByRole('button', { name: 'New Chat' })).toBeTruthy();
+		expect(screen.getByLabelText('Output style')).toBeTruthy();
 
 		await waitFor(() => {
 			expect(api.getRequiredAuthHeaders).toHaveBeenCalledWith(mockGetToken);
+			expect(api.fetchAssistantCapabilities).toHaveBeenCalledWith({
+				Authorization: 'Bearer test-token',
+			});
 			expect(api.fetchAssistantThreads).toHaveBeenCalledWith(canvasId, {
 				Authorization: 'Bearer test-token',
 			});

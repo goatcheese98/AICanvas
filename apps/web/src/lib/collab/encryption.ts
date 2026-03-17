@@ -5,10 +5,7 @@
  */
 
 export async function generateEncryptionKey(): Promise<CryptoKey> {
-	return crypto.subtle.generateKey({ name: 'AES-GCM', length: 128 }, true, [
-		'encrypt',
-		'decrypt',
-	]);
+	return crypto.subtle.generateKey({ name: 'AES-GCM', length: 128 }, true, ['encrypt', 'decrypt']);
 }
 
 export async function exportKey(key: CryptoKey): Promise<string> {
@@ -38,11 +35,7 @@ export async function encryptData(
 	};
 }
 
-export async function decryptData(
-	payload: string,
-	iv: string,
-	key: CryptoKey,
-): Promise<string> {
+export async function decryptData(payload: string, iv: string, key: CryptoKey): Promise<string> {
 	const ciphertext = Uint8Array.from(atob(payload), (c) => c.charCodeAt(0));
 	const ivBytes = Uint8Array.from(atob(iv), (c) => c.charCodeAt(0));
 	const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes }, key, ciphertext);

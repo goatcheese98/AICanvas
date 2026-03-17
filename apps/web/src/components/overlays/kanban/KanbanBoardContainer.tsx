@@ -1,10 +1,13 @@
+import {
+	getExcalidrawCornerRadius,
+	getExcalidrawSurfaceStyle,
+} from '@/components/canvas/excalidraw-element-style';
+import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { useEffect, useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
-import { getExcalidrawCornerRadius, getExcalidrawSurfaceStyle } from '@/components/canvas/excalidraw-element-style';
-import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
 import { KanbanBoardHeader } from './KanbanBoardHeader';
 import { KanbanBoardSettingsPanel } from './KanbanBoardSettingsPanel';
+import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
 import { KanbanDeleteColumnDialog } from './KanbanDeleteColumnDialog';
 import { KanbanDeleteDropZone } from './KanbanDeleteDropZone';
 import type { KanbanBoardProps } from './kanban-board-types';
@@ -211,7 +214,9 @@ export function KanbanBoardContainer({
 								onChange={(updates) => state.handleColumnChange(column.id, updates)}
 								onRequestDelete={() => state.handleRequestDeleteColumn(column.id)}
 								onAddCard={() => state.handleAddCard(column.id)}
-								onUpdateCard={(cardId, updates) => state.handleUpdateCard(column.id, cardId, updates)}
+								onUpdateCard={(cardId, updates) =>
+									state.handleUpdateCard(column.id, cardId, updates)
+								}
 								onDeleteCard={(cardId) => state.handleDeleteCard(column.id, cardId)}
 								onCardDragStart={drag.handleCardDragStart}
 								onCardDragEnd={drag.clearDragState}
@@ -226,7 +231,9 @@ export function KanbanBoardContainer({
 						</div>
 					))}
 
-					{drag.draggingColumnId && drag.projectedColumnDropId === null ? <ColumnDropIndicator /> : null}
+					{drag.draggingColumnId && drag.projectedColumnDropId === null ? (
+						<ColumnDropIndicator />
+					) : null}
 
 					<div className="flex w-[4.5rem] shrink-0 self-start flex-col items-end px-0 py-1">
 						<div aria-hidden="true" className="h-[2.35rem]" />
@@ -237,10 +244,12 @@ export function KanbanBoardContainer({
 								className="inline-flex h-[9.75rem] w-[3.75rem] shrink-0 flex-col items-center justify-center gap-2.5 border border-dashed px-1.5 py-2.5 text-[10px] font-semibold uppercase tracking-[0.18em] transition-colors"
 								style={{
 									borderRadius: `${Math.max(controlRadius, 0)}px`,
-									borderColor: 'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))',
+									borderColor:
+										'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))',
 									backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 72%, white)',
 									backgroundImage: 'var(--kanban-sketch-control-texture)',
-									color: 'color-mix(in srgb, var(--color-accent-text) 24%, var(--color-text-secondary))',
+									color:
+										'color-mix(in srgb, var(--color-accent-text) 24%, var(--color-text-secondary))',
 									boxShadow: 'var(--kanban-sketch-control-shadow)',
 								}}
 								onDragOver={drag.handleColumnDropAtEnd}

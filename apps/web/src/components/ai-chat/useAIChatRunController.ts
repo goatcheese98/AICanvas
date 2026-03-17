@@ -1,12 +1,3 @@
-import { useEffect, useState } from 'react';
-import type {
-	AssistantArtifact,
-	AssistantContextMode,
-	AssistantMessage,
-	AssistantRunCreated,
-	AssistantThread,
-	PrototypeOverlayCustomData,
-} from '@ai-canvas/shared/types';
 import {
 	api,
 	fetchAssistantRun,
@@ -16,26 +7,37 @@ import {
 	streamAssistantRunEvents,
 } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
-import {
-	applyAssistantRunEvent,
-	createAssistantRunProgress,
-	reconcileAssistantRunProgress,
-	type AssistantRunProgress,
-} from './run-progress';
+import type {
+	AssistantArtifact,
+	AssistantContextMode,
+	AssistantMessage,
+	AssistantRunCreated,
+	AssistantThread,
+	GenerationMode,
+	PrototypeOverlayCustomData,
+} from '@ai-canvas/shared/types';
+import { useEffect, useState } from 'react';
 import { AFFIRMATIVE_PATCH_REPLY, NEGATIVE_PATCH_REPLY } from './ai-chat-constants';
 import { buildConversationHistory } from './ai-chat-helpers';
-import { getSelectedElementIdsFromMap, shouldConfirmSelectionForPrompt } from './selection-context';
 import type {
 	AssistantPatchApplyState,
 	PatchArtifactDescriptor,
 	PendingSelectionConfirmation,
 } from './ai-chat-types';
+import {
+	type AssistantRunProgress,
+	applyAssistantRunEvent,
+	createAssistantRunProgress,
+	reconcileAssistantRunProgress,
+} from './run-progress';
+import { getSelectedElementIdsFromMap, shouldConfirmSelectionForPrompt } from './selection-context';
 
 export function useAIChatRunController({
 	canvasId,
 	getToken,
 	isSignedIn,
 	contextMode,
+	modeHint,
 	selectedElementIds,
 	input,
 	setInput,
@@ -56,6 +58,7 @@ export function useAIChatRunController({
 	getToken: () => Promise<string | null>;
 	isSignedIn: boolean | undefined;
 	contextMode: AssistantContextMode;
+	modeHint?: GenerationMode;
 	selectedElementIds: Record<string, boolean>;
 	input: string;
 	setInput: (value: string) => void;
@@ -205,6 +208,7 @@ export function useAIChatRunController({
 						canvasId,
 						message: text,
 						contextMode: effectiveContextMode,
+						modeHint,
 						history,
 						selectedElementIds: requestSelectedIds,
 						prototypeContext,

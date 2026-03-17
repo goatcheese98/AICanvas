@@ -20,11 +20,13 @@ vi.mock('@lexical/react/useLexicalNodeSelection', () => ({
 }));
 
 vi.mock('@lexical/utils', () => ({
-	mergeRegister: (...cleanups: Array<() => void>) => () => {
-		for (const cleanup of cleanups) {
-			cleanup();
-		}
-	},
+	mergeRegister:
+		(...cleanups: Array<() => void>) =>
+		() => {
+			for (const cleanup of cleanups) {
+				cleanup();
+			}
+		},
 }));
 
 vi.mock('lexical', () => ({

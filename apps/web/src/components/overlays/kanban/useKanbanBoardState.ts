@@ -1,6 +1,7 @@
+import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import type { KanbanBoardProps, UpdateKanbanBoard } from './kanban-board-types';
 import {
 	cloneKanbanBoard,
 	createKanbanCard,
@@ -10,7 +11,6 @@ import {
 	pushKanbanHistory,
 	serializeKanbanBoard,
 } from './kanban-utils';
-import type { KanbanBoardProps, UpdateKanbanBoard } from './kanban-board-types';
 
 interface UseKanbanBoardStateResult {
 	board: KanbanOverlayCustomData;
@@ -33,7 +33,10 @@ interface UseKanbanBoardStateResult {
 	handleUndo: () => void;
 	handleRedo: () => void;
 	commitBoardTitle: () => void;
-	handleColumnChange: (columnId: string, updates: Partial<KanbanOverlayCustomData['columns'][number]>) => void;
+	handleColumnChange: (
+		columnId: string,
+		updates: Partial<KanbanOverlayCustomData['columns'][number]>,
+	) => void;
 	handleRequestDeleteColumn: (columnId: string) => void;
 	handleAddCard: (columnId: string) => void;
 	handleUpdateCard: (
@@ -57,7 +60,10 @@ export function useKanbanBoardState({
 	onChange,
 	onEditingChange,
 }: KanbanBoardProps): UseKanbanBoardStateResult {
-	const normalizedInitialBoard = useMemo(() => normalizeKanbanBoard(element.customData), [element.customData]);
+	const normalizedInitialBoard = useMemo(
+		() => normalizeKanbanBoard(element.customData),
+		[element.customData],
+	);
 	const [board, setBoard] = useState<KanbanOverlayCustomData>(normalizedInitialBoard);
 	const [boardTitleDraft, setBoardTitleDraft] = useState(normalizedInitialBoard.title);
 	const [showSettings, setShowSettings] = useState(false);
@@ -146,7 +152,11 @@ export function useKanbanBoardState({
 	}, [isSelected]);
 
 	const persistBoard = useCallback(
-		(currentBoard: KanbanOverlayCustomData, nextBoard: KanbanOverlayCustomData, withHistory: boolean) => {
+		(
+			currentBoard: KanbanOverlayCustomData,
+			nextBoard: KanbanOverlayCustomData,
+			withHistory: boolean,
+		) => {
 			const normalized = normalizeKanbanBoard(nextBoard);
 			if (withHistory) {
 				undoStackRef.current = pushKanbanHistory(undoStackRef.current, currentBoard);
@@ -299,7 +309,7 @@ export function useKanbanBoardState({
 									cards: candidate.cards.map((card) =>
 										card.id === cardId ? { ...card, ...updates } : card,
 									),
-							  }
+								}
 							: candidate,
 					),
 				}),
@@ -319,7 +329,7 @@ export function useKanbanBoardState({
 							? {
 									...candidate,
 									cards: candidate.cards.filter((card) => card.id !== cardId),
-							  }
+								}
 							: candidate,
 					),
 				}),

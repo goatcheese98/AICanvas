@@ -1,27 +1,15 @@
+import { parseStoredAssistantAssetContent, serializeStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
 	AssistantArtifactRecord,
 	AssistantContextMode,
 	AssistantMessage,
+	AssistantTask,
 	AssistantTaskInput,
 	GenerationMode,
 } from '@ai-canvas/shared/types';
 import { generateAssistantResponse } from './service';
-
-interface StoredAssistantAssetContent {
-	kind: 'stored_asset';
-	r2Key: string;
-	mimeType: string;
-	provider: string;
-	model?: string;
-	prompt?: string;
-	revisedPrompt?: string;
-	tool?: string;
-	byteSize?: number;
-	sourceArtifactId?: string;
-	artifactId?: string;
-	runId?: string;
-}
+import { buildCanvasSafeImagePrompt } from './visual-prompts';
 
 function uniqueArtifacts(artifacts: AssistantArtifact[]): AssistantArtifact[] {
 	const seen = new Set<string>();
@@ -40,20 +28,78 @@ function enrichStoredArtifactContent(artifact: AssistantArtifactRecord): string 
 		return artifact.content;
 	}
 
-	try {
-		const parsed = JSON.parse(artifact.content) as StoredAssistantAssetContent;
-		if (parsed.kind !== 'stored_asset') {
-			return artifact.content;
-		}
-
-		return JSON.stringify({
-			...parsed,
-			artifactId: artifact.id,
-			runId: artifact.runId,
-		});
-	} catch {
+	const parsed = parseStoredAssistantAssetContent(artifact.content);
+	if (!parsed) {
 		return artifact.content;
 	}
+
+	return serializeStoredAssistantAssetContent({
+		...parsed,
+		artifactId: artifact.id,
+		runId: artifact.runId,
+	});
+}
+
+function getTaskOutputArtifactIds(task: AssistantTask): string[] {
+	if (!task.output) {
+		return [];
+	}
+
+	switch (task.output.kind) {
+		case 'artifact_created':
+		case 'placement_ready':
+			return task.output.artifactIds;
+		default:
+			return [];
+	}
+}
+
+export function resolveSourceArtifactForTask(params: {
+	artifacts: AssistantArtifactRecord[];
+	tasks: AssistantTask[];
+	currentTaskId: string;
+	sourceArtifactType: Extract<
+		AssistantTaskInput,
+		{ kind: 'vectorize_asset' }
+	>['sourceArtifactType'];
+	sourceArtifactId?: string;
+	sourceTaskType?: Extract<AssistantTaskInput, { kind: 'vectorize_asset' }>['sourceTaskType'];
+}): AssistantArtifactRecord | null {
+	if (params.sourceArtifactId) {
+		const sourceArtifact = params.artifacts.find(
+			(artifact) =>
+				artifact.id === params.sourceArtifactId && artifact.type === params.sourceArtifactType,
+		);
+		if (sourceArtifact) {
+			return sourceArtifact;
+		}
+	}
+
+	const currentTaskIndex = params.tasks.findIndex((task) => task.id === params.currentTaskId);
+	const priorTasks = currentTaskIndex >= 0 ? params.tasks.slice(0, currentTaskIndex) : params.tasks;
+
+	if (params.sourceTaskType) {
+		for (const task of [...priorTasks].reverse()) {
+			if (task.type !== params.sourceTaskType || task.status !== 'completed') {
+				continue;
+			}
+
+			for (const artifactId of [...getTaskOutputArtifactIds(task)].reverse()) {
+				const sourceArtifact = params.artifacts.find(
+					(artifact) => artifact.id === artifactId && artifact.type === params.sourceArtifactType,
+				);
+				if (sourceArtifact) {
+					return sourceArtifact;
+				}
+			}
+		}
+	}
+
+	return (
+		[...params.artifacts]
+			.reverse()
+			.find((artifact) => artifact.type === params.sourceArtifactType) ?? null
+	);
 }
 
 function summarizeRequest(message: string): string {
@@ -67,9 +113,7 @@ function stripImagePromptPrefix(prompt: string): string {
 		.trim();
 }
 
-function getLastImagePrompt(
-	history: AssistantMessage[] | undefined,
-): string | null {
+function getLastImagePrompt(history: AssistantMessage[] | undefined): string | null {
 	if (!Array.isArray(history)) {
 		return null;
 	}
@@ -80,14 +124,10 @@ function getLastImagePrompt(
 				continue;
 			}
 
-			try {
-				const parsed = JSON.parse(artifact.content) as StoredAssistantAssetContent;
-				const prompt = parsed.revisedPrompt ?? parsed.prompt;
-				if (parsed.kind === 'stored_asset' && typeof prompt === 'string' && prompt.trim().length > 0) {
-					return stripImagePromptPrefix(prompt);
-				}
-			} catch {
-				continue;
+			const parsed = parseStoredAssistantAssetContent(artifact.content);
+			const prompt = parsed?.revisedPrompt ?? parsed?.prompt;
+			if (typeof prompt === 'string' && prompt.trim().length > 0) {
+				return stripImagePromptPrefix(prompt);
 			}
 		}
 	}
@@ -115,10 +155,10 @@ export function createImageGenerationInput(
 
 	return {
 		kind: 'generate_image',
-		prompt:
-			mode === 'sketch'
-				? `Create a loose whiteboard sketch for: ${promptBody}`
-				: `Create a polished image for: ${promptBody}`,
+		prompt: buildCanvasSafeImagePrompt({
+			request: promptBody,
+			mode,
+		}),
 		style: mode,
 		outputTitle: mode === 'sketch' ? 'Generated sketch source image' : 'Generated source image',
 	};
@@ -221,7 +261,10 @@ export function buildResponseSummary(params: {
 	}
 
 	if (params.mode === 'prototype') {
-		lines.push('', 'The run prepared a multi-file prototype payload for the custom runtime and canvas preview.');
+		lines.push(
+			'',
+			'The run prepared a multi-file prototype payload for the custom runtime and canvas preview.',
+		);
 	}
 
 	return lines.join('\n');

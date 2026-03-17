@@ -1,14 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { enhanceUrl, isKnownEmbeddable } from '@/lib/web-embed-utils';
+import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
+	type WebEmbedViewMode,
 	clampPipPosition,
 	getDefaultPipPosition,
 	getPipDimensions,
-	type WebEmbedViewMode,
 } from './web-embed-view';
 
 type WebEmbedElement = ExcalidrawElement & {
@@ -22,12 +22,7 @@ interface WebEmbedProps {
 	onEditingChange?: (isEditing: boolean) => void;
 }
 
-export function WebEmbed({
-	element,
-	isSelected,
-	onChange,
-	onEditingChange,
-}: WebEmbedProps) {
+export function WebEmbed({ element, isSelected, onChange, onEditingChange }: WebEmbedProps) {
 	const [urlInput, setUrlInput] = useState(element.customData.url);
 	const [isEditing, setIsEditing] = useState(!element.customData.url);
 	const [viewMode, setViewMode] = useState<WebEmbedViewMode>('inline');
@@ -96,7 +91,10 @@ export function WebEmbed({
 		return () => window.removeEventListener('resize', onResize);
 	}, []);
 
-	const enhanced = useMemo(() => enhanceUrl(urlInput || element.customData.url), [element.customData.url, urlInput]);
+	const enhanced = useMemo(
+		() => enhanceUrl(urlInput || element.customData.url),
+		[element.customData.url, urlInput],
+	);
 	const previewUrl = enhanced.embedUrl || enhanced.url;
 	const canRenderIframe = Boolean(previewUrl && !enhanced.warning);
 	const embeddable = previewUrl ? isKnownEmbeddable(previewUrl) : false;
@@ -178,7 +176,9 @@ export function WebEmbed({
 						<button
 							type="button"
 							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={() => setViewMode((current) => (current === 'expanded' ? 'inline' : 'expanded'))}
+							onClick={() =>
+								setViewMode((current) => (current === 'expanded' ? 'inline' : 'expanded'))
+							}
 						>
 							Expand
 						</button>
@@ -252,10 +252,7 @@ export function WebEmbed({
 					height: pipDimensions.height,
 				}}
 			>
-				<div
-					className="h-full cursor-move"
-					onMouseDown={handlePipMouseDown}
-				>
+				<div className="h-full cursor-move" onMouseDown={handlePipMouseDown}>
 					{frame}
 				</div>
 			</div>,
@@ -266,9 +263,7 @@ export function WebEmbed({
 	if (viewMode === 'expanded' && typeof document !== 'undefined') {
 		return createPortal(
 			<div className="fixed inset-0 z-[1250] bg-stone-950/30 p-[5vh]">
-				<div className="h-full w-full">
-					{frame}
-				</div>
+				<div className="h-full w-full">{frame}</div>
 			</div>,
 			document.body,
 		);

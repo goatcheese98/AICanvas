@@ -1,6 +1,6 @@
+import type { PrototypeOverlayFile } from '@ai-canvas/shared/types';
 import * as esbuild from 'esbuild-wasm';
 import esbuildWasmUrl from 'esbuild-wasm/esbuild.wasm?url';
-import type { PrototypeOverlayFile } from '@ai-canvas/shared/types';
 
 type RuntimeFileMap = Record<string, PrototypeOverlayFile>;
 

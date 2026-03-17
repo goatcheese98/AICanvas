@@ -87,7 +87,7 @@ export function applyAssistantRunEvent(
 					type: taskType,
 					title: taskTitle,
 					status: taskStatus,
-					error: event.type === 'task.failed' ? event.data?.error ?? progress.error : undefined,
+					error: event.type === 'task.failed' ? (event.data?.error ?? progress.error) : undefined,
 					createdAt: event.createdAt,
 					updatedAt: event.createdAt,
 				}),

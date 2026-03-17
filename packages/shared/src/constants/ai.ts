@@ -1,10 +1,7 @@
 export const AI_MODELS = {
 	claude: {
 		default: 'claude-sonnet-4-20250514',
-		available: [
-			'claude-sonnet-4-20250514',
-			'claude-haiku-4-5-20251001',
-		],
+		available: ['claude-sonnet-4-20250514', 'claude-haiku-4-5-20251001'],
 	},
 	gemini: {
 		default: 'gemini-2.0-flash',

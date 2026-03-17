@@ -6,23 +6,21 @@ import type {
 	WebEmbedOverlayCustomData,
 } from './overlay';
 
-export type GenerationMode = 'chat' | 'mermaid' | 'd2' | 'image' | 'sketch' | 'kanban' | 'prototype';
+export type GenerationMode =
+	| 'chat'
+	| 'mermaid'
+	| 'd2'
+	| 'image'
+	| 'sketch'
+	| 'svg'
+	| 'kanban'
+	| 'prototype';
 
 export type AssistantContextMode = 'all' | 'selected' | 'none';
 
-export type AssistantRunStatus =
-	| 'queued'
-	| 'running'
-	| 'completed'
-	| 'failed'
-	| 'cancelled';
+export type AssistantRunStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
-export type AssistantTaskStatus =
-	| 'queued'
-	| 'running'
-	| 'completed'
-	| 'failed'
-	| 'cancelled';
+export type AssistantTaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
 
 export type AssistantTaskType =
 	| 'plan_run'
@@ -208,6 +206,21 @@ export interface AssistantArtifact {
 	content: string;
 }
 
+export interface StoredAssistantAssetContent {
+	kind: 'stored_asset';
+	r2Key: string;
+	mimeType: string;
+	provider: string;
+	model?: string;
+	prompt?: string;
+	revisedPrompt?: string;
+	tool?: string;
+	byteSize?: number;
+	sourceArtifactId?: string;
+	artifactId?: string;
+	runId?: string;
+}
+
 export interface AssistantMarkdownPatchArtifact {
 	kind: 'markdown_patch';
 	targetId: string;
@@ -279,6 +292,8 @@ export type AssistantTaskInput =
 	| {
 			kind: 'vectorize_asset';
 			sourceArtifactType: 'image';
+			sourceArtifactId?: string;
+			sourceTaskType?: Extract<AssistantTaskType, 'generate_image'>;
 			outputTitle: string;
 	  }
 	| {

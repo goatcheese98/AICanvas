@@ -53,7 +53,10 @@ export function parseMarkdownTable(markdown: string): TableRow[] {
 		const dataCells = lines[index]
 			.split('|')
 			.map((cell) => cell.trim())
-			.filter((cell, cellIndex, all) => !(cell === '' && (cellIndex === 0 || cellIndex === all.length - 1)));
+			.filter(
+				(cell, cellIndex, all) =>
+					!(cell === '' && (cellIndex === 0 || cellIndex === all.length - 1)),
+			);
 
 		rows.push({
 			id: createTableId('row', rows.length),
@@ -73,10 +76,7 @@ export function serializeMarkdownTable(rows: TableRow[]): string {
 
 	const columnCount = rows[0]?.cells.length ?? 0;
 	const widths = Array.from({ length: columnCount }, (_, columnIndex) =>
-		Math.max(
-			3,
-			...rows.map((row) => (row.cells[columnIndex]?.content ?? '').length),
-		),
+		Math.max(3, ...rows.map((row) => (row.cells[columnIndex]?.content ?? '').length)),
 	);
 
 	const formatRow = (row: TableRow) =>
@@ -182,18 +182,10 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 	return (
 		<div className="rounded-[10px] border border-indigo-200 bg-indigo-50/70 p-4">
 			<div className="mb-3 flex items-center justify-end gap-2">
-				<button
-					type="button"
-					onClick={addColumn}
-					className={TABLE_ACTION_BUTTON}
-				>
+				<button type="button" onClick={addColumn} className={TABLE_ACTION_BUTTON}>
 					Add column
 				</button>
-				<button
-					type="button"
-					onClick={addRow}
-					className={TABLE_ACTION_BUTTON}
-				>
+				<button type="button" onClick={addRow} className={TABLE_ACTION_BUTTON}>
 					Add row
 				</button>
 			</div>
@@ -228,7 +220,14 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 														disabled={columnCount <= 1}
 														className={`${TABLE_ICON_BUTTON} ${columnCount <= 1 ? 'cursor-not-allowed opacity-30 hover:bg-transparent hover:text-stone-400' : ''}`}
 													>
-														<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+														<svg
+															width="12"
+															height="12"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															strokeWidth="2"
+														>
 															<path d="M18 6 6 18" />
 															<path d="m6 6 12 12" />
 														</svg>
@@ -247,7 +246,14 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 											onClick={() => removeRow(rowIndex)}
 											className={TABLE_ICON_BUTTON}
 										>
-											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+											<svg
+												width="12"
+												height="12"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												strokeWidth="2"
+											>
 												<path d="M18 6 6 18" />
 												<path d="m6 6 12 12" />
 											</svg>

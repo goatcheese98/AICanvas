@@ -1,10 +1,10 @@
+import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { DragEvent, FormEvent, MouseEvent } from 'react';
-import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
-import { autosizeTextarea } from './kanban-card-helpers';
 import { KanbanCardDetails } from './KanbanCardDetails';
 import { KanbanCardShell } from './KanbanCardShell';
 import { KanbanCardSummary } from './KanbanCardSummary';
+import { autosizeTextarea } from './kanban-card-helpers';
 
 interface KanbanCardProps {
 	card: KanbanCardType;

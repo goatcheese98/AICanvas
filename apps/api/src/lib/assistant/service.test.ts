@@ -595,6 +595,20 @@ describe('assistant service', () => {
 			}),
 		).toBe('image');
 
+		expect(
+			resolveGenerationMode({
+				message: 'Create a vectorizable mascot logo for this idea',
+				contextMode: 'selected',
+			}),
+		).toBe('svg');
+
+		expect(
+			resolveGenerationMode({
+				message: 'creat an image of dog',
+				contextMode: 'selected',
+			}),
+		).toBe('image');
+
 		const result = await generateAssistantResponse({
 			message: 'diagram the auth flow for this canvas',
 			contextMode: 'all',
@@ -681,6 +695,30 @@ describe('assistant service', () => {
 				],
 			}),
 		).toBe('image');
+	});
+
+	it('keeps svg follow-ups on the svg path', () => {
+		expect(
+			resolveGenerationMode({
+				message: 'make the ears bigger and simplify the shapes',
+				contextMode: 'selected',
+				history: [
+					{
+						id: 'assistant-svg-1',
+						role: 'assistant',
+						content: [
+							'Prepared an SVG illustration draft.',
+							'',
+							'```svg',
+							'<svg></svg>',
+							'```',
+						].join('\n'),
+						generationMode: 'svg',
+						createdAt: new Date().toISOString(),
+					},
+				],
+			}),
+		).toBe('svg');
 	});
 
 	it('builds diagram edit prompts from the previous diagram source', async () => {

@@ -1,10 +1,7 @@
-import type { KeyboardEvent, RefObject } from 'react';
 import type { AssistantContextMode } from '@ai-canvas/shared/types';
+import type { RefObject } from 'react';
+import { PANEL_BUTTON, PANEL_BUTTON_ACTIVE } from './ai-chat-constants';
 import type { SelectionIndicator } from './ai-chat-types';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_ACTIVE,
-} from './ai-chat-constants';
 
 export function AIChatComposer({
 	chatError,

@@ -1,9 +1,6 @@
-import { useState } from 'react';
-import {
-	PANEL_BUTTON,
-	PANEL_BUTTON_IDLE,
-} from './ai-chat-constants';
 import { useResettableTimeout } from '@/hooks/useResettableTimeout';
+import { useState } from 'react';
+import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import { writeToClipboard } from './ai-chat-helpers';
 
 export function CopyButton({

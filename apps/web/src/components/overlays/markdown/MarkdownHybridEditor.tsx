@@ -1,18 +1,18 @@
+import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
-import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { MarkdownTableEditor } from './MarkdownTableEditor';
+import { handleImagePasteAsMarkdown } from './markdown-media';
 import {
+	type MarkdownBlock,
 	insertMarkdownBlock,
 	moveMarkdownBlock,
 	parseMarkdownBlocks,
-	removeMarkdownBlock,
 	reconstructMarkdown,
+	removeMarkdownBlock,
 	updateMarkdownBlock,
-	type MarkdownBlock,
 } from './markdown-parser';
-import { handleImagePasteAsMarkdown } from './markdown-media';
 
 interface MarkdownHybridEditorProps {
 	content: string;
@@ -57,10 +57,10 @@ export function MarkdownHybridEditor({
 
 	useEffect(() => {
 		const currentEditingBlock = editingBlockId
-			? localBlocksRef.current.find((block) => block.id === editingBlockId) ?? null
+			? (localBlocksRef.current.find((block) => block.id === editingBlockId) ?? null)
 			: null;
 		const nextEditingBlock = currentEditingBlock
-			? blocks.find((block) => block.startLine === currentEditingBlock.startLine) ?? null
+			? (blocks.find((block) => block.startLine === currentEditingBlock.startLine) ?? null)
 			: null;
 		localBlocksRef.current = blocks;
 		setLocalBlocks(blocks);
@@ -74,7 +74,10 @@ export function MarkdownHybridEditor({
 		[localBlocks, selectedBlockIds],
 	);
 	const visibleBlocks = useMemo(
-		() => localBlocks.filter((block) => settings.showEmptyLines || block.type !== 'empty' || editingBlockId === block.id),
+		() =>
+			localBlocks.filter(
+				(block) => settings.showEmptyLines || block.type !== 'empty' || editingBlockId === block.id,
+			),
 		[editingBlockId, localBlocks, settings.showEmptyLines],
 	);
 
@@ -176,26 +179,33 @@ export function MarkdownHybridEditor({
 										: draggedBlockId === block.id
 											? 'border-stone-300 bg-stone-100/80'
 											: 'border-transparent bg-transparent hover:border-stone-200 hover:bg-white/70'
-								}`}
+							}`}
+						>
+							<button
+								type="button"
+								aria-label="Insert empty line above"
+								title="Insert empty line above"
+								onClick={() => insertEmptyBlock(block.id, 'before')}
+								className={`${HYBRID_INSERT_BUTTON} -top-3`}
 							>
-								<button
-									type="button"
-									aria-label="Insert empty line above"
-									title="Insert empty line above"
-									onClick={() => insertEmptyBlock(block.id, 'before')}
-									className={`${HYBRID_INSERT_BUTTON} -top-3`}
+								<svg
+									width="12"
+									height="12"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
 								>
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M12 5v14" />
-										<path d="M5 12h14" />
-									</svg>
-								</button>
-								{dropTargetBlockId === block.id ? (
-									<div className="pointer-events-none absolute inset-x-2.5 -top-0.5 z-20">
-										<div className="h-[3px] rounded-[999px] bg-[#4d55cc] shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
-									</div>
-								) : null}
-								<div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-[8px] border border-stone-200 bg-white/95 p-[2px] opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
+									<path d="M12 5v14" />
+									<path d="M5 12h14" />
+								</svg>
+							</button>
+							{dropTargetBlockId === block.id ? (
+								<div className="pointer-events-none absolute inset-x-2.5 -top-0.5 z-20">
+									<div className="h-[3px] rounded-[999px] bg-[#4d55cc] shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
+								</div>
+							) : null}
+							<div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-[8px] border border-stone-200 bg-white/95 p-[2px] opacity-0 shadow-sm transition group-hover:opacity-100 group-focus-within:opacity-100">
 								<button
 									type="button"
 									title="Copy block"
@@ -203,7 +213,14 @@ export function MarkdownHybridEditor({
 									onClick={() => void copyBlock(block)}
 									className={`${HYBRID_ICON_BUTTON} hover:bg-[#f3f1ff] hover:text-[#4d55cc]`}
 								>
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<svg
+										width="14"
+										height="14"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+									>
 										<rect x="9" y="9" width="11" height="11" rx="2" />
 										<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
 									</svg>
@@ -215,7 +232,14 @@ export function MarkdownHybridEditor({
 									onClick={() => deleteBlock(block.id)}
 									className={`${HYBRID_ICON_BUTTON} hover:bg-rose-50 hover:text-rose-600`}
 								>
-									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+									<svg
+										width="14"
+										height="14"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+									>
 										<path d="M3 6h18" />
 										<path d="M8 6V4h8v2" />
 										<path d="M19 6l-1 14H6L5 6" />
@@ -247,7 +271,10 @@ export function MarkdownHybridEditor({
 							</div>
 							{isEditing ? (
 								block.type === 'table' ? (
-									<MarkdownTableEditor markdown={block.rawContent} onChange={(nextValue) => commitBlockChange(block.id, nextValue)} />
+									<MarkdownTableEditor
+										markdown={block.rawContent}
+										onChange={(nextValue) => commitBlockChange(block.id, nextValue)}
+									/>
 								) : (
 									<textarea
 										autoFocus
@@ -277,7 +304,7 @@ export function MarkdownHybridEditor({
 										}}
 									/>
 								)
-								) : (
+							) : (
 								<button
 									type="button"
 									onClick={(event) => {
@@ -303,38 +330,51 @@ export function MarkdownHybridEditor({
 											content={block.rawContent}
 											images={images}
 											settings={settings}
-											onCheckboxToggle={(lineIndex) => onCheckboxToggle(block.startLine + lineIndex)}
+											onCheckboxToggle={(lineIndex) =>
+												onCheckboxToggle(block.startLine + lineIndex)
+											}
 											className="px-3 py-2"
 										/>
 									)}
 								</button>
-								)}
-								<button
-									type="button"
-									aria-label="Insert empty line below"
-									title="Insert empty line below"
-									onClick={() => insertEmptyBlock(block.id, 'after')}
-									className={`${HYBRID_INSERT_BUTTON} -bottom-3`}
+							)}
+							<button
+								type="button"
+								aria-label="Insert empty line below"
+								title="Insert empty line below"
+								onClick={() => insertEmptyBlock(block.id, 'after')}
+								className={`${HYBRID_INSERT_BUTTON} -bottom-3`}
+							>
+								<svg
+									width="12"
+									height="12"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
 								>
-									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-										<path d="M12 5v14" />
-										<path d="M5 12h14" />
-									</svg>
-								</button>
+									<path d="M12 5v14" />
+									<path d="M5 12h14" />
+								</svg>
+							</button>
 						</div>
 					);
 				})}
 			</div>
 			{selectedBlocks.length > 1 ? (
 				<div className="pointer-events-none sticky bottom-4 z-20 mt-4 flex justify-center">
-					<div className={`pointer-events-auto flex items-center gap-2 px-3 py-2 ${HYBRID_TOOLBAR}`}>
+					<div
+						className={`pointer-events-auto flex items-center gap-2 px-3 py-2 ${HYBRID_TOOLBAR}`}
+					>
 						<span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 							{selectedBlocks.length} selected
 						</span>
 						<button
 							type="button"
 							onClick={async () => {
-								await navigator.clipboard.writeText(selectedBlocks.map((block) => block.rawContent).join('\n\n'));
+								await navigator.clipboard.writeText(
+									selectedBlocks.map((block) => block.rawContent).join('\n\n'),
+								);
 								setSelectedBlockIds(new Set());
 							}}
 							className={`${HYBRID_BUTTON} border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]`}

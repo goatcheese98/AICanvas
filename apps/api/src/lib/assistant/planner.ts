@@ -38,7 +38,7 @@ function getSelectedContexts(request: PlannerRequest) {
 
 function hasSingleSelectedContextKind(
 	request: PlannerRequest,
-	kind: 'kanban' | 'markdown' | 'prototype',
+	kind: 'kanban' | 'markdown',
 ): boolean {
 	const selectedContexts = getSelectedContexts(request);
 	return selectedContexts.length === 1 && selectedContexts[0]?.kind === kind;
@@ -57,20 +57,19 @@ function isEditIntent(message: string): boolean {
 }
 
 function shouldPatchSelectedKanban(request: PlannerRequest): boolean {
-	return hasSingleSelectedContextKind(request, 'kanban')
-		&& isEditIntent(request.message)
-		&& !isCreateNewArtifactIntent(request.message);
+	return (
+		hasSingleSelectedContextKind(request, 'kanban') &&
+		isEditIntent(request.message) &&
+		!isCreateNewArtifactIntent(request.message)
+	);
 }
 
 function shouldPatchSelectedMarkdown(request: PlannerRequest): boolean {
-	return hasSingleSelectedContextKind(request, 'markdown')
-		&& isEditIntent(request.message)
-		&& !isCreateNewArtifactIntent(request.message);
-}
-
-function shouldPatchSelectedPrototype(request: PlannerRequest): boolean {
-	return hasSingleSelectedContextKind(request, 'prototype')
-		&& (isEditIntent(request.message) || /\bturn this into\b|working demo/i.test(request.message));
+	return (
+		hasSingleSelectedContextKind(request, 'markdown') &&
+		isEditIntent(request.message) &&
+		!isCreateNewArtifactIntent(request.message)
+	);
 }
 
 function buildTaskTitle(mode: GenerationMode): string {
@@ -79,6 +78,8 @@ function buildTaskTitle(mode: GenerationMode): string {
 			return 'Generate Mermaid draft';
 		case 'd2':
 			return 'Generate D2 draft';
+		case 'svg':
+			return 'Generate SVG illustration';
 		case 'kanban':
 			return 'Generate Kanban operations';
 		case 'prototype':
@@ -128,6 +129,7 @@ function buildImagePipelineTasks(
 			input: {
 				kind: 'vectorize_asset',
 				sourceArtifactType: 'image',
+				sourceTaskType: 'generate_image',
 				outputTitle: 'Vectorized generated asset',
 			},
 		});
@@ -159,7 +161,9 @@ function buildImagePipelineTasks(
 	return tasks;
 }
 
-function buildDiagramTasks(mode: Extract<GenerationMode, 'mermaid' | 'd2'>): PlannedAssistantTask[] {
+function buildDiagramTasks(
+	mode: Extract<GenerationMode, 'mermaid' | 'd2'>,
+): PlannedAssistantTask[] {
 	return [
 		{
 			type: 'generate_response',
@@ -203,7 +207,6 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 		contextMode: request.contextMode,
 		generationMode: request.modeHint,
 		history: request.history,
-		prototypeContext: request.prototypeContext,
 	});
 
 	const imageTasks =
@@ -219,42 +222,38 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 									resolvedMode as Extract<GenerationMode, 'image' | 'sketch'>,
 									request.history,
 								),
-						  }
+							}
 						: task,
-			  )
+				)
 			: null;
 
 	return {
 		resolvedMode,
-		tasks:
-			imageTasks
-				? imageTasks
-				: resolvedMode === 'mermaid' || resolvedMode === 'd2'
-					? buildDiagramTasks(resolvedMode)
+		tasks: imageTasks
+			? imageTasks
+			: resolvedMode === 'mermaid' || resolvedMode === 'd2'
+				? buildDiagramTasks(resolvedMode)
 				: (() => {
-						const shouldPatchKanban = resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
-						const shouldPatchMarkdown = resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
-						const shouldPatchPrototype =
-							resolvedMode === 'prototype' && shouldPatchSelectedPrototype(request);
+						const shouldPatchKanban =
+							resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
+						const shouldPatchMarkdown =
+							resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
 						const includeArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban'
 								? shouldPatchKanban
 									? ['kanban-patch']
 									: ['kanban-ops']
 								: resolvedMode === 'prototype'
-									? shouldPatchPrototype
-										? ['prototype-patch']
-										: ['prototype-files']
+									? ['prototype-files']
 									: shouldPatchMarkdown
 										? ['markdown-patch']
 										: [];
 						const isInsertableCreation =
-							(resolvedMode === 'kanban' && !shouldPatchKanban)
-							|| (resolvedMode === 'prototype' && !shouldPatchPrototype);
+							(resolvedMode === 'kanban' && !shouldPatchKanban) || resolvedMode === 'prototype';
 						const targetArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban' && !shouldPatchKanban
 								? ['kanban-ops']
-								: resolvedMode === 'prototype' && !shouldPatchPrototype
+								: resolvedMode === 'prototype'
 									? ['prototype-files']
 									: [];
 						return [
@@ -270,13 +269,13 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 											? shouldPatchKanban
 												? 'Prepared a reversible Kanban patch for the selected board.'
 												: 'Prepared a new Kanban board for insertion onto the canvas.'
-											: resolvedMode === 'prototype'
-												? shouldPatchPrototype
-													? 'Prepared a reversible prototype patch for the selected prototype.'
-													: 'Prepared prototype files for the canvas.'
-												: shouldPatchMarkdown
-													? 'Prepared a reversible markdown patch for the selected note.'
-													: 'Prepared an assistant response for the canvas.',
+											: resolvedMode === 'svg'
+												? 'Prepared an SVG illustration draft.'
+												: resolvedMode === 'prototype'
+													? 'Prepared prototype files for the canvas.'
+													: shouldPatchMarkdown
+														? 'Prepared a reversible markdown patch for the selected note.'
+														: 'Prepared an assistant response for the canvas.',
 								},
 							},
 							...(isInsertableCreation
@@ -291,7 +290,7 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 												strategy: 'avoid-overlap' as const,
 											},
 										},
-								  ]
+									]
 								: []),
 							{
 								type: 'verify_run',
@@ -307,6 +306,6 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 								},
 							},
 						];
-				  })(),
+					})(),
 	};
 }

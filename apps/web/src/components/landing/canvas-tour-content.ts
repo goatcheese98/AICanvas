@@ -20,7 +20,7 @@ export interface CanvasTourChapter {
 	camera: {
 		x: number;
 		y: number;
-	zoom: number;
+		zoom: number;
 	};
 	overlay: CanvasTourGuideOverlay;
 	ai?: {

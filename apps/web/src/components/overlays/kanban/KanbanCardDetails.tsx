@@ -1,7 +1,7 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
+import { KanbanChecklistEditor } from './KanbanChecklistEditor';
 import { parseLabelInput } from './kanban-card-helpers';
 import { KANBAN_ACCENT_BORDER } from './kanban-theme';
-import { KanbanChecklistEditor } from './KanbanChecklistEditor';
 
 const PRIORITY_META = {
 	low: {
@@ -66,7 +66,8 @@ export function KanbanCardDetails({
 						className="w-full border px-3 py-2 text-xs outline-none"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 							background: 'var(--color-surface-strong)',
 							color: 'var(--color-text-primary)',
 							fontFamily: 'inherit',
@@ -88,7 +89,8 @@ export function KanbanCardDetails({
 						className="w-full border px-3 py-2 text-xs outline-none"
 						style={{
 							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor: 'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 10%, var(--color-border))',
 							background: 'var(--color-surface-strong)',
 							color: 'var(--color-text-primary)',
 							fontFamily: 'inherit',
@@ -123,10 +125,7 @@ export function KanbanCardDetails({
 										color: isActive ? meta.color : 'var(--color-text-secondary)',
 									}}
 								>
-									<span
-										className="h-1.5 w-1.5 rounded-full"
-										style={{ background: meta.color }}
-									/>
+									<span className="h-1.5 w-1.5 rounded-full" style={{ background: meta.color }} />
 									{meta.label}
 								</button>
 							);
