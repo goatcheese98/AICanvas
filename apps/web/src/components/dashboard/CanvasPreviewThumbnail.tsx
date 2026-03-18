@@ -1,8 +1,9 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 interface CanvasPreviewThumbnailProps {
 	canvasId: string;
@@ -17,6 +18,8 @@ export function CanvasPreviewThumbnail({
 }: CanvasPreviewThumbnailProps) {
 	const { getToken } = useAuth();
 	const [objectUrl, setObjectUrl] = useState<string | null>(null);
+	const objectUrlRef = useRef<string | null>(null);
+	const prevBlobRef = useRef<Blob | null>(null);
 
 	const previewQuery = useQuery({
 		queryKey: ['canvas-thumbnail', canvasId, thumbnailUrl],
@@ -57,17 +60,30 @@ export function CanvasPreviewThumbnail({
 		staleTime: 1000 * 60 * 5,
 	});
 
+	// Manage object URL lifecycle
 	useEffect(() => {
-		if (!previewQuery.data) {
-			setObjectUrl(null);
-			return;
+		const blob = previewQuery.data;
+		if (blob === prevBlobRef.current) return;
+
+		// Revoke previous URL
+		if (objectUrlRef.current) {
+			URL.revokeObjectURL(objectUrlRef.current);
+			objectUrlRef.current = null;
 		}
 
-		const nextObjectUrl = URL.createObjectURL(previewQuery.data);
-		setObjectUrl(nextObjectUrl);
+		// Create new URL if we have data
+		if (blob) {
+			objectUrlRef.current = URL.createObjectURL(blob);
+		}
+
+		prevBlobRef.current = blob ?? null;
+		setObjectUrl(objectUrlRef.current);
 
 		return () => {
-			URL.revokeObjectURL(nextObjectUrl);
+			if (objectUrlRef.current) {
+				URL.revokeObjectURL(objectUrlRef.current);
+				objectUrlRef.current = null;
+			}
 		};
 	}, [previewQuery.data]);
 

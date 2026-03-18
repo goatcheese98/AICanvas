@@ -1,8 +1,10 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useRef } from 'react';
 import { CodeSnippet } from './AIChatArtifactPrimitives';
 import { DiagramArtifactCard } from './AIChatDiagramArtifactCard';
 import { PatchArtifactCard } from './AIChatPatchArtifactCard';
@@ -16,51 +18,69 @@ import type {
 } from './ai-chat-types';
 import { describeAssistantArtifact } from './assistant-artifacts';
 
-function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
+function useStoredAssetPreview(artifact: AssistantArtifact) {
 	const { getToken, isSignedIn } = useAuth();
-	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-	const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+	const objectUrlRef = useRef<string | null>(null);
 
-	useEffect(() => {
-		const storedAsset = parseStoredAssistantAssetContent(artifact.content);
-		if (!isSignedIn || !storedAsset?.artifactId || !storedAsset.runId) {
-			setPreviewUrl(null);
-			setStatus('idle');
-			return;
-		}
-		const runId = storedAsset.runId;
-		const artifactId = storedAsset.artifactId;
-
-		let cancelled = false;
-		let objectUrl: string | null = null;
-		setStatus('loading');
-
-		void (async () => {
-			try {
-				const headers = await getRequiredAuthHeaders(async () => (await getToken?.()) ?? null);
-				const { blob } = await fetchAssistantArtifactAsset(runId, artifactId, headers);
-				if (cancelled) {
-					return;
-				}
-
-				objectUrl = URL.createObjectURL(blob);
-				setPreviewUrl(objectUrl);
-				setStatus('ready');
-			} catch {
-				if (!cancelled) {
-					setPreviewUrl(null);
-					setStatus('error');
-				}
-			}
-		})();
-
+	// Cleanup object URL on unmount
+	useMountEffect(() => {
 		return () => {
-			cancelled = true;
-			if (objectUrl) {
-				URL.revokeObjectURL(objectUrl);
+			if (objectUrlRef.current) {
+				URL.revokeObjectURL(objectUrlRef.current);
+				objectUrlRef.current = null;
 			}
 		};
-	}, [artifact.content, getToken, isSignedIn]);
+	});
+
+	const storedAsset = useMemo(
+		() => parseStoredAssistantAssetContent(artifact.content),
+		[artifact.content],
+	);
+
+	const query = useQuery({
+		queryKey: ['assistant-artifact-preview', storedAsset?.runId, storedAsset?.artifactId],
+		enabled: Boolean(isSignedIn && storedAsset?.runId && storedAsset?.artifactId),
+		queryFn: async () => {
+			// Revoke previous URL before fetching new one
+			if (objectUrlRef.current) {
+				URL.revokeObjectURL(objectUrlRef.current);
+				objectUrlRef.current = null;
+			}
+
+			// Type guard: storedAsset and its IDs are guaranteed by enabled check
+			if (!storedAsset?.runId || !storedAsset?.artifactId) {
+				throw new Error('Missing required asset identifiers');
+			}
+
+			const headers = await getRequiredAuthHeaders(async () => (await getToken?.()) ?? null);
+			const { blob } = await fetchAssistantArtifactAsset(
+				storedAsset.runId,
+				storedAsset.artifactId,
+				headers,
+			);
+			const url = URL.createObjectURL(blob);
+			objectUrlRef.current = url;
+			return url;
+		},
+		staleTime: 1000 * 60 * 5,
+	});
+
+	const status: 'idle' | 'loading' | 'ready' | 'error' =
+		!isSignedIn || !storedAsset?.artifactId || !storedAsset?.runId
+			? 'idle'
+			: query.isLoading
+				? 'loading'
+				: query.isError
+					? 'error'
+					: query.data
+						? 'ready'
+						: 'idle';
+
+	return { previewUrl: query.data ?? null, status };
+}
+
+function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
+	const { previewUrl, status } = useStoredAssetPreview(artifact);
 
 	if (status === 'idle') {
 		return null;

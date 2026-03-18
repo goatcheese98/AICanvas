@@ -1,11 +1,11 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { registerCodeHighlighting } from '@lexical/code';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { useEffect } from 'react';
 
 export default function CodeHighlightPlugin() {
 	const [editor] = useLexicalComposerContext();
 
-	useEffect(() => registerCodeHighlighting(editor), [editor]);
+	useMountEffect(() => registerCodeHighlighting(editor));
 
 	return null;
 }

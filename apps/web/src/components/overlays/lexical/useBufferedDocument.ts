@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
 
 export type BufferedCommitReason = 'debounce' | 'editing-exit' | 'deselect' | 'unmount';
 
@@ -129,48 +130,76 @@ export function useBufferedDocument({
 		[debounceMs, flush, publishDebugState],
 	);
 
-	useEffect(() => {
-		if (remoteValue === awaitingRemoteAckRef.current) {
+	// Track previous isEditing to detect change during render
+	const prevIsEditingRef = useRef(isEditing);
+
+	// Handle flush on editing exit during render
+	if (prevIsEditingRef.current && !isEditing) {
+		// Editing just ended, flush immediately
+		flush('editing-exit');
+	}
+	// Update the ref for next render
+	prevIsEditingRef.current = isEditing;
+
+	// External store sync for remoteValue changes
+	const lastProcessedRemoteValueRef = useRef(remoteValue);
+	const externalSyncCountRef = useRef(0);
+
+	const syncSnapshot = useSyncExternalStore(
+		useCallback(
+			(onStoreChange) => {
+				// This runs when remoteValue changes trigger a re-render
+				// We use a simple subscription that triggers on value changes
+				const checkForChanges = () => {
+					if (lastProcessedRemoteValueRef.current !== remoteValue) {
+						onStoreChange();
+					}
+				};
+				// Initial check
+				checkForChanges();
+				// Return cleanup (no-op for this pattern)
+				return () => {};
+			},
+			[remoteValue],
+		),
+		// Snapshot function - returns current value
+		() => remoteValue,
+		// Server snapshot (same for SSR)
+		() => remoteValue,
+	);
+
+	// Process remote value changes during render (derived state pattern)
+	if (syncSnapshot !== lastProcessedRemoteValueRef.current) {
+		const newRemoteValue = syncSnapshot;
+		lastProcessedRemoteValueRef.current = newRemoteValue;
+
+		if (newRemoteValue === awaitingRemoteAckRef.current) {
 			awaitingRemoteAckRef.current = null;
 			publishDebugState();
-			return;
-		}
-
-		if (remoteValue === latestLocalValueRef.current) {
+		} else if (newRemoteValue === latestLocalValueRef.current) {
 			publishDebugState();
-			return;
-		}
-
-		if (awaitingRemoteAckRef.current !== null) {
+		} else if (awaitingRemoteAckRef.current !== null) {
 			publishDebugState();
-			return;
-		}
-
-		if (pendingValueRef.current !== null || isEditing) {
+		} else if (pendingValueRef.current !== null || isEditing) {
 			publishDebugState();
-			return;
+		} else {
+			latestLocalValueRef.current = newRemoteValue;
+			setEditorInitialValue(newRemoteValue);
+			setEditorInstanceKey((current) => current + 1);
+			externalSyncCountRef.current += 1;
+			publishDebugState({
+				lastExternalSyncAt: Date.now(),
+				externalSyncCount: externalSyncCountRef.current,
+			});
 		}
+	}
 
-		latestLocalValueRef.current = remoteValue;
-		setEditorInitialValue(remoteValue);
-		setEditorInstanceKey((current) => current + 1);
-		publishDebugState({
-			lastExternalSyncAt: Date.now(),
-			externalSyncCount: debugState.externalSyncCount + 1,
-		});
-	}, [debugState.externalSyncCount, isEditing, publishDebugState, remoteValue]);
-
-	useEffect(() => {
-		if (isEditing) return;
-		flush('editing-exit');
-	}, [flush, isEditing]);
-
-	useEffect(
-		() => () => {
+	// Flush on unmount
+	useMountEffect(() => {
+		return () => {
 			flush('unmount');
-		},
-		[flush],
-	);
+		};
+	});
 
 	return {
 		editorInitialValue,

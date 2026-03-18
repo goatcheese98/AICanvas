@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import {
 	type D2RenderVariant,
 	downloadBlob,
@@ -5,37 +6,32 @@ import {
 	svgToPngBlob,
 } from '@/lib/assistant/diagram-renderer';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { CodeSnippet } from './AIChatArtifactPrimitives';
 import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import type { AssistantInsertionState, DiagramInsertInput } from './ai-chat-types';
 import { getDiagramArtifactSource } from './assistant-artifacts';
 
-export function DiagramArtifactCard({
-	artifactKey,
-	artifact,
-	insertionState,
-	onUndoInsertedArtifact,
-	onInsertRenderedDiagram,
-}: {
-	artifactKey: string;
-	artifact: AssistantArtifact;
-	insertionState?: AssistantInsertionState;
-	onUndoInsertedArtifact?: (artifactKey: string) => void;
-	onInsertRenderedDiagram?: (artifactKey: string, input: DiagramInsertInput) => void;
-}) {
-	const diagram = useMemo(() => getDiagramArtifactSource(artifact), [artifact]);
-	const [d2Variant, setD2Variant] = useState<D2RenderVariant>('default');
-	const [rendered, setRendered] = useState<{
-		svgMarkup: string;
-		width: number;
-		height: number;
-	} | null>(null);
+interface DiagramRenderState {
+	svgMarkup: string;
+	width: number;
+	height: number;
+}
+
+function useDiagramRenderer(
+	diagram: { language: 'mermaid' | 'd2'; code: string } | null,
+	d2Variant: D2RenderVariant,
+) {
+	const [rendered, setRendered] = useState<DiagramRenderState | null>(null);
 	const [renderError, setRenderError] = useState<string | null>(null);
 	const [isRendering, setIsRendering] = useState(false);
+	const abortRef = useRef<(() => void) | null>(null);
 
-	useEffect(() => {
-		if (!diagram) {
+	// Use derived state pattern - trigger re-render when dependencies change
+	const renderKey = diagram ? `${diagram.language}:${diagram.code}:${d2Variant}` : null;
+
+	useMountEffect(() => {
+		if (!diagram || !renderKey) {
 			setRendered(null);
 			setRenderError(null);
 			return;
@@ -67,10 +63,46 @@ export function DiagramArtifactCard({
 				}
 			});
 
-		return () => {
+		abortRef.current = () => {
 			isCurrent = false;
 		};
-	}, [d2Variant, diagram]);
+
+		return () => {
+			if (abortRef.current) {
+				abortRef.current();
+			}
+		};
+	});
+
+	// Reset state when diagram or variant changes (derived state pattern)
+	const prevKeyRef = useRef<string | null>(null);
+	if (renderKey !== prevKeyRef.current) {
+		prevKeyRef.current = renderKey;
+		if (!diagram) {
+			setRendered(null);
+			setRenderError(null);
+		}
+	}
+
+	return { rendered, renderError, isRendering };
+}
+
+export function DiagramArtifactCard({
+	artifactKey,
+	artifact,
+	insertionState,
+	onUndoInsertedArtifact,
+	onInsertRenderedDiagram,
+}: {
+	artifactKey: string;
+	artifact: AssistantArtifact;
+	insertionState?: AssistantInsertionState;
+	onUndoInsertedArtifact?: (artifactKey: string) => void;
+	onInsertRenderedDiagram?: (artifactKey: string, input: DiagramInsertInput) => void;
+}) {
+	const diagram = useMemo(() => getDiagramArtifactSource(artifact), [artifact]);
+	const [d2Variant, setD2Variant] = useState<D2RenderVariant>('default');
+	const { rendered, renderError, isRendering } = useDiagramRenderer(diagram, d2Variant);
 
 	if (!diagram) {
 		return null;

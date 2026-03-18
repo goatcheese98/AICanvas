@@ -1,5 +1,5 @@
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { DragEvent } from 'react';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { MarkdownTableEditor } from './MarkdownTableEditor';
@@ -51,23 +51,27 @@ export function MarkdownHybridEditor({
 	const [dropTargetBlockId, setDropTargetBlockId] = useState<string | null>(null);
 	const localBlocksRef = useRef(localBlocks);
 
-	useEffect(() => {
-		localBlocksRef.current = localBlocks;
-	}, [localBlocks]);
+	// Keep localBlocksRef in sync (justified ref sync for closures)
+	localBlocksRef.current = localBlocks;
 
-	useEffect(() => {
+	// Derived state: sync blocks from external content using ref comparison
+	// This replaces the useEffect external sync pattern
+	const lastBlocksRef = useRef(blocks);
+	const shouldSyncFromExternal = blocks !== lastBlocksRef.current;
+	if (shouldSyncFromExternal) {
 		const currentEditingBlock = editingBlockId
-			? (localBlocksRef.current.find((block) => block.id === editingBlockId) ?? null)
+			? (lastBlocksRef.current.find((block) => block.id === editingBlockId) ?? null)
 			: null;
 		const nextEditingBlock = currentEditingBlock
 			? (blocks.find((block) => block.startLine === currentEditingBlock.startLine) ?? null)
 			: null;
+		lastBlocksRef.current = blocks;
 		localBlocksRef.current = blocks;
 		setLocalBlocks(blocks);
 		if (currentEditingBlock && nextEditingBlock && nextEditingBlock.id !== editingBlockId) {
 			setEditingBlockId(nextEditingBlock.id);
 		}
-	}, [blocks]);
+	}
 
 	const selectedBlocks = useMemo(
 		() => localBlocks.filter((block) => selectedBlockIds.has(block.id)),

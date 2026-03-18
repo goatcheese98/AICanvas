@@ -6,7 +6,8 @@ import {
 } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import type { AssistantMessage, AssistantThread } from '@ai-canvas/shared/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 export function useAIChatThreads({
 	canvasId,
@@ -19,123 +20,134 @@ export function useAIChatThreads({
 	isSignedIn: boolean | undefined;
 	setChatError: (error: string | null) => void;
 }) {
-	const [threads, setThreads] = useState<AssistantThread[]>([]);
 	const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
-	const [isThreadsLoading, setIsThreadsLoading] = useState(false);
+	const queryClient = useQueryClient();
 
-	const currentThread = useMemo(
-		() => threads.find((thread) => thread.id === activeThreadId) ?? threads[0] ?? null,
-		[activeThreadId, threads],
+	const {
+		data: threads = [],
+		isLoading: isThreadsLoading,
+		error: threadsError,
+	} = useQuery<AssistantThread[]>({
+		queryKey: ['assistantThreads', canvasId],
+		queryFn: async () => {
+			const headers = await getRequiredAuthHeaders(getToken);
+			return await fetchAssistantThreads(canvasId, headers);
+		},
+		enabled: isSignedIn === true,
+		staleTime: 30 * 1000, // 30 seconds
+		gcTime: 5 * 60 * 1000, // 5 minutes
+	});
+
+	// Handle errors from the query using ref comparison pattern
+	const prevErrorRef = useRef<Error | null>(null);
+	if (threadsError && threadsError !== prevErrorRef.current) {
+		prevErrorRef.current = threadsError as Error;
+		captureBrowserException(threadsError, {
+			tags: {
+				area: 'ai_chat',
+				action: 'load_threads',
+			},
+			extra: {
+				canvasId,
+			},
+		});
+		setChatError(
+			threadsError instanceof Error ? threadsError.message : 'Failed to load assistant threads',
+		);
+	}
+
+	// Reset active thread when not signed in using derived state pattern
+	if (!isSignedIn && activeThreadId !== null) {
+		setActiveThreadId(null);
+	}
+
+	// Auto-select first thread using derived state with ref comparison
+	const currentThread = useMemo(() => {
+		const found = threads.find((thread) => thread.id === activeThreadId);
+		if (found) return found;
+		return threads[0] ?? null;
+	}, [activeThreadId, threads]);
+
+	// Auto-update activeThreadId when current thread changes using ref comparison
+	const expectedThreadId = currentThread?.id ?? null;
+	if (expectedThreadId !== activeThreadId) {
+		setActiveThreadId(expectedThreadId);
+	}
+
+	// Local optimistic updates - maintain a local override layer
+	const [localThreadOverrides, setLocalThreadOverrides] = useState<Map<string, AssistantThread>>(
+		new Map(),
 	);
 
-	useEffect(() => {
-		let cancelled = false;
+	const effectiveThreads = useMemo(() => {
+		return threads.map((thread) => localThreadOverrides.get(thread.id) ?? thread);
+	}, [threads, localThreadOverrides]);
 
-		const loadThreads = async () => {
-			if (!isSignedIn) {
-				if (!cancelled) {
-					setThreads([]);
-					setActiveThreadId(null);
-					setIsThreadsLoading(false);
-				}
-				return;
-			}
+	const appendMessageToThread = useCallback(
+		(threadId: string, message: AssistantMessage) => {
+			setLocalThreadOverrides((prev) => {
+				const next = new Map(prev);
+				const existingThread = threads.find((t) => t.id === threadId);
+				if (!existingThread) return prev;
 
-			setIsThreadsLoading(true);
-			try {
-				const headers = await getRequiredAuthHeaders(getToken);
-				const nextThreads = await fetchAssistantThreads(canvasId, headers);
-				if (cancelled) {
-					return;
-				}
-
-				setThreads(nextThreads);
-				setActiveThreadId((current) =>
-					nextThreads.some((thread) => thread.id === current)
-						? current
-						: (nextThreads[0]?.id ?? null),
-				);
-				setChatError(null);
-			} catch (error) {
-				if (!cancelled) {
-					captureBrowserException(error, {
-						tags: {
-							area: 'ai_chat',
-							action: 'load_threads',
-						},
-						extra: {
-							canvasId,
-						},
-					});
-					setChatError(error instanceof Error ? error.message : 'Failed to load assistant threads');
-				}
-			} finally {
-				if (!cancelled) {
-					setIsThreadsLoading(false);
-				}
-			}
-		};
-
-		void loadThreads();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [canvasId, getToken, isSignedIn, setChatError]);
-
-	const appendMessageToThread = useCallback((threadId: string, message: AssistantMessage) => {
-		setThreads((currentThreads) =>
-			currentThreads.map((thread) => {
-				if (thread.id !== threadId) {
-					return thread;
-				}
-
-				const nextMessages = [...thread.messages, message];
-				return {
-					...thread,
+				const currentThread = next.get(threadId) ?? existingThread;
+				const nextMessages = [...currentThread.messages, message];
+				next.set(threadId, {
+					...currentThread,
 					title:
-						thread.title === 'New chat' && message.role === 'user'
-							? message.content.trim().replace(/\s+/g, ' ').slice(0, 40) || thread.title
-							: thread.title,
+						currentThread.title === 'New chat' && message.role === 'user'
+							? message.content.trim().replace(/\s+/g, ' ').slice(0, 40) || currentThread.title
+							: currentThread.title,
 					messages: nextMessages,
 					updatedAt: message.createdAt,
-				};
-			}),
-		);
-	}, []);
+				});
+				return next;
+			});
+		},
+		[threads],
+	);
 
 	const createThread = useCallback(
 		async (title?: string) => {
 			const headers = await getRequiredAuthHeaders(getToken);
 			const thread = await createAssistantThread({ canvasId, title }, headers);
-			setThreads((currentThreads) => [thread, ...currentThreads]);
+			// Invalidate and refetch to get the new thread
+			await queryClient.invalidateQueries({ queryKey: ['assistantThreads', canvasId] });
 			setActiveThreadId(thread.id);
+			// Clear local overrides for fresh state
+			setLocalThreadOverrides(new Map());
 			return thread;
 		},
-		[canvasId, getToken],
+		[canvasId, getToken, queryClient],
 	);
 
 	const removeThread = useCallback(
 		async (threadId: string) => {
 			const headers = await getRequiredAuthHeaders(getToken);
 			await deleteAssistantThread(threadId, headers);
-			let nextActiveThreadId: string | null = null;
-			setThreads((currentThreads) => {
-				const remainingThreads = currentThreads.filter((thread) => thread.id !== threadId);
-				nextActiveThreadId = remainingThreads[0]?.id ?? null;
-				return remainingThreads;
-			});
+			// Find remaining threads after removal
+			const remainingThreads = threads.filter((thread) => thread.id !== threadId);
+			const nextActiveThreadId = remainingThreads[0]?.id ?? null;
 			setActiveThreadId((current) => (current === threadId ? nextActiveThreadId : current));
+			// Invalidate and refetch
+			await queryClient.invalidateQueries({ queryKey: ['assistantThreads', canvasId] });
+			// Remove from local overrides if present
+			setLocalThreadOverrides((prev) => {
+				const next = new Map(prev);
+				next.delete(threadId);
+				return next;
+			});
 		},
-		[getToken],
+		[canvasId, getToken, queryClient, threads],
 	);
 
 	return {
-		threads,
+		threads: effectiveThreads,
 		activeThreadId,
 		setActiveThreadId,
 		isThreadsLoading,
-		currentThread,
+		currentThread:
+			effectiveThreads.find((t) => t.id === activeThreadId) ?? effectiveThreads[0] ?? null,
 		appendMessageToThread,
 		createThread,
 		removeThread,

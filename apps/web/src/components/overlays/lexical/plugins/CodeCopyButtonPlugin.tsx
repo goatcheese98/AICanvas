@@ -1,7 +1,7 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { $isCodeNode, CodeNode } from '@lexical/code';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey } from 'lexical';
-import { useEffect } from 'react';
 
 const BTN_CLASS = 'canvas-code-copy';
 
@@ -42,15 +42,13 @@ function injectCopyButton(editor: ReturnType<typeof useLexicalComposerContext>[0
 export default function CodeCopyButtonPlugin() {
 	const [editor] = useLexicalComposerContext();
 
-	useEffect(
-		() =>
-			editor.registerMutationListener(CodeNode, (mutations) => {
-				for (const [key, mutation] of mutations) {
-					if (mutation === 'destroyed') continue;
-					requestAnimationFrame(() => injectCopyButton(editor, key));
-				}
-			}),
-		[editor],
+	useMountEffect(() =>
+		editor.registerMutationListener(CodeNode, (mutations) => {
+			for (const [key, mutation] of mutations) {
+				if (mutation === 'destroyed') continue;
+				requestAnimationFrame(() => injectCopyButton(editor, key));
+			}
+		}),
 	);
 
 	return null;

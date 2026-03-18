@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface TableCell {
 	id: string;
@@ -102,17 +102,25 @@ function createEmptyCell(rowIndex: number, cellIndex: number, isHeader: boolean)
 }
 
 export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorProps) {
-	const [rows, setRows] = useState<TableRow[]>(() => parseMarkdownTable(markdown));
 	const lastCommittedMarkdownRef = useRef(normalizeMarkdownTable(markdown));
-	const serializedRows = useMemo(() => serializeMarkdownTable(rows), [rows]);
 
-	useEffect(() => {
-		const normalizedIncoming = normalizeMarkdownTable(markdown);
-		if (normalizedIncoming !== lastCommittedMarkdownRef.current) {
-			setRows(parseMarkdownTable(markdown));
-			lastCommittedMarkdownRef.current = normalizedIncoming;
-		}
-	}, [markdown]);
+	// Derived state: parse markdown when it changes externally
+	// Use a ref to track last committed value to avoid resetting when we emit changes
+	const normalizedIncoming = normalizeMarkdownTable(markdown);
+	const shouldSyncFromExternal = normalizedIncoming !== lastCommittedMarkdownRef.current;
+
+	const [localRows, setLocalRows] = useState<TableRow[]>(() => parseMarkdownTable(markdown));
+
+	// Sync from external markdown when it differs from our last committed state
+	// This uses the "derived state" pattern instead of useEffect
+	const rows = shouldSyncFromExternal ? parseMarkdownTable(markdown) : localRows;
+	if (shouldSyncFromExternal) {
+		// Update local state and ref to match external
+		setLocalRows(rows);
+		lastCommittedMarkdownRef.current = normalizedIncoming;
+	}
+
+	const serializedRows = useMemo(() => serializeMarkdownTable(rows), [rows]);
 
 	const columnCount = useMemo(() => rows[0]?.cells.length ?? 0, [rows]);
 
@@ -123,7 +131,7 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 	const commitRows = (nextRows: TableRow[]) => {
 		const nextMarkdown = serializeMarkdownTable(nextRows);
 		lastCommittedMarkdownRef.current = nextMarkdown;
-		setRows(nextRows);
+		setLocalRows(nextRows);
 		onChange(nextMarkdown);
 	};
 

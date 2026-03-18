@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
 	$getSelection,
@@ -6,7 +7,6 @@ import {
 	type LexicalCommand,
 	createCommand,
 } from 'lexical';
-import { useEffect } from 'react';
 import { $createEquationNode, EquationNode } from '../nodes/EquationNode';
 
 export const INSERT_EQUATION_COMMAND: LexicalCommand<{
@@ -17,7 +17,7 @@ export const INSERT_EQUATION_COMMAND: LexicalCommand<{
 export default function EquationPlugin() {
 	const [editor] = useLexicalComposerContext();
 
-	useEffect(() => {
+	useMountEffect(() => {
 		if (!editor.hasNodes([EquationNode])) {
 			throw new Error('EquationPlugin: EquationNode not registered on editor');
 		}
@@ -33,7 +33,7 @@ export default function EquationPlugin() {
 			},
 			COMMAND_PRIORITY_EDITOR,
 		);
-	}, [editor]);
+	});
 
 	return null;
 }

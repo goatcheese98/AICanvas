@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import {
 	decryptData,
 	encryptData,
@@ -11,7 +12,7 @@ import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/sh
 import { reconcileElements } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
 	type CollaborationSessionStatus,
 	buildRoomHash,
@@ -580,8 +581,11 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		[broadcastCursorThrottled],
 	);
 
-	useEffect(() => {
-		if (!excalidrawApi || !isCollaboratingRef.current) return;
+	// Sync pending scene when excalidrawApi becomes available
+	// Using ref-based pattern to avoid useEffect dependency issues
+	const lastSyncedApiRef = useRef<typeof excalidrawApi>(null);
+	if (excalidrawApi && lastSyncedApiRef.current !== excalidrawApi && isCollaboratingRef.current) {
+		lastSyncedApiRef.current = excalidrawApi;
 
 		const pending = pendingSceneRef.current;
 		if (pending) {
@@ -593,7 +597,7 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		if (ws && ws.readyState === WebSocket.OPEN) {
 			ws.send(JSON.stringify({ type: 'resync-request' satisfies ClientToServerMessage['type'] }));
 		}
-	}, [applyRemoteScene, excalidrawApi]);
+	}
 
 	const syncWithLocationHash = useCallback(() => {
 		if (typeof window === 'undefined') return;
@@ -637,22 +641,23 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			});
 	}, [connect, stopSession]);
 
-	useEffect(() => {
-		if (typeof window === 'undefined') return;
+	// Hash change listener setup with cleanup
+	useMountEffect(() => {
 		syncWithLocationHash();
 		window.addEventListener('hashchange', syncWithLocationHash);
 		return () => {
 			window.removeEventListener('hashchange', syncWithLocationHash);
 		};
-	}, [syncWithLocationHash]);
+	});
 
-	useEffect(() => {
+	// Cleanup on unmount
+	useMountEffect(() => {
 		return () => {
 			encKeyRef.current = null;
 			if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
 			wsRef.current?.close();
 		};
-	}, []);
+	});
 
 	return {
 		isCollaborating,

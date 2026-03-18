@@ -1,7 +1,7 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { $isCodeNode, CodeNode } from '@lexical/code';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getNodeByKey, $nodesOfType } from 'lexical';
-import { useEffect } from 'react';
 import { detectCodeLanguage } from '../utils/detectCodeLanguage';
 
 const DEBOUNCE_MS = 500;
@@ -10,7 +10,7 @@ const UPDATE_TAG = 'auto-lang-detect';
 export default function AutoCodeLanguagePlugin() {
 	const [editor] = useLexicalComposerContext();
 
-	useEffect(() => {
+	useMountEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | null = null;
 
 		const unregister = editor.registerUpdateListener(({ tags }) => {
@@ -59,7 +59,7 @@ export default function AutoCodeLanguagePlugin() {
 			unregister();
 			if (timer) clearTimeout(timer);
 		};
-	}, [editor]);
+	});
 
 	return null;
 }

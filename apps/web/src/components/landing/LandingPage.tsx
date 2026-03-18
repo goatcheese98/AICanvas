@@ -1,9 +1,9 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { waitlistSchemas } from '@ai-canvas/shared/schemas';
 import {
 	type CSSProperties,
 	type FormEvent,
 	startTransition,
-	useEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -73,7 +73,7 @@ export function LandingPage() {
 		});
 	};
 
-	useEffect(() => {
+	useMountEffect(() => {
 		if (typeof IntersectionObserver === 'undefined') return;
 
 		const observer = new IntersectionObserver(
@@ -102,9 +102,9 @@ export function LandingPage() {
 		}
 
 		return () => observer.disconnect();
-	}, []);
+	});
 
-	useEffect(() => {
+	useMountEffect(() => {
 		if (typeof window === 'undefined') return;
 		const initialHash = window.location.hash.replace('#', '');
 		if (!initialHash) return;
@@ -114,7 +114,7 @@ export function LandingPage() {
 		requestAnimationFrame(() => {
 			scrollToChapter(initialHash, 'auto');
 		});
-	}, []);
+	});
 
 	const activeChapter = useMemo(
 		() =>

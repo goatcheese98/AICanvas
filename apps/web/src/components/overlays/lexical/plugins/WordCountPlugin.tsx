@@ -1,6 +1,7 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { $getRoot } from 'lexical';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 function countWords(text: string): number {
 	const trimmed = text.trim();
@@ -12,7 +13,7 @@ export default function WordCountPlugin({ show }: { show: boolean }) {
 	const [words, setWords] = useState(0);
 	const [characters, setCharacters] = useState(0);
 
-	useEffect(() => {
+	useMountEffect(() => {
 		const update = () => {
 			editor.getEditorState().read(() => {
 				const text = $getRoot().getTextContent();
@@ -23,7 +24,7 @@ export default function WordCountPlugin({ show }: { show: boolean }) {
 
 		update();
 		return editor.registerUpdateListener(update);
-	}, [editor]);
+	});
 
 	if (!show) return null;
 

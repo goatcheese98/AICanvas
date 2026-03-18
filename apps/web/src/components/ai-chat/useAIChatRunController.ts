@@ -16,7 +16,7 @@ import type {
 	GenerationMode,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { AFFIRMATIVE_PATCH_REPLY, NEGATIVE_PATCH_REPLY } from './ai-chat-constants';
 import { buildConversationHistory } from './ai-chat-helpers';
 import type {
@@ -82,23 +82,34 @@ export function useAIChatRunController({
 	) => PrototypeOverlayCustomData | undefined;
 	appendLocalAssistantMessage: (content: string) => void;
 }) {
-	const [runProgress, setRunProgress] = useState<AssistantRunProgress | null>(null);
+	const [runProgress, setRunProgressState] = useState<AssistantRunProgress | null>(null);
 	const [isRunProgressExpanded, setIsRunProgressExpanded] = useState(true);
 	const [pendingSelectionConfirmation, setPendingSelectionConfirmation] =
 		useState<PendingSelectionConfirmation>(null);
 
-	useEffect(() => {
-		if (!runProgress) {
-			return;
-		}
-
-		if (runProgress.status === 'queued' || runProgress.status === 'running') {
-			setIsRunProgressExpanded(true);
-			return;
-		}
-
-		setIsRunProgressExpanded(false);
-	}, [runProgress?.runId, runProgress?.status]);
+	// Helper to update run progress and sync UI state (derived state pattern)
+	const setRunProgress = useCallback(
+		(
+			value:
+				| AssistantRunProgress
+				| null
+				| ((prev: AssistantRunProgress | null) => AssistantRunProgress | null),
+		) => {
+			setRunProgressState((prev) => {
+				const next = typeof value === 'function' ? value(prev) : value;
+				// Sync expanded state based on run status
+				if (next) {
+					if (next.status === 'queued' || next.status === 'running') {
+						setIsRunProgressExpanded(true);
+					} else {
+						setIsRunProgressExpanded(false);
+					}
+				}
+				return next;
+			});
+		},
+		[],
+	);
 
 	const sendMessage = async (options?: {
 		contextModeOverride?: AssistantContextMode;
@@ -223,8 +234,11 @@ export function useAIChatRunController({
 			}
 
 			const created = (await response.json()) as AssistantRunCreated;
-			setRunProgress(createAssistantRunProgress(created));
+			// Set initial progress and expand the UI
+			setRunProgressState(createAssistantRunProgress(created));
+			setIsRunProgressExpanded(true);
 			await streamAssistantRunEvents(created.runId, headers, (event) => {
+				// Update progress - use wrapper to sync expanded state
 				setRunProgress((current) =>
 					current && current.runId === created.runId
 						? applyAssistantRunEvent(current, event)
@@ -254,6 +268,7 @@ export function useAIChatRunController({
 				fetchAssistantRunTasks(created.runId, headers),
 				fetchAssistantRunArtifacts(created.runId, headers),
 			]);
+			// Use wrapper to sync expanded state based on final status
 			setRunProgress((current) =>
 				current && current.runId === created.runId
 					? reconcileAssistantRunProgress(current, {

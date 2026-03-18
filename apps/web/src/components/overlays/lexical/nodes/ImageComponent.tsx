@@ -1,4 +1,5 @@
 import './ImageNode.css';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
 import { mergeRegister } from '@lexical/utils';
@@ -10,7 +11,7 @@ import {
 	KEY_ESCAPE_COMMAND,
 	type NodeKey,
 } from 'lexical';
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { $isImageNode } from './ImageNode';
 import { computeResizeDimensions, computeScale } from './imageResizeMath';
 
@@ -52,11 +53,8 @@ function SuspendedImage({
 }) {
 	const status = useSuspenseImage(src);
 
-	useEffect(() => {
-		if (status.error) onError();
-	}, [onError, status.error]);
-
 	if (status.error) {
+		onError();
 		return <span style={{ color: '#9ca3af', fontSize: 13 }}>Image failed to load</span>;
 	}
 
@@ -121,23 +119,23 @@ export default function ImageComponent({
 		[clearSelection, editor, isSelected, setSelected],
 	);
 
-	useEffect(
-		() =>
-			mergeRegister(
-				editor.registerCommand(
-					KEY_ESCAPE_COMMAND,
-					() => {
-						if (!isSelected) return false;
-						clearSelection();
-						return true;
-					},
-					COMMAND_PRIORITY_LOW,
-				),
+	useMountEffect(() => {
+		const cleanup = mergeRegister(
+			editor.registerCommand(
+				KEY_ESCAPE_COMMAND,
+				() => {
+					if (!isSelected) return false;
+					clearSelection();
+					return true;
+				},
+				COMMAND_PRIORITY_LOW,
 			),
-		[clearSelection, editor, isSelected],
-	);
-
-	useEffect(() => clearResizeListeners, [clearResizeListeners]);
+		);
+		return () => {
+			cleanup();
+			clearResizeListeners();
+		};
+	});
 
 	const onHandlePointerDown = useCallback(
 		(event: React.PointerEvent) => {

@@ -3,7 +3,7 @@ import {
 	getExcalidrawSurfaceStyle,
 } from '@/components/canvas/excalidraw-element-style';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { KanbanBoardHeader } from './KanbanBoardHeader';
 import { KanbanBoardSettingsPanel } from './KanbanBoardSettingsPanel';
@@ -20,6 +20,7 @@ import {
 } from './kanban-theme';
 import { useKanbanBoardState } from './useKanbanBoardState';
 import { useKanbanDragState } from './useKanbanDragState';
+import { useMountEffect } from '@/hooks/useMountEffect';
 
 function ColumnDropIndicator() {
 	return (
@@ -77,25 +78,23 @@ export function KanbanBoardContainer({
 		updateBoard: state.updateBoard,
 	});
 
-	useEffect(() => {
-		if (isSelected) return;
-		drag.clearDragState();
-	}, [drag.clearDragState, isSelected]);
-
-	useEffect(() => {
-		if (!state.showSettings) return;
-
+	useMountEffect(() => {
 		const handlePointerDown = (event: MouseEvent) => {
-			if (!settingsRef.current?.contains(event.target as Node)) {
+			// Close settings when clicking outside
+			if (state.showSettings && !settingsRef.current?.contains(event.target as Node)) {
 				state.setShowSettings(false);
+			}
+			// Clear drag state when clicking outside the board
+			if (!isSelected) {
+				drag.clearDragState();
 			}
 		};
 
 		document.addEventListener('mousedown', handlePointerDown);
 		return () => document.removeEventListener('mousedown', handlePointerDown);
-	}, [state.setShowSettings, state.showSettings]);
+	});
 
-	useEffect(() => {
+	useMountEffect(() => {
 		const handleKeyDown = (event: KeyboardEvent) => {
 			if (event.key !== 'Escape') return;
 			state.handleEscapeKey();
@@ -104,7 +103,7 @@ export function KanbanBoardContainer({
 
 		window.addEventListener('keydown', handleKeyDown);
 		return () => window.removeEventListener('keydown', handleKeyDown);
-	}, [drag.clearDragState, state.handleEscapeKey]);
+	});
 
 	const activeTheme = getKanbanBackgroundTheme(state.board.bgTheme);
 	const activeFont = getKanbanFontOption(state.board.fontId);

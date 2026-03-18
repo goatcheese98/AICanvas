@@ -1,7 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import type { BinaryFileData } from '@excalidraw/excalidraw/types';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { CanvasTourChapter, CanvasTourGuideOverlay } from './canvas-tour-content';
 import { canvasTourChapters } from './canvas-tour-content';
+import {
+	OVERLAY_DEFAULT_HEIGHT_REM,
+	type OverlayPlacementBounds,
+	type OverlayPlacementPreset,
+	type OverlaySafeArea,
+	buildOverlayPlacementBounds,
+	buildSafeArea,
+	calculateOverlayPreset,
+	clamp,
+	clampOverlayPlacement,
+	getRootFontSizePx,
+} from './canvas-tour-page-utils';
 import type {
 	RegisteredTourSceneLibrary,
 	RegisteredTourSceneSnapshot,
@@ -11,27 +24,13 @@ import {
 	loadRegisteredTourScenes,
 	persistRegisteredTourScenes,
 } from './canvas-tour-registry';
-import {
-	buildOverlayPlacementBounds,
-	buildSafeArea,
-	clamp,
-	clampOverlayPlacement,
-	getRootFontSizePx,
-	type OverlayPlacementBounds,
-	type OverlayPlacementPreset,
-	type OverlaySafeArea,
-	OVERLAY_DEFAULT_HEIGHT_REM,
-	OVERLAY_MAX_WIDTH_REM,
-	OVERLAY_MIN_WIDTH_REM,
-	calculateOverlayPreset,
-} from './canvas-tour-page-utils';
+import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
 import type {
 	ApplySceneSnapshotOptions,
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
 } from './useCanvasTourSceneController';
-import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 
 const IS_DEV = import.meta.env.DEV;
 
@@ -96,19 +95,28 @@ export interface CanvasTourPageState {
 	registerCurrentLayout: (
 		getCurrentSceneSnapshot: () => CanvasSceneSnapshot,
 		createCameraFromAppState: (appState: Partial<unknown>) => CameraTarget,
-		applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+		applySceneSnapshot: (
+			snapshot: CanvasSceneSnapshot,
+			options?: ApplySceneSnapshotOptions,
+		) => void,
 	) => void;
 	restoreRegisteredLayout: (
 		imageFileData: BinaryFileData | null,
 		buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
 		buildExploreAppState: (camera: CameraTarget) => Partial<unknown>,
-		applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+		applySceneSnapshot: (
+			snapshot: CanvasSceneSnapshot,
+			options?: ApplySceneSnapshotOptions,
+		) => void,
 		setExploreSessionSnapshot: (snapshot: CanvasSceneSnapshot | null) => void,
 	) => void;
 	clearRegisteredLayout: (
 		imageFileData: BinaryFileData | null,
 		buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
-		applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+		applySceneSnapshot: (
+			snapshot: CanvasSceneSnapshot,
+			options?: ApplySceneSnapshotOptions,
+		) => void,
 	) => void;
 	saveOverlayDraft: () => void;
 	applyOverlayDraft: () => void;
@@ -204,8 +212,8 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		[registeredSceneLibrary],
 	);
 
-	// Effects for measuring viewport and overlay shell
-	useEffect(() => {
+	// Use mount effect for viewport measurement with ResizeObserver
+	useMountEffect(() => {
 		if (typeof window === 'undefined') return;
 		const root = document.documentElement;
 		const stageNode = stageViewportRef.current;
@@ -228,9 +236,13 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		observer.observe(stageNode);
 		observer.observe(root);
 		return () => observer.disconnect();
-	}, []);
+	});
 
-	useEffect(() => {
+	// Use mount effect for overlay shell measurement with ResizeObserver
+	// Re-run when dependencies change by using a key ref pattern
+	const shellMeasureKey = `${isGuideMode}:${isRegistryOpen}:${registrySceneId}`;
+	const prevShellMeasureKeyRef = useRef(shellMeasureKey);
+	useMountEffect(() => {
 		if (typeof window === 'undefined') return;
 		const shellNode = overlayShellRef.current;
 		if (!shellNode) {
@@ -247,14 +259,27 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		const observer = new ResizeObserver(() => measure());
 		observer.observe(shellNode);
 		return () => observer.disconnect();
-	}, [isGuideMode, isRegistryOpen, registrySceneId, overlayDraft, guideOverlay]);
+	});
+	// Re-measure shell when key changes (derived state pattern)
+	if (shellMeasureKey !== prevShellMeasureKeyRef.current) {
+		prevShellMeasureKeyRef.current = shellMeasureKey;
+		if (typeof window !== 'undefined' && overlayShellRef.current) {
+			setOverlayShellHeightPx(overlayShellRef.current.getBoundingClientRect().height);
+		}
+	}
 
-	// Update overlay draft when registry scene changes
-	useEffect(() => {
-		const nextOverlay =
-			getRegisteredSceneForId(registrySceneId)?.overlay ?? resolveChapter(registrySceneId).overlay;
-		setOverlayDraft(nextOverlay);
-	}, [getRegisteredSceneForId, registeredSceneLibrary, registrySceneId, resolveChapter]);
+	// Derived state pattern: compute next overlay from registrySceneId
+	const nextOverlayFromRegistry = useMemo(
+		() =>
+			getRegisteredSceneForId(registrySceneId)?.overlay ?? resolveChapter(registrySceneId).overlay,
+		[getRegisteredSceneForId, registrySceneId, resolveChapter],
+	);
+	// Sync overlayDraft when registry scene changes using ref comparison
+	const prevOverlayRef = useRef(nextOverlayFromRegistry);
+	if (nextOverlayFromRegistry !== prevOverlayRef.current) {
+		prevOverlayRef.current = nextOverlayFromRegistry;
+		setOverlayDraft(nextOverlayFromRegistry);
+	}
 
 	// Actions
 	const resetDemo = useCallback(() => {
@@ -318,7 +343,10 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		(
 			getCurrentSceneSnapshot: () => CanvasSceneSnapshot,
 			createCameraFromAppState: (appState: Partial<unknown>) => CameraTarget,
-			applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+			applySceneSnapshot: (
+				snapshot: CanvasSceneSnapshot,
+				options?: ApplySceneSnapshotOptions,
+			) => void,
 		) => {
 			if (isGuideMode) {
 				setDevCaptureStatus('Switch to Explore Demo before registering a layout.');
@@ -379,7 +407,10 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 			imageFileData: BinaryFileData | null,
 			buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
 			buildExploreAppState: (camera: CameraTarget) => Partial<unknown>,
-			applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+			applySceneSnapshot: (
+				snapshot: CanvasSceneSnapshot,
+				options?: ApplySceneSnapshotOptions,
+			) => void,
 			setExploreSessionSnapshot: (snapshot: CanvasSceneSnapshot | null) => void,
 		) => {
 			const registered = getRegisteredSceneForId(registrySceneId);
@@ -426,7 +457,10 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		(
 			imageFileData: BinaryFileData | null,
 			buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
-			applySceneSnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+			applySceneSnapshot: (
+				snapshot: CanvasSceneSnapshot,
+				options?: ApplySceneSnapshotOptions,
+			) => void,
 		) => {
 			const nextScenes = { ...(registeredSceneLibrary?.scenes ?? {}) };
 			delete nextScenes[registrySceneId];
@@ -549,7 +583,13 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 		[layoutPanelWidthPx, rootFontSizePx, stageViewportSize],
 	);
 	const editorSafeArea = useMemo(
-		() => buildSafeArea(IS_DEV && !isGuideMode && isRegistryOpen, stageViewportSize, layoutPanelWidthPx, rootFontSizePx),
+		() =>
+			buildSafeArea(
+				IS_DEV && !isGuideMode && isRegistryOpen,
+				stageViewportSize,
+				layoutPanelWidthPx,
+				rootFontSizePx,
+			),
 		[isRegistryOpen, isGuideMode, layoutPanelWidthPx, rootFontSizePx, stageViewportSize],
 	);
 
@@ -588,7 +628,14 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 			return previewPlacement;
 		}
 		return guidePlacement;
-	}, [isGuideMode, isRegistryOpen, registrySceneId, activeChapter.id, previewPlacement, guidePlacement]);
+	}, [
+		isGuideMode,
+		isRegistryOpen,
+		registrySceneId,
+		activeChapter.id,
+		previewPlacement,
+		guidePlacement,
+	]);
 
 	const introOverlayStyle = useMemo(
 		() =>
@@ -612,7 +659,9 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 			setOverlayDraft((current) => ({
 				...current,
 				...patch,
-				placement: patch.placement ? { ...current.placement, ...patch.placement } : current.placement,
+				placement: patch.placement
+					? { ...current.placement, ...patch.placement }
+					: current.placement,
 			}));
 		},
 		[],
@@ -653,7 +702,14 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 			);
 			updateOverlayDraft({ placement: clampPlacement(nextPlacement, guideSafeArea) });
 		},
-		[guideSafeArea, overlayHeightPx, rootFontSizePx, overlayPlacementBounds, updateOverlayDraft, clampPlacement],
+		[
+			guideSafeArea,
+			overlayHeightPx,
+			rootFontSizePx,
+			overlayPlacementBounds,
+			updateOverlayDraft,
+			clampPlacement,
+		],
 	);
 
 	const showRegistryControls = IS_DEV && !isGuideMode;

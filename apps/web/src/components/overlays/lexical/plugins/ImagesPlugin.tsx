@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { compressImageDataUrl } from '@/lib/image-compression';
 import { captureBrowserException } from '@/lib/observability';
 import { $isAutoLinkNode, $isLinkNode, type LinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
@@ -24,7 +25,6 @@ import {
 	getDOMSelectionFromTarget,
 	isHTMLElement,
 } from 'lexical';
-import { useEffect } from 'react';
 import { $createImageNode, $isImageNode, ImageNode, type ImagePayload } from '../nodes/ImageNode';
 
 export const INSERT_IMAGE_COMMAND: LexicalCommand<ImagePayload> =
@@ -198,7 +198,7 @@ export function openImageFilePicker(onSelect: (payload: ImagePayload) => void) {
 export default function ImagesPlugin() {
 	const [editor] = useLexicalComposerContext();
 
-	useEffect(() => {
+	useMountEffect(() => {
 		if (!editor.hasNodes([ImageNode])) {
 			throw new Error('ImagesPlugin: ImageNode not registered on editor');
 		}
@@ -299,7 +299,7 @@ export default function ImagesPlugin() {
 			rootElement?.removeEventListener('paste', onPaste);
 			rootElement?.removeEventListener('drop', onDropFiles);
 		};
-	}, [editor]);
+	});
 
 	return null;
 }
