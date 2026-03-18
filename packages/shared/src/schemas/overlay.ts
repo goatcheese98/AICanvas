@@ -135,6 +135,7 @@ export const kanbanOverlaySchema = z.object({
 		.number()
 		.transform((value) => Math.min(18, Math.max(12, value)))
 		.optional(),
+	lastUpdated: z.coerce.number().optional(),
 });
 
 const KANBAN_PRIORITY_VALUES = ['low', 'medium', 'high'] as const;

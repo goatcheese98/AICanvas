@@ -7,6 +7,7 @@ import {
 	createKanbanCard,
 	createKanbanColumn,
 	createStarterKanbanColumns,
+	formatRelativeTime,
 	normalizeKanbanBoard,
 	pushKanbanHistory,
 	serializeKanbanBoard,
@@ -16,6 +17,7 @@ interface UseKanbanBoardStateResult {
 	board: KanbanOverlayCustomData;
 	boardRef: MutableRefObject<KanbanOverlayCustomData>;
 	boardTitleDraft: string;
+	formattedLastUpdated: string;
 	showSettings: boolean;
 	pendingDeleteColumnId: string | null;
 	pendingDeleteColumn: KanbanOverlayCustomData['columns'][number] | null;
@@ -159,7 +161,10 @@ export function useKanbanBoardState({
 			nextBoard: KanbanOverlayCustomData,
 			withHistory: boolean,
 		) => {
-			const normalized = normalizeKanbanBoard(nextBoard);
+			const normalized = normalizeKanbanBoard({
+				...nextBoard,
+				lastUpdated: Date.now(),
+			});
 			if (withHistory) {
 				undoStackRef.current = pushKanbanHistory(undoStackRef.current, currentBoard);
 				redoStackRef.current = [];
@@ -411,10 +416,16 @@ export function useKanbanBoardState({
 		[board.columns, pendingDeleteColumnId],
 	);
 
+	const formattedLastUpdated = useMemo(() => {
+		if (!board.lastUpdated) return '';
+		return formatRelativeTime(board.lastUpdated);
+	}, [board.lastUpdated]);
+
 	return {
 		board,
 		boardRef,
 		boardTitleDraft,
+		formattedLastUpdated,
 		showSettings,
 		pendingDeleteColumnId,
 		pendingDeleteColumn,

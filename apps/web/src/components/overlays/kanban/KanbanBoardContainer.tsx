@@ -179,6 +179,7 @@ export function KanbanBoardContainer({
 				boardTitleDraft={state.boardTitleDraft}
 				boardColumnCount={state.board.columns.length}
 				boardCardCount={boardCardCount}
+				lastUpdated={state.formattedLastUpdated}
 				searchQuery={state.searchQuery}
 				searchFocused={state.searchFocused}
 				canUndo={state.canUndo}

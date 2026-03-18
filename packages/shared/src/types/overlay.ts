@@ -113,6 +113,7 @@ export interface KanbanOverlayCustomData {
 	bgTheme?: string;
 	fontId?: string;
 	fontSize?: number;
+	lastUpdated?: number;
 }
 
 export interface WebEmbedOverlayCustomData {
