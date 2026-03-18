@@ -49,7 +49,8 @@ type KanbanOp =
 	| {
 			type: 'add_card';
 			id?: string;
-			column_id: string;
+			column_id?: string;
+			column?: string;
 			title: string;
 			description?: string;
 			priority?: KanbanCard['priority'];
@@ -155,6 +156,29 @@ function findColumnByReference(
 		return undefined;
 	}
 
+	return columns.find((column) => column.id === reference || column.title === reference);
+}
+
+function findColumnByReferenceWithNormalized(
+	columns: KanbanColumn[],
+	normalizedColumns: NormalizedKanbanColumn[],
+	reference?: string,
+): KanbanColumn | NormalizedKanbanColumn | undefined {
+	if (!reference) {
+		return undefined;
+	}
+
+	// First check normalized columns (newly added columns in this operation batch)
+	// These take precedence over existing columns to handle cases where the user
+	// adds columns with the same title as existing ones
+	const normalized = normalizedColumns.find(
+		(column) => column.id === reference || column.title === reference,
+	);
+	if (normalized) {
+		return normalized;
+	}
+
+	// Then check existing columns
 	return columns.find((column) => column.id === reference || column.title === reference);
 }
 
@@ -787,9 +811,18 @@ export function buildKanbanFromArtifact(
 		}
 
 		if ('type' in op && op.type === 'add_card') {
+			const columnRef = op.column_id ?? op.column;
+			const targetColumn = findColumnByReferenceWithNormalized(
+				workingBoard.columns,
+				normalizedColumns,
+				columnRef,
+			);
+			if (!targetColumn) {
+				continue;
+			}
 			normalizedCards.push({
 				id: op.id ?? crypto.randomUUID(),
-				columnId: op.column_id,
+				columnId: targetColumn.id,
 				title: op.title,
 				description: op.description,
 				priority: op.priority,

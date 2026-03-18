@@ -40,6 +40,9 @@ migrations_dir = "drizzle"
 binding = "R2"
 bucket_name = "ai-canvas-storage"
 
+[ai]
+binding = "AI"
+
 # [env.production]
 # [env.production.vars]
 # ENVIRONMENT = "production"

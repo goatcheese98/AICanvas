@@ -1,198 +1,175 @@
-# AI Canvas
+# AI Canvas — Agent Guide
 
-This file intentionally mirrors `CLAUDE.md` so Codex and Claude receive the same project guidance. Keep both files aligned unless a tool-specific difference is genuinely useful.
+Visual workspace combining whiteboarding, notes, task management, and AI assistance.
 
-AI Canvas is a standalone collaborative canvas application built on Excalidraw with a custom overlay system for rich content (markdown notes, kanban boards, code editors, web embeds, prototypes). It is its own product with its own foundation — not a port or fork of another project.
+## Tech Stack
 
-## Monorepo Layout
+- **Frontend**: React 19 + Vite + TypeScript + Tailwind CSS v4
+- **Router**: TanStack Router (file-based)
+- **State**: Zustand (client) + TanStack Query (server)
+- **API**: Hono on Cloudflare Workers
+- **Database**: Cloudflare D1 (SQLite)
+- **Storage**: Cloudflare R2
+- **Auth**: Clerk
+- **Real-time**: PartyKit (WebSocket collaboration)
+- **Canvas**: Excalidraw + custom overlays
+
+## Monorepo Structure
 
 ```
-apps/web/          React 19 SPA (Vite, TanStack Router, Zustand)
-apps/api/          Hono API on Cloudflare Workers (Drizzle, D1, R2)
-packages/shared/   Zod schemas, TypeScript types, constants — shared by web + api
-workers/partykit/  Real-time collaboration server (E2E encrypted WebSocket)
-docs/              Architecture and pattern documentation
+apps/
+  web/          # React SPA (Vite, TanStack Router)
+  api/          # Hono API (Cloudflare Workers)
+packages/
+  shared/       # Zod schemas, types, constants
+workers/
+  partykit/     # Collaboration server
 ```
+
+Package names: `@ai-canvas/web`, `@ai-canvas/api`, `@ai-canvas/shared`
 
 ## Commands
 
-```sh
-bun install                # install dependencies
-bun run dev                # start all apps (Web + API + PartyKit via Turbo)
-# Note: First time, run `cd apps/api && bun run dev` to apply DB migrations,
-# then stop and use `bun run dev` from root for subsequent runs.
-bun run build              # build all packages (turbo)
-bun run test               # run all tests (turbo, vitest)
-bun run typecheck           # typecheck all packages (turbo)
-bun run lint               # lint all files (biome)
-bun run lint:fix           # lint and auto-fix (biome)
-bun run format             # format all files (biome)
-bun run db:generate        # generate Drizzle migrations
-bun run db:migrate         # run Drizzle migrations against local D1
-```
+```bash
+# Install (requires Node 20+, Bun 1.3+)
+bun install
 
-**Production D1 migrations** are not applied automatically by the deploy workflow. Run this manually after generating new migrations or on first deploy:
-
-```sh
-npx wrangler d1 migrations apply ai-canvas-db --remote
-```
-
-Run a single package: `bun run test --filter=@ai-canvas/web`
-
-## Code Style
-
-- **Formatter:** Biome — tabs, single quotes, semicolons, 100-char line width
-- **Imports:** Biome auto-organizes. Use `@ai-canvas/shared/schemas`, `@ai-canvas/shared/types`, `@ai-canvas/shared/constants` for shared code. Use `@/` path alias for intra-app imports. Use `./` for siblings.
-- **Naming:** PascalCase for components (`KanbanBoard.tsx`). kebab-case for utilities (`kanban-utils.ts`). camelCase with `use` prefix for hooks (`useKanbanBoardState.ts`). kebab-case with `-types` suffix for local type files (`kanban-board-types.ts`).
-- **Styling:** Tailwind CSS v4 only. Use CSS variables for design tokens (`var(--color-accent-bg)`). No CSS modules. Inline `style={}` only for dynamic/computed values.
-- **Types:** No `any`. Biome warns on `noExplicitAny`. Use Zod schemas in `packages/shared/src/schemas/` for runtime validation; infer TypeScript types from them.
-- **File size:** Treat files above 300-400 lines as a split candidate.
-
-## Overlay System — The Core Abstraction
-
-Overlays are rich content panels rendered on the Excalidraw canvas (markdown notes, kanban boards, lexical editors, web embeds, prototypes). They are the primary unit of product complexity.
-
-### Overlay authoring pattern
-
-Every complex overlay follows the Container/Hook/Child pattern. Full specification: `docs/overlay-authoring-pattern.md`
-
-**Structure:**
-
-```
-overlays/<type>/
-  <Type>Container.tsx       # Element integration, persistence, top-level layout (~100 lines)
-  use<Type>State.ts         # Draft state, external sync, debounced commits, derived views
-  <Type>.tsx                # Main presentational component
-  <FocusedChild>.tsx        # Toolbars, settings panels, dialogs, display sections
-  <type>-utils.ts           # Pure helpers: normalize, serialize, project
-  <type>-types.ts           # Local type wrappers
-  index.ts                  # Single named export
-```
-
-**Canonical example:** `apps/web/src/components/overlays/kanban/` — this is the reference implementation. When in doubt about how to structure an overlay, match the kanban pattern.
-
-**Rules:**
-- Normalize `customData` once at the container boundary
-- Keep persisted writes behind one `onChange` callback
-- Keep edit lifecycle behind one `onEditingChange` callback
-- Persisted domain state and transient UI state must not be mixed
-- Mutation helpers must be pure functions (testable without rendering)
-- Do not add new code using monolithic patterns — see anti-patterns below
-
-### Overlay registration
-
-- Overlay types are defined in `packages/shared/src/types/overlay.ts` as a discriminated union
-- Overlay schemas and normalizers live in `packages/shared/src/schemas/overlay.ts`
-- Overlay rendering is wired through `apps/web/src/components/canvas/overlay-definitions.tsx`
-- Element factories live in `apps/web/src/components/canvas/element-factories.ts`
-
-## State Management
-
-- **Global state:** Zustand store composed from slices (`canvasSlice`, `chatSlice`, `uiSlice`) in `apps/web/src/stores/`
-- **Server state:** TanStack Query for API data (cache, dedup, background refresh)
-- **Local component state:** `use<Type>State.ts` hooks own draft state, sync with external data via refs, debounce commits
-- **Shared types/schemas:** Always defined in `packages/shared/`, never duplicated in app code
-
-## API Layer
-
-- Hono routes in `apps/api/src/routes/` with Zod input validation
-- Hono RPC client on the frontend for end-to-end type safety (no codegen)
-- Auth via Clerk middleware in `apps/api/src/middleware/auth.ts`
-- Database: Drizzle ORM over Cloudflare D1
-- Blob storage: Cloudflare R2 (canvas JSON, thumbnails, assets)
-
-## Testing
-
-Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to source files).
-
-- **Pure helpers and transforms:** Unit tests, no rendering
-- **Hooks:** `renderHook` from React Testing Library
-- **Components:** `render` from React Testing Library
-- **Bug fixes:** Always add a regression test
-- Runner: Vitest
-
-## Anti-Patterns — Do Not Do These
-
-- **Monolithic overlay components.** Do not put state management, persistence, and large JSX in one file. Follow the Container/Hook/Child pattern.
-- **Mixed old/new patterns.** If you see two ways to do something, use the newer pattern (the one matching `docs/overlay-authoring-pattern.md`). Do not copy from older code.
-- **CSS modules or styled-components.** Use Tailwind utility classes and CSS variables.
-- **`any` types.** Use proper types or Zod inference.
-- **Duplicating shared types.** If a type is used by both web and api, it belongs in `packages/shared/`.
-- **Direct Excalidraw scene JSON from AI.** The assistant emits semantic mutations, not raw scene data.
-- **Large files.** Split at 300-400 lines. Extract UI regions first, then move state into hooks.
-
-## Worktree Workflow (Pragmatic)
-
-For parallel development with AI assistance. See `docs/workflow-pragmatic.md` for full details.
-
-### Quick Start
-
-```sh
-# Create a new worktree
-bun run worktree:new -- my-feature
-
-# In the new worktree, start all services
-cd ../AICanvas-my-feature
+# Dev (all services)
 bun run dev
 ```
 
-This starts via Turbo:
-- **Web** (React frontend) → http://localhost:5181
-- **API** (Hono backend) → http://localhost:8791
-- **PartyKit** (WebSocket collaboration) → http://localhost:1999
+**Default Ports:**
+- Web: 5173
+- API: 8787  
+- PartyKit: 1999
 
-### Key Principles
-
-- **Main worktree** (`AICanvas`): Your primary workspace on `main` branch
-- **Side worktrees** (`AICanvas-*`): 0-2 at a time, short-lived tasks, quick merges
-- **One command:** `bun run dev` starts everything (Web + API + PartyKit)
-- **One log stream:** All logs labeled `[web]`, `[api]`, `[partykit]` for easy debugging
-
-### Why This Works for AI
-
-- Copy-paste one terminal output for full context
-- AI sees frontend, backend, and WebSocket interactions together
-- No context switching between terminals
-
-### Port Conventions
-
+**Worktree Ports:**
 | Worktree | Web | API | PartyKit |
 |----------|-----|-----|----------|
 | `AICanvas` (main) | 5173 | 8787 | 1999 |
 | `AICanvas-*` (side) | 5181, 5182... | 8791, 8792... | 1999 (shared) |
 
-The `bun run worktree:new` script auto-assigns ports and configures env files.
+# Build / Test / Lint
+bun run build
+bun run test
+bun run lint
+bun run typecheck
 
-## Key Files for Orientation
+# Database
+bun run db:generate    # Generate migrations
+bun run db:migrate     # Run migrations
+```
 
-| Area | Start here |
-|---|---|
+## Key Patterns
+
+### Overlay System (Core Abstraction)
+
+Overlays are rich content panels on the canvas (notes, kanban, embeds). Follow the **Container/Hook/Child** pattern:
+
+```
+overlays/<type>/
+  <Type>Container.tsx    # Element integration, persistence
+  use<Type>State.ts      # Draft state, sync, debounced commits
+  <Type>.tsx             # Main component
+  <type>-utils.ts        # Pure helpers
+  index.ts
+```
+
+**Canonical example**: `apps/web/src/components/overlays/kanban/`
+
+**Rules**:
+1. Normalize `customData` at container boundary
+2. One `onChange` callback for persisted writes
+3. One `onEditingChange` callback for edit lifecycle
+4. Don't mix persisted state and transient UI state
+5. Mutation helpers must be pure functions
+
+### State Management
+
+- **Global**: Zustand slices in `apps/web/src/stores/`
+- **Server**: TanStack Query for API data
+- **Local**: `use<Type>State.ts` hooks for draft state + debounced commits
+
+### Code Style
+
+- **Biome**: Tabs, 100 chars, single quotes, semicolons
+- **Imports**: `@ai-canvas/shared/*` for cross-app, `@/` for intra-app
+- **Naming**: PascalCase components, camelCase hooks, kebab-case utilities
+- **Types**: No `any`, use Zod schemas, infer types, shared types in `packages/shared/`
+- **Styling**: Tailwind CSS v4 only, CSS variables for tokens
+- **Split files** at 300-400 lines
+
+### No Direct useEffect Rule
+
+**NEVER use `useEffect` directly in components.** This prevents race conditions, infinite loops, and dependency hell.
+
+| Instead of useEffect | Use This | Example |
+|---------------------|----------|---------|
+| Setting state from props | Derived state | `const filtered = items.filter(...)` |
+| Data fetching | TanStack Query | `useQuery({ queryKey, queryFn })` |
+| User actions | Event handlers | `onClick={() => doAction()}` |
+| External store sync | `useSyncExternalStore` | Window size, online status |
+| One-time DOM setup | `useMountEffect` | Lexical/Excalidraw init |
+| Reset on ID change | `key` prop | `<Player key={videoId} />` |
+
+**The only allowed exception:** `useMountEffect()` from `@/hooks/useMountEffect` for one-time external system setup.
+
+```typescript
+// ❌ BAD: useEffect for derived state
+useEffect(() => setFiltered(items.filter(...)), [items]);
+
+// ✅ GOOD: Derived state
+const filtered = items.filter(...);
+
+// ❌ BAD: useEffect for data fetching
+useEffect(() => fetchData().then(setData), []);
+
+// ✅ GOOD: TanStack Query
+const { data } = useQuery({ queryKey, queryFn: fetchData });
+
+// ❌ BAD: useEffect as action relay
+useEffect(() => { if (shouldSave) save(); }, [shouldSave]);
+
+// ✅ GOOD: Event handler
+const handleClick = () => save();
+
+// ✅ GOOD: One-time external setup (ONLY exception)
+useMountEffect(() => {
+	const editor = createEditor();
+	return () => editor.destroy();
+});
+```
+
+### Tests
+
+Colocated with code (`.test.ts` next to source):
+- Unit tests: Vitest
+- Hooks: `renderHook` from RTL
+- Components: RTL + jsdom
+- E2E: Playwright
+
+## Anti-Patterns (Don't Do)
+
+1. **Monolithic overlays** — Use Container/Hook/Child pattern
+2. **Mixed patterns** — Use newer patterns from `docs/overlay-authoring-pattern.md`
+3. **CSS modules/styled-components** — Tailwind only
+4. **`any` types** — Use proper types or Zod inference
+5. **Duplicate shared types** — Belong in `packages/shared/`
+6. **Large files** — Split at 300-400 lines
+
+## Key Files
+
+| Area | Location |
+|------|----------|
 | Canvas core | `apps/web/src/components/canvas/CanvasContainer.tsx` |
 | Overlay rendering | `apps/web/src/components/canvas/overlay-definitions.tsx` |
-| Overlay example (canonical) | `apps/web/src/components/overlays/kanban/` |
-| Overlay pattern spec | `docs/overlay-authoring-pattern.md` |
+| Overlay example | `apps/web/src/components/overlays/kanban/` |
 | Shared schemas | `packages/shared/src/schemas/overlay.ts` |
-| Shared types | `packages/shared/src/types/overlay.ts` |
-| Store composition | `apps/web/src/stores/store.ts` |
+| Store | `apps/web/src/stores/store.ts` |
 | API entry | `apps/api/src/index.ts` |
-| API routes | `apps/api/src/routes/` |
-| Assistant architecture (future) | `docs/assistant-v2-architecture.md` |
-| Tech stack decisions | `ARCHITECTURE.md` |
 
-## Documentation Index
+## Docs
 
-- `AGENTS.md` — this file (project orientation, patterns, rules for Codex and other agent tooling)
-- `CLAUDE.md` — mirrored project orientation for Claude
-- `apps/web/CLAUDE.md` — frontend SPA patterns (components, state, styling, testing)
-- `apps/api/CLAUDE.md` — API patterns (routes, middleware, database, auth)
-- `packages/shared/CLAUDE.md` — shared package rules (schemas, types, constants)
-- `ARCHITECTURE.md` — tech stack decisions and rationale
-- `docs/overlay-authoring-pattern.md` — overlay composition specification
-- `docs/assistant-v2-architecture.md` — next-generation assistant architecture
-- `docs/workflow-pragmatic.md` — simplified worktree workflow for solo + AI development
-- `docs/multi-agent-orchestration.md` — advanced multi-agent orchestration (legacy)
-- `docs/overlay-lod-architecture.md` — overlay level-of-detail and performance model
-- `docs/observability.md` — current logging, tracing, and Sentry setup
-- `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan
-- `docs/deployment-runbook.md` — repo setup and CI/CD requirements for deployment
-- `docs/auth-setup.md` — Clerk authentication setup for local dev and production (DNS, OAuth, secrets, migrations)
+- `docs/overlay-authoring-pattern.md` — Overlay spec
+- `ARCHITECTURE.md` — Tech decisions
+- `CLAUDE.md` — Mirror of this file

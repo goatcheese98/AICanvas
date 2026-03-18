@@ -58,7 +58,7 @@ interface UseCanvasTourSceneControllerArgs {
 	setActiveTool: (tool: TourTool) => void;
 }
 
-interface ApplySceneSnapshotOptions {
+export interface ApplySceneSnapshotOptions {
 	preserveSelection?: boolean;
 	cameraOverride?: CameraTarget;
 }

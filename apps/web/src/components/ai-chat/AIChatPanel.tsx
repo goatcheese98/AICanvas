@@ -1,24 +1,35 @@
-import { fetchAssistantCapabilities, getRequiredAuthHeaders } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
-import type { AssistantArtifact, AssistantMessage, CanvasElement } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { MessageCard, SelectionConfirmationCard } from './AIChatArtifacts';
+import { useMemo } from 'react';
 import { AIChatComposer } from './AIChatComposer';
+import { AIChatEmptyState } from './AIChatEmptyState';
 import { AIChatHeader } from './AIChatHeader';
-import { AIChatRunStatus } from './AIChatRunStatus';
+import { AIChatMessageList } from './AIChatMessageList';
 import { AIChatSidebar } from './AIChatSidebar';
-import { CHAT_INPUT_MAX_HEIGHT } from './ai-chat-constants';
-import { extractSvgFromMessageContent, getLatestPendingPatchArtifacts } from './ai-chat-helpers';
-import { type AssistantOutputStyle, outputStyleToModeHint } from './output-style';
-import { buildSelectionIndicator } from './selection-context';
+import { getLatestPendingPatchArtifacts } from './ai-chat-helpers';
+import type { AIChatPanelProps } from './ai-chat-panel-types';
+import { outputStyleToModeHint } from './output-style';
 import { useAIChatCanvasActions } from './useAIChatCanvasActions';
+import { useAIChatPanelState } from './useAIChatPanelState';
 import { useAIChatRunController } from './useAIChatRunController';
 import { useAIChatThreads } from './useAIChatThreads';
+import { useAssistantCapabilities } from './useAssistantCapabilities';
+import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
-export function AIChatPanel({ canvasId }: { canvasId: string }) {
+/**
+ * AIChatPanel - Main container component for AI chat functionality.
+ *
+ * Architecture:
+ * - Container/Hook/Child pattern (see AGENTS.md)
+ * - This component orchestrates child components and hooks
+ * - State is delegated to specialized hooks
+ * - No direct useEffect - all side effects managed in hooks
+ */
+export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 	const { getToken, isSignedIn } = useAuth();
+
+	// App store selectors
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 	const isChatLoading = useAppStore((s) => s.isChatLoading);
 	const chatError = useAppStore((s) => s.chatError);
@@ -33,21 +44,33 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 	const setChatError = useAppStore((s) => s.setChatError);
 	const setContextMode = useAppStore((s) => s.setContextMode);
 
-	const [input, setInput] = useState('');
-	const [isHistoryCollapsed, setIsHistoryCollapsed] = useState(false);
-	const [outputStyle, setOutputStyle] = useState<AssistantOutputStyle>('auto');
-	const [assistantCapabilities, setAssistantCapabilities] = useState<{
-		vectorizationEnabled: boolean;
-		svgGenerationEnabled: boolean;
-	}>({
-		vectorizationEnabled: false,
-		svgGenerationEnabled: false,
+	// UI State hook
+	const {
+		input,
+		setInput,
+		isHistoryCollapsed,
+		setIsHistoryCollapsed,
+		outputStyle,
+		setOutputStyle,
+		selectionIndicator,
+		isDisabled,
+	} = useAIChatPanelState({
+		elements,
+		selectedElementIds,
 	});
-	const chatTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+	// Textarea auto-resize
+	const { textareaRef, resizeTextarea } = useAutoResizeTextarea();
+
+	// Assistant capabilities (TanStack Query - no useEffect)
+	const { data: assistantCapabilities } = useAssistantCapabilities({
+		getToken,
+		isSignedIn,
+	});
+
+	// Thread management
 	const {
 		threads,
-		activeThreadId,
 		setActiveThreadId,
 		isThreadsLoading,
 		currentThread,
@@ -63,15 +86,11 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 
 	const messages = currentThread?.messages ?? [];
 	const latestMessage = messages.at(-1) ?? null;
-	const selectionIndicator = useMemo(
-		() => buildSelectionIndicator(elements as unknown as CanvasElement[], selectedElementIds),
-		[elements, selectedElementIds],
-	);
-	const disabled = useMemo(
-		() => !input.trim() || isChatLoading || isThreadsLoading,
-		[input, isChatLoading, isThreadsLoading],
-	);
 
+	// Computed disabled state
+	const disabled = isDisabled({ isChatLoading, isThreadsLoading });
+
+	// Canvas actions
 	const canvasActions = useAIChatCanvasActions({
 		getToken,
 		excalidrawApi,
@@ -82,11 +101,13 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		setChatError,
 	});
 
+	// Latest pending patch artifacts
 	const latestPendingPatchArtifacts = useMemo(
 		() => getLatestPendingPatchArtifacts(messages, canvasActions.assistantPatchStates),
 		[messages, canvasActions.assistantPatchStates],
 	);
 
+	// Local assistant message append helper
 	const appendLocalAssistantMessage = (content: string) => {
 		if (!currentThread) {
 			return;
@@ -100,6 +121,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		});
 	};
 
+	// Run controller
 	const {
 		runProgress,
 		setRunProgress,
@@ -130,88 +152,22 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 		getPrototypeContextForRequest: canvasActions.getPrototypeContextForRequest,
 		appendLocalAssistantMessage,
 	});
-	const shouldAppendRunStatusToLatestMessage =
-		runProgress !== null &&
-		(runProgress.status === 'completed' || runProgress.status === 'failed') &&
-		latestMessage?.role === 'assistant';
 
-	useEffect(() => {
-		if (!isSignedIn) {
-			return;
-		}
-
-		let cancelled = false;
-		void (async () => {
-			try {
-				const headers = await getRequiredAuthHeaders(getToken);
-				const capabilities = await fetchAssistantCapabilities(headers);
-				if (!cancelled) {
-					setAssistantCapabilities(capabilities);
-				}
-			} catch {
-				if (!cancelled) {
-					setAssistantCapabilities({
-						vectorizationEnabled: false,
-						svgGenerationEnabled: false,
-					});
-				}
-			}
-		})();
-
-		return () => {
-			cancelled = true;
-		};
-	}, [getToken, isSignedIn]);
-
-	useEffect(() => {
-		setRunProgress(null);
-		setChatError(null);
-		canvasActions.setAssistantPatchStates({});
-		canvasActions.setAssistantInsertionStates({});
-		canvasActions.setMarkdownPatchReviewStates({});
-		setPendingSelectionConfirmation(null);
-	}, [
-		activeThreadId,
-		canvasActions.setAssistantInsertionStates,
-		canvasActions.setAssistantPatchStates,
-		canvasActions.setMarkdownPatchReviewStates,
-		setChatError,
-		setPendingSelectionConfirmation,
-		setRunProgress,
-	]);
-
-	useEffect(() => {
-		if (!selectionIndicator) {
-			setPendingSelectionConfirmation(null);
-		}
-	}, [selectionIndicator, setPendingSelectionConfirmation]);
-
-	useEffect(() => {
-		const textarea = chatTextareaRef.current;
-		if (!textarea) {
-			return;
-		}
-
-		textarea.style.height = '0px';
-		const nextHeight = Math.min(Math.max(textarea.scrollHeight, 44), CHAT_INPUT_MAX_HEIGHT);
-		textarea.style.height = `${nextHeight}px`;
-		textarea.style.overflowY = textarea.scrollHeight > CHAT_INPUT_MAX_HEIGHT ? 'auto' : 'hidden';
-	}, [input]);
-
+	// Thread handlers with reset logic
 	const handleCreateThread = async () => {
 		try {
 			await createThread();
 			setRunProgress(null);
 			setInput('');
+			setChatError(null);
+			canvasActions.setAssistantPatchStates({});
+			canvasActions.setAssistantInsertionStates({});
+			canvasActions.setMarkdownPatchReviewStates({});
+			setPendingSelectionConfirmation(null);
 		} catch (error) {
 			captureBrowserException(error, {
-				tags: {
-					area: 'ai_chat',
-					action: 'create_thread',
-				},
-				extra: {
-					canvasId,
-				},
+				tags: { area: 'ai_chat', action: 'create_thread' },
+				extra: { canvasId },
 			});
 			setChatError(error instanceof Error ? error.message : 'Failed to create thread');
 		}
@@ -226,54 +182,40 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 			}
 		} catch (error) {
 			captureBrowserException(error, {
-				tags: {
-					area: 'ai_chat',
-					action: 'delete_thread',
-				},
-				extra: {
-					canvasId,
-					threadId,
-				},
+				tags: { area: 'ai_chat', action: 'delete_thread' },
+				extra: { canvasId, threadId },
 			});
 			setChatError(error instanceof Error ? error.message : 'Failed to delete thread');
 		}
 	};
 
-	const handleInsertArtifact = async (artifactKey: string, artifact: AssistantArtifact) => {
-		const insertionState = await canvasActions.insertArtifactOnCanvas(artifact);
-		if (insertionState) {
-			canvasActions.rememberInsertionState(artifactKey, insertionState);
-		}
+	const handleSelectThread = (threadId: string | null) => {
+		setActiveThreadId(threadId);
+		// Reset state on thread change (event-driven pattern instead of useEffect)
+		setRunProgress(null);
+		setChatError(null);
+		canvasActions.setAssistantPatchStates({});
+		canvasActions.setAssistantInsertionStates({});
+		canvasActions.setMarkdownPatchReviewStates({});
+		setPendingSelectionConfirmation(null);
 	};
 
-	const handleVectorizeArtifact = async (artifactKey: string, artifact: AssistantArtifact) => {
-		const insertionState = await canvasActions.vectorizeRasterAssetOnCanvas(artifact);
-		if (insertionState) {
-			canvasActions.rememberInsertionState(artifactKey, insertionState);
-		}
+	// Input change handler with resize
+	const handleInputChange = (value: string) => {
+		setInput(value);
+		// Use requestAnimationFrame to resize after DOM update
+		requestAnimationFrame(resizeTextarea);
 	};
 
-	const handleInsertRenderedDiagram = async (
-		artifactKey: string,
-		inputForInsert: Parameters<typeof canvasActions.insertRenderedDiagramOnCanvas>[0],
-	) => {
-		const insertionState = await canvasActions.insertRenderedDiagramOnCanvas(inputForInsert);
-		if (insertionState) {
-			canvasActions.rememberInsertionState(artifactKey, insertionState);
-		}
+	// Suggestion click handler
+	const handleSuggestionClick = (suggestion: string) => {
+		setInput(suggestion);
+		requestAnimationFrame(resizeTextarea);
 	};
 
-	const handleInsertSvg = async (message: AssistantMessage) => {
-		const svgMarkup = extractSvgFromMessageContent(message);
-		if (!svgMarkup) {
-			setChatError('This assistant message does not contain SVG markup.');
-			return;
-		}
-		const insertionState = await canvasActions.insertSvgMarkupOnCanvas(svgMarkup);
-		if (insertionState) {
-			canvasActions.rememberInsertionState(`${message.id}-svg-inline`, insertionState);
-		}
-	};
+	// Selection confirmation clear on selection loss (event-driven)
+	// This is called implicitly when the selection changes via setContextMode
+	// The useAIChatRunController handles the selection confirmation logic
 
 	return (
 		<div className="flex h-full min-h-0 overflow-hidden rounded-[12px] border border-stone-200 bg-stone-50 shadow-xl">
@@ -283,7 +225,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 				currentThreadId={currentThread?.id ?? null}
 				onToggleCollapse={() => setIsHistoryCollapsed((current) => !current)}
 				onCreateThread={() => void handleCreateThread()}
-				onSelectThread={setActiveThreadId}
+				onSelectThread={handleSelectThread}
 				onDeleteThread={(threadId) => void handleDeleteThread(threadId)}
 			/>
 
@@ -293,7 +235,7 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 					selectionIndicator={selectionIndicator}
 					contextMode={contextMode}
 					outputStyle={outputStyle}
-					isVectorizationAvailable={assistantCapabilities.vectorizationEnabled}
+					isVectorizationAvailable={assistantCapabilities?.vectorizationEnabled ?? false}
 					onContextModeChange={setContextMode}
 					onOutputStyleChange={setOutputStyle}
 					onClearThread={() => {
@@ -304,132 +246,37 @@ export function AIChatPanel({ canvasId }: { canvasId: string }) {
 				/>
 
 				<div className="min-h-0 flex-1 overflow-auto">
-					<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
-						{messages.length === 0 ? (
-							<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-4">
-								<div className="text-[10px] font-medium text-stone-500">
-									Try asking the canvas assistant to diagram, summarize, or transform your current
-									selection.
-								</div>
-								<div className="mt-3 flex flex-wrap gap-2">
-									<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
-										Diagram the auth flow
-									</div>
-									<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
-										Turn this into kanban tasks
-									</div>
-									<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
-										Summarize this idea as markdown
-									</div>
-									<div className="rounded-[8px] border border-stone-200 bg-stone-50 px-3 py-2 text-[12px] text-stone-900">
-										Build a landing page prototype
-									</div>
-								</div>
-							</div>
-						) : (
-							messages.map((message) => (
-								<MessageCard
-									key={message.id}
-									message={message}
-									elements={elements as unknown as CanvasElement[]}
-									onInsertArtifact={(artifactKey, artifact) =>
-										void handleInsertArtifact(artifactKey, artifact)
-									}
-									onVectorizeArtifact={(artifactKey, artifact) =>
-										void handleVectorizeArtifact(artifactKey, artifact)
-									}
-									insertionStates={canvasActions.assistantInsertionStates}
-									onUndoInsertedArtifact={canvasActions.removeInsertedArtifact}
-									onInsertMarkdown={(nextMessage) =>
-										void canvasActions.insertMarkdownOnCanvas(nextMessage.content)
-									}
-									onInsertPrototype={(nextMessage) =>
-										void canvasActions.insertPrototypeOnCanvas(nextMessage.content)
-									}
-									onInsertSvg={(nextMessage) => void handleInsertSvg(nextMessage)}
-									onInsertRenderedDiagram={(artifactKey, inputForInsert) =>
-										void handleInsertRenderedDiagram(artifactKey, inputForInsert)
-									}
-									patchStates={canvasActions.assistantPatchStates}
-									markdownPatchReviewStates={canvasActions.markdownPatchReviewStates}
-									onChangeMarkdownAcceptedHunks={canvasActions.updateMarkdownPatchAcceptedHunks}
-									onApplyPatch={(artifactKey, artifact, options) =>
-										canvasActions.applyAssistantPatch(artifactKey, artifact, 'apply', options)
-									}
-									onUndoPatch={(artifactKey) => canvasActions.undoAssistantPatch(artifactKey)}
-									onReapplyPatch={(artifactKey, artifact, options) =>
-										canvasActions.applyAssistantPatch(artifactKey, artifact, 'reapply', options)
-									}
-									headerAccessory={
-										shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
-											<AIChatRunStatus
-												runProgress={runProgress}
-												isExpanded={isRunProgressExpanded}
-												onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
-												variant="inline-trigger"
-											/>
-										) : undefined
-									}
-									headerDetails={
-										shouldAppendRunStatusToLatestMessage && latestMessage?.id === message.id ? (
-											<AIChatRunStatus
-												runProgress={runProgress}
-												isExpanded={isRunProgressExpanded}
-												onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
-												variant="inline-panel"
-											/>
-										) : undefined
-									}
-								/>
-							))
-						)}
-
-						{pendingSelectionConfirmation && selectionIndicator ? (
-							<SelectionConfirmationCard
-								prompt={pendingSelectionConfirmation.prompt}
-								selectionLabel={selectionIndicator.label}
-								onUseSelection={() => {
-									setContextMode('selected');
-									void sendMessage({
-										contextModeOverride: 'selected',
-										promptOverride: pendingSelectionConfirmation.prompt,
-										skipSelectionConfirmation: true,
-									});
-								}}
-								onContinueWithoutSelection={() => {
-									void sendMessage({
-										contextModeOverride: 'none',
-										promptOverride: pendingSelectionConfirmation.prompt,
-										skipSelectionConfirmation: true,
-									});
-								}}
-							/>
-						) : null}
-
-						{runProgress && !shouldAppendRunStatusToLatestMessage ? (
-							<AIChatRunStatus
-								runProgress={runProgress}
-								isExpanded={isRunProgressExpanded}
-								onToggleExpanded={() => setIsRunProgressExpanded((current) => !current)}
-							/>
-						) : null}
-
-						{isChatLoading && !runProgress ? (
-							<div className="mr-auto rounded-[12px] border border-stone-200 bg-white px-4 py-3 text-[12px] text-stone-500">
-								Planning and running...
-							</div>
-						) : null}
-					</div>
+					{messages.length === 0 ? (
+						<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
+							<AIChatEmptyState onSuggestionClick={handleSuggestionClick} />
+						</div>
+					) : (
+						<AIChatMessageList
+							messages={messages}
+							elements={elements}
+							canvasActions={canvasActions}
+							runProgress={runProgress}
+							isRunProgressExpanded={isRunProgressExpanded}
+							setIsRunProgressExpanded={setIsRunProgressExpanded}
+							latestMessage={latestMessage}
+							setChatError={setChatError}
+							selectionIndicator={selectionIndicator}
+							pendingSelectionConfirmation={pendingSelectionConfirmation}
+							setContextMode={setContextMode}
+							sendMessage={sendMessage}
+							isChatLoading={isChatLoading}
+						/>
+					)}
 				</div>
 
 				<AIChatComposer
 					chatError={chatError}
 					selectionIndicator={selectionIndicator}
 					contextMode={contextMode}
-					textareaRef={chatTextareaRef}
+					textareaRef={textareaRef}
 					input={input}
 					disabled={disabled}
-					onInputChange={setInput}
+					onInputChange={handleInputChange}
 					onSend={() => void sendMessage()}
 				/>
 			</div>

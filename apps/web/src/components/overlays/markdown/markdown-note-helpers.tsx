@@ -8,8 +8,9 @@ import {
 	type normalizeMarkdownOverlay,
 } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ReactNode } from 'react';
+import { getRoundnessOptionId } from './markdown-utility-utils';
+export { getRoundnessOptionId };
 
 export type MarkdownViewMode = MarkdownEditorMode | 'preview';
 export type UtilityPanel = 'none' | 'style' | 'image';
@@ -140,11 +141,7 @@ export function abbreviateMarkdownTitle(title: string) {
 	return (compact.slice(0, 2) || title.slice(0, 2) || 'MD').toUpperCase();
 }
 
-export function getRoundnessOptionId(roundness: ExcalidrawElement['roundness'] | undefined) {
-	if (!roundness) return 'square';
-	if (roundness.type === 1 || roundness.type === 2) return 'pill';
-	return 'rounded';
-}
+
 
 export function renderModeIcon(icon: (typeof MODE_OPTIONS)[number]['icon']): ReactNode {
 	if (icon === 'raw') {

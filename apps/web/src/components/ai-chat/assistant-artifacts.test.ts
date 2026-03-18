@@ -147,6 +147,43 @@ describe('assistant-artifacts', () => {
 		expect(board.columns[1]?.cards[0]?.title).toBe('History Project');
 	});
 
+	it('builds a kanban board from ops using column titles instead of column ids', () => {
+		const artifact: AssistantArtifact = {
+			type: 'kanban-ops',
+			content: JSON.stringify({
+				operations: [
+					{ type: 'add_column', id: 'col_1', title: 'Todo', position: 0 },
+					{ type: 'add_column', id: 'col_2', title: 'In Progress', position: 1 },
+					{ type: 'add_column', id: 'col_3', title: 'Done', position: 2 },
+					{
+						type: 'add_card',
+						column: 'Todo',
+						title: 'Task 1',
+					},
+					{
+						type: 'add_card',
+						column: 'In Progress',
+						title: 'Task 2',
+					},
+					{
+						type: 'add_card',
+						column: 'Done',
+						title: 'Task 3',
+					},
+				],
+			}),
+		};
+
+		const board = buildKanbanFromArtifact(artifact);
+
+		expect(board.columns).toHaveLength(3);
+		expect(board.columns[0]?.title).toBe('Todo');
+		expect(board.columns[0]?.cards).toHaveLength(1);
+		expect(board.columns[0]?.cards[0]?.title).toBe('Task 1');
+		expect(board.columns[1]?.cards[0]?.title).toBe('Task 2');
+		expect(board.columns[2]?.cards[0]?.title).toBe('Task 3');
+	});
+
 	it('builds a kanban board from update-card ops using a selected board as the base', () => {
 		const artifact: AssistantArtifact = {
 			type: 'kanban-ops',

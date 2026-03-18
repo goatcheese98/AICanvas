@@ -27,6 +27,7 @@ interface UseKanbanBoardStateResult {
 	isLiveResizing: boolean;
 	canUndo: boolean;
 	canRedo: boolean;
+	formattedLastUpdated: string;
 	setBoardTitleDraft: Dispatch<SetStateAction<string>>;
 	setShowSettings: Dispatch<SetStateAction<boolean>>;
 	setPendingDeleteColumnId: Dispatch<SetStateAction<string | null>>;
@@ -480,6 +481,11 @@ export function useKanbanBoardState({
 		return column.cards.find((card) => card.id === pendingDeleteCardId) ?? null;
 	}, [board.columns, pendingDeleteCardId, pendingDeleteCardColumnId]);
 
+	const formattedLastUpdated = useMemo(() => {
+		if (!board.lastUpdated) return '';
+		return new Date(board.lastUpdated).toLocaleString();
+	}, [board.lastUpdated]);
+
 	return {
 		board,
 		boardRef,
@@ -495,6 +501,7 @@ export function useKanbanBoardState({
 		isLiveResizing,
 		canUndo: undoStackRef.current.length > 0,
 		canRedo: redoStackRef.current.length > 0,
+		formattedLastUpdated,
 		setBoardTitleDraft,
 		setShowSettings,
 		setPendingDeleteColumnId,
