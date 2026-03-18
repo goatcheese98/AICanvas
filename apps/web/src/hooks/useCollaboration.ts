@@ -6,15 +6,13 @@ import {
 	generateEncryptionKey,
 	importKey,
 } from '@/lib/collab/encryption';
-import { addObservabilityBreadcrumb, captureBrowserException } from '@/lib/observability';
+import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
-import type { ClientToServerMessage, ServerToClientMessage } from '@ai-canvas/shared/types';
-import { reconcileElements } from '@excalidraw/excalidraw';
+import type { ClientToServerMessage } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import { useCallback, useRef, useState } from 'react';
 import {
-	type CollaborationSessionStatus,
 	buildRoomHash,
 	buildRoomLink,
 	getPartykitHost,
@@ -24,138 +22,54 @@ import {
 	parseRoomHash,
 	readStoredUsername,
 } from './collaboration-utils';
-import { useResettableTimeout } from './useResettableTimeout';
+import { processCollaborationServerMessage } from './collaboration-messages';
+import {
+	applyCollaboratorsSnapshot,
+	buildCursorBroadcastPayload,
+	buildSceneBroadcastPayload,
+	createId,
+	getSessionCollaboratorColor,
+	type CollaborationApi,
+	type CollaboratorColor,
+	type CollaboratorState,
+	type CollabFile,
+	type RemoteElement,
+	CURSOR_THROTTLE_MS,
+	RECONNECT_BASE_MS,
+	RECONNECT_MAX_MS,
+	SCENE_THROTTLE_MS,
+} from './collaboration-session';
+import { applyRemoteSceneUpdate } from './collaboration-remote-scene';
+import { useThrottledCallback } from './useThrottledCallback';
 
-const SCENE_THROTTLE_MS = 100;
-const CURSOR_THROTTLE_MS = 50;
-const RECONNECT_BASE_MS = 1000;
-const RECONNECT_MAX_MS = 30000;
-const LAST_COLOR_INDEX_KEY = 'excalidraw_last_collab_color_index';
-
-type CollaboratorColor = {
-	background: string;
-	stroke: string;
-};
-
-type CollaboratorState = {
-	pointer?: { x: number; y: number };
-	button?: 'down' | 'up';
-	selectedElementIds?: Record<string, boolean>;
-	username?: string;
-	color?: CollaboratorColor;
-	id?: string;
-};
-
-type CollabFile = {
-	id: string;
-	mimeType: string;
-	dataURL: string;
-	created: number;
-};
-
-type RemoteElement = ExcalidrawElement & {
-	version: number;
-	versionNonce: number;
-	isDeleted?: boolean;
-};
-
-type BroadcastPayload =
-	| {
-			type: 'scene-update';
-			elements: RemoteElement[];
-			files?: Record<string, CollabFile>;
-	  }
-	| {
-			type: 'cursor-update';
-			clientId: string;
-			pointer: { x: number; y: number };
-			button: 'down' | 'up';
-			selectedElementIds: Record<string, boolean>;
-			username?: string;
-			color: CollaboratorColor;
-	  };
-
-interface CollaborationOptions {
+type CollaborationOptions = {
 	onError?: (message: string) => void;
+};
+
+interface PendingScene {
+	elements: RemoteElement[];
+	files?: Record<string, CollabFile>;
 }
 
-function getCollaboratorColors(): CollaboratorColor[] {
-	return [
-		{ background: '#ffa8a8', stroke: '#c92a2a' },
-		{ background: '#ffd8a8', stroke: '#e67700' },
-		{ background: '#fff3bf', stroke: '#e67700' },
-		{ background: '#d3f9d8', stroke: '#2b8a3e' },
-		{ background: '#74c0fc', stroke: '#1864ab' },
-		{ background: '#e599f7', stroke: '#862e9c' },
-		{ background: '#b197fc', stroke: '#5f3dc4' },
-		{ background: '#63e6be', stroke: '#087f5b' },
-	];
-}
-
-function createId(): string {
-	return typeof crypto.randomUUID === 'function'
-		? crypto.randomUUID().replace(/-/g, '').slice(0, 20)
-		: Math.random().toString(36).slice(2, 22);
-}
-
-function getSessionCollaboratorColor(): CollaboratorColor {
-	const colors = getCollaboratorColors();
-	const raw =
-		typeof window !== 'undefined' ? window.localStorage.getItem(LAST_COLOR_INDEX_KEY) : null;
-	const previousIndex = raw !== null ? Number.parseInt(raw, 10) : Number.NaN;
-	let nextIndex = Math.floor(Math.random() * colors.length);
-
-	if (colors.length > 1 && Number.isInteger(previousIndex) && nextIndex === previousIndex) {
-		nextIndex = (nextIndex + 1) % colors.length;
-	}
-
-	if (typeof window !== 'undefined') {
-		window.localStorage.setItem(LAST_COLOR_INDEX_KEY, String(nextIndex));
-	}
-
-	return colors[nextIndex] ?? colors[0]!;
-}
-
-function useThrottledCallback<A extends unknown[]>(fn: (...args: A) => void, ms: number) {
-	const lastRef = useRef(0);
-	const fnRef = useRef(fn);
-	const { schedule, clear } = useResettableTimeout();
-	fnRef.current = fn;
-
-	return useCallback(
-		(...args: A) => {
-			const now = Date.now();
-			if (now - lastRef.current >= ms) {
-				lastRef.current = now;
-				clear();
-				fnRef.current(...args);
-			} else {
-				schedule(
-					() => {
-						lastRef.current = Date.now();
-						fnRef.current(...args);
-					},
-					ms - (now - lastRef.current),
-				);
-			}
-		},
-		[clear, ms, schedule],
-	);
+function createCollaboratorState(): Map<string, CollaboratorState> {
+	return new Map();
 }
 
 export function useCollaboration({ onError }: CollaborationOptions = {}) {
-	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
+	const excalidrawApi = useAppStore((s) => s.excalidrawApi) as CollaborationApi | null;
 	const setAppState = useAppStore((s) => s.setAppState);
 	const [isCollaborating, setIsCollaborating] = useState(false);
 	const [roomLink, setRoomLink] = useState<string | null>(null);
 	const [username, setUsernameState] = useState(() =>
 		typeof window === 'undefined' ? 'Anonymous' : readStoredUsername(window.localStorage),
 	);
-	const [collaborators, setCollaborators] = useState<Map<string, CollaboratorState>>(new Map());
-	const [sessionStatus, setSessionStatus] = useState<CollaborationSessionStatus>('idle');
+	const [collaborators, setCollaborators] = useState<Map<string, CollaboratorState>>(
+		createCollaboratorState(),
+	);
+	const [sessionStatus, setSessionStatus] = useState<'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'>('idle');
 	const [sessionError, setSessionError] = useState<string | null>(null);
 
-	const apiRef = useRef(excalidrawApi);
+	const apiRef = useRef<CollaborationApi | null>(excalidrawApi);
 	apiRef.current = excalidrawApi;
 	const onErrorRef = useRef(onError);
 	onErrorRef.current = onError;
@@ -166,15 +80,12 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	const roomIdRef = useRef<string | null>(null);
 	const clientIdRef = useRef(createId());
 	const collaboratorColorRef = useRef<CollaboratorColor>(getSessionCollaboratorColor());
-	const collaboratorsRef = useRef<Map<string, CollaboratorState>>(new Map());
+	const collaboratorsRef = useRef<Map<string, CollaboratorState>>(createCollaboratorState());
 	const sentFileIdsRef = useRef<Set<string>>(new Set());
 	const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const reconnectAttemptRef = useRef(0);
 	const isApplyingRemoteRef = useRef(false);
-	const pendingSceneRef = useRef<{
-		elements: RemoteElement[];
-		files?: Record<string, CollabFile>;
-	} | null>(null);
+	const pendingSceneRef = useRef<PendingScene | null>(null);
 
 	const setUsername = useCallback((name: string) => {
 		setUsernameState(name);
@@ -182,6 +93,27 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			window.localStorage.setItem('excalidraw_name', name);
 		}
 	}, []);
+
+	const applyCollaborators = useCallback(
+		(next: Map<string, CollaboratorState>) => {
+			collaboratorsRef.current = next;
+			applyCollaboratorsSnapshot(apiRef.current, setCollaborators, setAppState, next);
+		},
+		[setAppState],
+	);
+
+	const applyRemoteScene = useCallback(
+		(targetApi: CollaborationApi, elements: RemoteElement[], files?: Record<string, CollabFile>) => {
+			applyRemoteSceneUpdate(
+				targetApi,
+				elements,
+				files,
+				sentFileIdsRef.current,
+				isApplyingRemoteRef,
+			);
+		},
+		[],
+	);
 
 	const broadcastSceneRaw = useCallback(
 		async (
@@ -193,29 +125,7 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			const key = encKeyRef.current;
 			if (!ws || ws.readyState !== WebSocket.OPEN || !key) return;
 
-			const newFiles: Record<string, CollabFile> = {};
-			if (files) {
-				for (const [id, file] of Object.entries(files)) {
-					if (!sentFileIdsRef.current.has(id) && file) {
-						const candidate = file as Record<string, unknown>;
-						if (typeof candidate.dataURL === 'string' && typeof candidate.mimeType === 'string') {
-							newFiles[id] = {
-								id,
-								mimeType: candidate.mimeType,
-								dataURL: candidate.dataURL,
-								created: typeof candidate.created === 'number' ? candidate.created : Date.now(),
-							};
-							sentFileIdsRef.current.add(id);
-						}
-					}
-				}
-			}
-
-			const payload: BroadcastPayload = {
-				type: 'scene-update',
-				elements: elements as RemoteElement[],
-				...(Object.keys(newFiles).length > 0 ? { files: newFiles } : {}),
-			};
+			const payload = buildSceneBroadcastPayload(elements, files, sentFileIdsRef.current);
 
 			try {
 				const encrypted = await encryptData(JSON.stringify(payload), key);
@@ -249,15 +159,14 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			const key = encKeyRef.current;
 			if (!ws || ws.readyState !== WebSocket.OPEN || !key) return;
 
-			const payload: BroadcastPayload = {
-				type: 'cursor-update',
-				clientId: clientIdRef.current,
+			const payload = buildCursorBroadcastPayload(
+				clientIdRef.current,
 				pointer,
 				button,
 				selectedElementIds,
 				username,
-				color: collaboratorColorRef.current,
-			};
+				collaboratorColorRef.current,
+			);
 
 			try {
 				const encrypted = await encryptData(JSON.stringify(payload), key);
@@ -278,155 +187,18 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 	const broadcastCursorThrottled = useThrottledCallback(broadcastCursorRaw, CURSOR_THROTTLE_MS);
 
-	const applyCollaborators = useCallback(
-		(next: Map<string, CollaboratorState>) => {
-			collaboratorsRef.current = next;
-			setCollaborators(new Map(next));
-			const api = apiRef.current;
-			if (!api) return;
-			api.updateScene({
-				appState: { collaborators: next } as Parameters<typeof api.updateScene>[0]['appState'],
-			});
-			setAppState({
-				...api.getAppState(),
-				collaborators: next,
-			} as Partial<AppState>);
-		},
-		[setAppState],
-	);
-
-	const applyRemoteScene = useCallback(
-		(
-			targetApi: NonNullable<typeof excalidrawApi>,
-			elements: RemoteElement[],
-			files?: Record<string, CollabFile>,
-		) => {
-			if (files) {
-				const toAdd = Object.values(files).map((file) => ({
-					id: file.id,
-					mimeType: file.mimeType,
-					dataURL: file.dataURL,
-					created: file.created,
-				}));
-				if (toAdd.length > 0) {
-					targetApi.addFiles(toAdd as Parameters<typeof targetApi.addFiles>[0]);
-					for (const file of toAdd) sentFileIdsRef.current.add(file.id);
-				}
-			}
-
-			const localElements = targetApi.getSceneElements();
-			const localAppState = targetApi.getAppState();
-			const reconciled = reconcileElements(
-				localElements as Parameters<typeof reconcileElements>[0],
-				elements as unknown as Parameters<typeof reconcileElements>[1],
-				localAppState as Parameters<typeof reconcileElements>[2],
-			);
-
-			isApplyingRemoteRef.current = true;
-			targetApi.updateScene({ elements: reconciled });
-			queueMicrotask(() => {
-				isApplyingRemoteRef.current = false;
-			});
-		},
-		[],
-	);
-
 	const handleMessage = useCallback(
-		async (event: MessageEvent) => {
-			const key = encKeyRef.current;
-			if (!key) return;
-
-			let msg: ServerToClientMessage;
-			try {
-				msg = JSON.parse(event.data as string) as ServerToClientMessage;
-			} catch {
-				addObservabilityBreadcrumb(
-					'collaboration.message_parse_failed',
-					{
-						roomId: roomIdRef.current,
-					},
-					'warning',
-					'collaboration',
-				);
-				return;
-			}
-
-			const api = apiRef.current;
-
-			switch (msg.type) {
-				case 'init-room':
-					break;
-				case 'first-in-room':
-				case 'new-user':
-					if (api) {
-						await broadcastSceneRaw(
-							api.getSceneElements() as readonly ExcalidrawElement[],
-							api.getFiles() as Record<string, unknown>,
-							false,
-						);
-					}
-					break;
-				case 'room-user-change': {
-					const activeIds = new Set(msg.socketIds);
-					const updated = new Map<string, CollaboratorState>();
-					for (const [id, state] of collaboratorsRef.current) {
-						if (activeIds.has(id)) updated.set(id, state);
-					}
-					applyCollaborators(updated);
-					break;
-				}
-				case 'resync-request':
-					if (api) {
-						await broadcastSceneRaw(
-							api.getSceneElements() as readonly ExcalidrawElement[],
-							api.getFiles() as Record<string, unknown>,
-							false,
-						);
-					}
-					break;
-				case 'client-broadcast': {
-					let decryptedPayload: BroadcastPayload;
-					try {
-						const decrypted = await decryptData(msg.payload, msg.iv, key);
-						decryptedPayload = JSON.parse(decrypted) as BroadcastPayload;
-					} catch {
-						addObservabilityBreadcrumb(
-							'collaboration.message_decrypt_failed',
-							{
-								roomId: roomIdRef.current,
-								messageType: msg.type,
-							},
-							'warning',
-							'collaboration',
-						);
-						break;
-					}
-
-					if (decryptedPayload.type === 'scene-update') {
-						if (!api) {
-							pendingSceneRef.current = {
-								elements: decryptedPayload.elements,
-								files: decryptedPayload.files,
-							};
-							break;
-						}
-						applyRemoteScene(api, decryptedPayload.elements, decryptedPayload.files);
-					} else {
-						const updated = new Map(collaboratorsRef.current);
-						updated.set(decryptedPayload.clientId, {
-							pointer: decryptedPayload.pointer,
-							button: decryptedPayload.button,
-							selectedElementIds: decryptedPayload.selectedElementIds,
-							username: decryptedPayload.username,
-							color: decryptedPayload.color,
-							id: decryptedPayload.clientId,
-						});
-						applyCollaborators(updated);
-					}
-					break;
-				}
-			}
-		},
+		(event: MessageEvent) =>
+			processCollaborationServerMessage(event, {
+				getApi: () => apiRef.current,
+				getKey: () => encKeyRef.current,
+				getRoomId: () => roomIdRef.current,
+				collaboratorsRef,
+				pendingSceneRef,
+				broadcastSceneRaw,
+				applyCollaborators,
+				applyRemoteScene,
+			}),
 		[applyCollaborators, applyRemoteScene, broadcastSceneRaw],
 	);
 
@@ -450,8 +222,8 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			keyBase64Ref.current = keyBase64;
 			roomIdRef.current = roomId;
 			if (!isReconnect) {
-				collaboratorsRef.current = new Map();
-				setCollaborators(new Map());
+				collaboratorsRef.current = createCollaboratorState();
+				setCollaborators(createCollaboratorState());
 				reconnectAttemptRef.current = 0;
 			}
 			setSessionError(null);
@@ -479,15 +251,9 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			};
 
 			ws.onerror = () => {
-				addObservabilityBreadcrumb(
-					'collaboration.socket_error',
-					{
-						roomId,
-						attempt: reconnectAttemptRef.current,
-					},
-					'warning',
-					'collaboration',
-				);
+				if (reconnectAttemptRef.current === 0) {
+					setSessionStatus('error');
+				}
 				setSessionError('Could not reach the collaboration server.');
 			};
 
@@ -545,7 +311,7 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 			wsRef.current = null;
 		}
 
-		applyCollaborators(new Map());
+		applyCollaborators(createCollaboratorState());
 		setRoomLink(null);
 		setIsCollaborating(false);
 		setSessionStatus('idle');
