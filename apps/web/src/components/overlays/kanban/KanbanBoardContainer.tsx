@@ -8,6 +8,7 @@ import type { CSSProperties } from 'react';
 import { KanbanBoardHeader } from './KanbanBoardHeader';
 import { KanbanBoardSettingsPanel } from './KanbanBoardSettingsPanel';
 import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
+import { KanbanDeleteCardDialog } from './KanbanDeleteCardDialog';
 import { KanbanDeleteColumnDialog } from './KanbanDeleteColumnDialog';
 import { KanbanDeleteDropZone } from './KanbanDeleteDropZone';
 import type { KanbanBoardProps } from './kanban-board-types';
@@ -227,7 +228,7 @@ export function KanbanBoardContainer({
 								onUpdateCard={(cardId, updates) =>
 									state.handleUpdateCard(column.id, cardId, updates)
 								}
-								onDeleteCard={(cardId) => state.handleDeleteCard(column.id, cardId)}
+								onDeleteCard={(cardId) => state.handleRequestDeleteCard(column.id, cardId)}
 								onCardDragStart={drag.handleCardDragStart}
 								onCardDragEnd={drag.clearDragState}
 								onCardColumnDragOver={drag.handleCardColumnDragOver}
@@ -310,6 +311,14 @@ export function KanbanBoardContainer({
 					cardCount={state.pendingDeleteColumn.cards.length}
 					onCancel={() => state.setPendingDeleteColumnId(null)}
 					onConfirm={state.handleDeletePendingColumn}
+				/>
+			) : null}
+
+			{state.pendingDeleteCard ? (
+				<KanbanDeleteCardDialog
+					cardTitle={state.pendingDeleteCard.title}
+					onCancel={state.handleCancelDeleteCard}
+					onConfirm={state.handleDeletePendingCard}
 				/>
 			) : null}
 		</OverlaySurface>

@@ -84,6 +84,7 @@ export const newLexOverlaySchema = z.object({
 });
 
 export const kanbanChecklistItemSchema = z.object({
+	id: z.string().optional(),
 	text: z.string().default(''),
 	done: z.boolean().default(false),
 });
@@ -167,8 +168,8 @@ export function createStarterKanbanColumns(): z.infer<typeof kanbanOverlaySchema
 					priority: 'medium',
 					labels: ['setup'],
 					checklist: [
-						{ text: 'Name the outcome', done: false },
-						{ text: 'Note the deadline', done: false },
+						{ id: crypto.randomUUID(), text: 'Name the outcome', done: false },
+						{ id: crypto.randomUUID(), text: 'Note the deadline', done: false },
 					],
 				},
 				{
@@ -193,8 +194,8 @@ export function createStarterKanbanColumns(): z.infer<typeof kanbanOverlaySchema
 					priority: 'high',
 					labels: ['focus'],
 					checklist: [
-						{ text: 'Finish the rough draft', done: true },
-						{ text: 'Review the flow', done: false },
+						{ id: crypto.randomUUID(), text: 'Finish the rough draft', done: true },
+						{ id: crypto.randomUUID(), text: 'Review the flow', done: false },
 					],
 				},
 			],
@@ -210,7 +211,7 @@ export function createStarterKanbanColumns(): z.infer<typeof kanbanOverlaySchema
 					description: 'Keep a finished card here so new boards do not feel empty.',
 					priority: 'low',
 					labels: ['starter'],
-					checklist: [{ text: 'Starter template loaded', done: true }],
+					checklist: [{ id: crypto.randomUUID(), text: 'Starter template loaded', done: true }],
 				},
 			],
 		},

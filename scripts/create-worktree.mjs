@@ -273,7 +273,9 @@ function main() {
 	console.log('Next steps');
 	console.log(`- Open ${worktreePath} as its own workspace.`);
 	console.log(`- Run all services: cd ${worktreePath} && bun run dev`);
-	console.log(`  (starts Web on ${suggestedWebPort}, API on ${suggestedApiPort}, PartyKit on 1999)`);
+	console.log(
+		`  (starts Web on ${suggestedWebPort}, API on ${suggestedApiPort}, PartyKit on 1999)`,
+	);
 	console.log(`- Push when ready: git -C ${worktreePath} push -u origin ${branchName}`);
 }
 

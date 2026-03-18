@@ -1,5 +1,6 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 import type { FormEvent, MouseEvent } from 'react';
+import { useMemo } from 'react';
 import { getLabelTone } from './kanban-card-helpers';
 import {
 	KANBAN_ACCENT_BORDER,
@@ -108,7 +109,13 @@ export function KanbanCardSummary({
 	onDescriptionInput,
 	onDragHandleMouseDown,
 }: KanbanCardSummaryProps) {
-	const checklist = card.checklist ?? [];
+	const checklist = useMemo(() => {
+		let nextId = 0;
+		return (card.checklist ?? []).map((item) => ({
+			...item,
+			id: item.id ?? `check-${card.id}-${nextId++}`,
+		}));
+	}, [card.checklist, card.id]);
 	const doneCount = checklist.filter((item) => item.done).length;
 	const checklistProgress = checklist.length > 0 ? (doneCount / checklist.length) * 100 : 0;
 	const isOverdue = isKanbanCardOverdue(card.dueDate);
@@ -136,7 +143,7 @@ export function KanbanCardSummary({
 						}
 					}}
 					maxLength={120}
-					className="min-h-[2rem] w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 font-semibold leading-[1.25] outline-none"
+					className="min-h-[2rem] flex-1 resize-none overflow-hidden border-0 bg-transparent px-0 py-0.5 font-semibold leading-[1.25] outline-none"
 					style={{
 						fontSize: `${fontSize}px`,
 						color: 'var(--color-text-primary)',
@@ -144,6 +151,63 @@ export function KanbanCardSummary({
 					}}
 					placeholder="Card title"
 				/>
+				<div
+					className={`flex shrink-0 items-center gap-1.5 transition-opacity ${
+						isHovered || detailsOpen || isDragging ? 'opacity-100' : 'opacity-0'
+					}`}
+					style={{ transitionDuration: 'var(--kanban-motion-duration-fast)' }}
+				>
+					<div
+						data-card-drag-handle="true"
+						role="button"
+						tabIndex={0}
+						onMouseDown={onDragHandleMouseDown}
+						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
+						style={{
+							borderRadius: `${Math.max(controlRadius, 0)}px`,
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
+							backgroundImage: 'var(--kanban-sketch-control-texture)',
+							color: 'var(--color-text-tertiary)',
+							cursor: 'grab',
+							userSelect: 'none',
+							boxShadow: 'var(--kanban-sketch-control-shadow)',
+						}}
+						aria-label={`Drag ${titleDraft || card.title}`}
+						title="Drag card"
+					>
+						<span className="grid grid-cols-2 gap-[2px]">
+							{Array.from({ length: 6 }, (_, index) => (
+								<span
+									key={index}
+									className="h-[3px] w-[3px] rounded-full"
+									style={{ background: 'currentColor' }}
+								/>
+							))}
+						</span>
+					</div>
+
+					<button
+						type="button"
+						onClick={onDelete}
+						onMouseDown={(event) => event.stopPropagation()}
+						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
+						style={{
+							borderRadius: `${Math.max(controlRadius, 0)}px`,
+							borderColor:
+								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
+							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
+							backgroundImage: 'var(--kanban-sketch-control-texture)',
+							color: 'var(--color-text-tertiary)',
+							boxShadow: 'var(--kanban-sketch-control-shadow)',
+						}}
+						aria-label={`Delete ${titleDraft || card.title}`}
+						title="Delete card"
+					>
+						×
+					</button>
+				</div>
 			</div>
 
 			<div
@@ -289,9 +353,9 @@ export function KanbanCardSummary({
 
 			{checklist.length ? (
 				<div className="mt-3 space-y-1.5">
-					{checklist.map((item, index) => (
+					{checklist.slice(0, 2).map((item) => (
 						<label
-							key={`${card.id}-check-inline-${index}`}
+							key={`${card.id}-check-inline-${item.id}`}
 							className="flex cursor-pointer items-start gap-2 rounded-[10px] px-2 py-1.5 transition-colors"
 							style={{
 								background: item.done
@@ -321,41 +385,19 @@ export function KanbanCardSummary({
 							</span>
 						</label>
 					))}
+					{checklist.length > 2 ? (
+						<div className="px-2 py-1 text-xs italic" style={{ color: 'var(--color-text-tertiary)' }}>
+							⋯ {checklist.length - 2} more
+						</div>
+					) : null}
 				</div>
 			) : null}
 
-			{checklist.length ? (
-				<div className="mt-3">
-					<div
-						className="h-1.5 overflow-hidden rounded-full"
-						style={{ background: 'color-mix(in srgb, var(--color-surface-muted) 90%, white)' }}
-					>
-						<div
-							className="h-full rounded-full transition-[width]"
-							style={{
-								width: `${checklistProgress}%`,
-								background:
-									checklistProgress === 100 ? 'var(--color-success-text)' : priorityMeta.color,
-								transitionDuration: 'var(--kanban-motion-duration)',
-							}}
-						/>
-					</div>
-				</div>
-			) : null}
-
-			<div
-				className="mt-4 h-px rounded-full"
-				style={{
-					backgroundColor: 'color-mix(in srgb, var(--color-border) 88%, transparent)',
-					backgroundImage: 'var(--kanban-sketch-divider)',
-				}}
-			/>
-
-			<div className="mt-3 flex items-center justify-between gap-3">
+			<div className="mt-3 flex items-center gap-3">
 				<button
 					type="button"
 					onClick={onToggleDetails}
-					className="inline-flex min-w-0 items-center gap-2 px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors"
+					className="inline-flex shrink-0 min-w-0 items-center gap-2 px-1 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors"
 					style={{
 						borderRadius: `${Math.max(controlRadius, 0)}px`,
 						color: detailsOpen ? KANBAN_ACCENT_TEXT : 'var(--color-text-secondary)',
@@ -365,63 +407,24 @@ export function KanbanCardSummary({
 					<ChevronIcon open={detailsOpen} />
 				</button>
 
-				<div
-					className={`flex shrink-0 items-center gap-1.5 transition-opacity ${
-						isHovered || detailsOpen || isDragging ? 'opacity-100' : 'opacity-0'
-					}`}
-					style={{ transitionDuration: 'var(--kanban-motion-duration-fast)' }}
-				>
-					<div
-						data-card-drag-handle="true"
-						role="button"
-						tabIndex={0}
-						onMouseDown={onDragHandleMouseDown}
-						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
-						style={{
-							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor:
-								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
-							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
-							backgroundImage: 'var(--kanban-sketch-control-texture)',
-							color: 'var(--color-text-tertiary)',
-							cursor: 'grab',
-							userSelect: 'none',
-							boxShadow: 'var(--kanban-sketch-control-shadow)',
-						}}
-						aria-label={`Drag ${titleDraft || card.title}`}
-						title="Drag card"
-					>
-						<span className="grid grid-cols-2 gap-[2px]">
-							{Array.from({ length: 6 }, (_, index) => (
-								<span
-									key={index}
-									className="h-[3px] w-[3px] rounded-full"
-									style={{ background: 'currentColor' }}
-								/>
-							))}
-						</span>
+				{checklist.length ? (
+					<div className="flex flex-1 items-center gap-1">
+						{checklist.slice(0, 2).map((item) => (
+							<div
+								key={`segment-${card.id}-${item.id}`}
+								className="h-1.5 flex-1 rounded-full transition-colors"
+								style={{
+									background: item.done
+										? checklistProgress === 100
+											? 'var(--color-success-text)'
+											: priorityMeta.color
+										: 'color-mix(in srgb, var(--color-surface-muted) 90%, white)',
+									transitionDuration: 'var(--kanban-motion-duration)',
+								}}
+							/>
+						))}
 					</div>
-
-					<button
-						type="button"
-						onClick={onDelete}
-						onMouseDown={(event) => event.stopPropagation()}
-						className="inline-flex h-8 w-8 items-center justify-center border transition-colors"
-						style={{
-							borderRadius: `${Math.max(controlRadius, 0)}px`,
-							borderColor:
-								'color-mix(in srgb, var(--color-text-secondary) 12%, var(--color-border))',
-							backgroundColor: 'color-mix(in srgb, var(--color-surface-strong) 96%, white)',
-							backgroundImage: 'var(--kanban-sketch-control-texture)',
-							color: 'var(--color-text-tertiary)',
-							boxShadow: 'var(--kanban-sketch-control-shadow)',
-						}}
-						aria-label={`Delete ${titleDraft || card.title}`}
-						title="Delete card"
-					>
-						×
-					</button>
-				</div>
+				) : null}
 			</div>
 		</>
 	);

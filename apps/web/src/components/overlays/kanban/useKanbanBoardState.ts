@@ -7,7 +7,6 @@ import {
 	createKanbanCard,
 	createKanbanColumn,
 	createStarterKanbanColumns,
-	formatRelativeTime,
 	normalizeKanbanBoard,
 	pushKanbanHistory,
 	serializeKanbanBoard,
@@ -17,10 +16,12 @@ interface UseKanbanBoardStateResult {
 	board: KanbanOverlayCustomData;
 	boardRef: MutableRefObject<KanbanOverlayCustomData>;
 	boardTitleDraft: string;
-	formattedLastUpdated: string;
 	showSettings: boolean;
 	pendingDeleteColumnId: string | null;
 	pendingDeleteColumn: KanbanOverlayCustomData['columns'][number] | null;
+	pendingDeleteCardId: string | null;
+	pendingDeleteCardColumnId: string | null;
+	pendingDeleteCard: KanbanOverlayCustomData['columns'][number]['cards'][number] | null;
 	searchQuery: string;
 	searchFocused: boolean;
 	isLiveResizing: boolean;
@@ -29,6 +30,8 @@ interface UseKanbanBoardStateResult {
 	setBoardTitleDraft: Dispatch<SetStateAction<string>>;
 	setShowSettings: Dispatch<SetStateAction<boolean>>;
 	setPendingDeleteColumnId: Dispatch<SetStateAction<string | null>>;
+	setPendingDeleteCardId: Dispatch<SetStateAction<string | null>>;
+	setPendingDeleteCardColumnId: Dispatch<SetStateAction<string | null>>;
 	setSearchQuery: Dispatch<SetStateAction<string>>;
 	setSearchFocused: Dispatch<SetStateAction<boolean>>;
 	updateBoard: UpdateKanbanBoard;
@@ -46,6 +49,9 @@ interface UseKanbanBoardStateResult {
 		cardId: string,
 		updates: Partial<KanbanOverlayCustomData['columns'][number]['cards'][number]>,
 	) => void;
+	handleRequestDeleteCard: (columnId: string, cardId: string) => void;
+	handleCancelDeleteCard: () => void;
+	handleDeletePendingCard: () => void;
 	handleDeleteCard: (columnId: string, cardId: string) => void;
 	handleDeletePendingColumn: () => void;
 	handleAddColumn: () => void;
@@ -72,6 +78,8 @@ export function useKanbanBoardState({
 	const [boardTitleDraft, setBoardTitleDraft] = useState(normalizedInitialBoard.title);
 	const [showSettings, setShowSettings] = useState(false);
 	const [pendingDeleteColumnId, setPendingDeleteColumnId] = useState<string | null>(null);
+	const [pendingDeleteCardId, setPendingDeleteCardId] = useState<string | null>(null);
+	const [pendingDeleteCardColumnId, setPendingDeleteCardColumnId] = useState<string | null>(null);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchFocused, setSearchFocused] = useState(false);
 	const [isLiveResizing, setIsLiveResizing] = useState(false);
@@ -161,10 +169,7 @@ export function useKanbanBoardState({
 			nextBoard: KanbanOverlayCustomData,
 			withHistory: boolean,
 		) => {
-			const normalized = normalizeKanbanBoard({
-				...nextBoard,
-				lastUpdated: Date.now(),
-			});
+			const normalized = normalizeKanbanBoard(nextBoard);
 			if (withHistory) {
 				undoStackRef.current = pushKanbanHistory(undoStackRef.current, currentBoard);
 				redoStackRef.current = [];
@@ -255,6 +260,8 @@ export function useKanbanBoardState({
 			flushBoardTitleDraft();
 			setShowSettings(false);
 			setPendingDeleteColumnId(null);
+			setPendingDeleteCardId(null);
+			setPendingDeleteCardColumnId(null);
 		}
 	}, [flushBoardTitleDraft, isSelected]);
 
@@ -263,6 +270,19 @@ export function useKanbanBoardState({
 		if (board.columns.some((column) => column.id === pendingDeleteColumnId)) return;
 		setPendingDeleteColumnId(null);
 	}, [board.columns, pendingDeleteColumnId]);
+
+	useEffect(() => {
+		if (!pendingDeleteCardId || !pendingDeleteCardColumnId) return;
+		const column = board.columns.find((c) => c.id === pendingDeleteCardColumnId);
+		if (!column) {
+			setPendingDeleteCardId(null);
+			setPendingDeleteCardColumnId(null);
+			return;
+		}
+		if (column.cards.some((card) => card.id === pendingDeleteCardId)) return;
+		setPendingDeleteCardId(null);
+		setPendingDeleteCardColumnId(null);
+	}, [board.columns, pendingDeleteCardId, pendingDeleteCardColumnId]);
 
 	const handleColumnChange = useCallback(
 		(columnId: string, updates: Partial<KanbanOverlayCustomData['columns'][number]>) => {
@@ -325,6 +345,39 @@ export function useKanbanBoardState({
 		},
 		[updateBoard],
 	);
+
+	const handleRequestDeleteCard = useCallback((columnId: string, cardId: string) => {
+		setPendingDeleteCardId(cardId);
+		setPendingDeleteCardColumnId(columnId);
+	}, []);
+
+	const handleCancelDeleteCard = useCallback(() => {
+		setPendingDeleteCardId(null);
+		setPendingDeleteCardColumnId(null);
+	}, []);
+
+	const handleDeletePendingCard = useCallback(() => {
+		const targetCardId = pendingDeleteCardId;
+		const targetColumnId = pendingDeleteCardColumnId;
+		if (!targetCardId || !targetColumnId) return;
+
+		updateBoard(
+			(currentBoard) => ({
+				...currentBoard,
+				columns: currentBoard.columns.map((candidate) =>
+					candidate.id === targetColumnId
+						? {
+								...candidate,
+								cards: candidate.cards.filter((card) => card.id !== targetCardId),
+							}
+						: candidate,
+				),
+			}),
+			{ history: true },
+		);
+		setPendingDeleteCardId(null);
+		setPendingDeleteCardColumnId(null);
+	}, [pendingDeleteCardId, pendingDeleteCardColumnId, updateBoard]);
 
 	const handleDeleteCard = useCallback(
 		(columnId: string, cardId: string) => {
@@ -403,11 +456,15 @@ export function useKanbanBoardState({
 	const dismissPanels = useCallback(() => {
 		setShowSettings(false);
 		setPendingDeleteColumnId(null);
+		setPendingDeleteCardId(null);
+		setPendingDeleteCardColumnId(null);
 	}, []);
 
 	const handleEscapeKey = useCallback(() => {
 		setShowSettings(false);
 		setPendingDeleteColumnId(null);
+		setPendingDeleteCardId(null);
+		setPendingDeleteCardColumnId(null);
 		setSearchQuery('');
 	}, []);
 
@@ -416,19 +473,23 @@ export function useKanbanBoardState({
 		[board.columns, pendingDeleteColumnId],
 	);
 
-	const formattedLastUpdated = useMemo(() => {
-		if (!board.lastUpdated) return '';
-		return formatRelativeTime(board.lastUpdated);
-	}, [board.lastUpdated]);
+	const pendingDeleteCard = useMemo(() => {
+		if (!pendingDeleteCardId || !pendingDeleteCardColumnId) return null;
+		const column = board.columns.find((c) => c.id === pendingDeleteCardColumnId);
+		if (!column) return null;
+		return column.cards.find((card) => card.id === pendingDeleteCardId) ?? null;
+	}, [board.columns, pendingDeleteCardId, pendingDeleteCardColumnId]);
 
 	return {
 		board,
 		boardRef,
 		boardTitleDraft,
-		formattedLastUpdated,
 		showSettings,
 		pendingDeleteColumnId,
 		pendingDeleteColumn,
+		pendingDeleteCardId,
+		pendingDeleteCardColumnId,
+		pendingDeleteCard,
 		searchQuery,
 		searchFocused,
 		isLiveResizing,
@@ -437,6 +498,8 @@ export function useKanbanBoardState({
 		setBoardTitleDraft,
 		setShowSettings,
 		setPendingDeleteColumnId,
+		setPendingDeleteCardId,
+		setPendingDeleteCardColumnId,
 		setSearchQuery,
 		setSearchFocused,
 		updateBoard,
@@ -447,6 +510,9 @@ export function useKanbanBoardState({
 		handleRequestDeleteColumn,
 		handleAddCard,
 		handleUpdateCard,
+		handleRequestDeleteCard,
+		handleCancelDeleteCard,
+		handleDeletePendingCard,
 		handleDeleteCard,
 		handleDeletePendingColumn,
 		handleAddColumn,

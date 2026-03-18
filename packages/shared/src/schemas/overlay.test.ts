@@ -153,8 +153,8 @@ describe('overlay schemas', () => {
 							priority: 'high',
 							labels: ['docs', 'launch'],
 							checklist: [
-								{ text: 'Outline', done: true },
-								{ text: 'Review', done: false },
+								{ id: 'check-1', text: 'Outline', done: true },
+								{ id: 'check-2', text: 'Review', done: false },
 							],
 						},
 					],

@@ -1,4 +1,5 @@
-import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
+import type { KanbanCard as KanbanCardType, KanbanChecklistItem } from '@ai-canvas/shared/types';
+import { useMemo } from 'react';
 import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_SURFACE, KANBAN_ACCENT_TEXT } from './kanban-theme';
 
 interface KanbanChecklistEditorProps {
@@ -12,7 +13,13 @@ export function KanbanChecklistEditor({
 	controlRadius,
 	onChange,
 }: KanbanChecklistEditorProps) {
-	const checklist = card.checklist ?? [];
+	const checklist = useMemo(() => {
+		let nextId = 0;
+		return (card.checklist ?? []).map((item) => ({
+			...item,
+			id: item.id ?? `check-${card.id}-${nextId++}`,
+		}));
+	}, [card.checklist, card.id]);
 
 	const updateChecklist = (
 		updater: (
@@ -33,7 +40,12 @@ export function KanbanChecklistEditor({
 				</div>
 				<button
 					type="button"
-					onClick={() => updateChecklist((current) => [...current, { text: '', done: false }])}
+					onClick={() =>
+						updateChecklist((current) => [
+							...current,
+							{ id: crypto.randomUUID(), text: '', done: false },
+						])
+					}
 					className="inline-flex items-center border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors"
 					style={{
 						borderRadius: `${Math.max(controlRadius, 0)}px`,
@@ -48,9 +60,9 @@ export function KanbanChecklistEditor({
 
 			<div className="space-y-2">
 				{checklist.length
-					? checklist.map((item, index) => (
+					? checklist.map((item: KanbanChecklistItem & { id: string }) => (
 							<div
-								key={`${card.id}-check-${index}`}
+								key={`${card.id}-check-${item.id}`}
 								className="flex items-center gap-2 border px-2.5 py-2"
 								style={{
 									borderRadius: `${Math.max(controlRadius, 0)}px`,
@@ -65,7 +77,7 @@ export function KanbanChecklistEditor({
 									onChange={(event) =>
 										updateChecklist((current) =>
 											current.map((candidate, candidateIndex) =>
-												candidateIndex === index
+												candidate.id === item.id
 													? { ...candidate, done: event.target.checked }
 													: candidate,
 											),
@@ -78,7 +90,7 @@ export function KanbanChecklistEditor({
 									onChange={(event) =>
 										updateChecklist((current) =>
 											current.map((candidate, candidateIndex) =>
-												candidateIndex === index
+												candidate.id === item.id
 													? { ...candidate, text: event.target.value }
 													: candidate,
 											),
@@ -96,7 +108,7 @@ export function KanbanChecklistEditor({
 									type="button"
 									onClick={() =>
 										updateChecklist((current) =>
-											current.filter((_, candidateIndex) => candidateIndex !== index),
+											current.filter((candidate) => candidate.id !== item.id),
 										)
 									}
 									className="inline-flex h-8 w-8 items-center justify-center border"
