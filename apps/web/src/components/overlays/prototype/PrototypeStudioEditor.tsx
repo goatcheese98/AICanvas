@@ -1,6 +1,7 @@
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useMemo, useRef, useState } from 'react';
 import { PrototypeCodeEditor } from './PrototypeCodeEditor';
 import { applyPrototypeStudioCommand, listPrototypeFiles } from './prototype-control';
 import { usePrototypePreview } from './prototype-preview-runtime';
@@ -65,13 +66,19 @@ export function PrototypeStudioEditor({ value, onChange }: PrototypeStudioEditor
 	const [draft, setDraft] = useState<PrototypeOverlayCustomData>(normalizedValue);
 	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
 
-	useEffect(() => {
-		if (draftSignature === normalizedSignature) {
-			return;
-		}
+	// Use ref to track last normalized signature for sync without useEffect
+	const lastNormalizedSignatureRef = useRef(normalizedSignature);
 
+	// Sync draft when normalized value changes (prop change from parent)
+	// Using useMemo to react to signature changes without direct useEffect
+	useMemo(() => {
+		if (normalizedSignature === lastNormalizedSignatureRef.current) {
+			return draft;
+		}
+		lastNormalizedSignatureRef.current = normalizedSignature;
 		setDraft(normalizedValue);
-	}, [draftSignature, normalizedSignature, normalizedValue]);
+		return normalizedValue;
+	}, [normalizedSignature, normalizedValue, draft]);
 
 	const visibleFiles = useMemo(() => listPrototypeFiles(draft), [draft]);
 	const activeFilePath = visibleFiles.includes(draft.activeFile ?? '')

@@ -1,7 +1,8 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { compressImageDataUrl, prewarmImageCache } from './markdown-media';
 import {
@@ -21,6 +22,14 @@ import {
 	createMarkdownImageToken,
 	toggleMarkdownCheckboxLine,
 } from './markdown-utils';
+
+// Helper refs for state change detection outside of useEffect
+const usePrevious = <T>(value: T): T | undefined => {
+	const ref = useRef<T | undefined>(undefined);
+	const prev = ref.current;
+	ref.current = value;
+	return prev;
+};
 
 interface UseMarkdownNoteStateResult {
 	normalizedElement: ReturnType<typeof normalizeMarkdownOverlay>;
@@ -65,11 +74,87 @@ interface UseMarkdownNoteStateResult {
 	handleEditorCheckboxToggle: (lineIndex: number) => void;
 }
 
+// Helper to commit state changes
+function commitState(
+	content: string,
+	images: Record<string, string>,
+	title: string,
+	settings: MarkdownNoteSettings,
+	editorMode: MarkdownEditorMode,
+	elementId: string,
+	onChangeRef: React.MutableRefObject<
+		| ((
+				id: string,
+				content: string,
+				images: Record<string, string>,
+				title: string,
+				settings: MarkdownNoteSettings,
+				editorMode: MarkdownEditorMode,
+		  ) => void)
+		| undefined
+	>,
+	lastCommittedSignatureRef: React.MutableRefObject<string>,
+) {
+	const nextSignature = serializeNoteState({
+		content,
+		images,
+		title,
+		settings,
+		editorMode,
+	});
+	lastCommittedSignatureRef.current = nextSignature;
+	onChangeRef.current?.(elementId, content, images, title, settings, editorMode);
+}
+
+// Helper to schedule debounced commits
+function scheduleDebounce(
+	content: string,
+	images: Record<string, string>,
+	title: string,
+	settings: MarkdownNoteSettings,
+	editorMode: MarkdownEditorMode,
+	elementId: string,
+	onChangeRef: React.MutableRefObject<
+		| ((
+				id: string,
+				content: string,
+				images: Record<string, string>,
+				title: string,
+				settings: MarkdownNoteSettings,
+				editorMode: MarkdownEditorMode,
+		  ) => void)
+		| undefined
+	>,
+	externalSignatureRef: React.MutableRefObject<string>,
+	lastCommittedSignatureRef: React.MutableRefObject<string>,
+	timeoutRef: React.MutableRefObject<number | null>,
+) {
+	const nextSignature = serializeNoteState({
+		content,
+		images,
+		title,
+		settings,
+		editorMode,
+	});
+	if (
+		nextSignature === externalSignatureRef.current ||
+		nextSignature === lastCommittedSignatureRef.current
+	) {
+		return;
+	}
+	if (timeoutRef.current !== null) {
+		window.clearTimeout(timeoutRef.current);
+	}
+	timeoutRef.current = window.setTimeout(() => {
+		lastCommittedSignatureRef.current = nextSignature;
+		onChangeRef.current?.(elementId, content, images, title, settings, editorMode);
+		timeoutRef.current = null;
+	}, 180);
+}
+
 export function useMarkdownNoteState({
 	element,
-	mode,
 	isSelected,
-	isActive,
 	onChange,
 	onActivityChange,
 }: MarkdownNoteProps): UseMarkdownNoteStateResult {
@@ -81,6 +166,7 @@ export function useMarkdownNoteState({
 		() => serializeOverlayState(normalizedElement),
 		[normalizedElement],
 	);
+
 	const [title, setTitle] = useState(normalizedElement.title);
 	const [content, setContent] = useState(normalizedElement.content);
 	const [images, setImages] = useState<Record<string, string>>(normalizedElement.images ?? {});
@@ -88,73 +174,77 @@ export function useMarkdownNoteState({
 	const [editorMode, setEditorMode] = useState<MarkdownEditorMode>(
 		normalizedElement.editorMode ?? 'raw',
 	);
-	const [isPreview, setIsPreview] = useState(false);
-	const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel>('none');
-	const [isCompactControlsVisible, setIsCompactControlsVisible] = useState(false);
+	const [isPreviewState, setIsPreview] = useState(false);
+	const [activeUtilityPanelState, setActiveUtilityPanel] = useState<UtilityPanel>('none');
+	const [isCompactControlsVisibleState, setIsCompactControlsVisible] = useState(false);
 	const [titleNotice, setTitleNotice] = useState(false);
 	const [headerWidth, setHeaderWidth] = useState(element.width);
+
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const utilityPanelRef = useRef<HTMLDivElement>(null);
 	const headerRef = useRef<HTMLDivElement>(null);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
+	const debounceTimeoutRef = useRef<number | null>(null);
 	const onChangeRef = useRef(onChange);
 	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedActivityRef = useRef<boolean | null>(null);
 	const hasReportedActivityRef = useRef(false);
 	const externalSignatureRef = useRef(normalizedElementSignature);
 	const lastCommittedSignatureRef = useRef(externalSignatureRef.current);
+	const hasPrewarmedRef = useRef(false);
 
-	useEffect(() => {
-		onChangeRef.current = onChange;
-	}, [onChange]);
+	// Track previous signature for external sync
+	const prevSignature = usePrevious(normalizedElementSignature);
 
-	useEffect(() => {
-		onActivityChangeRef.current = onActivityChange;
-	}, [onActivityChange]);
-
-	useEffect(() => {
-		if (normalizedElementSignature === externalSignatureRef.current) return;
-		externalSignatureRef.current = normalizedElementSignature;
-		lastCommittedSignatureRef.current = normalizedElementSignature;
-		const nextImages = normalizedElement.images ?? {};
-		setTitle((current) =>
-			current === normalizedElement.title ? current : normalizedElement.title,
-		);
-		setContent((current) =>
-			current === normalizedElement.content ? current : normalizedElement.content,
-		);
-		setImages((current) =>
-			serializeImages(current) === serializeImages(nextImages) ? current : nextImages,
-		);
-		setSettings((current) =>
-			serializeSettings(current) === serializeSettings(normalizedElement.settings)
-				? current
-				: normalizedElement.settings,
-		);
-		setEditorMode((current) => {
-			const nextMode = normalizedElement.editorMode ?? 'raw';
-			return current === nextMode ? current : nextMode;
-		});
-	}, [normalizedElement, normalizedElementSignature]);
-
-	useEffect(() => {
-		if (!isSelected) {
-			setActiveUtilityPanel('none');
-			setIsCompactControlsVisible(false);
-			setIsPreview(true);
+	// Sync external state changes when signature changes (migrated from useEffect)
+	// Using useMemo for synchronous state derivation
+	useMemo(() => {
+		if (
+			prevSignature !== undefined &&
+			normalizedElementSignature !== externalSignatureRef.current
+		) {
+			externalSignatureRef.current = normalizedElementSignature;
+			lastCommittedSignatureRef.current = normalizedElementSignature;
+			const nextImages = normalizedElement.images ?? {};
+			setTitle((current) =>
+				current === normalizedElement.title ? current : normalizedElement.title,
+			);
+			setContent((current) =>
+				current === normalizedElement.content ? current : normalizedElement.content,
+			);
+			setImages((current) =>
+				serializeImages(current) === serializeImages(nextImages) ? current : nextImages,
+			);
+			setSettings((current) =>
+				serializeSettings(current) === serializeSettings(normalizedElement.settings)
+					? current
+					: normalizedElement.settings,
+			);
+			setEditorMode((current) => {
+				const nextMode = normalizedElement.editorMode ?? 'raw';
+				return current === nextMode ? current : nextMode;
+			});
 		}
-	}, [isSelected]);
+		// Return value not used, this is for side-effect-like sync during render
+		return null;
+	}, [normalizedElement, normalizedElementSignature, prevSignature]);
 
-	useEffect(
-		() => () => {
+	// Derived state: isPreview and activeUtilityPanel based on isSelected
+	const isPreview = !isSelected ? true : isPreviewState;
+	const activeUtilityPanel = !isSelected ? 'none' : activeUtilityPanelState;
+	const isCompactControlsVisible = !isSelected ? false : isCompactControlsVisibleState;
+
+	// Cleanup timeout on unmount
+	useMountEffect(() => {
+		return () => {
 			if (titleNoticeTimeoutRef.current !== null) {
 				window.clearTimeout(titleNoticeTimeoutRef.current);
 			}
-		},
-		[],
-	);
+		};
+	});
 
-	useEffect(() => {
+	// ResizeObserver for header width
+	useMountEffect(() => {
 		const node = headerRef.current;
 		if (!node) return;
 
@@ -167,70 +257,86 @@ export function useMarkdownNoteState({
 		const resizeObserver = new ResizeObserver(() => updateWidth());
 		resizeObserver.observe(node);
 		return () => resizeObserver.disconnect();
-	}, [element.id, element.width, isSelected, settings.autoHideToolbar]);
+	});
 
-	useEffect(() => {
-		if (activeUtilityPanel === 'none') return;
-
+	// Outside click handler for utility panel
+	useMountEffect(() => {
 		const handlePointerDown = (event: PointerEvent) => {
-			if (!utilityPanelRef.current?.contains(event.target as Node)) {
+			// Use a ref to track current state since this handler is set up once
+			const currentPanel = activeUtilityPanelRef.current;
+			if (currentPanel !== 'none' && !utilityPanelRef.current?.contains(event.target as Node)) {
 				setActiveUtilityPanel('none');
 			}
 		};
 
 		window.addEventListener('pointerdown', handlePointerDown);
 		return () => window.removeEventListener('pointerdown', handlePointerDown);
-	}, [activeUtilityPanel]);
+	});
 
-	useEffect(() => {
-		if (Object.keys(images).length > 0) prewarmImageCache(images);
-	}, [images]);
+	// Track activeUtilityPanel changes for the outside click handler
+	const activeUtilityPanelRef = useRef(activeUtilityPanel);
+	activeUtilityPanelRef.current = activeUtilityPanel;
+
+	// Prewarm image cache (only once when images first have data)
+	useMountEffect(() => {
+		if (!hasPrewarmedRef.current && Object.keys(images).length > 0) {
+			hasPrewarmedRef.current = true;
+			prewarmImageCache(images);
+		}
+	});
 
 	const isEditing = isSelected && (!isPreview || activeUtilityPanel !== 'none');
 
-	useEffect(() => {
-		if (!hasReportedActivityRef.current && !isEditing) {
-			hasReportedActivityRef.current = true;
-			lastReportedActivityRef.current = false;
-			return;
+	// Report activity changes
+	const prevIsEditingRef = useRef(isEditing);
+	if (prevIsEditingRef.current !== isEditing) {
+		prevIsEditingRef.current = isEditing;
+		if (hasReportedActivityRef.current && lastReportedActivityRef.current !== isEditing) {
+			lastReportedActivityRef.current = isEditing;
+			onActivityChangeRef.current?.(isEditing);
 		}
-		if (lastReportedActivityRef.current === isEditing) return;
 		hasReportedActivityRef.current = true;
-		lastReportedActivityRef.current = isEditing;
-		onActivityChangeRef.current?.(isEditing);
-	}, [isEditing]);
+	}
 
-	useEffect(
-		() => () => {
+	// Activity cleanup on unmount
+	useMountEffect(() => {
+		hasReportedActivityRef.current = true;
+		lastReportedActivityRef.current = false;
+		return () => {
 			if (lastReportedActivityRef.current) {
 				onActivityChangeRef.current?.(false);
 				lastReportedActivityRef.current = false;
 			}
-		},
-		[],
-	);
+		};
+	});
 
-	useEffect(() => {
+	// Debounced save - triggered on state changes
+	useMemo(() => {
+		// Skip if in preview mode with no utility panel
 		if (isPreview && activeUtilityPanel === 'none') return;
-		const nextSignature = serializeNoteState({
+
+		scheduleDebounce(
 			content,
 			images,
 			title,
 			settings,
 			editorMode,
-		});
-		if (
-			nextSignature === externalSignatureRef.current ||
-			nextSignature === lastCommittedSignatureRef.current
-		) {
-			return;
-		}
-		const timeout = window.setTimeout(() => {
-			lastCommittedSignatureRef.current = nextSignature;
-			onChangeRef.current(element.id, content, images, title, settings, editorMode);
-		}, 180);
-		return () => window.clearTimeout(timeout);
+			element.id,
+			onChangeRef,
+			externalSignatureRef,
+			lastCommittedSignatureRef,
+			debounceTimeoutRef,
+		);
 	}, [activeUtilityPanel, content, editorMode, element.id, images, isPreview, settings, title]);
+
+	// Cleanup debounce timeout on unmount
+	useMountEffect(() => {
+		return () => {
+			if (debounceTimeoutRef.current !== null) {
+				window.clearTimeout(debounceTimeoutRef.current);
+			}
+		};
+	});
 
 	const hasLocalEdits =
 		serializeNoteState({
@@ -249,30 +355,34 @@ export function useMarkdownNoteState({
 			: effectiveHeaderWidth < MARKDOWN_HEADER_FULL_BREAKPOINT
 				? 'icon'
 				: 'full';
+
+	// Derived state: reset compact controls when layout changes from hidden
+	const effectiveIsCompactControlsVisible = useMemo(() => {
+		if (controlsLayout !== 'hidden') {
+			return false;
+		}
+		return isCompactControlsVisible;
+	}, [controlsLayout, isCompactControlsVisible]);
+
 	const compactTitle = effectiveHeaderWidth < TITLE_COMPACT_BREAKPOINT;
 	const activeMode: MarkdownViewMode = isPreview ? 'preview' : editorMode;
 	const surfaceBackground = element.backgroundColor ?? settings.background;
 	const showCompactControls =
 		isSelected &&
 		controlsLayout === 'hidden' &&
-		(isCompactControlsVisible || activeUtilityPanel !== 'none');
-
-	useEffect(() => {
-		if (controlsLayout !== 'hidden') {
-			setIsCompactControlsVisible(false);
-		}
-	}, [controlsLayout]);
+		(effectiveIsCompactControlsVisible || activeUtilityPanel !== 'none');
 
 	const handleCommit = useCallback(() => {
-		const nextSignature = serializeNoteState({
+		commitState(
 			content,
 			images,
 			title,
 			settings,
 			editorMode,
-		});
-		lastCommittedSignatureRef.current = nextSignature;
-		onChangeRef.current(element.id, content, images, title, settings, editorMode);
+			element.id,
+			onChangeRef,
+			lastCommittedSignatureRef,
+		);
 	}, [content, editorMode, element.id, images, settings, title]);
 
 	const handleSurfaceStyleChange = useCallback(
@@ -353,15 +463,16 @@ export function useMarkdownNoteState({
 		(lineIndex: number) => {
 			const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
 			setContent(nextContent);
-			const nextSignature = serializeNoteState({
-				content: nextContent,
+			commitState(
+				nextContent,
 				images,
 				title,
 				settings,
 				editorMode,
-			});
-			lastCommittedSignatureRef.current = nextSignature;
-			onChangeRef.current(element.id, nextContent, images, title, settings, editorMode);
+				element.id,
+				onChangeRef,
+				lastCommittedSignatureRef,
+			);
 		},
 		[content, editorMode, element.id, images, settings, title],
 	);
@@ -375,7 +486,7 @@ export function useMarkdownNoteState({
 		editorMode,
 		isPreview,
 		activeUtilityPanel,
-		isCompactControlsVisible,
+		isCompactControlsVisible: effectiveIsCompactControlsVisible,
 		titleNotice,
 		showHeader,
 		controlsLayout,

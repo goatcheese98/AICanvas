@@ -1,15 +1,12 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { enhanceUrl, isKnownEmbeddable } from '@/lib/web-embed-utils';
 import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import {
-	type WebEmbedViewMode,
-	clampPipPosition,
-	getDefaultPipPosition,
-	getPipDimensions,
-} from './web-embed-view';
+import { useWebEmbedState } from './useWebEmbedState';
+
 
 type WebEmbedElement = ExcalidrawElement & {
 	customData: WebEmbedOverlayCustomData;
@@ -24,81 +21,53 @@ interface WebEmbedProps {
 	onActivityChange?: (isActive: boolean) => void;
 }
 
-export function WebEmbed({
-	element,
-	mode,
-	isSelected,
-	isActive,
-	onChange,
-	onActivityChange,
-}: WebEmbedProps) {
-	const [urlInput, setUrlInput] = useState(element.customData.url);
-	const [isEditing, setIsEditing] = useState(!element.customData.url);
-	const [viewMode, setViewMode] = useState<WebEmbedViewMode>('inline');
-	const [isLoading, setIsLoading] = useState(false);
-	const [viewport, setViewport] = useState({
-		width: typeof window === 'undefined' ? 1440 : window.innerWidth,
-		height: typeof window === 'undefined' ? 900 : window.innerHeight,
+export function WebEmbed(props: WebEmbedProps) {
+	const { element, isSelected, onChange, onActivityChange } = props;
+	const state = useWebEmbedState({
+		element,
+		onChange,
+		onActivityChange,
 	});
-	const [pipPosition, setPipPosition] = useState(() => getDefaultPipPosition(viewport));
-	const onActivityChangeRef = useRef(onActivityChange);
-	const lastReportedEditingRef = useRef<boolean | null>(null);
-	const pipDragCleanupRef = useRef<(() => void) | null>(null);
 
-	const clearPipDragListeners = useCallback(() => {
-		pipDragCleanupRef.current?.();
-		pipDragCleanupRef.current = null;
-	}, []);
+	const {
+		urlInput,
+		isEditing,
+		viewMode,
+		isLoading,
+		viewport,
+		pipPosition,
+		pipDimensions,
+		pipDragCleanupRef,
+		onActivityChangeRef,
+		lastReportedEditingRef,
+		setUrlInput,
+		setIsLoading,
+		setViewMode,
+		setPipPosition,
+		handleStopEditing,
+		handleSubmitUrl,
+		handleToggleEdit,
+		handleTogglePip,
+		handleToggleExpand,
+		clearPipDragListeners,
+	} = state;
 
-	useEffect(() => {
-		onActivityChangeRef.current = onActivityChange;
-	}, [onActivityChange]);
-
-	useEffect(() => {
-		setUrlInput(element.customData.url);
-		if (!element.customData.url) setIsEditing(true);
-	}, [element.customData.url]);
-
-	useEffect(() => {
-		if (!isSelected && viewMode === 'inline') {
-			setIsEditing(false);
-		}
-	}, [isSelected, viewMode]);
-
-	const isActivelyActive = isEditing || viewMode !== 'inline';
-
-	useEffect(() => {
-		if (lastReportedEditingRef.current === isActivelyActive) return;
-		lastReportedEditingRef.current = isActivelyActive;
-		onActivityChangeRef.current?.(isActivelyActive);
-	}, [isActivelyActive]);
-
-	useEffect(
-		() => () => {
+	// Cleanup on unmount: report inactive and clear drag listeners
+	useMountEffect(() => {
+		return () => {
 			clearPipDragListeners();
 			if (lastReportedEditingRef.current) {
 				onActivityChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
-		},
-		[clearPipDragListeners],
-	);
-
-	useEffect(() => {
-		if (viewMode !== 'pip') {
-			clearPipDragListeners();
-		}
-	}, [clearPipDragListeners, viewMode]);
-
-	useEffect(() => {
-		const onResize = () => {
-			const nextViewport = { width: window.innerWidth, height: window.innerHeight };
-			setViewport(nextViewport);
-			setPipPosition((current) => clampPipPosition(current, nextViewport));
 		};
-		window.addEventListener('resize', onResize);
-		return () => window.removeEventListener('resize', onResize);
-	}, []);
+	});
+
+	// Handle exiting edit mode when deselected in inline mode
+	// Using derived state check during render instead of useEffect
+	if (!isSelected && viewMode === 'inline' && isEditing) {
+		handleStopEditing();
+	}
 
 	const enhanced = useMemo(
 		() => enhanceUrl(urlInput || element.customData.url),
@@ -107,7 +76,6 @@ export function WebEmbed({
 	const previewUrl = enhanced.embedUrl || enhanced.url;
 	const canRenderIframe = Boolean(previewUrl && !enhanced.warning);
 	const embeddable = previewUrl ? isKnownEmbeddable(previewUrl) : false;
-	const pipDimensions = getPipDimensions(viewport.width);
 
 	const handlePipMouseDown = useCallback(
 		(event: React.MouseEvent<HTMLDivElement>) => {
@@ -117,15 +85,10 @@ export function WebEmbed({
 			clearPipDragListeners();
 
 			const handleMove = (moveEvent: MouseEvent) => {
-				setPipPosition(
-					clampPipPosition(
-						{
-							x: origin.x + (moveEvent.clientX - start.x),
-							y: origin.y + (moveEvent.clientY - start.y),
-						},
-						viewport,
-					),
-				);
+				setPipPosition({
+					x: origin.x + (moveEvent.clientX - start.x),
+					y: origin.y + (moveEvent.clientY - start.y),
+				});
 			};
 
 			const handleUp = () => {
@@ -140,7 +103,7 @@ export function WebEmbed({
 			window.addEventListener('mousemove', handleMove);
 			window.addEventListener('mouseup', handleUp);
 		},
-		[clearPipDragListeners, pipPosition, viewport],
+		[clearPipDragListeners, pipDragCleanupRef, pipPosition, setPipPosition],
 	);
 
 	const frame = (
@@ -157,11 +120,7 @@ export function WebEmbed({
 					<button
 						type="button"
 						className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-						onClick={() => {
-							onChange(element.id, urlInput.trim());
-							setIsEditing(false);
-							setIsLoading(true);
-						}}
+						onClick={handleSubmitUrl}
 					>
 						Go
 					</button>
@@ -171,23 +130,21 @@ export function WebEmbed({
 						<button
 							type="button"
 							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={() => setIsEditing((current) => !current)}
+							onClick={handleToggleEdit}
 						>
 							{isEditing ? 'View' : 'Edit'}
 						</button>
 						<button
 							type="button"
 							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={() => setViewMode((current) => (current === 'pip' ? 'inline' : 'pip'))}
+							onClick={handleTogglePip}
 						>
 							PiP
 						</button>
 						<button
 							type="button"
 							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={() =>
-								setViewMode((current) => (current === 'expanded' ? 'inline' : 'expanded'))
-							}
+							onClick={handleToggleExpand}
 						>
 							Expand
 						</button>

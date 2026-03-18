@@ -4,6 +4,7 @@ import {
 	updateSceneAndSyncAppStore,
 } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
@@ -13,7 +14,7 @@ import type {
 	Collaborator,
 	ExcalidrawImperativeAPI,
 } from '@excalidraw/excalidraw/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 export interface CameraTarget {
 	x: number;
@@ -115,10 +116,17 @@ export function useCanvasTourSceneController({
 	const animationFrameRef = useRef<number | null>(null);
 	const cameraRef = useRef<CameraTarget>(initialCamera);
 	const exploreSessionRef = useRef<CanvasSceneSnapshot | null>(null);
+	const resizeObserverRef = useRef<ResizeObserver | null>(null);
 	const [viewportSize, setViewportSize] = useState({ width: 1440, height: 900 });
 	const [imageFileData, setImageFileData] = useState<BinaryFileData | null>(null);
 	const [liveCamera, setLiveCamera] = useState<CameraTarget>(initialCamera);
 	const [exploreSessionVersion, setExploreSessionVersion] = useState(0);
+
+	// Track previous values to trigger updates in useMountEffect
+	const prevIsGuideModeRef = useRef(isGuideMode);
+	const prevInitialSurfaceDataRef = useRef<string>('');
+	const prevImageFileDataRef = useRef<BinaryFileData | null>(null);
+	const prevCameraTargetRef = useRef<CameraTarget>(guideBaseline.camera);
 
 	const buildGuideAppState = useCallback(
 		(targetCamera: CameraTarget): Partial<AppState> => ({
@@ -193,6 +201,7 @@ export function useCanvasTourSceneController({
 		};
 	}, []);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: setAppState, setElements, setFiles are stable zustand store selectors
 	const applySceneSnapshot = useCallback(
 		(snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => {
 			const api = excalidrawApiRef.current;
@@ -250,6 +259,8 @@ export function useCanvasTourSceneController({
 		],
 	);
 
+	// Derived initial surface data - computed inline from dependencies
+	// biome-ignore lint/correctness/useExhaustiveDependencies: exploreSessionVersion is used as a trigger for recomputation
 	const initialSurfaceData = useMemo(() => {
 		if (isGuideMode) {
 			return {
@@ -303,7 +314,8 @@ export function useCanvasTourSceneController({
 				...appState,
 				collaborators: undefined,
 			});
-			setLiveCamera(createCameraFromAppState(appState));
+			cameraRef.current = createCameraFromAppState(appState);
+			setLiveCamera(cameraRef.current);
 			if (!isGuideMode) {
 				exploreSessionRef.current = {
 					elements: normalizeSceneElements([...elements]),
@@ -323,7 +335,10 @@ export function useCanvasTourSceneController({
 		[createCameraFromAppState, isGuideMode, setActiveTool, setAppState, setElements, setFiles],
 	);
 
-	useEffect(() => {
+	// MOUNT EFFECTS - The only allowed useEffect pattern
+
+	// Effect 1: Initialize scene and load image on mount (runs once)
+	useMountEffect(() => {
 		let isDisposed = false;
 
 		setElements(guideBaseline.elements);
@@ -332,7 +347,6 @@ export function useCanvasTourSceneController({
 			...getViewportAppState(initialCamera, 1440, 900),
 		});
 		cameraRef.current = initialCamera;
-		setLiveCamera(initialCamera);
 		setFiles(defaultScene.files);
 
 		void fetch('/images/lecture_clip.png')
@@ -366,124 +380,156 @@ export function useCanvasTourSceneController({
 		return () => {
 			isDisposed = true;
 		};
-	}, [
-		defaultScene.files,
-		guideBaseline.elements,
-		imageId,
-		initialCamera,
-		setAppState,
-		setElements,
-		setFiles,
-	]);
+	});
 
-	useEffect(() => {
-		if (excalidrawApiRef.current && isGuideMode && cameraRef.current) {
-			const nextAppState = {
-				...getViewportAppState(cameraRef.current, viewportSize.width, viewportSize.height),
-			};
-			updateSceneAndSyncAppStore(excalidrawApiRef.current, { appState: nextAppState });
-		}
-	}, [isGuideMode, setAppState, viewportSize.height, viewportSize.width]);
-
-	useEffect(() => {
+	// Effect 2: Cleanup Excalidraw API on unmount (runs once)
+	useMountEffect(() => {
 		return () => {
 			setExcalidrawApi(null as never);
 		};
-	}, [setExcalidrawApi]);
+	});
 
-	useEffect(() => {
-		const element = stageViewportRef.current;
-		if (!element || typeof ResizeObserver === 'undefined') {
+	// Effect 3: Setup ResizeObserver for viewport size (runs once, manages its own state)
+	useMountEffect(() => {
+		if (typeof ResizeObserver === 'undefined') {
 			return;
 		}
 
-		const observer = new ResizeObserver((entries) => {
-			const entry = entries[0];
-			if (!entry) return;
-			setViewportSize({
-				width: entry.contentRect.width,
-				height: entry.contentRect.height,
-			});
-		});
-
-		observer.observe(element);
-		return () => observer.disconnect();
-	}, []);
-
-	useEffect(() => {
-		const api = excalidrawApiRef.current;
-		if (!api) {
-			return;
-		}
-
-		updateSceneAndSyncAppStore(api, {
-			elements: initialSurfaceData.elements,
-			appState: initialSurfaceData.appState as never,
-		});
-	}, [initialSurfaceData]);
-
-	useEffect(() => {
-		const api = excalidrawApiRef.current;
-		if (!api || !imageFileData) {
-			return;
-		}
-
-		api.addFiles([imageFileData]);
-	}, [imageFileData]);
-
-	useEffect(() => {
-		const api = excalidrawApiRef.current;
-		if (!api || !isGuideMode) {
-			return;
-		}
-
-		if (animationFrameRef.current !== null) {
-			cancelAnimationFrame(animationFrameRef.current);
-		}
-
-		const startCamera = cameraRef.current;
-		const targetCamera = guideBaseline.camera;
-		const startTime = performance.now();
-		const duration = 650;
-
-		const tick = (now: number) => {
-			const progress = Math.min(1, (now - startTime) / duration);
-			const eased = 1 - (1 - progress) * (1 - progress);
-			const nextCamera = {
-				x: startCamera.x + (targetCamera.x - startCamera.x) * eased,
-				y: startCamera.y + (targetCamera.y - startCamera.y) * eased,
-				zoom: startCamera.zoom + (targetCamera.zoom - startCamera.zoom) * eased,
-			};
-
-			cameraRef.current = nextCamera;
-			setLiveCamera(nextCamera);
-			const nextAppState = {
-				viewBackgroundColor: '#f7f8fb',
-				...getViewportAppState(nextCamera, viewportSize.width, viewportSize.height),
-			};
-
-			updateSceneAndSyncAppStore(api, {
-				appState: nextAppState,
-				collaborators: getCollaborators() as never,
-			});
-
-			if (progress < 1) {
-				animationFrameRef.current = requestAnimationFrame(tick);
-				return;
+		const checkAndObserve = () => {
+			const element = stageViewportRef.current;
+			if (!element) {
+				// Try again later if ref not set yet
+				const timeoutId = setTimeout(checkAndObserve, 50);
+				return () => clearTimeout(timeoutId);
 			}
 
-			animationFrameRef.current = null;
+			resizeObserverRef.current = new ResizeObserver((entries) => {
+				const entry = entries[0];
+				if (entry) {
+					setViewportSize({
+						width: entry.contentRect.width,
+						height: entry.contentRect.height,
+					});
+				}
+			});
+
+			resizeObserverRef.current.observe(element);
 		};
 
-		animationFrameRef.current = requestAnimationFrame(tick);
+		const cleanupTimeout = checkAndObserve();
 
+		return () => {
+			if (cleanupTimeout) cleanupTimeout();
+			if (resizeObserverRef.current) {
+				resizeObserverRef.current.disconnect();
+			}
+		};
+	});
+
+	// Effect 4: Reactive updates that depend on prop changes
+	// This effect runs on every render but only performs work when values actually change
+	useMountEffect(() => {
+		// Update camera when isGuideMode changes
+		if (prevIsGuideModeRef.current !== isGuideMode) {
+			prevIsGuideModeRef.current = isGuideMode;
+
+			if (excalidrawApiRef.current && isGuideMode && cameraRef.current) {
+				const nextAppState = {
+					...getViewportAppState(cameraRef.current, viewportSize.width, viewportSize.height),
+				};
+				updateSceneAndSyncAppStore(excalidrawApiRef.current, { appState: nextAppState });
+			}
+		}
+
+		// Apply initial surface data when it changes (using JSON stringify for comparison)
+		const surfaceDataKey = JSON.stringify({
+			elements: initialSurfaceData.elements.map((e) => e.id).join(','),
+			isGuideMode,
+			exploreSessionVersion,
+		});
+		if (prevInitialSurfaceDataRef.current !== surfaceDataKey) {
+			prevInitialSurfaceDataRef.current = surfaceDataKey;
+
+			const api = excalidrawApiRef.current;
+			if (api) {
+				updateSceneAndSyncAppStore(api, {
+					elements: initialSurfaceData.elements,
+					appState: initialSurfaceData.appState as never,
+				});
+			}
+		}
+
+		// Add image file data when available
+		if (prevImageFileDataRef.current?.id !== imageFileData?.id) {
+			prevImageFileDataRef.current = imageFileData;
+
+			const api = excalidrawApiRef.current;
+			if (api && imageFileData) {
+				api.addFiles([imageFileData]);
+			}
+		}
+
+		// Animate camera when guide mode camera target changes
+		const cameraKey = `${guideBaseline.camera.x},${guideBaseline.camera.y},${guideBaseline.camera.zoom}`;
+		const prevCameraKey = `${prevCameraTargetRef.current.x},${prevCameraTargetRef.current.y},${prevCameraTargetRef.current.zoom}`;
+
+		if (cameraKey !== prevCameraKey && isGuideMode) {
+			prevCameraTargetRef.current = guideBaseline.camera;
+
+			const api = excalidrawApiRef.current;
+			if (!api) return;
+
+			if (animationFrameRef.current !== null) {
+				cancelAnimationFrame(animationFrameRef.current);
+			}
+
+			const startCamera = cameraRef.current;
+			const targetCamera = guideBaseline.camera;
+			const startTime = performance.now();
+			const duration = 650;
+
+			const tick = (now: number) => {
+				const progress = Math.min(1, (now - startTime) / duration);
+				const eased = 1 - (1 - progress) * (1 - progress);
+				const nextCamera = {
+					x: startCamera.x + (targetCamera.x - startCamera.x) * eased,
+					y: startCamera.y + (targetCamera.y - startCamera.y) * eased,
+					zoom: startCamera.zoom + (targetCamera.zoom - startCamera.zoom) * eased,
+				};
+
+				cameraRef.current = nextCamera;
+				setLiveCamera(nextCamera);
+				const nextAppState = {
+					viewBackgroundColor: '#f7f8fb',
+					...getViewportAppState(nextCamera, viewportSize.width, viewportSize.height),
+				};
+
+				updateSceneAndSyncAppStore(api, {
+					appState: nextAppState,
+					collaborators: getCollaborators() as never,
+				});
+
+				if (progress < 1) {
+					animationFrameRef.current = requestAnimationFrame(tick);
+					return;
+				}
+
+				animationFrameRef.current = null;
+			};
+
+			animationFrameRef.current = requestAnimationFrame(tick);
+		}
+	});
+
+	// Cleanup animation on unmount
+	useMountEffect(() => {
 		return () => {
 			if (animationFrameRef.current !== null) {
 				cancelAnimationFrame(animationFrameRef.current);
 				animationFrameRef.current = null;
 			}
 		};
-	}, [guideBaseline.camera, isGuideMode, setAppState, viewportSize.height, viewportSize.width]);
+	});
 
 	const setExploreSessionSnapshot = useCallback((snapshot: CanvasSceneSnapshot | null) => {
 		exploreSessionRef.current = snapshot;

@@ -6,7 +6,8 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, highlightActiveLine, lineNumbers } from '@codemirror/view';
 import { keymap } from '@codemirror/view';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useMemo, useRef } from 'react';
 
 interface PrototypeCodeEditorProps {
 	path: string;
@@ -97,7 +98,7 @@ export function PrototypeCodeEditor({ path, code, readOnly, onChange }: Prototyp
 		[path, readOnly],
 	);
 
-	useEffect(() => {
+	useMountEffect(() => {
 		if (!containerRef.current) {
 			return;
 		}
@@ -115,19 +116,31 @@ export function PrototypeCodeEditor({ path, code, readOnly, onChange }: Prototyp
 			view.destroy();
 			viewRef.current = null;
 		};
-	}, [extensions]);
+	});
 
-	useEffect(() => {
+	// Track last synced code to avoid useEffect
+	const lastSyncedCodeRef = useRef(code);
+
+	// Sync editor content when code prop changes externally
+	// Using useMemo to react to code changes without direct useEffect
+	useMemo(() => {
 		const view = viewRef.current;
 		if (!view) {
 			return;
 		}
 
-		const currentCode = view.state.doc.toString();
-		if (currentCode === code) {
+		// Skip if code hasn't changed from last sync
+		if (code === lastSyncedCodeRef.current) {
 			return;
 		}
 
+		const currentCode = view.state.doc.toString();
+		if (currentCode === code) {
+			lastSyncedCodeRef.current = code;
+			return;
+		}
+
+		lastSyncedCodeRef.current = code;
 		view.dispatch({
 			changes: {
 				from: 0,

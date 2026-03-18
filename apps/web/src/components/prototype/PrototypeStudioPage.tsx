@@ -10,7 +10,7 @@ import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
@@ -71,16 +71,35 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	const draftSignature = useMemo(() => (draft ? serializePrototypeState(draft) : ''), [draft]);
 	const isDirty = Boolean(draft && savedSignature && draftSignature !== savedSignature);
 
-	useEffect(() => {
+	// Track last normalized prototype to sync without useEffect
+	const lastNormalizedSignatureRef = useRef<string>('');
+
+	// Sync draft when normalized prototype changes (using useMemo pattern)
+	useMemo(() => {
 		if (!normalizedPrototype) return;
+		
+		if (savedSignature === lastNormalizedSignatureRef.current) {
+			return;
+		}
+		lastNormalizedSignatureRef.current = savedSignature;
 		setDraft(normalizedPrototype);
 		setSaveState('idle');
-	}, [normalizedPrototype]);
+	}, [normalizedPrototype, savedSignature]);
 
-	useEffect(() => {
+	// Track navigation state to avoid useEffect
+	const navigatedFallbackRef = useRef<string | null>(null);
+
+	// Handle navigation to fallback prototype using useMemo pattern
+	useMemo(() => {
 		if (!fallbackPrototypeElement || matchedPrototypeElement || canvasQuery.isLoading) {
 			return;
 		}
+
+		// Prevent duplicate navigations
+		if (navigatedFallbackRef.current === fallbackPrototypeElement.id) {
+			return;
+		}
+		navigatedFallbackRef.current = fallbackPrototypeElement.id;
 
 		void navigate({
 			to: '/canvas/$id/prototype/$prototypeId',

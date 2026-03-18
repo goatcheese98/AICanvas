@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import type { NewLexCommentThread } from '@ai-canvas/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -39,7 +40,7 @@ export function useLexicalNoteState({
 	const [commentsPanelOpen, setCommentsPanelOpen] = useState(
 		Boolean(element.customData.commentsPanelOpen),
 	);
-	const [selectedCommentId, setSelectedCommentId] = useState<string | null>(null);
+	const [selectedCommentId, setSelectedCommentIdState] = useState<string | null>(null);
 	const [replyDraftByThread, setReplyDraftByThread] = useState<ReplyDraftByThread>({});
 	const [showCommentComposer, setShowCommentComposer] = useState(false);
 	const [commentDraft, setCommentDraft] = useState('');
@@ -62,10 +63,12 @@ export function useLexicalNoteState({
 			enableDebugMetrics: debugEnabled,
 		});
 
+	// Sync callback ref to latest
 	useEffect(() => {
 		onActivityChangeRef.current = onActivityChange;
 	}, [onActivityChange]);
 
+	// Sync external title into local state (with change detection)
 	useEffect(() => {
 		if (incomingTitle === externalTitleRef.current) return;
 		externalTitleRef.current = incomingTitle;
@@ -73,6 +76,7 @@ export function useLexicalNoteState({
 		setTitle((current) => (current === incomingTitle ? current : incomingTitle));
 	}, [incomingTitle]);
 
+	// Sync external comments into local state (with signature-based change detection)
 	useEffect(() => {
 		const nextComments = element.customData.comments ?? [];
 		const nextSignature = serializeComments(nextComments);
@@ -83,34 +87,38 @@ export function useLexicalNoteState({
 		);
 	}, [element.customData.comments]);
 
+	// Keep commentsRef in sync
 	useEffect(() => {
 		commentsRef.current = comments;
 	}, [comments]);
 
+	// Handle deselection: flush changes and reset editing state
+	useMountEffect(() => {
+		// This runs on mount, we need to watch isSelected changes differently
+		// We'll use a ref pattern to track previous isSelected
+		return () => {
+			// Cleanup on unmount
+			flush('unmount');
+			setIsEditing(false);
+			setShowCommentComposer(false);
+		};
+	});
+
+	// Track previous isSelected for change detection
+	const prevIsSelectedRef = useRef(isSelected);
 	useEffect(() => {
-		if (!isSelected) {
+		if (prevIsSelectedRef.current && !isSelected) {
+			// Changed from selected to not selected
 			flush('deselect');
 			setIsEditing(false);
 			setShowCommentComposer(false);
 		}
+		prevIsSelectedRef.current = isSelected;
 	}, [flush, isSelected]);
 
-	useEffect(() => {
-		if (!selectedCommentId) return;
-		if (comments.some((thread) => thread.id === selectedCommentId)) return;
-		setSelectedCommentId(null);
-	}, [comments, selectedCommentId]);
-
-	const isActivelyEditing = isEditing || commentsPanelOpen || showCommentComposer;
-
-	useEffect(() => {
-		if (lastReportedEditingRef.current === isActivelyEditing) return;
-		lastReportedEditingRef.current = isActivelyEditing;
-		onActivityChangeRef.current?.(isActivelyEditing);
-	}, [isActivelyEditing]);
-
-	useEffect(
-		() => () => {
+	// Cleanup timeout and report inactive on unmount
+	useMountEffect(() => {
+		return () => {
 			if (titleNoticeTimeoutRef.current !== null) {
 				window.clearTimeout(titleNoticeTimeoutRef.current);
 			}
@@ -118,10 +126,10 @@ export function useLexicalNoteState({
 				onActivityChangeRef.current?.(false);
 				lastReportedEditingRef.current = false;
 			}
-		},
-		[],
-	);
+		};
+	});
 
+	// Debounced title commit
 	useEffect(() => {
 		if (title === externalTitleRef.current || title === lastCommittedTitleRef.current) return;
 		const timeout = window.setTimeout(() => {
@@ -130,6 +138,30 @@ export function useLexicalNoteState({
 		}, 180);
 		return () => window.clearTimeout(timeout);
 	}, [element.id, onChange, title]);
+
+	// Derived: is actively editing
+	const isActivelyEditing = isEditing || commentsPanelOpen || showCommentComposer;
+
+	// Report activity changes via effect (necessary for state-derived activity)
+	useEffect(() => {
+		if (lastReportedEditingRef.current === isActivelyEditing) return;
+		lastReportedEditingRef.current = isActivelyEditing;
+		onActivityChangeRef.current?.(isActivelyEditing);
+	}, [isActivelyEditing]);
+
+	// Derived: selected comment ID validation (filter out invalid selections)
+	const validSelectedCommentId = useMemo(() => {
+		if (!selectedCommentId) return null;
+		if (comments.some((thread) => thread.id === selectedCommentId)) {
+			return selectedCommentId;
+		}
+		return null;
+	}, [comments, selectedCommentId]);
+
+	// Wrapper to keep selectedCommentId and validSelectedCommentId in sync
+	const setSelectedCommentId = useCallback((id: string | null) => {
+		setSelectedCommentIdState(id);
+	}, []);
 
 	const persistComments = useCallback(
 		(nextComments: NewLexCommentThread[], options?: PersistCommentsOptions) => {
@@ -142,7 +174,7 @@ export function useLexicalNoteState({
 			setComments(nextComments);
 			commentsRef.current = nextComments;
 			setCommentsPanelOpen(nextOpen);
-			setSelectedCommentId(nextSelectedCommentId);
+			setSelectedCommentIdState(nextSelectedCommentId);
 			onChange(element.id, { comments: nextComments });
 		},
 		[commentsPanelOpen, element.id, onChange, selectedCommentId],
@@ -288,7 +320,7 @@ export function useLexicalNoteState({
 		comments,
 		commentsPanelOpen,
 		setCommentsPanelOpen,
-		selectedCommentId,
+		selectedCommentId: validSelectedCommentId,
 		setSelectedCommentId,
 		replyDraftByThread,
 		setReplyDraftByThread,

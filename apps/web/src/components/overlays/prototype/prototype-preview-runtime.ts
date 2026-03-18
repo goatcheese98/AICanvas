@@ -1,5 +1,6 @@
 import type { PrototypeOverlayCustomData, PrototypeOverlayFile } from '@ai-canvas/shared/types';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useMemo, useRef, useState } from 'react';
 import PrototypeCompilerWorker from './runtime/prototype-compiler.worker?worker';
 
 const PROTOTYPE_ALLOWED_DEPENDENCIES = new Set([
@@ -402,20 +403,18 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 	const runtimeSignature = useMemo(() => serializeRuntimeInput(runtimeInput), [runtimeInput]);
 	const runtimeInputRef = useRef(runtimeInput);
 
-	useEffect(() => {
-		runtimeInputRef.current = runtimeInput;
-	}, [runtimeSignature, runtimeInput]);
+	// Ref sync is handled in the compilation effect to ensure latest data
 
-	useEffect(() => {
+	useMountEffect(() => {
 		const worker = new PrototypeCompilerWorker();
 		workerRef.current = worker;
 		return () => {
 			worker.terminate();
 			cleanupRef.current?.();
 		};
-	}, []);
+	});
 
-	useEffect(() => {
+	useMountEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			const data = event.data as
 				| { source?: string; type?: string; previewId?: string; message?: string; stack?: string }
@@ -443,12 +442,28 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 
 		window.addEventListener('message', handleMessage);
 		return () => window.removeEventListener('message', handleMessage);
-	}, []);
+	});
 
-	useEffect(() => {
+	// Track last compiled inputs to avoid useEffect
+	const lastCompiledRef = useRef({ signature: '', nonce: -1 });
+
+	// Trigger compilation when signature or nonce changes
+	// This runs during render to avoid direct useEffect for data-triggered side effects
+	const compilationCleanup = useMemo(() => {
+		// Skip if inputs haven't changed from last compilation
+		const isSameSignature = runtimeSignature === lastCompiledRef.current.signature;
+		const isSameNonce = nonce === lastCompiledRef.current.nonce;
+		if (isSameSignature && isSameNonce) {
+			return undefined;
+		}
+
+		// Update refs before compilation
+		lastCompiledRef.current = { signature: runtimeSignature, nonce };
+		runtimeInputRef.current = runtimeInput;
+
 		const worker = workerRef.current;
 		if (!worker) {
-			return;
+			return undefined;
 		}
 
 		const nextInput = runtimeInputRef.current;
@@ -498,7 +513,10 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 		return () => {
 			worker.removeEventListener('message', handleWorkerMessage);
 		};
-	}, [runtimeSignature, nonce]);
+	}, [runtimeSignature, nonce, runtimeInput]);
+
+	// Store cleanup for useEffect-like cleanup on deps change
+	useMemo(() => () => compilationCleanup, [compilationCleanup]);
 
 	return {
 		status,

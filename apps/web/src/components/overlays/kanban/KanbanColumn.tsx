@@ -2,7 +2,7 @@ import type {
 	KanbanCard as KanbanCardType,
 	KanbanColumn as KanbanColumnType,
 } from '@ai-canvas/shared/types';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import { KanbanCard } from './KanbanCard';
 import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_TEXT } from './kanban-theme';
@@ -82,12 +82,10 @@ function autosizeTextarea(target: HTMLTextAreaElement) {
 function KanbanColumnInner({
 	column,
 	fontSize = 14,
-	columnBackground,
 	cardBackground,
 	cardRadius,
 	controlRadius,
 	columnRadius,
-	borderTone,
 	isLiveResizing,
 	isCardOver,
 	draggingCardId,
@@ -125,43 +123,53 @@ function KanbanColumnInner({
 	const projectedCardId = isCardOver && draggingCardId ? (overCardId ?? null) : null;
 	const showEndDropIndicator = isCardOver && Boolean(draggingCardId) && projectedCardId === null;
 
-	useEffect(() => {
-		if (!titleTextareaRef.current) return;
-		autosizeTextarea(titleTextareaRef.current);
-	}, [titleDraft]);
+	// Sync refs on every render to ensure unmount cleanup has access to current values
+	titleDraftRef.current = titleDraft;
+	columnTitleRef.current = column.title;
 
-	useEffect(() => {
-		titleDraftRef.current = titleDraft;
-	}, [titleDraft]);
-
-	useEffect(() => {
-		columnTitleRef.current = column.title;
+	// Use state initialization pattern: sync when column title changes from parent
+	const prevTitleRef = useRef(column.title);
+	if (prevTitleRef.current !== column.title && titleDraft !== column.title) {
 		setTitleDraft(column.title);
-	}, [column.id, column.title]);
+	}
+	prevTitleRef.current = column.title;
 
-	const handleTitleInput = (event: FormEvent<HTMLTextAreaElement>) => {
+	// Handle textarea autosizing and draft update together
+	const handleTitleChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+		const newValue = event.target.value;
+		setTitleDraft(newValue);
+		titleDraftRef.current = newValue;
+		autosizeTextarea(event.target);
+	}, []);
+
+	const handleTitleInput = useCallback((event: FormEvent<HTMLTextAreaElement>) => {
 		autosizeTextarea(event.currentTarget);
-	};
+	}, []);
 
-	const commitTitleDraft = () => {
+	const commitTitleDraft = useCallback(() => {
 		const nextTitle = titleDraftRef.current;
 		const currentTitle = columnTitleRef.current;
 		if (nextTitle.trim().length === 0) {
 			setTitleDraft(column.title);
+			titleDraftRef.current = column.title;
+			if (titleTextareaRef.current) {
+				autosizeTextarea(titleTextareaRef.current);
+			}
 			return;
 		}
 		if (nextTitle === currentTitle) return;
 		onChange({ title: nextTitle });
-	};
+	}, [column.title, onChange]);
 
-	useEffect(
-		() => () => {
-			const nextTitle = titleDraftRef.current;
-			const currentTitle = columnTitleRef.current;
-			if (nextTitle.trim().length === 0 || nextTitle === currentTitle) return;
-			onChange({ title: nextTitle });
+	const handleKeyDown = useCallback(
+		(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				commitTitleDraft();
+				event.currentTarget.blur();
+			}
 		},
-		[onChange],
+		[commitTitleDraft],
 	);
 
 	return (
@@ -207,15 +215,10 @@ function KanbanColumnInner({
 						ref={titleTextareaRef}
 						rows={1}
 						value={titleDraft}
-						onChange={(event) => setTitleDraft(event.target.value)}
+						onChange={handleTitleChange}
 						onBlur={commitTitleDraft}
 						onInput={handleTitleInput}
-						onKeyDown={(event) => {
-							if (event.key === 'Enter') {
-								event.preventDefault();
-								event.currentTarget.blur();
-							}
-						}}
+						onKeyDown={handleKeyDown}
 						maxLength={80}
 						className="h-8 min-h-0 w-full resize-none overflow-hidden border-0 bg-transparent px-0 py-[2px] text-left font-semibold uppercase leading-none outline-none"
 						style={{

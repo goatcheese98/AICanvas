@@ -1,5 +1,5 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useRef, useState } from 'react';
 import type { DragEvent, FormEvent, MouseEvent } from 'react';
 import { KanbanCardDetails } from './KanbanCardDetails';
 import { KanbanCardShell } from './KanbanCardShell';
@@ -39,107 +39,139 @@ function KanbanCardInner({
 	onDragOverCard,
 	onHoverChange,
 }: KanbanCardProps) {
+	// State for UI interactions - reset when card changes via key prop
 	const [detailsOpen, setDetailsOpen] = useState(false);
 	const [isEditingDescription, setIsEditingDescription] = useState(false);
 	const [isHovered, setIsHovered] = useState(false);
-	const [titleDraft, setTitleDraft] = useState(card.title);
+
+	// Refs for DOM interactions
 	const dragArmedRef = useRef(false);
 	const titleTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 	const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
-	const titleDraftRef = useRef(titleDraft);
 	const cardTitleRef = useRef(card.title);
+	const titleDraftRef = useRef(card.title);
 
-	useEffect(() => {
-		setDetailsOpen(false);
-		setIsEditingDescription(false);
+	// Local state for title draft - initialized from card.title
+	// Parent should use key={card.id} to reset this when card changes
+	const [titleDraft, setTitleDraft] = useState(card.title);
+
+	// Keep refs in sync
+	titleDraftRef.current = titleDraft;
+
+	// Sync with card.title when it changes externally and not being edited
+	if (card.title !== cardTitleRef.current) {
 		cardTitleRef.current = card.title;
-		setTitleDraft(card.title);
-	}, [card.id]);
+		// Only update draft if title textarea is not focused
+		if (document.activeElement !== titleTextareaRef.current) {
+			setTitleDraft(card.title);
+		}
+	}
 
-	useEffect(() => {
-		cardTitleRef.current = card.title;
-		setTitleDraft(card.title);
-	}, [card.title]);
-
-	useEffect(() => {
-		titleDraftRef.current = titleDraft;
-	}, [titleDraft]);
-
-	useEffect(() => {
-		if (!titleTextareaRef.current) return;
-		autosizeTextarea(titleTextareaRef.current);
-	}, [fontSize, titleDraft]);
-
-	useEffect(() => {
-		if (!descriptionTextareaRef.current) return;
-		autosizeTextarea(descriptionTextareaRef.current);
-		if (!isEditingDescription) return;
-		descriptionTextareaRef.current.focus();
-		const end = descriptionTextareaRef.current.value.length;
-		descriptionTextareaRef.current.setSelectionRange(end, end);
-	}, [card.description, fontSize, isEditingDescription]);
-
-	const commitTitleDraft = () => {
-		const nextTitle = titleDraftRef.current;
-		const currentTitle = cardTitleRef.current;
-		if (nextTitle.trim().length === 0) {
+	// Commit title changes to parent
+	const commitTitleDraft = useCallback(() => {
+		const nextTitle = titleDraftRef.current.trim();
+		if (nextTitle.length === 0) {
 			setTitleDraft(card.title);
 			return;
 		}
-		if (nextTitle === currentTitle) return;
+		if (nextTitle === card.title) return;
 		onChange({ title: nextTitle });
-	};
+	}, [card.title, onChange]);
 
-	useEffect(
-		() => () => {
-			const nextTitle = titleDraftRef.current;
-			const currentTitle = cardTitleRef.current;
-			if (nextTitle.trim().length === 0 || nextTitle === currentTitle) return;
-			onChange({ title: nextTitle });
-		},
-		[onChange],
-	);
-
-	const handleTitleInput = (event: FormEvent<HTMLTextAreaElement>) => {
+	// Handle title textarea input with autosizing
+	const handleTitleInput = useCallback((event: FormEvent<HTMLTextAreaElement>) => {
 		autosizeTextarea(event.currentTarget);
-	};
+	}, []);
 
-	const handleDescriptionInput = (event: FormEvent<HTMLTextAreaElement>) => {
+	// Handle description textarea input with autosizing
+	const handleDescriptionInput = useCallback((event: FormEvent<HTMLTextAreaElement>) => {
 		autosizeTextarea(event.currentTarget);
-	};
+	}, []);
 
-	const handleDragHandleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+	// Handle description editing state change with focus management
+	const handleDescriptionEditingChange = useCallback((editing: boolean) => {
+		setIsEditingDescription(editing);
+		if (editing) {
+			// Use requestAnimationFrame for focus after render
+			requestAnimationFrame(() => {
+				const textarea = descriptionTextareaRef.current;
+				if (textarea) {
+					textarea.focus();
+					const end = textarea.value.length;
+					textarea.setSelectionRange(end, end);
+				}
+			});
+		}
+	}, []);
+
+	// Handle drag handle mouse down
+	const handleDragHandleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
 		dragArmedRef.current = true;
 		event.stopPropagation();
-	};
+	}, []);
+
+	// Handle title textarea ref callback with autosizing
+	const handleTitleTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
+		titleTextareaRef.current = node;
+		if (node) {
+			autosizeTextarea(node);
+		}
+	}, []);
+
+	// Handle description textarea ref callback
+	const handleDescriptionTextareaRef = useCallback((node: HTMLTextAreaElement | null) => {
+		descriptionTextareaRef.current = node;
+	}, []);
+
+	// Handle drag start
+	const handleDragStart = useCallback(
+		(event: DragEvent<HTMLDivElement>) => {
+			if (!dragArmedRef.current) {
+				event.preventDefault();
+				return;
+			}
+			onDragStart(event);
+		},
+		[onDragStart],
+	);
+
+	// Handle drag end
+	const handleDragEnd = useCallback(() => {
+		dragArmedRef.current = false;
+		onDragEnd();
+	}, [onDragEnd]);
+
+	// Handle mouse enter/leave
+	const handleMouseEnter = useCallback(() => {
+		setIsHovered(true);
+		onHoverChange?.(true);
+	}, [onHoverChange]);
+
+	const handleMouseLeave = useCallback(() => {
+		setIsHovered(false);
+		onHoverChange?.(false);
+	}, [onHoverChange]);
+
+	// Handle mouse up
+	const handleMouseUp = useCallback(() => {
+		dragArmedRef.current = false;
+	}, []);
+
+	// Handle mouse down on card (prevent propagation)
+	const handleMouseDown = useCallback((event: MouseEvent<HTMLDivElement>) => {
+		event.stopPropagation();
+	}, []);
 
 	return (
 		<div
 			draggable
-			onDragStart={(event) => {
-				if (!dragArmedRef.current) {
-					event.preventDefault();
-					return;
-				}
-				onDragStart(event);
-			}}
-			onDragEnd={() => {
-				dragArmedRef.current = false;
-				onDragEnd();
-			}}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
 			onDragOver={onDragOverCard}
-			onMouseUp={() => {
-				dragArmedRef.current = false;
-			}}
-			onMouseDown={(event) => event.stopPropagation()}
-			onMouseEnter={() => {
-				setIsHovered(true);
-				onHoverChange?.(true);
-			}}
-			onMouseLeave={() => {
-				setIsHovered(false);
-				onHoverChange?.(false);
-			}}
+			onMouseUp={handleMouseUp}
+			onMouseDown={handleMouseDown}
+			onMouseEnter={handleMouseEnter}
+			onMouseLeave={handleMouseLeave}
 			className="group relative border px-4 py-4 transition-[transform,box-shadow,border-color,opacity]"
 			style={{
 				minHeight: 'var(--kanban-card-min-height, 156px)',
@@ -176,14 +208,10 @@ function KanbanCardInner({
 					onTitleDraftChange={setTitleDraft}
 					onTitleBlur={commitTitleDraft}
 					onTitleInput={handleTitleInput}
-					onTitleTextareaRef={(node) => {
-						titleTextareaRef.current = node;
-					}}
-					onDescriptionTextareaRef={(node) => {
-						descriptionTextareaRef.current = node;
-					}}
+					onTitleTextareaRef={handleTitleTextareaRef}
+					onDescriptionTextareaRef={handleDescriptionTextareaRef}
 					isEditingDescription={isEditingDescription}
-					onDescriptionEditingChange={setIsEditingDescription}
+					onDescriptionEditingChange={handleDescriptionEditingChange}
 					onDescriptionChange={(value) => onChange({ description: value })}
 					onDescriptionInput={handleDescriptionInput}
 					onDragHandleMouseDown={handleDragHandleMouseDown}
