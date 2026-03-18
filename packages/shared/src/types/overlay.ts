@@ -34,6 +34,7 @@ export interface NewLexCommentThread {
 }
 
 export interface KanbanChecklistItem {
+	id?: string;
 	text: string;
 	done: boolean;
 }

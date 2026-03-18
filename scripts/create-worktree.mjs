@@ -205,6 +205,7 @@ function main() {
 			'CLAUDE.md',
 			'docs/multi-agent-orchestration.md',
 			'docs/auth-setup.md',
+			'turbo.json',
 		];
 
 		for (const relativePath of trackedFilesToSync) {
@@ -271,8 +272,10 @@ function main() {
 	console.log('');
 	console.log('Next steps');
 	console.log(`- Open ${worktreePath} as its own workspace.`);
-	console.log(`- API lane: cd ${path.join(worktreePath, 'apps/api')} && bun run dev`);
-	console.log(`- Web lane: cd ${path.join(worktreePath, 'apps/web')} && bun run dev`);
+	console.log(`- Run all services: cd ${worktreePath} && bun run dev`);
+	console.log(
+		`  (starts Web on ${suggestedWebPort}, API on ${suggestedApiPort}, PartyKit on 1999)`,
+	);
 	console.log(`- Push when ready: git -C ${worktreePath} push -u origin ${branchName}`);
 }
 
