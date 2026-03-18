@@ -6,6 +6,7 @@ interface KanbanBoardHeaderProps {
 	boardTitleDraft: string;
 	boardColumnCount: number;
 	boardCardCount: number;
+	lastUpdated: string;
 	searchQuery: string;
 	searchFocused: boolean;
 	canUndo: boolean;
@@ -93,6 +94,7 @@ export function KanbanBoardHeader({
 	boardTitleDraft,
 	boardColumnCount,
 	boardCardCount,
+	lastUpdated,
 	searchQuery,
 	searchFocused,
 	canUndo,
@@ -146,6 +148,16 @@ export function KanbanBoardHeader({
 			</div>
 
 			<div className="flex shrink-0 flex-nowrap items-center gap-1.5 pl-2">
+				{lastUpdated && (
+					<span
+						className="inline-flex shrink-0 items-center text-[10px] font-medium tracking-[0.08em]"
+						style={{ color: 'var(--color-text-tertiary)' }}
+						title={`Last updated: ${new Date().toLocaleString()}`}
+					>
+						{lastUpdated}
+					</span>
+				)}
+
 				<span
 					className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
 					style={{
