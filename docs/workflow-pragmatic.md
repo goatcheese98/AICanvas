@@ -55,6 +55,14 @@ This starts via **Turbo**:
 
 All logs appear in one terminal with labels like `[web]`, `[api]`, `[partykit]`.
 
+> **⚠️ First time only:** Turbo can't handle interactive prompts. If the API asks about database migrations, stop (Ctrl+C) and run the API standalone first:
+> ```sh
+> cd apps/api && bun run dev
+> # Type Y to apply migrations, wait for "Ready on 8794"
+> # Then stop (Ctrl+C) and run `bun run dev` from root
+> ```
+> Subsequent runs work fine with `bun run dev`.
+
 ---
 
 ## Creating a Side Worktree

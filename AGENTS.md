@@ -18,7 +18,9 @@ docs/              Architecture and pattern documentation
 
 ```sh
 bun install                # install dependencies
-bun run dev                # start all apps in dev mode (turbo)
+bun run dev                # start all apps (Web + API + PartyKit via Turbo)
+# Note: First time, run `cd apps/api && bun run dev` to apply DB migrations,
+# then stop and use `bun run dev` from root for subsequent runs.
 bun run build              # build all packages (turbo)
 bun run test               # run all tests (turbo, vitest)
 bun run typecheck           # typecheck all packages (turbo)
