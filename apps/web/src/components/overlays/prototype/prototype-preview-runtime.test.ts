@@ -1,94 +1,167 @@
-import { describe, expect, it } from 'vitest';
-import type { 
-	PrototypeOverlayCustomData, 
+import type {
+	PrototypeCardPreview,
+	PrototypeOverlayCustomData,
 	PrototypeOverlayFile,
-	PrototypeCardPreview 
 } from '@ai-canvas/shared/types';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Test the patterns used in usePrototypePreview without the Worker dependency
-describe('usePrototypePreview patterns', () => {
-	const mockPreview: PrototypeCardPreview = {
+type WorkerListener = (
+	event: MessageEvent<{ id: number; ok: boolean; modules?: Record<string, string> }>,
+) => void;
+
+const { MockPrototypeCompilerWorker, workerInstances } = vi.hoisted(() => {
+	const instances: Array<{
+		postMessage: ReturnType<typeof vi.fn>;
+		terminate: ReturnType<typeof vi.fn>;
+		addEventListener: (type: 'message', listener: WorkerListener) => void;
+		removeEventListener: (type: 'message', listener: WorkerListener) => void;
+	}> = [];
+
+	class HoistedMockPrototypeCompilerWorker {
+		private listeners = new Set<WorkerListener>();
+
+		postMessage = vi.fn((message: { id: number; files: Record<string, PrototypeOverlayFile> }) => {
+			queueMicrotask(() => {
+				this.emit({
+					id: message.id,
+					ok: true,
+					modules: Object.fromEntries(
+						Object.entries(message.files).map(([path, file]) => [path, file.code]),
+					),
+				});
+			});
+		});
+
+		terminate = vi.fn();
+
+		constructor() {
+			instances.push(this);
+		}
+
+		addEventListener(_type: 'message', listener: WorkerListener) {
+			this.listeners.add(listener);
+		}
+
+		removeEventListener(_type: 'message', listener: WorkerListener) {
+			this.listeners.delete(listener);
+		}
+
+		private emit(data: {
+			id: number;
+			ok: boolean;
+			modules?: Record<string, string>;
+		}) {
+			for (const listener of this.listeners) {
+				listener({
+					data,
+				} as MessageEvent<{ id: number; ok: boolean; modules?: Record<string, string> }>);
+			}
+		}
+	}
+
+	return {
+		MockPrototypeCompilerWorker: HoistedMockPrototypeCompilerWorker,
+		workerInstances: instances,
+	};
+});
+
+vi.mock('./runtime/prototype-compiler.worker?worker', () => ({
+	default: MockPrototypeCompilerWorker,
+}));
+
+import { usePrototypePreview } from './prototype-preview-runtime';
+
+function createPreview(): PrototypeCardPreview {
+	return {
 		eyebrow: 'Test',
 		title: 'Test',
-		description: 'Test preview',
-		accent: '#000',
-		background: '#fff',
+		description: 'Preview card',
+		accent: '#000000',
+		background: '#ffffff',
 		badges: [],
 		metrics: [],
 	};
+}
 
-	const mockInput: PrototypeOverlayCustomData = {
+function createInput(): PrototypeOverlayCustomData {
+	return {
 		type: 'prototype',
 		template: 'react',
 		files: {
-			'/index.jsx': { code: 'export default () => null;', active: true },
+			'/index.jsx': {
+				code: 'export default function App() { return <div>Hello</div>; }',
+				active: true,
+			},
 		},
 		dependencies: {},
-		preview: mockPreview,
-		title: 'Test',
+		preview: createPreview(),
+		title: 'Prototype',
 		activeFile: '/index.jsx',
 		showEditor: true,
 		showPreview: true,
 	};
+}
 
-	it('should have correct mock data structure', () => {
-		expect(mockInput.type).toBe('prototype');
-		expect(mockInput.template).toBe('react');
-		expect(mockInput.files['/index.jsx'].code).toBeDefined();
+describe('usePrototypePreview', () => {
+	beforeEach(() => {
+		workerInstances.length = 0;
 	});
 
-	it('should track code changes via ref pattern', () => {
-		// Simulate ref tracking pattern
-		const codeRef = { current: mockInput.files['/index.jsx'].code };
-		const newCode = 'export default () => <div>Updated</div>;';
-		
-		// Initial state
-		expect(codeRef.current).toBe(mockInput.files['/index.jsx'].code);
-		
-		// After update
-		codeRef.current = newCode;
-		expect(codeRef.current).toBe(newCode);
+	afterEach(() => {
+		vi.clearAllMocks();
 	});
 
-	it('should handle file structure correctly', () => {
-		const files: Record<string, PrototypeOverlayFile> = {
-			'/index.jsx': { code: 'const App = () => <div>Hello</div>;', active: true },
-			'/utils.js': { code: 'export const helper = () => {};', active: false },
-		};
-		
-		expect(Object.keys(files)).toHaveLength(2);
-		expect(files['/index.jsx'].active).toBe(true);
-		expect(files['/utils.js'].active).toBe(false);
-	});
-});
+	it('does not recompile when the prototype data is unchanged but object references change', async () => {
+		const initialInput = createInput();
+		const { result, rerender } = renderHook(({ input }) => usePrototypePreview(input), {
+			initialProps: { input: initialInput },
+		});
 
-describe('usePrototypePreview compilation patterns', () => {
-	it('should track compilation state without useEffect', () => {
-		// Simulate the pattern: useMemo + ref tracking for data-triggered updates
-		let compileCount = 0;
-		const code = 'export default () => <div>Test</div>;';
-		const prevCodeRef = { current: '' };
-		
-		// First compilation
-		if (code !== prevCodeRef.current) {
-			compileCount++;
-			prevCodeRef.current = code;
-		}
-		expect(compileCount).toBe(1);
-		
-		// Same code - no recompile
-		if (code !== prevCodeRef.current) {
-			compileCount++;
-			prevCodeRef.current = code;
-		}
-		expect(compileCount).toBe(1);
-		
-		// New code - recompile
-		const newCode = 'export default () => <div>Updated</div>;';
-		if (newCode !== prevCodeRef.current) {
-			compileCount++;
-			prevCodeRef.current = newCode;
-		}
-		expect(compileCount).toBe(2);
+		await waitFor(() => {
+			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+		});
+
+		const worker = workerInstances[0];
+		expect(worker).toBeDefined();
+		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
+
+		rerender({
+			input: {
+				...initialInput,
+				files: Object.fromEntries(
+					Object.entries(initialInput.files).map(([path, file]) => [path, { ...file }]),
+				),
+				dependencies: { ...initialInput.dependencies },
+				preview: { ...initialInput.preview },
+			},
+		});
+
+		await waitFor(() => {
+			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+		});
+
+		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
+	});
+
+	it('recompiles when refresh is requested', async () => {
+		const { result } = renderHook(() => usePrototypePreview(createInput()));
+
+		await waitFor(() => {
+			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+		});
+
+		const worker = workerInstances[0];
+		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
+
+		act(() => {
+			result.current.refresh();
+		});
+
+		await waitFor(() => {
+			expect(result.current.srcDoc).toContain('prototype-preview-2-');
+		});
+
+		expect(worker?.postMessage).toHaveBeenCalledTimes(2);
 	});
 });

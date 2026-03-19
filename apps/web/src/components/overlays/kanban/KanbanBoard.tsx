@@ -1,6 +1,6 @@
 import { getExcalidrawSurfaceStyle } from '@/components/canvas/excalidraw-element-style';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { KanbanBoardContainer } from './KanbanBoardContainer';
 import type { KanbanBoardProps } from './kanban-board-types';
 import { getLabelTone } from './kanban-card-helpers';
@@ -255,10 +255,6 @@ function KanbanPreviewBoard({
 }
 
 export function KanbanBoard(props: KanbanBoardProps) {
-	useEffect(() => {
-		props.onActivityChange?.(props.mode === 'live' && props.isSelected);
-	}, [props.mode, props.isSelected, props.onActivityChange]);
-
 	if (props.mode === 'preview') {
 		return <KanbanPreviewBoard element={props.element} isSelected={props.isSelected} />;
 	}

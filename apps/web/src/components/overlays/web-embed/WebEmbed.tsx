@@ -1,12 +1,13 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { enhanceUrl, isKnownEmbeddable } from '@/lib/web-embed-utils';
+import { useAppStore } from '@/stores/store';
 import type { WebEmbedOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { OverlayExpandButton } from '../OverlayExpandButton';
 import { useWebEmbedState } from './useWebEmbedState';
-
 
 type WebEmbedElement = ExcalidrawElement & {
 	customData: WebEmbedOverlayCustomData;
@@ -22,7 +23,9 @@ interface WebEmbedProps {
 }
 
 export function WebEmbed(props: WebEmbedProps) {
-	const { element, isSelected, onChange, onActivityChange } = props;
+	const { element, isSelected, mode, onChange, onActivityChange } = props;
+	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
+	const latestUrlInputRef = useRef(element.customData.url);
 	const state = useWebEmbedState({
 		element,
 		onChange,
@@ -34,7 +37,6 @@ export function WebEmbed(props: WebEmbedProps) {
 		isEditing,
 		viewMode,
 		isLoading,
-		viewport,
 		pipPosition,
 		pipDimensions,
 		pipDragCleanupRef,
@@ -42,19 +44,22 @@ export function WebEmbed(props: WebEmbedProps) {
 		lastReportedEditingRef,
 		setUrlInput,
 		setIsLoading,
-		setViewMode,
 		setPipPosition,
 		handleStopEditing,
 		handleSubmitUrl,
 		handleToggleEdit,
 		handleTogglePip,
-		handleToggleExpand,
 		clearPipDragListeners,
 	} = state;
+	latestUrlInputRef.current = urlInput;
 
 	// Cleanup on unmount: report inactive and clear drag listeners
 	useMountEffect(() => {
 		return () => {
+			const trimmedUrl = latestUrlInputRef.current.trim();
+			if (mode === 'shell' && trimmedUrl && trimmedUrl !== element.customData.url) {
+				onChange(element.id, trimmedUrl);
+			}
 			clearPipDragListeners();
 			if (lastReportedEditingRef.current) {
 				onActivityChangeRef.current?.(false);
@@ -112,6 +117,12 @@ export function WebEmbed(props: WebEmbedProps) {
 				<input
 					value={urlInput}
 					onChange={(event) => setUrlInput(event.target.value)}
+					onBlur={() => {
+						const trimmedUrl = urlInput.trim();
+						if (mode === 'shell' && trimmedUrl && trimmedUrl !== element.customData.url) {
+							handleSubmitUrl();
+						}
+					}}
 					className="min-w-48 flex-1 rounded-full border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 outline-none"
 					placeholder="Paste a URL"
 					readOnly={!isSelected && !isEditing}
@@ -134,20 +145,15 @@ export function WebEmbed(props: WebEmbedProps) {
 						>
 							{isEditing ? 'View' : 'Edit'}
 						</button>
-						<button
-							type="button"
-							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={handleTogglePip}
-						>
-							PiP
-						</button>
-						<button
-							type="button"
-							className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-							onClick={handleToggleExpand}
-						>
-							Expand
-						</button>
+						{mode !== 'shell' ? (
+							<button
+								type="button"
+								className="rounded-full border border-stone-300 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+								onClick={handleTogglePip}
+							>
+								PiP
+							</button>
+						) : null}
 						{previewUrl ? (
 							<a
 								href={enhanced.url}
@@ -204,6 +210,10 @@ export function WebEmbed(props: WebEmbedProps) {
 					</div>
 				)}
 			</div>
+
+			{mode !== 'shell' && isSelected ? (
+				<OverlayExpandButton onClick={() => openExpandedOverlay(element.id)} />
+			) : null}
 		</OverlaySurface>
 	);
 

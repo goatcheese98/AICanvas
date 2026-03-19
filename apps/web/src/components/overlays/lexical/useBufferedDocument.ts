@@ -1,5 +1,5 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useCallback, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 export type BufferedCommitReason = 'debounce' | 'editing-exit' | 'deselect' | 'unmount';
 
@@ -130,47 +130,27 @@ export function useBufferedDocument({
 		[debounceMs, flush, publishDebugState],
 	);
 
-	// Track previous isEditing to detect change during render
+	// Track previous isEditing to detect change
 	const prevIsEditingRef = useRef(isEditing);
 
-	// Handle flush on editing exit during render
-	if (prevIsEditingRef.current && !isEditing) {
-		// Editing just ended, flush immediately
-		flush('editing-exit');
-	}
-	// Update the ref for next render
-	prevIsEditingRef.current = isEditing;
+	// Handle flush on editing exit - moved to useEffect
+	useEffect(() => {
+		if (prevIsEditingRef.current && !isEditing) {
+			// Editing just ended, flush immediately
+			flush('editing-exit');
+		}
+		prevIsEditingRef.current = isEditing;
+	}, [isEditing, flush]);
 
-	// External store sync for remoteValue changes
+	// External store sync for remoteValue changes - moved to useEffect
 	const lastProcessedRemoteValueRef = useRef(remoteValue);
 	const externalSyncCountRef = useRef(0);
 
-	const syncSnapshot = useSyncExternalStore(
-		useCallback(
-			(onStoreChange) => {
-				// This runs when remoteValue changes trigger a re-render
-				// We use a simple subscription that triggers on value changes
-				const checkForChanges = () => {
-					if (lastProcessedRemoteValueRef.current !== remoteValue) {
-						onStoreChange();
-					}
-				};
-				// Initial check
-				checkForChanges();
-				// Return cleanup (no-op for this pattern)
-				return () => {};
-			},
-			[remoteValue],
-		),
-		// Snapshot function - returns current value
-		() => remoteValue,
-		// Server snapshot (same for SSR)
-		() => remoteValue,
-	);
-
-	// Process remote value changes during render (derived state pattern)
-	if (syncSnapshot !== lastProcessedRemoteValueRef.current) {
-		const newRemoteValue = syncSnapshot;
+	useEffect(() => {
+		const newRemoteValue = remoteValue;
+		if (newRemoteValue === lastProcessedRemoteValueRef.current) {
+			return;
+		}
 		lastProcessedRemoteValueRef.current = newRemoteValue;
 
 		if (newRemoteValue === awaitingRemoteAckRef.current) {
@@ -192,7 +172,7 @@ export function useBufferedDocument({
 				externalSyncCount: externalSyncCountRef.current,
 			});
 		}
-	}
+	}, [remoteValue, isEditing, flush, publishDebugState]);
 
 	// Flush on unmount
 	useMountEffect(() => {

@@ -11,7 +11,7 @@ import {
 	type SerializedLexicalNode,
 	type Spread,
 } from 'lexical';
-import React, { useEffect, useRef } from 'react';
+import React, { useMemo } from 'react';
 
 export type SerializedEquationNode = Spread<
 	{
@@ -105,11 +105,8 @@ function EquationComponent({
 	equation: string;
 	inline: boolean;
 }): React.JSX.Element {
-	const ref = useRef<HTMLSpanElement | HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!ref.current) return;
-		katex.render(equation, ref.current, {
+	const renderedEquation = useMemo(() => {
+		return katex.renderToString(equation, {
 			displayMode: !inline,
 			throwOnError: false,
 			trust: false,
@@ -118,9 +115,9 @@ function EquationComponent({
 
 	const Tag = inline ? 'span' : 'div';
 	return React.createElement(Tag, {
-		ref,
 		className: inline ? 'canvas-inline-equation' : 'canvas-equation',
 		style: inline ? { display: 'inline-block' } : { margin: '1em 0' },
+		dangerouslySetInnerHTML: { __html: renderedEquation },
 	});
 }
 

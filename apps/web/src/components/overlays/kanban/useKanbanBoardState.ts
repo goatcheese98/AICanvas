@@ -1,5 +1,5 @@
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { useMountEffect } from '../../../hooks/useMountEffect';
 import type { KanbanBoardProps, UpdateKanbanBoard } from './kanban-board-types';
@@ -105,7 +105,7 @@ function createResizeStore() {
 
 export function useKanbanBoardState({
 	element,
-	mode: _mode,
+	mode,
 	isSelected,
 	isActive: _isActive,
 	onChange,
@@ -131,12 +131,11 @@ export function useKanbanBoardState({
 	const onChangeRef = useRef(onChange);
 	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedEditingRef = useRef<boolean | null>(null);
-	const _hasReportedEditingRef = useRef(false);
 	const externalBoardSignatureRef = useRef(serializeKanbanBoard(normalizedInitialBoard));
+	const lastBoardTitleRef = useRef(normalizedInitialBoard.title);
 	const previousSizeRef = useRef({ width: element.width, height: element.height });
 	const elementIdRef = useRef(element.id);
 	const resizeStoreRef = useRef(createResizeStore());
-	const isUnmountingRef = useRef(false);
 
 	// Update refs on each render (not useEffect)
 	boardRef.current = board;
@@ -144,62 +143,75 @@ export function useKanbanBoardState({
 	onChangeRef.current = onChange;
 	onActivityChangeRef.current = onActivityChange;
 
-	// Sync board from external element.customData changes
-	const nextExternalBoard = normalizeKanbanBoard(element.customData);
-	const nextExternalSignature = serializeKanbanBoard(nextExternalBoard);
+	const nextExternalBoard = useMemo(
+		() => normalizeKanbanBoard(element.customData),
+		[element.customData],
+	);
+	const nextExternalSignature = useMemo(
+		() => serializeKanbanBoard(nextExternalBoard),
+		[nextExternalBoard],
+	);
 
-	// Handle external board sync during render
-	if (nextExternalSignature !== externalBoardSignatureRef.current) {
+	// Track isSelected changes in ref for useEffect
+	const lastIsSelectedForCleanupRef = useRef(isSelected);
+
+	useEffect(() => {
+		if (nextExternalSignature === externalBoardSignatureRef.current) return;
+
 		externalBoardSignatureRef.current = nextExternalSignature;
-		if (serializeKanbanBoard(boardRef.current) !== nextExternalSignature) {
-			boardRef.current = nextExternalBoard;
-			setBoard(nextExternalBoard);
-			if (boardTitleDraft !== nextExternalBoard.title) {
-				setBoardTitleDraft(nextExternalBoard.title);
-			}
-		}
-	}
+		if (serializeKanbanBoard(boardRef.current) === nextExternalSignature) return;
 
-	// Reset history when element.id changes
-	if (elementIdRef.current !== element.id) {
+		boardRef.current = nextExternalBoard;
+		setBoard(nextExternalBoard);
+		setBoardTitleDraft((current) =>
+			current === nextExternalBoard.title ? current : nextExternalBoard.title,
+		);
+	}, [nextExternalBoard, nextExternalSignature]);
+
+	useEffect(() => {
+		if (elementIdRef.current === element.id) return;
+
 		elementIdRef.current = element.id;
 		undoStackRef.current = [];
 		redoStackRef.current = [];
-	}
+	}, [element.id]);
 
-	// Sync boardTitleDraft when board.title changes
-	if (boardTitleDraft !== board.title) {
+	useEffect(() => {
+		if (board.title === lastBoardTitleRef.current) return;
+
+		lastBoardTitleRef.current = board.title;
 		setBoardTitleDraft(board.title);
-	}
+	}, [board.title]);
 
-	// Activity reporting - track isSelected changes
-	if (lastReportedEditingRef.current !== isSelected) {
-		lastReportedEditingRef.current = isSelected;
-		onActivityChangeRef.current?.(isSelected);
-	}
-
-	// Deselect handling - clear UI state and flush draft
-	const lastIsSelectedForCleanupRef = useRef(isSelected);
-	if (lastIsSelectedForCleanupRef.current && !isSelected) {
-		lastIsSelectedForCleanupRef.current = isSelected;
-		// Flush draft on deselect
-		const nextTitle = boardTitleDraftRef.current;
-		if (nextTitle.trim().length > 0 && nextTitle !== boardRef.current.title) {
-			const nextBoard = normalizeKanbanBoard({
-				...boardRef.current,
-				title: nextTitle,
-			});
-			boardRef.current = nextBoard;
-			onChangeRef.current(element.id, nextBoard);
+	// Activity reporting - track isSelected changes - moved to useEffect
+	useEffect(() => {
+		if (lastReportedEditingRef.current !== isSelected) {
+			lastReportedEditingRef.current = isSelected;
+			onActivityChangeRef.current?.(isSelected);
 		}
-		// Clear UI state
-		setShowSettings(false);
-		setPendingDeleteColumnId(null);
-		setPendingDeleteCardId(null);
-		setPendingDeleteCardColumnId(null);
-	} else if (!lastIsSelectedForCleanupRef.current && isSelected) {
+	}, [isSelected]);
+
+	// Deselect handling - clear UI state and flush draft - moved to useEffect
+	useEffect(() => {
+		if (lastIsSelectedForCleanupRef.current && !isSelected) {
+			// Flush draft on deselect
+			const nextTitle = boardTitleDraftRef.current;
+			if (nextTitle.trim().length > 0 && nextTitle !== boardRef.current.title) {
+				const nextBoard = normalizeKanbanBoard({
+					...boardRef.current,
+					title: nextTitle,
+				});
+				boardRef.current = nextBoard;
+				onChangeRef.current(element.id, nextBoard);
+			}
+			// Clear UI state
+			setShowSettings(false);
+			setPendingDeleteColumnId(null);
+			setPendingDeleteCardId(null);
+			setPendingDeleteCardColumnId(null);
+		}
 		lastIsSelectedForCleanupRef.current = isSelected;
-	}
+	}, [isSelected, element.id]);
 
 	// Resize handling with useSyncExternalStore
 	const resizeStore = resizeStoreRef.current;
@@ -209,22 +221,24 @@ export function useKanbanBoardState({
 		() => false,
 	);
 
-	// Track size changes during render
-	const currentSize = { width: element.width, height: element.height };
-	if (
-		previousSizeRef.current.width !== currentSize.width ||
-		previousSizeRef.current.height !== currentSize.height
-	) {
+	useEffect(() => {
+		const currentSize = { width: element.width, height: element.height };
+		if (
+			previousSizeRef.current.width === currentSize.width &&
+			previousSizeRef.current.height === currentSize.height
+		) {
+			return;
+		}
+
 		previousSizeRef.current = currentSize;
-		if (isSelected) {
+		if (isSelected && mode !== 'shell') {
 			resizeStore.startResizing();
 		}
-	}
+	}, [element.height, element.width, isSelected, mode, resizeStore]);
 
 	// Cleanup on unmount
 	useMountEffect(() => {
 		return () => {
-			isUnmountingRef.current = true;
 			// Flush draft on unmount
 			const nextTitle = boardTitleDraftRef.current;
 			if (nextTitle.trim().length > 0 && nextTitle !== boardRef.current.title) {
@@ -242,14 +256,7 @@ export function useKanbanBoardState({
 		};
 	});
 
-	// Validate pending delete states when board.columns changes
-	// Using a ref to track last validated state
-	const lastValidatedColumnsRef = useRef(serializeKanbanBoard(board));
-	const currentColumnsSignature = serializeKanbanBoard(board);
-	if (currentColumnsSignature !== lastValidatedColumnsRef.current) {
-		lastValidatedColumnsRef.current = currentColumnsSignature;
-
-		// Clear pending delete column if column no longer exists
+	useEffect(() => {
 		if (pendingDeleteColumnId) {
 			const columnExists = board.columns.some((column) => column.id === pendingDeleteColumnId);
 			if (!columnExists) {
@@ -257,21 +264,21 @@ export function useKanbanBoardState({
 			}
 		}
 
-		// Clear pending delete card if card or column no longer exists
 		if (pendingDeleteCardId && pendingDeleteCardColumnId) {
 			const column = board.columns.find((c) => c.id === pendingDeleteCardColumnId);
 			if (!column) {
 				setPendingDeleteCardId(null);
 				setPendingDeleteCardColumnId(null);
-			} else {
-				const cardExists = column.cards.some((card) => card.id === pendingDeleteCardId);
-				if (!cardExists) {
-					setPendingDeleteCardId(null);
-					setPendingDeleteCardColumnId(null);
-				}
+				return;
+			}
+
+			const cardExists = column.cards.some((card) => card.id === pendingDeleteCardId);
+			if (!cardExists) {
+				setPendingDeleteCardId(null);
+				setPendingDeleteCardColumnId(null);
 			}
 		}
-	}
+	}, [board.columns, pendingDeleteCardColumnId, pendingDeleteCardId, pendingDeleteColumnId]);
 
 	const persistBoard = useCallback(
 		(

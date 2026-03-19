@@ -296,9 +296,7 @@ export function LandingPage() {
 						ref={waitlistRef}
 						className="landing-scroll-step landing-scroll-step-final"
 						data-chapter-id={landingWaitlistChapter.id}
-					>
-						<span>{landingWaitlistChapter.label}</span>
-					</section>
+					/>
 				</div>
 			</main>
 		</div>

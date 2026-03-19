@@ -9,20 +9,159 @@ import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
-import { useMemo, useRef, useState } from 'react';
+import { Link, Navigate } from '@tanstack/react-router';
+import { useCallback, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
 	prototypeId: string;
 }
 
+interface PrototypeStudioSessionProps {
+	canvasId: string;
+	prototypeElement: ExcalidrawElement & { customData: PrototypeOverlayCustomData };
+	normalizedPrototype: PrototypeOverlayCustomData;
+	savedSignature: string;
+	elements: ExcalidrawElement[];
+	canvasData: {
+		appState?: Record<string, unknown> | null;
+		files?: Record<string, unknown> | null;
+	};
+	getToken: ReturnType<typeof useAuth>['getToken'];
+	queryClient: ReturnType<typeof useQueryClient>;
+}
+
+function PrototypeStudioSession({
+	canvasId,
+	prototypeElement,
+	normalizedPrototype,
+	savedSignature,
+	elements,
+	canvasData,
+	getToken,
+	queryClient,
+}: PrototypeStudioSessionProps) {
+	const [draft, setDraft] = useState(normalizedPrototype);
+	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
+	const isDirty = draftSignature !== savedSignature;
+
+	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
+		setDraft(nextDraft);
+		setSaveState('idle');
+	}, []);
+
+	const saveDraft = useCallback(async () => {
+		if (!isDirty) return;
+
+		setSaveState('saving');
+
+		try {
+			const nextElements = elements.map((element) => {
+				if (element.id !== prototypeElement.id) return element;
+				return applyOverlayUpdateByType(
+					'prototype',
+					element as ExcalidrawElement & { customData: PrototypeOverlayCustomData },
+					{
+						title: draft.title,
+						template: draft.template,
+						files: draft.files,
+						dependencies: draft.dependencies,
+						preview: draft.preview,
+						activeFile: draft.activeFile,
+						showEditor: draft.showEditor,
+						showPreview: draft.showPreview,
+					},
+				) as unknown as ExcalidrawElement;
+			});
+
+			const headers = await getRequiredAuthHeaders(getToken);
+			const response = await api.api.canvas[':id'].$put(
+				{
+					param: { id: canvasId },
+					json: {
+						elements: nextElements as Record<string, unknown>[],
+						appState: (canvasData.appState ?? {}) as Record<string, unknown>,
+						files: (canvasData.files ?? {}) as Record<string, unknown>,
+					},
+				},
+				{ headers },
+			);
+
+			if (!response.ok) {
+				throw new Error(await response.text());
+			}
+
+			await queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] });
+			setSaveState('saved');
+		} catch (error) {
+			console.error('Failed to save prototype draft', error);
+			captureBrowserException(error, {
+				tags: {
+					area: 'prototype.studio',
+					action: 'save_draft',
+				},
+				extra: {
+					canvasId,
+					prototypeId: prototypeElement.id,
+				},
+			});
+			setSaveState('error');
+		}
+	}, [canvasData.appState, canvasData.files, canvasId, draft, elements, getToken, isDirty, prototypeElement.id, queryClient]);
+
+	return (
+		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
+			<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
+				<div>
+					<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
+						Prototype Studio
+					</div>
+					<div className="mt-1 text-sm text-stone-600">
+						Edit files outside the canvas. The canvas now renders the same live prototype runtime
+						preview.
+					</div>
+				</div>
+				<div className="flex items-center gap-3">
+					<div className="text-xs text-stone-500">
+						{saveState === 'saving'
+							? 'Saving...'
+							: saveState === 'saved'
+								? 'Saved'
+								: saveState === 'error'
+									? 'Save failed'
+									: isDirty
+										? 'Unsaved changes'
+										: 'Up to date'}
+					</div>
+					<button
+						type="button"
+						onClick={() => void saveDraft()}
+						disabled={!isDirty || saveState === 'saving'}
+						className="rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-40"
+					>
+						Save
+					</button>
+					<Link
+						to="/canvas/$id"
+						params={{ id: canvasId }}
+						className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
+					>
+						Back to Canvas
+					</Link>
+				</div>
+			</div>
+
+			<div className="min-h-0 flex-1 p-6">
+				<PrototypeStudioEditor value={draft} onChange={handleDraftChange} />
+			</div>
+		</div>
+	);
+}
+
 export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPageProps) {
 	const { getToken } = useAuth();
-	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const [draft, setDraft] = useState<PrototypeOverlayCustomData | null>(null);
-	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -68,115 +207,6 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		() => (normalizedPrototype ? serializePrototypeState(normalizedPrototype) : ''),
 		[normalizedPrototype],
 	);
-	const draftSignature = useMemo(() => (draft ? serializePrototypeState(draft) : ''), [draft]);
-	const isDirty = Boolean(draft && savedSignature && draftSignature !== savedSignature);
-
-	// Track last normalized prototype to sync without useEffect
-	const lastNormalizedSignatureRef = useRef<string>('');
-
-	// Sync draft when normalized prototype changes (using useMemo pattern)
-	useMemo(() => {
-		if (!normalizedPrototype) return;
-		
-		if (savedSignature === lastNormalizedSignatureRef.current) {
-			return;
-		}
-		lastNormalizedSignatureRef.current = savedSignature;
-		setDraft(normalizedPrototype);
-		setSaveState('idle');
-	}, [normalizedPrototype, savedSignature]);
-
-	// Track navigation state to avoid useEffect
-	const navigatedFallbackRef = useRef<string | null>(null);
-
-	// Handle navigation to fallback prototype using useMemo pattern
-	useMemo(() => {
-		if (!fallbackPrototypeElement || matchedPrototypeElement || canvasQuery.isLoading) {
-			return;
-		}
-
-		// Prevent duplicate navigations
-		if (navigatedFallbackRef.current === fallbackPrototypeElement.id) {
-			return;
-		}
-		navigatedFallbackRef.current = fallbackPrototypeElement.id;
-
-		void navigate({
-			to: '/canvas/$id/prototype/$prototypeId',
-			params: {
-				id: canvasId,
-				prototypeId: fallbackPrototypeElement.id,
-			},
-			replace: true,
-		});
-	}, [
-		canvasId,
-		canvasQuery.isLoading,
-		fallbackPrototypeElement,
-		matchedPrototypeElement,
-		navigate,
-	]);
-
-	const activeDraft = draft ?? normalizedPrototype;
-
-	async function saveDraft() {
-		if (!draft || !prototypeElement || !canvasQuery.data?.data) return;
-
-		setSaveState('saving');
-
-		try {
-			const nextElements = elements.map((element) => {
-				if (element.id !== prototypeElement.id) return element;
-				return applyOverlayUpdateByType(
-					'prototype',
-					element as ExcalidrawElement & { customData: PrototypeOverlayCustomData },
-					{
-						title: draft.title,
-						template: draft.template,
-						files: draft.files,
-						dependencies: draft.dependencies,
-						preview: draft.preview,
-						activeFile: draft.activeFile,
-						showEditor: draft.showEditor,
-						showPreview: draft.showPreview,
-					},
-				) as unknown as ExcalidrawElement;
-			});
-
-			const headers = await getRequiredAuthHeaders(getToken);
-			const response = await api.api.canvas[':id'].$put(
-				{
-					param: { id: canvasId },
-					json: {
-						elements: nextElements as Record<string, unknown>[],
-						appState: (canvasQuery.data.data.appState ?? {}) as Record<string, unknown>,
-						files: (canvasQuery.data.data.files ?? {}) as Record<string, unknown>,
-					},
-				},
-				{ headers },
-			);
-
-			if (!response.ok) {
-				throw new Error(await response.text());
-			}
-
-			await queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] });
-			setSaveState('saved');
-		} catch (error) {
-			console.error('Failed to save prototype draft', error);
-			captureBrowserException(error, {
-				tags: {
-					area: 'prototype.studio',
-					action: 'save_draft',
-				},
-				extra: {
-					canvasId,
-					prototypeId: prototypeElement.id,
-				},
-			});
-			setSaveState('error');
-		}
-	}
 
 	if (canvasQuery.isLoading) {
 		return (
@@ -206,7 +236,20 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		);
 	}
 
-	if (!prototypeElement || !normalizedPrototype || !activeDraft) {
+	if (!matchedPrototypeElement && fallbackPrototypeElement) {
+		return (
+			<Navigate
+				to="/canvas/$id/prototype/$prototypeId"
+				params={{
+					id: canvasId,
+					prototypeId: fallbackPrototypeElement.id,
+				}}
+				replace
+			/>
+		);
+	}
+
+	if (!prototypeElement || !normalizedPrototype || !canvasQuery.data?.data) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
@@ -229,50 +272,18 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	}
 
 	return (
-		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
-			<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
-				<div>
-					<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
-						Prototype Studio
-					</div>
-					<div className="mt-1 text-sm text-stone-600">
-						Edit files outside the canvas. The canvas now renders the same live prototype runtime
-						preview.
-					</div>
-				</div>
-				<div className="flex items-center gap-3">
-					<div className="text-xs text-stone-500">
-						{saveState === 'saving'
-							? 'Saving...'
-							: saveState === 'saved'
-								? 'Saved'
-								: saveState === 'error'
-									? 'Save failed'
-									: draft && isDirty
-										? 'Unsaved changes'
-										: 'Up to date'}
-					</div>
-					<button
-						type="button"
-						onClick={() => void saveDraft()}
-						disabled={!draft || !isDirty || saveState === 'saving'}
-						className="rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-40"
-					>
-						Save
-					</button>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
-						className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-					>
-						Back to Canvas
-					</Link>
-				</div>
-			</div>
-
-			<div className="min-h-0 flex-1 p-6">
-				<PrototypeStudioEditor value={activeDraft} onChange={setDraft} />
-			</div>
-		</div>
+		<PrototypeStudioSession
+			key={`${prototypeElement.id}:${savedSignature}`}
+			canvasId={canvasId}
+			prototypeElement={
+				prototypeElement as ExcalidrawElement & { customData: PrototypeOverlayCustomData }
+			}
+			normalizedPrototype={normalizedPrototype}
+			savedSignature={savedSignature}
+			elements={elements}
+			canvasData={canvasQuery.data.data}
+			getToken={getToken}
+			queryClient={queryClient}
+		/>
 	);
 }

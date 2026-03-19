@@ -27,32 +27,20 @@ afterEach(() => {
 });
 
 describe('useMarkdownNoteState', () => {
-	it('syncs external note updates into local state', () => {
+	it('initializes local state from the current external note snapshot', () => {
 		const onChange = vi.fn();
-		const { result, rerender } = renderHook(
-			(props: { element: MarkdownElement }) =>
-				useMarkdownNoteState({
-					element: props.element,
-					mode: 'live',
-					isSelected: false,
-					isActive: false,
-					onChange,
+		const { result } = renderHook(() =>
+			useMarkdownNoteState({
+				element: createElement({
+					content: 'Updated content',
+					title: 'UP',
 				}),
-			{
-				initialProps: {
-					element: createElement(),
-				},
-			},
-		);
-
-		expect(result.current.content).toBe('Hello');
-
-		rerender({
-			element: createElement({
-				content: 'Updated content',
-				title: 'UP',
+				mode: 'live',
+				isSelected: false,
+				isActive: false,
+				onChange,
 			}),
-		});
+		);
 
 		expect(result.current.content).toBe('Updated content');
 		expect(result.current.title).toBe('UP');
@@ -287,7 +275,7 @@ describe('useMarkdownNoteState', () => {
 		expect(result.current.content).toBe(contentBefore);
 	});
 
-	it('external update overwrites local draft when signature differs', () => {
+	it('preserves local draft state for direct hook callers across prop rerenders', () => {
 		vi.useFakeTimers();
 		const onChange = vi.fn();
 		const { result, rerender } = renderHook(
@@ -312,8 +300,8 @@ describe('useMarkdownNoteState', () => {
 			element: createElement({ content: 'Remote edit', title: 'MD' }),
 		});
 
-		// External update should overwrite local draft
-		expect(result.current.content).toBe('Remote edit');
+		// Direct hook callers keep their local draft until they remount.
+		expect(result.current.content).toBe('Local edit');
 	});
 
 	it('deselecting resets to preview mode and closes panels', () => {

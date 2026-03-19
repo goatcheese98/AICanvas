@@ -1,6 +1,6 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
 import type { NewLexCommentThread } from '@ai-canvas/shared/types';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
 	CONTENT_COMMIT_DEBOUNCE_MS,
 	DEFAULT_NEWLEX_CONTENT,
@@ -25,13 +25,13 @@ export function useLexicalNoteState({
 	element,
 	mode,
 	isSelected,
-	isActive,
+	isActive: _isActive,
 	onChange,
 	onActivityChange,
 }: UseLexicalNoteStateArgs) {
 	const incomingTitle = element.customData.title?.trim() || DEFAULT_NEWLEX_TITLE;
 	const incomingLexicalState = element.customData.lexicalState || DEFAULT_NEWLEX_CONTENT;
-	const [isEditing, setIsEditing] = useState(false);
+	const [isEditing, setIsEditing] = useState(mode === 'shell');
 	const [title, setTitle] = useState(incomingTitle);
 	const [titleNotice, setTitleNotice] = useState(false);
 	const [comments, setComments] = useState<NewLexCommentThread[]>(
@@ -67,66 +67,68 @@ export function useLexicalNoteState({
 	// Sync callback ref to latest (justified ref sync pattern)
 	onActivityChangeRef.current = onActivityChange;
 
-	// Sync external title into local state (derived state with ref comparison)
-	if (incomingTitle !== externalTitleRef.current) {
-		externalTitleRef.current = incomingTitle;
-		lastCommittedTitleRef.current = incomingTitle;
-		if (title !== incomingTitle) {
-			setTitle(incomingTitle);
-		}
-	}
-
-	// Sync external comments into local state (derived state with ref comparison)
-	const nextComments = element.customData.comments ?? [];
-	const nextSignature = serializeComments(nextComments);
-	if (nextSignature !== externalCommentsRef.current) {
-		externalCommentsRef.current = nextSignature;
-		if (serializeComments(comments) !== nextSignature) {
-			setComments(nextComments);
-		}
-	}
-
 	// Keep commentsRef in sync (justified ref sync pattern)
 	commentsRef.current = comments;
 
-	// Handle deselection: flush changes and reset editing state (derived pattern with ref comparison)
+	useEffect(() => {
+		if (incomingTitle === externalTitleRef.current) return;
+
+		externalTitleRef.current = incomingTitle;
+		lastCommittedTitleRef.current = incomingTitle;
+		setTitle((current) => (current === incomingTitle ? current : incomingTitle));
+	}, [incomingTitle]);
+
+	useEffect(() => {
+		const nextComments = element.customData.comments ?? [];
+		const nextSignature = serializeComments(nextComments);
+		if (nextSignature === externalCommentsRef.current) return;
+
+		externalCommentsRef.current = nextSignature;
+		if (serializeComments(commentsRef.current) !== nextSignature) {
+			setComments(nextComments);
+		}
+	}, [element.customData.comments]);
+
 	const prevIsSelectedRef = useRef(isSelected);
-	if (prevIsSelectedRef.current && !isSelected) {
-		// Changed from selected to not selected
-		flush('deselect');
-		setIsEditing(false);
-		setShowCommentComposer(false);
-	}
-	prevIsSelectedRef.current = isSelected;
+	useEffect(() => {
+		if (prevIsSelectedRef.current && !isSelected) {
+			flush('deselect');
+			setIsEditing(false);
+			setShowCommentComposer(false);
+		}
+		prevIsSelectedRef.current = isSelected;
+	}, [flush, isSelected]);
 
 	// Cleanup on unmount
 	useMountEffect(() => {
 		return () => {
 			flush('unmount');
-			setIsEditing(false);
-			setShowCommentComposer(false);
 		};
 	});
 
 	// Derived: is actively editing
 	const isActivelyEditing = isEditing || commentsPanelOpen || showCommentComposer;
 
-	// Ref-based debounced title commit (scheduling pattern during render)
-	if (title !== externalTitleRef.current && title !== lastCommittedTitleRef.current) {
-		if (titleCommitTimeoutRef.current !== null) {
-			window.clearTimeout(titleCommitTimeoutRef.current);
+	// Ref-based debounced title commit - moved to useEffect to avoid render-phase updates
+	useEffect(() => {
+		if (title !== externalTitleRef.current && title !== lastCommittedTitleRef.current) {
+			if (titleCommitTimeoutRef.current !== null) {
+				window.clearTimeout(titleCommitTimeoutRef.current);
+			}
+			titleCommitTimeoutRef.current = window.setTimeout(() => {
+				lastCommittedTitleRef.current = title;
+				onChange(element.id, { title });
+			}, 180);
 		}
-		titleCommitTimeoutRef.current = window.setTimeout(() => {
-			lastCommittedTitleRef.current = title;
-			onChange(element.id, { title });
-		}, 180);
-	}
+	}, [title, element.id, onChange]);
 
-	// Report activity changes (scheduling pattern during render)
-	if (lastReportedEditingRef.current !== isActivelyEditing) {
-		lastReportedEditingRef.current = isActivelyEditing;
-		onActivityChangeRef.current?.(isActivelyEditing);
-	}
+	// Report activity changes - moved to useEffect to avoid render-phase updates
+	useEffect(() => {
+		if (lastReportedEditingRef.current !== isActivelyEditing) {
+			lastReportedEditingRef.current = isActivelyEditing;
+			onActivityChangeRef.current?.(isActivelyEditing);
+		}
+	}, [isActivelyEditing]);
 
 	// Cleanup timeouts on unmount
 	useMountEffect(() => {

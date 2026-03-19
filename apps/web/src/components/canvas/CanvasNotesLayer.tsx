@@ -9,7 +9,7 @@ import {
 	normalizeOverlayElement,
 } from './overlay-definitions';
 import {
-	applyOverlayUpdateByType,
+	applyOverlayUpdateToScene,
 	collectOverlayElements,
 	getOverlayZIndex,
 } from './overlay-registry';
@@ -170,17 +170,12 @@ export function CanvasNotesLayer() {
 			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
-			let didChange = false;
-			const nextElements = currentElements.map((candidate) => {
-				if (candidate.id !== elementId) return candidate;
-				const updated = applyOverlayUpdateByType(
-					type,
-					candidate as unknown as TypedOverlayCanvasElement,
-					payload,
-				);
-				didChange = didChange || updated !== candidate;
-				return updated;
-			});
+			const { didChange, nextElements } = applyOverlayUpdateToScene(
+				currentElements,
+				elementId,
+				type,
+				payload,
+			);
 			if (!didChange) return;
 
 			excalidrawApi.updateScene({ elements: nextElements });

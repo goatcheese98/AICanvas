@@ -1,8 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import { useMarkdownUtilityPanelState } from './useMarkdownUtilityPanelState';
 import { DEFAULT_MARKDOWN_NOTE_SETTINGS } from '@ai-canvas/shared/schemas';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
+import { renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { useMarkdownUtilityPanelState } from './useMarkdownUtilityPanelState';
 
 describe('useMarkdownUtilityPanelState', () => {
 	const createMockProps = () => ({
@@ -72,7 +72,7 @@ describe('useMarkdownUtilityPanelState', () => {
 			result.current.handleReset();
 
 			expect(props.onSettingsChange).toHaveBeenCalledTimes(1);
-			
+
 			const updaterFn = props.onSettingsChange.mock.calls[0][0];
 			const resultSettings = updaterFn({
 				font: 'Custom',
@@ -98,7 +98,6 @@ describe('useMarkdownUtilityPanelState', () => {
 				backgroundColor: '#ffffff',
 				strokeColor: 'rgba(17,24,39,0.09)',
 				strokeWidth: 1,
-				roundness: null,
 			});
 		});
 	});

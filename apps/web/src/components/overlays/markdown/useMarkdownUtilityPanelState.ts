@@ -1,6 +1,5 @@
 import { DEFAULT_MARKDOWN_NOTE_SETTINGS } from '@ai-canvas/shared/schemas';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback } from 'react';
 
 export interface UseMarkdownUtilityPanelStateProps {
@@ -9,7 +8,6 @@ export interface UseMarkdownUtilityPanelStateProps {
 		backgroundColor?: string;
 		strokeColor?: string;
 		strokeWidth?: number;
-		roundness?: ExcalidrawElement['roundness'];
 	}) => void;
 }
 
@@ -35,7 +33,6 @@ export function useMarkdownUtilityPanelState({
 			backgroundColor: '#ffffff',
 			strokeColor: 'rgba(17,24,39,0.09)',
 			strokeWidth: 1,
-			roundness: null,
 		});
 	}, [onSettingsChange, onSurfaceStyleChange]);
 

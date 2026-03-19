@@ -1,6 +1,10 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { describe, expect, it } from 'vitest';
-import { type TypedOverlayCanvasElement, normalizeOverlayElement } from './overlay-definitions';
+import {
+	type TypedOverlayCanvasElement,
+	getOverlayDefinition,
+	normalizeOverlayElement,
+} from './overlay-definitions';
 
 function createMarkdownOverlay(
 	overrides?: Partial<TypedOverlayCanvasElement['customData']>,
@@ -81,5 +85,32 @@ describe('normalizeOverlayElement', () => {
 		expect(second.customData.content).toBe('Changed while dragging');
 		expect(first.x).toBe(100);
 		expect(first.customData.content).toBe('Hello');
+	});
+
+	it('returns the same markdown element instance for a no-op update', () => {
+		const settings = {
+			font: 'Nunito, "Segoe UI Emoji", sans-serif',
+			fontSize: 14,
+			background: '#ffffff',
+			lineHeight: 1.65,
+			inlineCodeColor: '#334155',
+			showEmptyLines: true,
+			autoHideToolbar: false,
+		};
+		const element = createMarkdownOverlay({
+			editorMode: 'raw',
+			images: {},
+			settings,
+		});
+
+		const updated = getOverlayDefinition('markdown').applyUpdate(element, {
+			title: 'Note',
+			content: 'Hello',
+			images: {},
+			settings,
+			editorMode: 'raw',
+		});
+
+		expect(updated).toBe(element);
 	});
 });

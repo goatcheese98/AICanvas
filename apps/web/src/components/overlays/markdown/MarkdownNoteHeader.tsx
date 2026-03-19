@@ -1,5 +1,4 @@
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { RefObject } from 'react';
 import { MarkdownUtilityPanel } from './MarkdownUtilityPanel';
 import {
@@ -24,12 +23,15 @@ interface MarkdownNoteHeaderProps {
 	activeUtilityPanel: 'none' | 'style' | 'image';
 	headerRef: RefObject<HTMLDivElement | null>;
 	utilityPanelRef: RefObject<HTMLDivElement | null>;
+	detachedUtilityPanelRef: RefObject<HTMLDivElement | null>;
 	surfaceBackground: string;
 	strokeColor: string;
 	strokeWidth: number;
-	roundness: ExcalidrawElement['roundness'] | undefined;
 	settings: MarkdownNoteSettings;
 	imageCount: number;
+	detachUtilityPanel: boolean;
+	detachedPanelContainer: HTMLElement | null;
+	isExpandedShell: boolean;
 	onTitleChange: (value: string) => void;
 	onTitlePaste: (pasted: string, currentValueLength: number) => void;
 	onTitleBlur: () => void;
@@ -46,7 +48,6 @@ interface MarkdownNoteHeaderProps {
 		backgroundColor?: string;
 		strokeColor?: string;
 		strokeWidth?: number;
-		roundness?: ExcalidrawElement['roundness'];
 	}) => void;
 	onRequestImagePicker: () => void;
 	onCompactControlsVisibilityChange: (visible: boolean) => void;
@@ -64,12 +65,15 @@ export function MarkdownNoteHeader({
 	activeUtilityPanel,
 	headerRef,
 	utilityPanelRef,
+	detachedUtilityPanelRef,
 	surfaceBackground,
 	strokeColor,
 	strokeWidth,
-	roundness,
 	settings,
 	imageCount,
+	detachUtilityPanel,
+	detachedPanelContainer,
+	isExpandedShell,
 	onTitleChange,
 	onTitlePaste,
 	onTitleBlur,
@@ -157,22 +161,27 @@ export function MarkdownNoteHeader({
 				{controlsLayout === 'hidden' ? (
 					<div className="h-7 w-16" />
 				) : (
-					<MarkdownUtilityPanel
-						layout={controlsLayout}
-						isSelected={isSelected}
-						activeUtilityPanel={activeUtilityPanel}
-						utilityPanelRef={utilityPanelRef}
-						surfaceBackground={surfaceBackground}
-						strokeColor={strokeColor}
-						strokeWidth={strokeWidth}
-						roundness={roundness}
-						settings={settings}
-						imageCount={imageCount}
-						onActiveUtilityPanelChange={onActiveUtilityPanelChange}
-						onSurfaceStyleChange={onSurfaceStyleChange}
-						onSettingsChange={onSettingsChange}
-						onRequestImagePicker={onRequestImagePicker}
-					/>
+					<div className="flex items-center gap-2">
+						<MarkdownUtilityPanel
+							layout={controlsLayout}
+							isSelected={isSelected}
+							activeUtilityPanel={activeUtilityPanel}
+							utilityPanelRef={utilityPanelRef}
+							detachedUtilityPanelRef={detachedUtilityPanelRef}
+							surfaceBackground={surfaceBackground}
+							strokeColor={strokeColor}
+							strokeWidth={strokeWidth}
+							settings={settings}
+							imageCount={imageCount}
+							detachPanel={detachUtilityPanel}
+							detachedPanelContainer={detachedPanelContainer}
+							isExpandedShell={isExpandedShell}
+							onActiveUtilityPanelChange={onActiveUtilityPanelChange}
+							onSurfaceStyleChange={onSurfaceStyleChange}
+							onSettingsChange={onSettingsChange}
+							onRequestImagePicker={onRequestImagePicker}
+						/>
+					</div>
 				)}
 			</div>
 			{showCompactControls ? (
@@ -185,22 +194,27 @@ export function MarkdownNoteHeader({
 				>
 					<div className="flex flex-1 justify-center">{renderModeSwitcher('icon')}</div>
 					<div className="ml-3 shrink-0">
-						<MarkdownUtilityPanel
-							layout="icon"
-							isSelected={isSelected}
-							activeUtilityPanel={activeUtilityPanel}
-							utilityPanelRef={utilityPanelRef}
-							surfaceBackground={surfaceBackground}
-							strokeColor={strokeColor}
-							strokeWidth={strokeWidth}
-							roundness={roundness}
-							settings={settings}
-							imageCount={imageCount}
-							onActiveUtilityPanelChange={onActiveUtilityPanelChange}
-							onSurfaceStyleChange={onSurfaceStyleChange}
-							onSettingsChange={onSettingsChange}
-							onRequestImagePicker={onRequestImagePicker}
-						/>
+						<div className="flex items-center gap-2">
+							<MarkdownUtilityPanel
+								layout="icon"
+								isSelected={isSelected}
+								activeUtilityPanel={activeUtilityPanel}
+								utilityPanelRef={utilityPanelRef}
+								detachedUtilityPanelRef={detachedUtilityPanelRef}
+								surfaceBackground={surfaceBackground}
+								strokeColor={strokeColor}
+								strokeWidth={strokeWidth}
+								settings={settings}
+								imageCount={imageCount}
+								detachPanel={detachUtilityPanel}
+								detachedPanelContainer={detachedPanelContainer}
+								isExpandedShell={isExpandedShell}
+								onActiveUtilityPanelChange={onActiveUtilityPanelChange}
+								onSurfaceStyleChange={onSurfaceStyleChange}
+								onSettingsChange={onSettingsChange}
+								onRequestImagePicker={onRequestImagePicker}
+							/>
+						</div>
 					</div>
 				</div>
 			) : null}

@@ -1,5 +1,5 @@
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useReducer, useRef } from 'react';
 import type { DragEvent, MutableRefObject } from 'react';
 import type { UpdateKanbanBoard } from './kanban-board-types';
 import {
@@ -81,16 +81,17 @@ interface UseKanbanDragStateArgs {
 }
 
 export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragStateArgs) {
-	const [dragState, dispatchDrag] = useReducer(dragReducer, { mode: 'idle' } as DragState);
+	const [dragState, dispatchDragState] = useReducer(dragReducer, { mode: 'idle' } as DragState);
 	const dragStateRef = useRef<DragState>({ mode: 'idle' });
 
-	useEffect(() => {
-		dragStateRef.current = dragState;
-	}, [dragState]);
+	const dispatchDrag = useCallback((action: DragAction) => {
+		dragStateRef.current = dragReducer(dragStateRef.current, action);
+		dispatchDragState(action);
+	}, []);
 
 	const clearDragState = useCallback(() => {
 		dispatchDrag({ type: 'CLEAR' });
-	}, []);
+	}, [dispatchDrag]);
 
 	const handleCardDragStart = useCallback(
 		(event: DragEvent<HTMLElement>, cardId: string, columnId: string) => {
@@ -101,7 +102,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 			event.dataTransfer.setDragImage(event.currentTarget, 12, 12);
 			dispatchDrag({ type: 'CARD_START', cardId, fromColumnId: columnId });
 		},
-		[],
+		[dispatchDrag],
 	);
 
 	const handleCardColumnDragOver = useCallback(
@@ -110,7 +111,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 			event.dataTransfer.dropEffect = 'move';
 			dispatchDrag({ type: 'CARD_OVER', overColumnId: columnId, overCardId: null });
 		},
-		[],
+		[dispatchDrag],
 	);
 
 	const handleCardColumnDrop = useCallback(
@@ -156,7 +157,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 				),
 			});
 		},
-		[boardRef],
+		[boardRef, dispatchDrag],
 	);
 
 	const handleColumnDragStart = useCallback((event: DragEvent<HTMLElement>, columnId: string) => {
@@ -164,7 +165,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 		event.dataTransfer.effectAllowed = 'move';
 		event.dataTransfer.setData('text/plain', columnId);
 		dispatchDrag({ type: 'COLUMN_START', columnId });
-	}, []);
+	}, [dispatchDrag]);
 
 	const handleColumnReorderDragOver = useCallback(
 		(event: DragEvent<HTMLDivElement>, hoveredColumnId: string) => {
@@ -182,7 +183,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 				),
 			});
 		},
-		[boardRef],
+		[boardRef, dispatchDrag],
 	);
 
 	const handleColumnReorderDrop = useCallback(
@@ -235,7 +236,7 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 		event.preventDefault();
 		if (dragStateRef.current.mode !== 'column') return;
 		dispatchDrag({ type: 'COLUMN_OVER', projectedDropId: null });
-	}, []);
+	}, [dispatchDrag]);
 
 	return {
 		dragState,

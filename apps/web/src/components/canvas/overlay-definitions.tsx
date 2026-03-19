@@ -12,6 +12,7 @@ import type {
 	NewLexOverlayCustomData,
 	OverlayType,
 	PrototypeOverlayCustomData,
+	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import { KanbanBoard } from '../overlays/kanban';
 import { LexicalNote } from '../overlays/lexical';
@@ -34,6 +35,10 @@ export type {
 
 function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 	return JSON.stringify(value ?? []);
+}
+
+function hasSerializedChange(current: unknown, next: unknown) {
+	return JSON.stringify(current) !== JSON.stringify(next);
 }
 
 const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
@@ -68,6 +73,20 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				settings: payload.settings ?? current.settings,
 				editorMode: payload.editorMode ?? current.editorMode,
 			});
+			const didCustomDataChange = hasSerializedChange(current, nextCustomData);
+			const didElementStyleChange =
+				(payload.elementStyle?.backgroundColor !== undefined &&
+					payload.elementStyle.backgroundColor !== element.backgroundColor) ||
+				(payload.elementStyle?.strokeColor !== undefined &&
+					payload.elementStyle.strokeColor !== element.strokeColor) ||
+				(payload.elementStyle?.strokeWidth !== undefined &&
+					payload.elementStyle.strokeWidth !== element.strokeWidth) ||
+				(payload.elementStyle?.roundness !== undefined &&
+					payload.elementStyle.roundness !== element.roundness);
+
+			if (!didCustomDataChange && !didElementStyleChange) {
+				return element as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
+			}
 
 			return bumpElementVersion({
 				...element,
@@ -92,7 +111,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				isSelected={isSelected}
 				isActive={isActive}
 				mode={mode}
-				onChange={(elementId, content, images, title, settings, editorMode, elementStyle) =>
+				onChange={(_elementId, content, images, title, settings, editorMode, elementStyle) =>
 					onChange({ content, images, title, settings, editorMode, elementStyle })
 				}
 				onActivityChange={onActivityChange}
@@ -160,11 +179,18 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					? (options.customData.columns as KanbanOverlayCustomData['columns'])
 					: createDefaultKanbanColumns(),
 			}),
-		applyUpdate: (element, payload) =>
-			bumpElementVersion({
+		applyUpdate: (element, payload) => {
+			const current = normalizeKanbanOverlay(element.customData);
+			const nextCustomData = normalizeKanbanOverlay(payload);
+			if (!hasSerializedChange(current, nextCustomData)) {
+				return element;
+			}
+
+			return bumpElementVersion({
 				...element,
-				customData: normalizeKanbanOverlay(payload),
-			}),
+				customData: nextCustomData,
+			});
+		},
 		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<KanbanBoard
 				element={element}
@@ -183,14 +209,23 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 			normalizeWebEmbedOverlay({
 				url: typeof options.customData?.url === 'string' ? options.customData.url : '',
 			}),
-		applyUpdate: (element, payload) =>
-			bumpElementVersion({
+		applyUpdate: (element, payload) => {
+			const current = normalizeWebEmbedOverlay(
+				element.customData as Partial<WebEmbedOverlayCustomData>,
+			);
+			const nextCustomData = normalizeWebEmbedOverlay({
+				...current,
+				url: payload.url,
+			});
+			if (!hasSerializedChange(current, nextCustomData)) {
+				return element;
+			}
+
+			return bumpElementVersion({
 				...element,
-				customData: normalizeWebEmbedOverlay({
-					...element.customData,
-					url: payload.url,
-				}),
-			}),
+				customData: nextCustomData,
+			});
+		},
 		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<WebEmbed
 				element={element}
@@ -235,20 +270,28 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 						? options.customData.showPreview
 						: undefined,
 			}),
-		applyUpdate: (element, payload) =>
-			bumpElementVersion({
+		applyUpdate: (element, payload) => {
+			const current = normalizePrototypeOverlay(element.customData);
+			const nextCustomData = normalizePrototypeOverlay({
+				...current,
+				...payload,
+			});
+			if (!hasSerializedChange(current, nextCustomData)) {
+				return element;
+			}
+
+			return bumpElementVersion({
 				...element,
-				customData: normalizePrototypeOverlay({
-					...element.customData,
-					...payload,
-				}),
-			}),
-		render: ({ element, isSelected, isActive, mode, onActivityChange }) => (
+				customData: nextCustomData,
+			});
+		},
+		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
 			<PrototypeNote
 				element={element}
 				isSelected={isSelected}
 				isActive={isActive}
 				mode={mode}
+				onChange={(_elementId, updates) => onChange(updates)}
 				onActivityChange={onActivityChange}
 			/>
 		),

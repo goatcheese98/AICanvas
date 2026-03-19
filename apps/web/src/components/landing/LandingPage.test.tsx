@@ -12,14 +12,16 @@ describe('LandingPage', () => {
 	it('renders the scrollytelling landing page with the sticky canvas story and waitlist form', () => {
 		render(<LandingPage />);
 
-		expect(
-			screen.getByRole('heading', {
-				name: /one canvas for rough ideas, research, plans, and polished work\./i,
-			}),
-		).toBeTruthy();
+		// Main hero heading in sidebar (may appear multiple times in cards)
+		const heroHeadings = screen.getAllByRole('heading', {
+			name: /one canvas for rough ideas, research, plans, and polished work/i,
+		});
+		expect(heroHeadings.length).toBeGreaterThan(0);
+		
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
-		expect(screen.getByText(/capture fragments before they disappear/i)).toBeTruthy();
-		expect(screen.getByText(/join the waitlist/i)).toBeTruthy();
+		// Hero description text (may appear in multiple places)
+		expect(screen.getAllByText(/keep early fragments/i).length).toBeGreaterThan(0);
+		// Waitlist form elements
 		expect(screen.getByRole('form', { name: /landing waitlist form/i })).toBeTruthy();
 		expect(screen.getByLabelText(/work email/i)).toBeTruthy();
 		expect(screen.getByRole('button', { name: /request access/i })).toBeTruthy();

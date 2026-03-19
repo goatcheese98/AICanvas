@@ -4,8 +4,11 @@ import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useMemo } from 'react';
+import { OverlayExpandButton } from '../OverlayExpandButton';
+import { PrototypeStudioEditor } from './PrototypeStudioEditor';
 import { usePrototypePreview } from './prototype-preview-runtime';
 import { getPrototypeStudioPath } from './prototype-utils';
+import { useAppStore } from '@/stores/store';
 
 type PrototypeElement = ExcalidrawElement & {
 	customData: PrototypeOverlayCustomData;
@@ -36,8 +39,9 @@ function getPreviewStatusLabel(status: 'idle' | 'compiling' | 'running' | 'ready
 	}
 }
 
-export function PrototypeNote({ element, isSelected }: PrototypeNoteProps) {
+export function PrototypeNote({ element, isSelected, mode, onChange }: PrototypeNoteProps) {
 	const { id: canvasId } = CanvasRoute.useParams();
+	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const prototype = useMemo(
 		() => normalizePrototypeOverlay(element.customData),
 		[element.customData],
@@ -47,6 +51,33 @@ export function PrototypeNote({ element, isSelected }: PrototypeNoteProps) {
 	);
 	const studioPath = getPrototypeStudioPath(canvasId, element.id);
 	const preview = usePrototypePreview(prototype);
+
+	if (mode === 'shell') {
+		return (
+			<OverlaySurface
+				element={element}
+				isSelected
+				className="flex h-full flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]"
+			>
+				<PrototypeStudioEditor
+					value={prototype}
+					chromeless
+					onChange={(nextValue) =>
+						onChange?.(element.id, {
+							title: nextValue.title,
+							template: nextValue.template,
+							files: nextValue.files,
+							dependencies: nextValue.dependencies,
+							preview: nextValue.preview,
+							activeFile: nextValue.activeFile,
+							showEditor: nextValue.showEditor,
+							showPreview: nextValue.showPreview,
+						})
+					}
+				/>
+			</OverlaySurface>
+		);
+	}
 
 	return (
 		<OverlaySurface
@@ -74,12 +105,14 @@ export function PrototypeNote({ element, isSelected }: PrototypeNoteProps) {
 						>
 							{getPreviewStatusLabel(preview.status)}
 						</div>
-						<a
-							href={studioPath}
-							className="inline-flex items-center rounded-full bg-stone-900 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
-						>
-							Studio
-						</a>
+						{!isSelected ? (
+							<a
+								href={studioPath}
+								className="inline-flex items-center rounded-full bg-stone-900 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
+							>
+								Studio
+							</a>
+						) : null}
 					</div>
 				</div>
 
@@ -124,6 +157,8 @@ export function PrototypeNote({ element, isSelected }: PrototypeNoteProps) {
 					)}
 				</div>
 			</div>
+
+			{isSelected ? <OverlayExpandButton onClick={() => openExpandedOverlay(element.id)} /> : null}
 		</OverlaySurface>
 	);
 }

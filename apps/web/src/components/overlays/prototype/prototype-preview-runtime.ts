@@ -1,6 +1,6 @@
-import type { PrototypeOverlayCustomData, PrototypeOverlayFile } from '@ai-canvas/shared/types';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useMemo, useRef, useState } from 'react';
+import type { PrototypeOverlayCustomData, PrototypeOverlayFile } from '@ai-canvas/shared/types';
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import PrototypeCompilerWorker from './runtime/prototype-compiler.worker?worker';
 
 const PROTOTYPE_ALLOWED_DEPENDENCIES = new Set([
@@ -183,13 +183,13 @@ function rewriteImportsToVirtualPaths(
 
 	let nextCode = code.replace(
 		/\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1/g,
-		(match, quote: string, specifier: string) =>
+		(match, _quote: string, specifier: string) =>
 			match.replace(specifier, replaceSpecifier(specifier)),
 	);
 
 	nextCode = nextCode.replace(
 		/\bimport\(\s*(['"])([^'"]+)\1\s*\)/g,
-		(match, quote: string, specifier: string) =>
+		(match, _quote: string, specifier: string) =>
 			match.replace(specifier, replaceSpecifier(specifier)),
 	);
 
@@ -260,7 +260,6 @@ function createPreviewDocument(
 	const diagnostics: PrototypePreviewDiagnostic[] = [];
 	let entryModuleCode = '';
 	const entryPath = getEntryPath(template);
-	const entrySpecifier = getVirtualSpecifier(entryPath);
 
 	for (const [path, file] of Object.entries(files)) {
 		if (path.endsWith('.css')) {
@@ -402,8 +401,14 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 	);
 	const runtimeSignature = useMemo(() => serializeRuntimeInput(runtimeInput), [runtimeInput]);
 	const runtimeInputRef = useRef(runtimeInput);
-
-	// Ref sync is handled in the compilation effect to ensure latest data
+	runtimeInputRef.current = runtimeInput;
+	const compileRequest = useMemo(
+		() => ({
+			key: `${runtimeSignature}:${nonce}`,
+			input: runtimeInputRef.current,
+		}),
+		[nonce, runtimeSignature],
+	);
 
 	useMountEffect(() => {
 		const worker = new PrototypeCompilerWorker();
@@ -414,59 +419,47 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 		};
 	});
 
+	const handlePreviewMessage = useEffectEvent((event: MessageEvent) => {
+		const data = event.data as
+			| { source?: string; type?: string; previewId?: string; message?: string; stack?: string }
+			| undefined;
+		if (data?.source !== 'prototype-preview' || data.previewId !== previewIdRef.current) {
+			return;
+		}
+
+		if (data.type === 'ready') {
+			setStatus('ready');
+			return;
+		}
+
+		if (data.type === 'runtime-error') {
+			setStatus('error');
+			setDiagnostics((current) => [
+				...current.filter((entry) => entry.source !== 'runtime'),
+				{
+					source: 'runtime',
+					message: data.stack ?? data.message ?? 'Runtime error.',
+				},
+			]);
+		}
+	});
+
 	useMountEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
-			const data = event.data as
-				| { source?: string; type?: string; previewId?: string; message?: string; stack?: string }
-				| undefined;
-			if (data?.source !== 'prototype-preview' || data.previewId !== previewIdRef.current) {
-				return;
-			}
-
-			if (data.type === 'ready') {
-				setStatus('ready');
-				return;
-			}
-
-			if (data.type === 'runtime-error') {
-				setStatus('error');
-				setDiagnostics((current) => [
-					...current.filter((entry) => entry.source !== 'runtime'),
-					{
-						source: 'runtime',
-						message: data.stack ?? data.message ?? 'Runtime error.',
-					},
-				]);
-			}
+			handlePreviewMessage(event);
 		};
 
 		window.addEventListener('message', handleMessage);
 		return () => window.removeEventListener('message', handleMessage);
 	});
 
-	// Track last compiled inputs to avoid useEffect
-	const lastCompiledRef = useRef({ signature: '', nonce: -1 });
-
-	// Trigger compilation when signature or nonce changes
-	// This runs during render to avoid direct useEffect for data-triggered side effects
-	const compilationCleanup = useMemo(() => {
-		// Skip if inputs haven't changed from last compilation
-		const isSameSignature = runtimeSignature === lastCompiledRef.current.signature;
-		const isSameNonce = nonce === lastCompiledRef.current.nonce;
-		if (isSameSignature && isSameNonce) {
-			return undefined;
-		}
-
-		// Update refs before compilation
-		lastCompiledRef.current = { signature: runtimeSignature, nonce };
-		runtimeInputRef.current = runtimeInput;
-
+	useEffect(() => {
 		const worker = workerRef.current;
 		if (!worker) {
-			return undefined;
+			return;
 		}
 
-		const nextInput = runtimeInputRef.current;
+		const nextInput = compileRequest.input;
 		const requestId = jobIdRef.current + 1;
 		jobIdRef.current = requestId;
 		setStatus('compiling');
@@ -513,10 +506,7 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 		return () => {
 			worker.removeEventListener('message', handleWorkerMessage);
 		};
-	}, [runtimeSignature, nonce, runtimeInput]);
-
-	// Store cleanup for useEffect-like cleanup on deps change
-	useMemo(() => () => compilationCleanup, [compilationCleanup]);
+	}, [compileRequest]);
 
 	return {
 		status,

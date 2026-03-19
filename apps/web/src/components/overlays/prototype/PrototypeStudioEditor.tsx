@@ -1,11 +1,9 @@
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
-import { useMountEffect } from '@/hooks/useMountEffect';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { PrototypeCodeEditor } from './PrototypeCodeEditor';
 import { applyPrototypeStudioCommand, listPrototypeFiles } from './prototype-control';
 import { usePrototypePreview } from './prototype-preview-runtime';
-import { serializePrototypeState } from './prototype-utils';
 
 function getFileLabel(path: string) {
 	if (path.endsWith('.css')) return '#';
@@ -55,31 +53,15 @@ function PreviewStatusBadge({
 interface PrototypeStudioEditorProps {
 	value: PrototypeOverlayCustomData;
 	onChange: (nextValue: PrototypeOverlayCustomData) => void;
+	chromeless?: boolean;
 }
 
-export function PrototypeStudioEditor({ value, onChange }: PrototypeStudioEditorProps) {
-	const normalizedValue = useMemo(() => normalizePrototypeOverlay(value), [value]);
-	const normalizedSignature = useMemo(
-		() => serializePrototypeState(normalizedValue),
-		[normalizedValue],
-	);
-	const [draft, setDraft] = useState<PrototypeOverlayCustomData>(normalizedValue);
-	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
-
-	// Use ref to track last normalized signature for sync without useEffect
-	const lastNormalizedSignatureRef = useRef(normalizedSignature);
-
-	// Sync draft when normalized value changes (prop change from parent)
-	// Using useMemo to react to signature changes without direct useEffect
-	useMemo(() => {
-		if (normalizedSignature === lastNormalizedSignatureRef.current) {
-			return draft;
-		}
-		lastNormalizedSignatureRef.current = normalizedSignature;
-		setDraft(normalizedValue);
-		return normalizedValue;
-	}, [normalizedSignature, normalizedValue, draft]);
-
+export function PrototypeStudioEditor({
+	value,
+	onChange,
+	chromeless = false,
+}: PrototypeStudioEditorProps) {
+	const draft = useMemo(() => normalizePrototypeOverlay(value), [value]);
 	const visibleFiles = useMemo(() => listPrototypeFiles(draft), [draft]);
 	const activeFilePath = visibleFiles.includes(draft.activeFile ?? '')
 		? (draft.activeFile ?? visibleFiles[0])
@@ -88,16 +70,17 @@ export function PrototypeStudioEditor({ value, onChange }: PrototypeStudioEditor
 	const preview = usePrototypePreview(draft);
 
 	const applyDraft = (nextValue: PrototypeOverlayCustomData) => {
-		if (serializePrototypeState(nextValue) === draftSignature) {
-			return;
-		}
-
-		setDraft(nextValue);
 		onChange(nextValue);
 	};
 
 	return (
-		<div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+		<div
+			className={
+				chromeless
+					? 'flex h-full min-h-0 flex-col overflow-hidden bg-white'
+					: 'flex h-full min-h-0 flex-col overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]'
+			}
+		>
 			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 bg-stone-50/90 px-4 py-3">
 				<input
 					value={draft.title}
@@ -166,6 +149,7 @@ export function PrototypeStudioEditor({ value, onChange }: PrototypeStudioEditor
 						<div className="min-h-0 bg-white">
 							{activeFilePath && activeFile ? (
 								<PrototypeCodeEditor
+									key={activeFilePath}
 									path={activeFilePath}
 									code={activeFile.code}
 									readOnly={activeFile.readOnly}

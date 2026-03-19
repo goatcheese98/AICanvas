@@ -29,6 +29,30 @@ export function applyOverlayUpdateByType<K extends OverlayType>(
 	) as TypedOverlayCanvasElement;
 }
 
+export function applyOverlayUpdateToScene<K extends OverlayType>(
+	elements: readonly ExcalidrawElement[],
+	elementId: string,
+	type: K,
+	payload: OverlayUpdatePayloadMap[K],
+) {
+	let didChange = false;
+	const nextElements = elements.map((candidate) => {
+		if (candidate.id !== elementId) return candidate;
+		const updated = applyOverlayUpdateByType(
+			type,
+			candidate as unknown as TypedOverlayCanvasElement,
+			payload,
+		);
+		didChange = didChange || updated !== candidate;
+		return updated;
+	});
+
+	return {
+		didChange,
+		nextElements,
+	};
+}
+
 /**
  * Z-index calculation for overlay stacking.
  * Port of the reference codebase's getOverlayZIndex.

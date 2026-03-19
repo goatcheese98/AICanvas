@@ -1,7 +1,6 @@
 import { CanvasNotesLayer } from '@/components/canvas/CanvasNotesLayer';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useEffect } from 'react';
 import '@excalidraw/excalidraw/index.css';
 import { CanvasTourLayoutPanel } from './CanvasTourLayoutPanel';
 import { CanvasTourToolbar } from './CanvasTourToolbar';
@@ -69,7 +68,6 @@ export function CanvasTourPage() {
 	};
 
 	const {
-		stageViewportRef: controllerViewportRef,
 		imageFileData,
 		liveCamera,
 		excalidrawMountKey,
@@ -87,21 +85,13 @@ export function CanvasTourPage() {
 	} = useCanvasTourSceneController({
 		imageId: TOUR_IMAGE_FILE_ID,
 		defaultScene,
+		stageViewportRef,
 		guideBaseline: typedGuideBaseline,
 		initialCamera: typedGuideBaseline.camera,
 		isGuideMode,
 		surfaceEpoch,
 		setActiveTool,
 	});
-
-	// Sync the viewport ref from controller
-	useEffect(() => {
-		// Assign controller's viewport ref to state's ref
-		if (stageViewportRef.current !== controllerViewportRef.current) {
-			(state as unknown as { stageViewportRef: { current: HTMLDivElement | null } }).stageViewportRef.current =
-				controllerViewportRef.current;
-		}
-	}, [controllerViewportRef, stageViewportRef, state]);
 
 	const handleEnterGuideMode = () => {
 		// Store explore session before switching
@@ -196,7 +186,7 @@ export function CanvasTourPage() {
 					</div>
 				</div>
 
-				<div ref={controllerViewportRef} className="canvas-tour-viewport">
+				<div ref={stageViewportRef} className="canvas-tour-viewport">
 					<CanvasTourToolbar
 						activeTool={activeTool}
 						isGuideMode={isGuideMode}

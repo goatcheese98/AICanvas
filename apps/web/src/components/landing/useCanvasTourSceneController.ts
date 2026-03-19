@@ -49,6 +49,7 @@ export type TourTool =
 interface UseCanvasTourSceneControllerArgs {
 	imageId: BinaryFileData['id'];
 	defaultScene: CanvasTourDefaultScene;
+	stageViewportRef: React.RefObject<HTMLDivElement | null>;
 	guideBaseline: {
 		elements: ExcalidrawElement[];
 		camera: CameraTarget;
@@ -106,12 +107,12 @@ export function useCanvasTourSceneController({
 	isGuideMode,
 	surfaceEpoch,
 	setActiveTool,
+	stageViewportRef,
 }: UseCanvasTourSceneControllerArgs) {
 	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
 	const setElements = useAppStore((s) => s.setElements);
 	const setAppState = useAppStore((s) => s.setAppState);
 	const setFiles = useAppStore((s) => s.setFiles);
-	const stageViewportRef = useRef<HTMLDivElement | null>(null);
 	const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null);
 	const animationFrameRef = useRef<number | null>(null);
 	const cameraRef = useRef<CameraTarget>(initialCamera);

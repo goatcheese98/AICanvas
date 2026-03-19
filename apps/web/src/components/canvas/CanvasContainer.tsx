@@ -5,6 +5,7 @@ import { CanvasCore } from './CanvasCore';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
 import { CanvasUI } from './CanvasUI';
 import { useCanvasContainerState } from './useCanvasContainerState';
+import { ExpandedOverlayLayer } from '../overlays/ExpandedOverlayLayer';
 
 interface CanvasContainerProps {
 	canvasId: string;
@@ -36,6 +37,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 			/>
 			{excalidrawApi && <CanvasNotesLayer />}
 			{excalidrawApi && <AIVectorSelectionOverlay />}
+			{excalidrawApi && <ExpandedOverlayLayer />}
 			<CanvasUI canvasId={canvasId} collaboration={collaboration} />
 		</div>
 	);

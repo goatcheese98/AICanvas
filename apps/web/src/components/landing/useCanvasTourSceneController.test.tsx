@@ -98,11 +98,14 @@ function renderSceneController(overrides?: {
 	surfaceEpoch?: number;
 	setActiveTool?: (tool: TourTool) => void;
 }) {
+	const stageViewportRef = { current: null as HTMLDivElement | null };
+
 	return renderHook(
 		(props: { isGuideMode: boolean; surfaceEpoch: number }) =>
 			useCanvasTourSceneController({
 				imageId: 'tour-image' as BinaryFileData['id'],
 				defaultScene,
+				stageViewportRef,
 				guideBaseline,
 				initialCamera,
 				isGuideMode: props.isGuideMode,

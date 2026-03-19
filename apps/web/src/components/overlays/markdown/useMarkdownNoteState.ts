@@ -10,10 +10,8 @@ import {
 	MARKDOWN_HEADER_HIDDEN_BREAKPOINT,
 	MAX_MARKDOWN_TITLE_LENGTH,
 	TITLE_COMPACT_BREAKPOINT,
-	serializeImages,
 	serializeNoteState,
 	serializeOverlayState,
-	serializeSettings,
 } from './markdown-note-helpers';
 import type { ControlsLayout, MarkdownViewMode, UtilityPanel } from './markdown-note-helpers';
 import type { MarkdownNoteProps } from './markdown-note-types';
@@ -23,16 +21,8 @@ import {
 	toggleMarkdownCheckboxLine,
 } from './markdown-utils';
 
-// Helper refs for state change detection outside of useEffect
-const usePrevious = <T>(value: T): T | undefined => {
-	const ref = useRef<T | undefined>(undefined);
-	const prev = ref.current;
-	ref.current = value;
-	return prev;
-};
-
 interface UseMarkdownNoteStateResult {
-	normalizedElement: ReturnType<typeof normalizeMarkdownOverlay>;
+	normalizedElement: MarkdownNoteStateArgs['normalizedElement'];
 	title: string;
 	content: string;
 	images: Record<string, string>;
@@ -51,6 +41,7 @@ interface UseMarkdownNoteStateResult {
 	hasLocalEdits: boolean;
 	fileInputRef: RefObject<HTMLInputElement | null>;
 	utilityPanelRef: RefObject<HTMLDivElement | null>;
+	detachedUtilityPanelRef: RefObject<HTMLDivElement | null>;
 	headerRef: RefObject<HTMLDivElement | null>;
 	setTitle: Dispatch<SetStateAction<string>>;
 	setContent: Dispatch<SetStateAction<string>>;
@@ -72,6 +63,11 @@ interface UseMarkdownNoteStateResult {
 	insertImageFiles: (fileList: FileList | null) => Promise<void>;
 	handlePreviewCheckboxToggle: (lineIndex: number) => void;
 	handleEditorCheckboxToggle: (lineIndex: number) => void;
+}
+
+interface MarkdownNoteStateArgs extends MarkdownNoteProps {
+	normalizedElement?: ReturnType<typeof normalizeMarkdownOverlay>;
+	sourceSignature?: string;
 }
 
 // Helper to commit state changes
@@ -157,22 +153,25 @@ export function useMarkdownNoteState({
 	isSelected,
 	onChange,
 	onActivityChange,
-}: MarkdownNoteProps): UseMarkdownNoteStateResult {
-	const normalizedElement = useMemo(
-		() => normalizeMarkdownOverlay(element.customData),
-		[element.customData],
+	normalizedElement,
+	sourceSignature,
+}: MarkdownNoteStateArgs): UseMarkdownNoteStateResult {
+	const resolvedNormalizedElement = useMemo(
+		() => normalizedElement ?? normalizeMarkdownOverlay(element.customData),
+		[element.customData, normalizedElement],
 	);
-	const normalizedElementSignature = useMemo(
-		() => serializeOverlayState(normalizedElement),
-		[normalizedElement],
+	const resolvedSourceSignature = useMemo(
+		() => sourceSignature ?? serializeOverlayState(resolvedNormalizedElement),
+		[resolvedNormalizedElement, sourceSignature],
 	);
-
-	const [title, setTitle] = useState(normalizedElement.title);
-	const [content, setContent] = useState(normalizedElement.content);
-	const [images, setImages] = useState<Record<string, string>>(normalizedElement.images ?? {});
-	const [settings, setSettings] = useState(normalizedElement.settings);
+	const [title, setTitle] = useState(resolvedNormalizedElement.title);
+	const [content, setContent] = useState(resolvedNormalizedElement.content);
+	const [images, setImages] = useState<Record<string, string>>(
+		resolvedNormalizedElement.images ?? {},
+	);
+	const [settings, setSettings] = useState(resolvedNormalizedElement.settings);
 	const [editorMode, setEditorMode] = useState<MarkdownEditorMode>(
-		normalizedElement.editorMode ?? 'raw',
+		resolvedNormalizedElement.editorMode ?? 'raw',
 	);
 	const [isPreviewState, setIsPreview] = useState(false);
 	const [activeUtilityPanelState, setActiveUtilityPanel] = useState<UtilityPanel>('none');
@@ -182,6 +181,7 @@ export function useMarkdownNoteState({
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const utilityPanelRef = useRef<HTMLDivElement>(null);
+	const detachedUtilityPanelRef = useRef<HTMLDivElement>(null);
 	const headerRef = useRef<HTMLDivElement>(null);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
 	const debounceTimeoutRef = useRef<number | null>(null);
@@ -189,50 +189,26 @@ export function useMarkdownNoteState({
 	const onActivityChangeRef = useRef(onActivityChange);
 	const lastReportedActivityRef = useRef<boolean | null>(null);
 	const hasReportedActivityRef = useRef(false);
-	const externalSignatureRef = useRef(normalizedElementSignature);
+	const externalSignatureRef = useRef(resolvedSourceSignature);
 	const lastCommittedSignatureRef = useRef(externalSignatureRef.current);
 	const hasPrewarmedRef = useRef(false);
-
-	// Track previous signature for external sync
-	const prevSignature = usePrevious(normalizedElementSignature);
-
-	// Sync external state changes when signature changes (migrated from useEffect)
-	// Using useMemo for synchronous state derivation
-	useMemo(() => {
-		if (
-			prevSignature !== undefined &&
-			normalizedElementSignature !== externalSignatureRef.current
-		) {
-			externalSignatureRef.current = normalizedElementSignature;
-			lastCommittedSignatureRef.current = normalizedElementSignature;
-			const nextImages = normalizedElement.images ?? {};
-			setTitle((current) =>
-				current === normalizedElement.title ? current : normalizedElement.title,
-			);
-			setContent((current) =>
-				current === normalizedElement.content ? current : normalizedElement.content,
-			);
-			setImages((current) =>
-				serializeImages(current) === serializeImages(nextImages) ? current : nextImages,
-			);
-			setSettings((current) =>
-				serializeSettings(current) === serializeSettings(normalizedElement.settings)
-					? current
-					: normalizedElement.settings,
-			);
-			setEditorMode((current) => {
-				const nextMode = normalizedElement.editorMode ?? 'raw';
-				return current === nextMode ? current : nextMode;
-			});
-		}
-		// Return value not used, this is for side-effect-like sync during render
-		return null;
-	}, [normalizedElement, normalizedElementSignature, prevSignature]);
+	const titleRef = useRef(title);
+	const contentRef = useRef(content);
+	const imagesRef = useRef(images);
+	const settingsRef = useRef(settings);
+	const editorModeRef = useRef(editorMode);
 
 	// Derived state: isPreview and activeUtilityPanel based on isSelected
 	const isPreview = !isSelected ? true : isPreviewState;
 	const activeUtilityPanel = !isSelected ? 'none' : activeUtilityPanelState;
 	const isCompactControlsVisible = !isSelected ? false : isCompactControlsVisibleState;
+	titleRef.current = title;
+	contentRef.current = content;
+	imagesRef.current = images;
+	settingsRef.current = settings;
+	editorModeRef.current = editorMode;
+	onChangeRef.current = onChange;
+	onActivityChangeRef.current = onActivityChange;
 
 	// Cleanup timeout on unmount
 	useMountEffect(() => {
@@ -264,7 +240,10 @@ export function useMarkdownNoteState({
 		const handlePointerDown = (event: PointerEvent) => {
 			// Use a ref to track current state since this handler is set up once
 			const currentPanel = activeUtilityPanelRef.current;
-			if (currentPanel !== 'none' && !utilityPanelRef.current?.contains(event.target as Node)) {
+			const target = event.target as Node;
+			const insideTrigger = utilityPanelRef.current?.contains(target) ?? false;
+			const insideDetachedPanel = detachedUtilityPanelRef.current?.contains(target) ?? false;
+			if (currentPanel !== 'none' && !insideTrigger && !insideDetachedPanel) {
 				setActiveUtilityPanel('none');
 			}
 		};
@@ -301,7 +280,10 @@ export function useMarkdownNoteState({
 	// Activity cleanup on unmount
 	useMountEffect(() => {
 		hasReportedActivityRef.current = true;
-		lastReportedActivityRef.current = false;
+		lastReportedActivityRef.current = isEditing;
+		if (isEditing) {
+			onActivityChangeRef.current?.(true);
+		}
 		return () => {
 			if (lastReportedActivityRef.current) {
 				onActivityChangeRef.current?.(false);
@@ -310,33 +292,94 @@ export function useMarkdownNoteState({
 		};
 	});
 
-	// Debounced save - triggered on state changes
-	useMemo(() => {
-		// Skip if in preview mode with no utility panel
-		if (isPreview && activeUtilityPanel === 'none') return;
+	// Cleanup debounce timeout on unmount
+	useMountEffect(() => {
+		return () => {
+			if (debounceTimeoutRef.current !== null) {
+				window.clearTimeout(debounceTimeoutRef.current);
+				commitState(
+					contentRef.current,
+					imagesRef.current,
+					titleRef.current,
+					settingsRef.current,
+					editorModeRef.current,
+					element.id,
+					onChangeRef,
+					lastCommittedSignatureRef,
+				);
+				debounceTimeoutRef.current = null;
+			}
+		};
+	});
+
+	const scheduleAutoCommit = useCallback(() => {
+		if (isPreview && activeUtilityPanel === 'none') {
+			return;
+		}
 
 		scheduleDebounce(
-			content,
-			images,
-			title,
-			settings,
-			editorMode,
+			contentRef.current,
+			imagesRef.current,
+			titleRef.current,
+			settingsRef.current,
+			editorModeRef.current,
 			element.id,
 			onChangeRef,
 			externalSignatureRef,
 			lastCommittedSignatureRef,
 			debounceTimeoutRef,
 		);
-	}, [activeUtilityPanel, content, editorMode, element.id, images, isPreview, settings, title]);
+	}, [activeUtilityPanel, element.id, isPreview]);
 
-	// Cleanup debounce timeout on unmount
-	useMountEffect(() => {
-		return () => {
-			if (debounceTimeoutRef.current !== null) {
-				window.clearTimeout(debounceTimeoutRef.current);
-			}
-		};
-	});
+	const setTitleState = useCallback(
+		(value: SetStateAction<string>) => {
+			const nextValue = typeof value === 'function' ? value(titleRef.current) : value;
+			titleRef.current = nextValue;
+			setTitle(nextValue);
+			scheduleAutoCommit();
+		},
+		[scheduleAutoCommit],
+	);
+
+	const setContentState = useCallback(
+		(value: SetStateAction<string>) => {
+			const nextValue = typeof value === 'function' ? value(contentRef.current) : value;
+			contentRef.current = nextValue;
+			setContent(nextValue);
+			scheduleAutoCommit();
+		},
+		[scheduleAutoCommit],
+	);
+
+	const setImagesState = useCallback(
+		(value: SetStateAction<Record<string, string>>) => {
+			const nextValue = typeof value === 'function' ? value(imagesRef.current) : value;
+			imagesRef.current = nextValue;
+			setImages(nextValue);
+			scheduleAutoCommit();
+		},
+		[scheduleAutoCommit],
+	);
+
+	const setSettingsState = useCallback(
+		(value: SetStateAction<MarkdownNoteSettings>) => {
+			const nextValue = typeof value === 'function' ? value(settingsRef.current) : value;
+			settingsRef.current = nextValue;
+			setSettings(nextValue);
+			scheduleAutoCommit();
+		},
+		[scheduleAutoCommit],
+	);
+
+	const setEditorModeState = useCallback(
+		(value: SetStateAction<MarkdownEditorMode>) => {
+			const nextValue = typeof value === 'function' ? value(editorModeRef.current) : value;
+			editorModeRef.current = nextValue;
+			setEditorMode(nextValue);
+			scheduleAutoCommit();
+		},
+		[scheduleAutoCommit],
+	);
 
 	const hasLocalEdits =
 		serializeNoteState({
@@ -412,18 +455,18 @@ export function useMarkdownNoteState({
 		(nextValue: string) => {
 			if (nextValue.length > MAX_MARKDOWN_TITLE_LENGTH) {
 				showTitleLimitNotice();
-				setTitle(nextValue.slice(0, MAX_MARKDOWN_TITLE_LENGTH));
+				setTitleState(nextValue.slice(0, MAX_MARKDOWN_TITLE_LENGTH));
 				return;
 			}
-			setTitle(nextValue);
+			setTitleState(nextValue);
 		},
-		[showTitleLimitNotice],
+		[setTitleState, showTitleLimitNotice],
 	);
 
 	const handleTitleBlur = useCallback(() => {
 		const trimmedTitle = title.trim();
-		setTitle(trimmedTitle.length > 0 ? trimmedTitle : normalizedElement.title);
-	}, [normalizedElement.title, title]);
+		setTitleState(trimmedTitle.length > 0 ? trimmedTitle : resolvedNormalizedElement.title);
+	}, [resolvedNormalizedElement.title, setTitleState, title]);
 
 	const insertImageFiles = useCallback(
 		async (fileList: FileList | null) => {
@@ -448,37 +491,44 @@ export function useMarkdownNoteState({
 				);
 			}
 
+			imagesRef.current = nextImages;
+			contentRef.current = nextContent;
 			setImages(nextImages);
 			setContent(nextContent);
+			scheduleAutoCommit();
 			setActiveUtilityPanel('none');
 		},
-		[content, images],
+		[content, images, scheduleAutoCommit],
 	);
 
-	const handleEditorCheckboxToggle = useCallback((lineIndex: number) => {
-		setContent((current) => toggleMarkdownCheckboxLine(current, lineIndex));
-	}, []);
+	const handleEditorCheckboxToggle = useCallback(
+		(lineIndex: number) => {
+			setContentState((current) => toggleMarkdownCheckboxLine(current, lineIndex));
+		},
+		[setContentState],
+	);
 
 	const handlePreviewCheckboxToggle = useCallback(
 		(lineIndex: number) => {
 			const nextContent = toggleMarkdownCheckboxLine(content, lineIndex);
+			contentRef.current = nextContent;
 			setContent(nextContent);
 			commitState(
 				nextContent,
-				images,
-				title,
-				settings,
-				editorMode,
+				imagesRef.current,
+				titleRef.current,
+				settingsRef.current,
+				editorModeRef.current,
 				element.id,
 				onChangeRef,
 				lastCommittedSignatureRef,
 			);
 		},
-		[content, editorMode, element.id, images, settings, title],
+		[content, element.id],
 	);
 
 	return {
-		normalizedElement,
+		normalizedElement: resolvedNormalizedElement,
 		title,
 		content,
 		images,
@@ -497,12 +547,13 @@ export function useMarkdownNoteState({
 		hasLocalEdits,
 		fileInputRef,
 		utilityPanelRef,
+		detachedUtilityPanelRef,
 		headerRef,
-		setTitle,
-		setContent,
-		setImages,
-		setSettings,
-		setEditorMode,
+		setTitle: setTitleState,
+		setContent: setContentState,
+		setImages: setImagesState,
+		setSettings: setSettingsState,
+		setEditorMode: setEditorModeState,
 		setIsPreview,
 		setActiveUtilityPanel,
 		setIsCompactControlsVisible,

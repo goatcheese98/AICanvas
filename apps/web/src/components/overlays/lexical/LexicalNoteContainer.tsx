@@ -1,6 +1,7 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { useAppStore } from '@/stores/store';
 import { type MouseEvent, useCallback, useRef } from 'react';
+import { OverlayExpandButton } from '../OverlayExpandButton';
 import { LexicalCommentComposer } from './LexicalCommentComposer';
 import { LexicalCommentsPanel } from './LexicalCommentsPanel';
 import { LexicalDebugPanel } from './LexicalDebugPanel';
@@ -23,6 +24,7 @@ export function LexicalNoteContainer({
 	onActivityChange,
 }: LexicalNoteProps) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
+	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const renderCountRef = useRef(0);
 	renderCountRef.current += 1;
 
@@ -186,6 +188,10 @@ export function LexicalNoteContainer({
 				onClose={() => setShowCommentComposer(false)}
 				onSubmit={submitInlineComment}
 			/>
+
+			{mode !== 'shell' && isSelected ? (
+				<OverlayExpandButton onClick={() => openExpandedOverlay(element.id)} />
+			) : null}
 		</OverlaySurface>
 	);
 }

@@ -54,6 +54,27 @@ export const landingContent = {
 
 export const landingStoryChapters: LandingStoryChapter[] = [
 	{
+		id: 'intro',
+		eyebrow: 'Welcome',
+		label: 'Your canvas',
+		title: 'One canvas for rough ideas, research, plans, and polished work.',
+		description:
+			'Keep early fragments, source material, planning systems, and polished outputs in one board that evolves with the work.',
+		detail: 'Scroll to explore the journey from capture to delivery.',
+		metricLabel: 'Start here',
+		metricValue: 'Your workspace awaits',
+		bullets: [
+			'From rough notes to polished outputs.',
+			'Everything stays visible and connected.',
+			'No handoffs between thinking modes.',
+		],
+		camera: {
+			x: 350,
+			y: 50,
+			scale: 0.88,
+		},
+	},
+	{
 		id: 'capture',
 		eyebrow: 'Chapter 01',
 		label: 'Rough ideas',
@@ -70,9 +91,9 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 			'Keep the first draft spatial, not buried in a folder tree.',
 		],
 		camera: {
-			x: 60,
+			x: 200,
 			y: 30,
-			scale: 0.8,
+			scale: 0.85,
 		},
 	},
 	{
@@ -92,9 +113,9 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 			'Promote raw notes into structured summaries when patterns emerge.',
 		],
 		camera: {
-			x: -640,
-			y: -10,
-			scale: 0.76,
+			x: -400,
+			y: 60,
+			scale: 0.82,
 		},
 	},
 	{
@@ -114,9 +135,9 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 			'Keep strategy notes visible beside the execution layer.',
 		],
 		camera: {
-			x: -1330,
-			y: -70,
-			scale: 0.75,
+			x: -950,
+			y: 40,
+			scale: 0.78,
 		},
 	},
 	{
@@ -136,8 +157,8 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 			'Keep prototypes, specs, and summaries aligned in one narrative arc.',
 		],
 		camera: {
-			x: -2100,
-			y: -90,
+			x: -1650,
+			y: 50,
 			scale: 0.78,
 		},
 	},
@@ -156,7 +177,7 @@ export const landingWaitlistChapter: LandingStoryChapter = {
 	bullets: [],
 	camera: {
 		x: -2300,
-		y: -120,
+		y: 0,
 		scale: 0.88,
 	},
 };

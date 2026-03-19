@@ -1,6 +1,6 @@
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
+import { useRef } from 'react';
 import { MarkdownImagePanel } from './MarkdownImagePanel';
 import { MarkdownStylePanel } from './MarkdownStylePanel';
 import { NOTE_TOOL_BUTTON, NOTE_TOOL_IDLE } from './markdown-note-helpers';
@@ -11,12 +11,15 @@ export interface MarkdownUtilityPanelProps {
 	isSelected: boolean;
 	activeUtilityPanel: 'none' | 'style' | 'image';
 	utilityPanelRef: RefObject<HTMLDivElement | null>;
+	detachedUtilityPanelRef: RefObject<HTMLDivElement | null>;
 	surfaceBackground: string;
 	strokeColor: string;
 	strokeWidth: number;
-	roundness: ExcalidrawElement['roundness'] | undefined;
 	settings: MarkdownNoteSettings;
 	imageCount: number;
+	detachPanel?: boolean;
+	detachedPanelContainer?: HTMLElement | null;
+	isExpandedShell?: boolean;
 	onActiveUtilityPanelChange: (
 		next:
 			| 'none'
@@ -28,7 +31,6 @@ export interface MarkdownUtilityPanelProps {
 		backgroundColor?: string;
 		strokeColor?: string;
 		strokeWidth?: number;
-		roundness?: ExcalidrawElement['roundness'];
 	}) => void;
 	onSettingsChange: (updater: (current: MarkdownNoteSettings) => MarkdownNoteSettings) => void;
 	onRequestImagePicker: () => void;
@@ -39,21 +41,42 @@ export function MarkdownUtilityPanel({
 	isSelected,
 	activeUtilityPanel,
 	utilityPanelRef,
+	detachedUtilityPanelRef,
 	surfaceBackground,
 	strokeColor,
 	strokeWidth,
-	roundness,
 	settings,
 	imageCount,
+	detachPanel = false,
+	detachedPanelContainer,
+	isExpandedShell = false,
 	onActiveUtilityPanelChange,
 	onSurfaceStyleChange,
 	onSettingsChange,
 	onRequestImagePicker,
 }: MarkdownUtilityPanelProps) {
+	const triggerRef = useRef<HTMLButtonElement>(null);
 	const { handleSettingsChange, handleReset } = useMarkdownUtilityPanelState({
 		onSettingsChange,
 		onSurfaceStyleChange,
 	});
+	let detachedPanelStyle: CSSProperties | undefined;
+	if (detachPanel && typeof window !== 'undefined') {
+		const triggerRect = triggerRef.current?.getBoundingClientRect();
+		const containerRect = detachedPanelContainer?.getBoundingClientRect();
+		if (triggerRect && containerRect) {
+			const panelTop = Math.max(
+				12,
+				Math.min(triggerRect.top - containerRect.top, Math.max(12, containerRect.height - 520)),
+			);
+
+			detachedPanelStyle = {
+				top: panelTop,
+				left: containerRect.width + 16,
+				maxHeight: Math.max(320, containerRect.height - panelTop + 12),
+			};
+		}
+	}
 
 	const handleTogglePanel = () => {
 		onActiveUtilityPanelChange((current) => {
@@ -63,8 +86,13 @@ export function MarkdownUtilityPanel({
 	};
 
 	return (
-		<div className="relative" ref={utilityPanelRef}>
+		<div
+			className="relative"
+			ref={utilityPanelRef}
+			onPointerDownCapture={(event) => event.stopPropagation()}
+		>
 			<button
+				ref={triggerRef}
 				type="button"
 				title="Options"
 				aria-label="Options"
@@ -83,6 +111,7 @@ export function MarkdownUtilityPanel({
 					fill="none"
 					stroke="currentColor"
 					strokeWidth="2"
+					aria-hidden="true"
 				>
 					<path d="M4 12h16" />
 					<path d="M4 6h16" />
@@ -95,8 +124,12 @@ export function MarkdownUtilityPanel({
 					surfaceBackground={surfaceBackground}
 					strokeColor={strokeColor}
 					strokeWidth={strokeWidth}
-					roundness={roundness}
 					settings={settings}
+					isDetached={detachPanel}
+					detachedStyle={detachedPanelStyle}
+					detachedPortalTarget={detachedPanelContainer}
+					detachedPanelRef={detachedUtilityPanelRef}
+					isExpandedShell={isExpandedShell}
 					onActiveUtilityPanelChange={onActiveUtilityPanelChange}
 					onSurfaceStyleChange={onSurfaceStyleChange}
 					onSettingsChange={handleSettingsChange}

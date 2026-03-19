@@ -3,8 +3,11 @@ import {
 	getExcalidrawSurfaceStyle,
 } from '@/components/canvas/excalidraw-element-style';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
+import { useMountEffect } from '@/hooks/useMountEffect';
+import { useAppStore } from '@/stores/store';
 import { useMemo, useRef } from 'react';
 import type { CSSProperties } from 'react';
+import { OverlayExpandButton } from '../OverlayExpandButton';
 import { KanbanBoardHeader } from './KanbanBoardHeader';
 import { KanbanBoardSettingsPanel } from './KanbanBoardSettingsPanel';
 import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
@@ -20,7 +23,6 @@ import {
 } from './kanban-theme';
 import { useKanbanBoardState } from './useKanbanBoardState';
 import { useKanbanDragState } from './useKanbanDragState';
-import { useMountEffect } from '@/hooks/useMountEffect';
 
 function ColumnDropIndicator() {
 	return (
@@ -64,6 +66,7 @@ export function KanbanBoardContainer({
 	onChange,
 	onActivityChange,
 }: KanbanBoardProps) {
+	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const settingsRef = useRef<HTMLDivElement>(null);
 	const state = useKanbanBoardState({
 		element,
@@ -319,6 +322,10 @@ export function KanbanBoardContainer({
 					onCancel={state.handleCancelDeleteCard}
 					onConfirm={state.handleDeletePendingCard}
 				/>
+			) : null}
+
+			{mode !== 'shell' && isSelected ? (
+				<OverlayExpandButton onClick={() => openExpandedOverlay(element.id)} />
 			) : null}
 		</OverlaySurface>
 	);
