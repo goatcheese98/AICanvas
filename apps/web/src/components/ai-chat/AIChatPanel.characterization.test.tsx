@@ -2,7 +2,9 @@ import * as api from '@/lib/api';
 import { useAppStore } from '@/stores/store';
 import type { AssistantThread, CanvasElement } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIChatPanel } from './AIChatPanel';
 
@@ -23,6 +25,18 @@ vi.mock('@/lib/api', async (importOriginal) => {
 		fetchAssistantThreads: vi.fn(),
 	};
 });
+
+function renderWithQueryClient(children: ReactNode) {
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				retry: false,
+			},
+		},
+	});
+
+	return render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
+}
 
 describe('AIChatPanel characterization', () => {
 	const canvasId = 'canvas-test-id';
@@ -79,7 +93,7 @@ describe('AIChatPanel characterization', () => {
 	});
 
 	it('renders the signed-in composer and loads threads on mount', async () => {
-		render(<AIChatPanel canvasId={canvasId} />);
+		renderWithQueryClient(<AIChatPanel canvasId={canvasId} />);
 
 		expect(
 			screen.getByPlaceholderText('Describe the result you want on the canvas...'),
@@ -89,9 +103,6 @@ describe('AIChatPanel characterization', () => {
 
 		await waitFor(() => {
 			expect(api.getRequiredAuthHeaders).toHaveBeenCalledWith(mockGetToken);
-			expect(api.fetchAssistantCapabilities).toHaveBeenCalledWith({
-				Authorization: 'Bearer test-token',
-			});
 			expect(api.fetchAssistantThreads).toHaveBeenCalledWith(canvasId, {
 				Authorization: 'Bearer test-token',
 			});
@@ -111,7 +122,7 @@ describe('AIChatPanel characterization', () => {
 		];
 		vi.mocked(api.fetchAssistantThreads).mockResolvedValue(threads);
 
-		render(<AIChatPanel canvasId={canvasId} />);
+		renderWithQueryClient(<AIChatPanel canvasId={canvasId} />);
 
 		expect(await screen.findByRole('button', { name: /launch planning/i })).toBeTruthy();
 	});

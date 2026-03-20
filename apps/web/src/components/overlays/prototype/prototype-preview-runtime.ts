@@ -19,6 +19,8 @@ const REACT_IMPORT_MAP = {
 const SCRIPT_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.json'] as const;
 const RESOLVABLE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.css', '.json'] as const;
 
+let prototypeCompilerWorkerFactory = () => new PrototypeCompilerWorker();
+
 export interface PrototypePreviewDiagnostic {
 	message: string;
 	path?: string;
@@ -32,6 +34,12 @@ export interface PrototypePreviewState {
 	srcDoc: string;
 	diagnostics: PrototypePreviewDiagnostic[];
 	refresh: () => void;
+}
+
+export function setPrototypeCompilerWorkerFactoryForTests(
+	factory: (() => Worker) | null,
+): void {
+	prototypeCompilerWorkerFactory = factory ?? (() => new PrototypeCompilerWorker());
 }
 
 type WorkerSuccessPayload = {
@@ -387,6 +395,7 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 	const [status, setStatus] = useState<PrototypePreviewState['status']>('idle');
 	const [srcDoc, setSrcDoc] = useState('');
 	const [diagnostics, setDiagnostics] = useState<PrototypePreviewDiagnostic[]>([]);
+	const [workerVersion, setWorkerVersion] = useState(0);
 	const cleanupRef = useRef<null | (() => void)>(null);
 	const previewIdRef = useRef('');
 	const jobIdRef = useRef(0);
@@ -411,8 +420,9 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 	);
 
 	useMountEffect(() => {
-		const worker = new PrototypeCompilerWorker();
+		const worker = prototypeCompilerWorkerFactory();
 		workerRef.current = worker;
+		setWorkerVersion((value) => value + 1);
 		return () => {
 			worker.terminate();
 			cleanupRef.current?.();
@@ -454,6 +464,10 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 	});
 
 	useEffect(() => {
+		if (workerVersion === 0) {
+			return;
+		}
+
 		const worker = workerRef.current;
 		if (!worker) {
 			return;
@@ -506,7 +520,7 @@ export function usePrototypePreview(input: PrototypeOverlayCustomData): Prototyp
 		return () => {
 			worker.removeEventListener('message', handleWorkerMessage);
 		};
-	}, [compileRequest]);
+	}, [compileRequest, workerVersion]);
 
 	return {
 		status,

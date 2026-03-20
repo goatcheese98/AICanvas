@@ -35,6 +35,17 @@ vi.mock('lexical', () => ({
 	$isNodeSelection: vi.fn(() => true),
 	COMMAND_PRIORITY_LOW: 1,
 	KEY_ESCAPE_COMMAND: 'KEY_ESCAPE_COMMAND',
+	DecoratorNode: class {
+		__key?: string;
+
+		constructor(key?: string) {
+			this.__key = key;
+		}
+
+		exportJSON() {
+			return {};
+		}
+	},
 }));
 
 vi.mock('./ImageNode', () => ({

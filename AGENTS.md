@@ -60,6 +60,150 @@ bun run db:generate    # Generate migrations
 bun run db:migrate     # Run migrations
 ```
 
+## Anti-Slop Manifesto
+
+This repository does not reward volume, cleverness, or abstraction for its own sake.
+
+## Code Economy
+
+Code is not free. Every new line adds maintenance cost, review surface, and future debugging burden.
+
+Prefer:
+
+- direct edits over new layers
+- existing paths over parallel paths
+- simplification over expansion
+- deletion over addition when both solve the problem
+- straightforward code over reusable-looking machinery
+
+Do not add code unless it clearly improves at least one of these:
+
+- correctness
+- clarity
+- observability
+- maintainability
+- verification
+
+Do not introduce helpers, abstractions, or structure that cost more to carry than they save.
+
+A change is better when it solves the problem with fewer moving parts.
+
+## What To Resist
+
+- Resist abstraction before there is real pressure for it.
+- Resist helpers, wrappers, hooks, services, and layers that mainly move code around.
+- Resist "reusable" designs that make today's change harder to understand.
+- Resist solving the generalized version of the problem.
+- Resist widening scope to clean up nearby code unless it is truly necessary.
+- Resist hiding important behavior behind indirection.
+- Resist magic defaults, silent fallbacks, and invisible state changes.
+- Resist changes that require reading many files to understand one behavior.
+- Resist architecture that signals sophistication without improving clarity.
+- Resist adding code when deletion, simplification, or a direct edit would do.
+
+## Local Reasoning Standard
+
+A change is better when a reviewer can understand it by reading the changed files alone.
+
+Prefer:
+
+- behavior defined close to where it is used
+- state changes that are easy to trace
+- control flow that is obvious from the code
+- errors that fail clearly
+- boundaries that make debugging easier, not harder
+
+If a change spreads a small idea across too many places, it is probably the wrong shape.
+
+## Observability Standard
+
+The code should make it easy to answer:
+
+- What happened?
+- Where did it happen?
+- Why did it happen?
+- What state changed?
+- How do we verify it?
+
+If a change makes these questions harder to answer, it is likely too abstract, too indirect, or too broad.
+
+## Slop Signals
+
+Reject patterns like:
+
+- broad exception handling that hides failure
+- wrappers or helpers that add indirection without reducing complexity
+- abstractions introduced for hypothetical reuse
+- functions with hidden mutations
+- "cleaner" designs that spread a local change across many files
+- vague verification like "appears to work" without a named check
+
+## Loud Failure Rule
+
+Do not hide invalid state behind silent fallbacks.
+
+If required data is missing, invariants are broken, or a state transition is invalid, raise or surface an explicit error close to the source.
+
+Do not swallow exceptions unless all of the following are true:
+
+- the failure is expected
+- the recovery path is intentional
+- the failure is logged or otherwise observable
+
+A visible failure is better than a silent wrong state.
+
+## Side Effect Visibility
+
+Prefer data in, data out code.
+
+Functions should not hide important state changes.
+
+If a function mutates state, that mutation should be:
+
+- explicit in the function's purpose
+- visible at the call site
+- easy to infer from the function name
+
+Do not hide writes inside helpers that sound read only or neutral.
+
+## Verification Standard
+
+Every change must include a concrete verification statement.
+
+State:
+
+- what was checked
+- how it was checked
+- what remains unverified
+
+Do not claim confidence without naming the test, assertion, command, or manual path used to verify the change.
+
+If no automated test was added, explain why.
+
+## Final Self-Check
+
+Before finalizing, ask:
+
+- Is this the smallest correct change?
+- Did I add code that will cost more to maintain than it saves?
+- Did I keep the behavior easy to trace and debug?
+- Can someone understand this without reading half the codebase?
+- Did I solve the actual problem instead of a more impressive one?
+- Did I add any abstraction that exists mostly to make the code look engineered?
+
+## Additional Guidance
+
+- Good code is small, explicit, easy to debug, and restrained enough to solve the real problem and stop there.
+- Prefer the smallest correct change with the fewest moving parts.
+- Follow existing patterns unless there is a strong reason not to.
+- Make uncertainty explicit instead of guessing.
+- Abstraction is a cost, not a reward, and should exist only when it clearly improves understanding, diagnosis, or shared boundaries.
+- Treat every new dependency as a permanent maintenance tax and avoid adding one for a trivial utility.
+- Names should make behavior easier to understand without reading the implementation.
+- Before editing, briefly state the intended change and what will not be touched.
+- File size is a heuristic, not a law; split code when size harms cohesion, readability, or local reasoning.
+- Explain completed work for an intelligent non-programmer first, then include technical detail.
+
 ## Key Patterns
 
 ### Overlay System (Core Abstraction)
@@ -97,7 +241,7 @@ overlays/<type>/
 - **Naming**: PascalCase components, camelCase hooks, kebab-case utilities
 - **Types**: No `any`, use Zod schemas, infer types, shared types in `packages/shared/`
 - **Styling**: Tailwind CSS v4 only, CSS variables for tokens
-- **Split files** at 300-400 lines
+- **File size**: Treat 300-400 lines as a split candidate when cohesion or local reasoning is degrading
 
 ### No Direct useEffect Rule
 
@@ -155,7 +299,7 @@ Colocated with code (`.test.ts` next to source):
 3. **CSS modules/styled-components** — Tailwind only
 4. **`any` types** — Use proper types or Zod inference
 5. **Duplicate shared types** — Belong in `packages/shared/`
-6. **Large files** — Split at 300-400 lines
+6. **Large incoherent files** — Split when size harms cohesion, readability, or local reasoning
 
 ## Key Files
 

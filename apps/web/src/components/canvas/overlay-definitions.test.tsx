@@ -1,3 +1,4 @@
+import type { MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { describe, expect, it } from 'vitest';
 import {
@@ -7,8 +8,8 @@ import {
 } from './overlay-definitions';
 
 function createMarkdownOverlay(
-	overrides?: Partial<TypedOverlayCanvasElement['customData']>,
-): TypedOverlayCanvasElement {
+	overrides?: Partial<MarkdownOverlayCustomData>,
+): TypedOverlayCanvasElement<MarkdownOverlayCustomData> {
 	return {
 		id: 'markdown-overlay',
 		type: 'rectangle',
@@ -42,7 +43,7 @@ function createMarkdownOverlay(
 			content: 'Hello',
 			...overrides,
 		},
-	} as ExcalidrawElement as TypedOverlayCanvasElement;
+	} as ExcalidrawElement as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 }
 
 describe('normalizeOverlayElement', () => {

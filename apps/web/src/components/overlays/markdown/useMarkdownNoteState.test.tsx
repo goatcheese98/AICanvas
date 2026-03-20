@@ -24,6 +24,7 @@ function createElement(overrides?: Partial<MarkdownElement['customData']>): Mark
 
 afterEach(() => {
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 
 describe('useMarkdownNoteState', () => {
@@ -249,6 +250,33 @@ describe('useMarkdownNoteState', () => {
 		act(() => result.current.handleTitleBlur());
 
 		expect(result.current.title).toBe('AB');
+	});
+
+	it('subsequent autosaves keep the latest edited title', () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		const { result } = renderHook(() =>
+			useMarkdownNoteState({
+				element: createElement({ title: 'Original' }),
+				mode: 'live',
+				isSelected: true,
+				isActive: true,
+				onChange,
+			}),
+		);
+
+		act(() => result.current.handleTitleChange('Renamed'));
+		act(() => result.current.setContent('Body changed'));
+		act(() => vi.advanceTimersByTime(200));
+
+		expect(onChange).toHaveBeenCalledWith(
+			'markdown-element',
+			'Body changed',
+			expect.any(Object),
+			'Renamed',
+			expect.any(Object),
+			'raw',
+		);
 	});
 
 	it('ignores external update when serialized state has not changed', () => {
@@ -479,5 +507,98 @@ describe('useMarkdownNoteState', () => {
 		// Should be called immediately, no debounce
 		expect(onChange).toHaveBeenCalledTimes(1);
 		expect(result.current.content).toContain('[x]');
+	});
+
+	it('handleEditorCheckboxToggle persists through the debounced autosave path', () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+		const { result } = renderHook(() =>
+			useMarkdownNoteState({
+				element: createElement({ content: '- [ ] unchecked\n- [x] checked' }),
+				mode: 'live',
+				isSelected: true,
+				isActive: true,
+				onChange,
+			}),
+		);
+
+		act(() => result.current.handleEditorCheckboxToggle(0));
+
+		expect(result.current.content).toContain('- [x] unchecked');
+		expect(onChange).not.toHaveBeenCalled();
+
+		act(() => vi.advanceTimersByTime(200));
+
+		expect(onChange).toHaveBeenCalledTimes(1);
+		expect(onChange).toHaveBeenLastCalledWith(
+			'markdown-element',
+			'- [x] unchecked\n- [x] checked',
+			expect.any(Object),
+			'MD',
+			expect.any(Object),
+			'raw',
+		);
+	});
+
+	it('insertImageFiles persists inserted content and image metadata through autosave', async () => {
+		vi.useFakeTimers();
+		const onChange = vi.fn();
+
+		class MockFileReader {
+			result = 'data:image/png;base64,AAAA';
+			error = null;
+			onload: ((this: FileReader, event: ProgressEvent<FileReader>) => void) | null = null;
+			onerror: ((this: FileReader, event: ProgressEvent<FileReader>) => void) | null = null;
+
+			readAsDataURL(_file: Blob) {
+				this.onload?.call(this as unknown as FileReader, {} as ProgressEvent<FileReader>);
+			}
+		}
+
+		vi.stubGlobal('FileReader', MockFileReader);
+		vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue(
+			'11111111-1111-1111-1111-111111111111',
+		);
+
+		const { result } = renderHook(() =>
+			useMarkdownNoteState({
+				element: createElement(),
+				mode: 'live',
+				isSelected: true,
+				isActive: true,
+				onChange,
+			}),
+		);
+
+		const file = new File(['image-bytes'], 'diagram.png', { type: 'image/png' });
+		const fileList = {
+			0: file,
+			length: 1,
+			item: (index: number) => (index === 0 ? file : null),
+		} as unknown as FileList;
+
+		await act(async () => {
+			await result.current.insertImageFiles(fileList);
+		});
+
+		expect(result.current.content).toContain(
+			'![diagram.png](image://11111111-1111-1111-1111-111111111111)',
+		);
+		expect(result.current.images).toEqual({
+			'11111111-1111-1111-1111-111111111111': 'data:image/png;base64,AAAA',
+		});
+		expect(onChange).not.toHaveBeenCalled();
+
+		act(() => vi.advanceTimersByTime(200));
+
+		expect(onChange).toHaveBeenCalledTimes(1);
+			expect(onChange).toHaveBeenLastCalledWith(
+				'markdown-element',
+				'Hello\n\n![diagram.png](image://11111111-1111-1111-1111-111111111111)',
+				{ '11111111-1111-1111-1111-111111111111': 'data:image/png;base64,AAAA' },
+				'MD',
+				expect.any(Object),
+				'raw',
+		);
 	});
 });

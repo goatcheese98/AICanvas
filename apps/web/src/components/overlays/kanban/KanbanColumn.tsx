@@ -2,6 +2,7 @@ import type {
 	KanbanCard as KanbanCardType,
 	KanbanColumn as KanbanColumnType,
 } from '@ai-canvas/shared/types';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import { KanbanCard } from './KanbanCard';
@@ -160,6 +161,17 @@ function KanbanColumnInner({
 		if (nextTitle === currentTitle) return;
 		onChange({ title: nextTitle });
 	}, [column.title, onChange]);
+
+	useMountEffect(() => {
+		return () => {
+			const nextTitle = titleDraftRef.current.trim();
+			const currentTitle = columnTitleRef.current;
+			if (nextTitle.length === 0 || nextTitle === currentTitle) {
+				return;
+			}
+			onChange({ title: nextTitle });
+		};
+	});
 
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLTextAreaElement>) => {

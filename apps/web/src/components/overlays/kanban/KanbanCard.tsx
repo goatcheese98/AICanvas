@@ -1,4 +1,5 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { memo, useCallback, useRef, useState } from 'react';
 import type { DragEvent, FormEvent, MouseEvent } from 'react';
 import { KanbanCardDetails } from './KanbanCardDetails';
@@ -77,6 +78,17 @@ function KanbanCardInner({
 		if (nextTitle === card.title) return;
 		onChange({ title: nextTitle });
 	}, [card.title, onChange]);
+
+	useMountEffect(() => {
+		return () => {
+			const nextTitle = titleDraftRef.current.trim();
+			const currentTitle = cardTitleRef.current;
+			if (nextTitle.length === 0 || nextTitle === currentTitle) {
+				return;
+			}
+			onChange({ title: nextTitle });
+		};
+	});
 
 	// Handle title textarea input with autosizing
 	const handleTitleInput = useCallback((event: FormEvent<HTMLTextAreaElement>) => {

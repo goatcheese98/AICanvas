@@ -1,7 +1,9 @@
 import * as api from '@/lib/api';
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { MessageCard } from './AIChatMessageCard';
 
@@ -17,6 +19,18 @@ vi.mock('@/lib/api', async (importOriginal) => {
 		fetchAssistantArtifactAsset: vi.fn(),
 	};
 });
+
+function renderWithQueryClient(children: ReactNode) {
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				retry: false,
+			},
+		},
+	});
+
+	return render(<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>);
+}
 
 describe('AIChatMessageCard', () => {
 	it('renders an inline preview for stored image artifacts without auto-inserting them', async () => {
@@ -57,7 +71,7 @@ describe('AIChatMessageCard', () => {
 		};
 		const onInsertArtifact = vi.fn();
 
-		render(<MessageCard message={message} onInsertArtifact={onInsertArtifact} />);
+		renderWithQueryClient(<MessageCard message={message} onInsertArtifact={onInsertArtifact} />);
 
 		await waitFor(() => {
 			expect(screen.getByAltText('Generated asset preview').getAttribute('src')).toBe(
@@ -100,7 +114,7 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-15T10:02:00.000Z',
 		};
 
-		const { container } = render(
+		const { container } = renderWithQueryClient(
 			<MessageCard message={message} onInsertArtifact={vi.fn()} onVectorizeArtifact={vi.fn()} />,
 		);
 
@@ -144,7 +158,7 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-15T10:02:00.000Z',
 		};
 
-		const { container } = render(
+		const { container } = renderWithQueryClient(
 			<MessageCard
 				message={message}
 				onInsertArtifact={vi.fn()}
@@ -200,7 +214,9 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-15T10:03:00.000Z',
 		};
 
-		const { container } = render(<MessageCard message={message} onInsertArtifact={vi.fn()} />);
+		const { container } = renderWithQueryClient(
+			<MessageCard message={message} onInsertArtifact={vi.fn()} />,
+		);
 
 		await waitFor(() => {
 			expect(within(container).getByRole('button', { name: 'Insert Native Vector' })).toBeTruthy();
@@ -225,7 +241,7 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-14T10:00:00.000Z',
 		};
 
-		render(<MessageCard message={message} onInsertArtifact={onInsertArtifact} />);
+		renderWithQueryClient(<MessageCard message={message} onInsertArtifact={onInsertArtifact} />);
 
 		expect(screen.getByText('Here is the markdown version.')).toBeTruthy();
 		expect(screen.getAllByText('Markdown')).toHaveLength(2);
@@ -248,7 +264,7 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-14T10:05:00.000Z',
 		};
 
-		render(<MessageCard message={message} onInsertMarkdown={onInsertMarkdown} />);
+		renderWithQueryClient(<MessageCard message={message} onInsertMarkdown={onInsertMarkdown} />);
 
 		fireEvent.click(screen.getByRole('button', { name: 'Insert As Markdown' }));
 

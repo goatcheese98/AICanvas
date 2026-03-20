@@ -22,11 +22,24 @@ vi.mock('@lexical/react/LexicalComposerContext', () => ({
 vi.mock('lexical', () => ({
 	$getSelection: vi.fn(() => null),
 	$isRangeSelection: vi.fn(() => false),
+	COMMAND_PRIORITY_EDITOR: 0,
 	FORMAT_ELEMENT_COMMAND: 'FORMAT_ELEMENT_COMMAND',
 	FORMAT_TEXT_COMMAND: 'FORMAT_TEXT_COMMAND',
 	REDO_COMMAND: 'REDO_COMMAND',
 	UNDO_COMMAND: 'UNDO_COMMAND',
 	$createParagraphNode: vi.fn(() => ({})),
+	createCommand: vi.fn((name?: string) => name ?? Symbol('command')),
+	DecoratorNode: class {
+		__key?: string;
+
+		constructor(key?: string) {
+			this.__key = key;
+		}
+
+		exportJSON() {
+			return {};
+		}
+	},
 }));
 
 vi.mock('@lexical/rich-text', () => ({

@@ -114,16 +114,16 @@ describe('element-factories', () => {
 			title: 'Prototype',
 			template: 'react',
 			preview: {
-				eyebrow: 'React Prototype',
+				eyebrow: 'PulseBoard',
 				title: 'Prototype',
 			},
-			activeFile: '/index.jsx',
+			activeFile: '/App.jsx',
 			showEditor: true,
 			showPreview: true,
 			dependencies: {},
 		});
 		const prototypeData = data as PrototypeOverlayCustomData;
-		expect(prototypeData.files['/App.jsx']).toBeUndefined();
+		expect(prototypeData.files['/App.jsx']).toBeDefined();
 		expect(prototypeData.files['/index.jsx']).toBeDefined();
 	});
 

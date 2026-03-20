@@ -5,10 +5,6 @@ import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { describe, expect, it, vi } from 'vitest';
 import {
-	resolveInsertionSceneCenter,
-	restoreCanvasSelectionState,
-} from './ai-chat-canvas-mutations';
-import {
 	compileRasterBlobToNativeVector,
 	insertNativeVectorElementsOnCanvas,
 } from './ai-chat-vector-insertion';
@@ -100,13 +96,19 @@ describe('ai chat vector insertion helpers', () => {
 			},
 			excalidrawApi: {
 				getSceneElements,
+				getAppState: () => ({
+					scrollX: 0,
+					scrollY: 0,
+					width: 1280,
+					height: 720,
+					zoom: { value: 1 },
+				}),
 				updateScene,
 			} as never,
 			elements: [],
 			selectedElementIds: {},
 		});
 
-		expect(resolveInsertionSceneCenter).toHaveBeenCalled();
 		expect(updateScene).toHaveBeenCalledWith({
 			elements: expect.arrayContaining([
 				expect.objectContaining({ id: 'vec-1' }),
@@ -121,7 +123,6 @@ describe('ai chat vector insertion helpers', () => {
 				},
 			},
 		});
-		expect(restoreCanvasSelectionState).toHaveBeenCalled();
 		expect(syncAppStoreFromExcalidraw).toHaveBeenCalled();
 		expect(result).toEqual({
 			status: 'inserted',

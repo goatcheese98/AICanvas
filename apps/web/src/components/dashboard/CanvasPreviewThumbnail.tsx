@@ -1,5 +1,10 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
+import {
+	createObservedResponseError,
+	getRequiredAuthHeaders,
+	observedFetch,
+	toApiUrl,
+} from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
@@ -27,7 +32,7 @@ export function CanvasPreviewThumbnail({
 		queryFn: async () => {
 			try {
 				const headers = await getRequiredAuthHeaders(getToken);
-				const response = await fetch(
+				const response = await observedFetch(
 					toApiUrl(thumbnailUrl ?? `/api/canvas/${canvasId}/thumbnail`),
 					{
 						headers,
@@ -39,7 +44,10 @@ export function CanvasPreviewThumbnail({
 				}
 
 				if (!response.ok) {
-					throw new Error(await response.text());
+					throw await createObservedResponseError(
+						response,
+						`Canvas preview fetch failed with status ${response.status}`,
+					);
 				}
 
 				return response.blob();

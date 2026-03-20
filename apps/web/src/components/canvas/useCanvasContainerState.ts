@@ -1,6 +1,12 @@
 import { useCollaboration } from '@/hooks/useCollaboration';
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
+import {
+	api,
+	createObservedResponseError,
+	getRequiredAuthHeaders,
+	observedFetch,
+	toApiUrl,
+} from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import {
 	type CanvasData,
@@ -132,7 +138,7 @@ export function useCanvasContainerState({
 				});
 
 				const headers = await getRequiredAuthHeaders(getToken);
-				const response = await fetch(toApiUrl(`/api/canvas/${canvasId}/thumbnail`), {
+				const response = await observedFetch(toApiUrl(`/api/canvas/${canvasId}/thumbnail`), {
 					method: 'POST',
 					headers: {
 						...headers,
@@ -142,7 +148,10 @@ export function useCanvasContainerState({
 				});
 
 				if (!response.ok) {
-					throw new Error(await response.text());
+					throw await createObservedResponseError(
+						response,
+						`Thumbnail upload failed with status ${response.status}`,
+					);
 				}
 
 				latestThumbnailSignatureRef.current = signature;

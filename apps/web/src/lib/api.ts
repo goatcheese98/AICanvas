@@ -37,7 +37,7 @@ function buildObservedHeaders(headers: Record<string, string> = {}) {
 	};
 }
 
-async function observedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
+export async function observedFetch(input: RequestInfo | URL, init: RequestInit = {}) {
 	const observedHeaders = buildObservedHeaders(
 		Object.fromEntries(new Headers(init.headers).entries()),
 	);
@@ -84,14 +84,21 @@ export const api = hc<AppType>(normalizeApiBaseUrl(import.meta.env.VITE_API_BASE
 	fetch: observedFetch,
 });
 
+export async function createObservedResponseError(
+	response: Response,
+	fallbackMessage: string,
+): Promise<Error> {
+	const serverRequestId = response.headers.get('x-request-id');
+	const body = await response.text();
+	const message = body || fallbackMessage;
+	return new Error(serverRequestId ? `${message} (request ${serverRequestId})` : message);
+}
+
 async function readJsonOrThrow<T>(response: Response, fallbackMessage: string): Promise<T> {
 	const serverRequestId = response.headers.get('x-request-id');
 
 	if (!response.ok) {
-		const body = await response.text();
-		const message = body || fallbackMessage;
-		const enrichedMessage = serverRequestId ? `${message} (request ${serverRequestId})` : message;
-		const error = new Error(enrichedMessage);
+		const error = await createObservedResponseError(response, fallbackMessage);
 		captureBrowserException(error, {
 			tags: {
 				area: 'api',
@@ -287,12 +294,12 @@ export async function fetchAssistantArtifactAsset(
 		toApiUrl(`/api/assistant/runs/${runId}/artifacts/${artifactId}/asset`),
 		{ headers },
 	);
-	const serverRequestId = response.headers.get('x-request-id');
 
 	if (!response.ok) {
-		const body = await response.text();
-		const message = body || `Assistant artifact asset fetch failed with status ${response.status}`;
-		throw new Error(serverRequestId ? `${message} (request ${serverRequestId})` : message);
+		throw await createObservedResponseError(
+			response,
+			`Assistant artifact asset fetch failed with status ${response.status}`,
+		);
 	}
 
 	return {

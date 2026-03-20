@@ -1,10 +1,6 @@
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { describe, expect, it, vi } from 'vitest';
-import {
-	resolveInsertionSceneCenter,
-	restoreCanvasSelectionState,
-} from './ai-chat-canvas-mutations';
 
 vi.mock('@/lib/api', () => ({
 	fetchAssistantArtifactAsset: vi.fn(),
@@ -111,7 +107,6 @@ describe('ai chat stored asset insertion helpers', () => {
 			'artifact-1',
 			expect.objectContaining({ Authorization: 'Bearer test-token' }),
 		);
-		expect(resolveInsertionSceneCenter).toHaveBeenCalled();
 		expect(addFiles).toHaveBeenCalledOnce();
 		expect(updateScene).toHaveBeenCalledWith({
 			elements: [expect.objectContaining({ type: 'image', fileId: expect.any(String) })],
@@ -121,7 +116,6 @@ describe('ai chat stored asset insertion helpers', () => {
 				selectedElementIds: expect.objectContaining({}),
 			},
 		});
-		expect(restoreCanvasSelectionState).toHaveBeenCalled();
 		expect(syncAppStoreFromExcalidraw).toHaveBeenCalled();
 		expect(result).toMatchObject({
 			status: 'inserted',

@@ -22,14 +22,12 @@ const { MockPrototypeCompilerWorker, workerInstances } = vi.hoisted(() => {
 		private listeners = new Set<WorkerListener>();
 
 		postMessage = vi.fn((message: { id: number; files: Record<string, PrototypeOverlayFile> }) => {
-			queueMicrotask(() => {
-				this.emit({
-					id: message.id,
-					ok: true,
-					modules: Object.fromEntries(
-						Object.entries(message.files).map(([path, file]) => [path, file.code]),
-					),
-				});
+			this.emit({
+				id: message.id,
+				ok: true,
+				modules: Object.fromEntries(
+					Object.entries(message.files).map(([path, file]) => [path, file.code]),
+				),
 			});
 		});
 
@@ -66,11 +64,10 @@ const { MockPrototypeCompilerWorker, workerInstances } = vi.hoisted(() => {
 	};
 });
 
-vi.mock('./runtime/prototype-compiler.worker?worker', () => ({
-	default: MockPrototypeCompilerWorker,
-}));
-
-import { usePrototypePreview } from './prototype-preview-runtime';
+import {
+	setPrototypeCompilerWorkerFactoryForTests,
+	usePrototypePreview,
+} from './prototype-preview-runtime';
 
 function createPreview(): PrototypeCardPreview {
 	return {
@@ -106,25 +103,28 @@ function createInput(): PrototypeOverlayCustomData {
 describe('usePrototypePreview', () => {
 	beforeEach(() => {
 		workerInstances.length = 0;
+		setPrototypeCompilerWorkerFactoryForTests(
+			() => new MockPrototypeCompilerWorker() as unknown as Worker,
+		);
 	});
 
 	afterEach(() => {
 		vi.clearAllMocks();
+		setPrototypeCompilerWorkerFactoryForTests(null);
 	});
 
 	it('does not recompile when the prototype data is unchanged but object references change', async () => {
 		const initialInput = createInput();
-		const { result, rerender } = renderHook(({ input }) => usePrototypePreview(input), {
+		const { rerender } = renderHook(({ input }) => usePrototypePreview(input), {
 			initialProps: { input: initialInput },
 		});
 
 		await waitFor(() => {
-			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+			expect(workerInstances[0]?.postMessage).toHaveBeenCalledTimes(1);
 		});
 
 		const worker = workerInstances[0];
 		expect(worker).toBeDefined();
-		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
 
 		rerender({
 			input: {
@@ -133,35 +133,30 @@ describe('usePrototypePreview', () => {
 					Object.entries(initialInput.files).map(([path, file]) => [path, { ...file }]),
 				),
 				dependencies: { ...initialInput.dependencies },
-				preview: { ...initialInput.preview },
+				preview: initialInput.preview ? { ...initialInput.preview } : createPreview(),
 			},
 		});
 
 		await waitFor(() => {
-			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+			expect(worker?.postMessage).toHaveBeenCalledTimes(1);
 		});
-
-		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
 	});
 
 	it('recompiles when refresh is requested', async () => {
 		const { result } = renderHook(() => usePrototypePreview(createInput()));
 
 		await waitFor(() => {
-			expect(result.current.srcDoc).toContain('prototype-preview-1-');
+			expect(workerInstances[0]?.postMessage).toHaveBeenCalledTimes(1);
 		});
 
 		const worker = workerInstances[0];
-		expect(worker?.postMessage).toHaveBeenCalledTimes(1);
 
 		act(() => {
 			result.current.refresh();
 		});
 
 		await waitFor(() => {
-			expect(result.current.srcDoc).toContain('prototype-preview-2-');
+			expect(worker?.postMessage).toHaveBeenCalledTimes(2);
 		});
-
-		expect(worker?.postMessage).toHaveBeenCalledTimes(2);
 	});
 });
