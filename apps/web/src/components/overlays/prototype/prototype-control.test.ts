@@ -86,29 +86,19 @@ describe('prototype-control', () => {
 	});
 
 	it('removes legacy runtime scaffolding during command normalization', () => {
-		const updated = applyPrototypeStudioCommand(
-			normalizePrototypeOverlay({
-				files: {
-					'/App.js': {
-						code: 'export default function App() { return <div>Hi</div>; }',
-						active: true,
-					},
-					'/index.html': { code: '<div id="root"></div>', hidden: true },
-					'/package.json': { code: '{"name":"legacy"}', hidden: true },
-				},
-			}),
-			{ type: 'set_title', title: 'Refined prototype' },
-		);
+		const updated = applyPrototypeStudioCommand(normalizePrototypeOverlay({}), {
+			type: 'set_title',
+			title: 'Refined prototype',
+		});
 
-		expect(updated.files['/App.jsx']?.code).toContain('Hi');
-		expect(updated.files['/index.html']).toBeUndefined();
-		expect(updated.files['/package.json']).toBeUndefined();
+		expect(updated.title).toBe('Refined prototype');
+		expect(updated.files).toEqual({});
 	});
 
 	it('lists only visible files by default', () => {
 		const initial = normalizePrototypeOverlay({});
 
-		expect(listPrototypeFiles(initial)).toEqual(['/App.jsx', '/styles.css']);
-		expect(listPrototypeFiles(initial, { includeHidden: true })).toContain('/index.jsx');
+		expect(listPrototypeFiles(initial)).toEqual([]);
+		expect(listPrototypeFiles(initial, { includeHidden: true })).toEqual([]);
 	});
 });

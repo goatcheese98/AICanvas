@@ -1,6 +1,6 @@
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
-import { vectorizeRasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
-import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vectorizer';
+import { rasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
+import { vectorizeSketch } from '@/lib/assistant/sketch-vectorizer';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { describe, expect, it, vi } from 'vitest';
@@ -13,12 +13,16 @@ vi.mock('@/components/canvas/excalidraw-store-sync', () => ({
 	syncAppStoreFromExcalidraw: vi.fn(),
 }));
 
+vi.mock('@/lib/observability', () => ({
+	addObservabilityBreadcrumb: vi.fn(),
+}));
+
 vi.mock('@/lib/assistant/raster-to-svg', () => ({
-	vectorizeRasterBlobToSvg: vi.fn(async () => '<svg viewBox="0 0 10 10"></svg>'),
+	rasterBlobToSvg: vi.fn(async () => '<svg viewBox="0 0 10 10"></svg>'),
 }));
 
 vi.mock('@/lib/assistant/sketch-vectorizer', () => ({
-	vectorizeRasterBlobToSketchElements: vi.fn(),
+	vectorizeSketch: vi.fn(),
 }));
 
 vi.mock('@/lib/assistant/svg-to-excalidraw', () => ({
@@ -42,21 +46,23 @@ vi.mock('./ai-chat-canvas-mutations', async (importOriginal) => {
 
 describe('ai chat vector insertion helpers', () => {
 	it('falls back to SVG compilation when sketch vectorization fails', async () => {
-		vi.mocked(vectorizeRasterBlobToSketchElements).mockRejectedValueOnce(
-			new Error('vectorizer failed'),
-		);
+		vi.mocked(vectorizeSketch).mockRejectedValueOnce(new Error('vectorizer failed'));
 
 		const result = await compileRasterBlobToNativeVector(
 			new Blob(['png-bytes'], { type: 'image/png' }),
-			{ source: 'test-raster' },
+			{
+				source: 'artifact-raster',
+				customData: { source: 'test-raster' },
+			},
 		);
 
-		expect(vectorizeRasterBlobToSvg).toHaveBeenCalledOnce();
+		expect(rasterBlobToSvg).toHaveBeenCalledOnce();
 		expect(compileSvgToExcalidraw).toHaveBeenCalledWith(
 			'<svg viewBox="0 0 10 10"></svg>',
 			expect.objectContaining({ customData: { source: 'test-raster' } }),
 		);
 		expect(result).toMatchObject({
+			strategy: 'svg-trace',
 			width: 120,
 			height: 90,
 			elements: [expect.objectContaining({ id: 'fallback-1' })],
@@ -69,6 +75,7 @@ describe('ai chat vector insertion helpers', () => {
 
 		const result = await insertNativeVectorElementsOnCanvas({
 			compiled: {
+				strategy: 'svg-compile',
 				width: 140,
 				height: 110,
 				elements: [
@@ -127,6 +134,8 @@ describe('ai chat vector insertion helpers', () => {
 		expect(result).toEqual({
 			status: 'inserted',
 			insertedElementIds: ['vec-1', 'vec-2'],
+			insertMode: 'native-vector',
+			vectorStrategy: 'svg-compile',
 		});
 	});
 });

@@ -50,12 +50,17 @@ vi.mock('@/lib/assistant/svg-to-excalidraw', () => ({
 	})),
 }));
 
+vi.mock('@/lib/observability', () => ({
+	addObservabilityBreadcrumb: vi.fn(),
+	captureBrowserException: vi.fn(),
+}));
+
 vi.mock('@/lib/assistant/raster-to-svg', () => ({
-	vectorizeRasterBlobToSvg: vi.fn(async () => '<svg viewBox="0 0 10 10"></svg>'),
+	rasterBlobToSvg: vi.fn(async () => '<svg viewBox="0 0 10 10"></svg>'),
 }));
 
 vi.mock('@/lib/assistant/sketch-vectorizer', () => ({
-	vectorizeRasterBlobToSketchElements: vi.fn(async () => ({
+	vectorizeSketch: vi.fn(async () => ({
 		width: 260,
 		height: 190,
 		elements: [
@@ -418,6 +423,8 @@ describe('useAIChatInsertionActions', () => {
 			expect(insertionState).toMatchObject({
 				status: 'inserted',
 				insertedElementIds: ['vector-1', 'vector-2'],
+				insertMode: 'native-vector',
+				vectorStrategy: 'svg-compile',
 			});
 		});
 
@@ -497,6 +504,8 @@ describe('useAIChatInsertionActions', () => {
 			expect(insertionState).toMatchObject({
 				status: 'inserted',
 				insertedElementIds: ['layer-1', 'layer-2'],
+				insertMode: 'native-vector',
+				vectorStrategy: 'sketch-vectorizer',
 			});
 		});
 
@@ -594,6 +603,8 @@ describe('useAIChatInsertionActions', () => {
 			expect(insertionState).toMatchObject({
 				status: 'inserted',
 				insertedElementIds: ['layer-1', 'layer-2'],
+				insertMode: 'native-vector',
+				vectorStrategy: 'sketch-vectorizer',
 			});
 		});
 

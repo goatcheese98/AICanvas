@@ -1,6 +1,8 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
+import { useResettableTimeout } from '@/hooks/useResettableTimeout';
 import type { NewLexCommentThread } from '@ai-canvas/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { BufferedCommitReason } from './useBufferedDocument';
 import {
 	CONTENT_COMMIT_DEBOUNCE_MS,
 	DEFAULT_NEWLEX_CONTENT,
@@ -20,6 +22,120 @@ import type {
 import { useBufferedDocument } from './useBufferedDocument';
 
 interface UseLexicalNoteStateArgs extends LexicalNoteProps {}
+
+// ============================================================================
+// FOCUSED CUSTOM HOOKS - Extracted for local reasoning
+// ============================================================================
+
+/**
+ * Syncs incoming title from props to local state with change detection.
+ */
+function useSyncedTitle(
+	incomingTitle: string,
+	setTitle: (updater: (current: string) => string) => void,
+	lastCommittedTitleRef: React.MutableRefObject<string>,
+) {
+	const externalTitleRef = useRef(incomingTitle);
+
+	useEffect(() => {
+		if (incomingTitle === externalTitleRef.current) return;
+
+		externalTitleRef.current = incomingTitle;
+		lastCommittedTitleRef.current = incomingTitle;
+		setTitle((current) => (current === incomingTitle ? current : incomingTitle));
+	}, [incomingTitle, setTitle, lastCommittedTitleRef]);
+}
+
+/**
+ * Syncs incoming comments from props to local state with signature-based change detection.
+ */
+function useSyncedComments(
+	commentsFromProps: NewLexCommentThread[],
+	setComments: (comments: NewLexCommentThread[]) => void,
+	commentsRef: React.MutableRefObject<NewLexCommentThread[]>,
+) {
+	const externalCommentsRef = useRef(serializeComments(commentsFromProps));
+
+	useEffect(() => {
+		const nextSignature = serializeComments(commentsFromProps);
+		if (nextSignature === externalCommentsRef.current) return;
+
+		externalCommentsRef.current = nextSignature;
+		if (serializeComments(commentsRef.current) !== nextSignature) {
+			setComments(commentsFromProps);
+		}
+	}, [commentsFromProps, setComments, commentsRef]);
+}
+
+/**
+ * Handles deselect transitions: flushes pending changes and resets UI state.
+ */
+function useDeselectHandler(
+	isSelected: boolean,
+	flush: (reason: BufferedCommitReason) => void,
+	setIsEditing: (value: boolean) => void,
+	setShowCommentComposer: (value: boolean) => void,
+) {
+	const prevIsSelectedRef = useRef(isSelected);
+
+	useEffect(() => {
+		if (prevIsSelectedRef.current && !isSelected) {
+			flush('deselect');
+			setIsEditing(false);
+			setShowCommentComposer(false);
+		}
+		prevIsSelectedRef.current = isSelected;
+	}, [isSelected, flush, setIsEditing, setShowCommentComposer]);
+}
+
+/**
+ * Manages debounced title commits to parent.
+ */
+function useDebouncedTitleCommit(
+	title: string,
+	externalTitleRef: React.MutableRefObject<string>,
+	lastCommittedTitleRef: React.MutableRefObject<string>,
+	onCommit: (title: string) => void,
+) {
+	const { schedule, clear } = useResettableTimeout();
+
+	useEffect(() => {
+		if (title !== externalTitleRef.current && title !== lastCommittedTitleRef.current) {
+			schedule(() => {
+				lastCommittedTitleRef.current = title;
+				onCommit(title);
+			}, 180);
+		}
+
+		return clear;
+	}, [title, externalTitleRef, lastCommittedTitleRef, schedule, clear, onCommit]);
+}
+
+/**
+ * Reports activity changes via callback ref (no useEffect needed).
+ */
+function useActivityReporter(
+	isActivelyEditing: boolean,
+	onActivityChange: ((active: boolean) => void) | undefined,
+) {
+	const lastReportedRef = useRef<boolean | null>(null);
+	const onActivityChangeRef = useRef(onActivityChange);
+
+	// Sync callback ref to latest
+	onActivityChangeRef.current = onActivityChange;
+
+	// Direct reporting without useEffect - runs during render when value changes
+	if (lastReportedRef.current !== isActivelyEditing) {
+		lastReportedRef.current = isActivelyEditing;
+		onActivityChangeRef.current?.(isActivelyEditing);
+	}
+
+	return lastReportedRef;
+}
+
+// ============================================================================
+// MAIN HOOK
+// ============================================================================
 
 export function useLexicalNoteState({
 	element,
@@ -45,14 +161,10 @@ export function useLexicalNoteState({
 	const [showCommentComposer, setShowCommentComposer] = useState(false);
 	const [commentDraft, setCommentDraft] = useState('');
 	const [pendingAnchorText, setPendingAnchorText] = useState('');
-	const onActivityChangeRef = useRef(onActivityChange);
-	const lastReportedEditingRef = useRef<boolean | null>(null);
 	const commentsRef = useRef(comments);
 	const titleNoticeTimeoutRef = useRef<number | null>(null);
 	const externalTitleRef = useRef(incomingTitle);
-	const externalCommentsRef = useRef(serializeComments(element.customData.comments ?? []));
 	const lastCommittedTitleRef = useRef(incomingTitle);
-	const titleCommitTimeoutRef = useRef<number | null>(null);
 	const [debugEnabled] = useState(() => shouldShowLexicalDebugPanel());
 
 	const { editorInitialValue, editorInstanceKey, scheduleLocalChange, flush, debugState } =
@@ -64,89 +176,65 @@ export function useLexicalNoteState({
 			enableDebugMetrics: debugEnabled,
 		});
 
-	// Sync callback ref to latest (justified ref sync pattern)
-	onActivityChangeRef.current = onActivityChange;
-
 	// Keep commentsRef in sync (justified ref sync pattern)
 	commentsRef.current = comments;
 
-	useEffect(() => {
-		if (incomingTitle === externalTitleRef.current) return;
+	// ============================================================================
+	// EXTERNAL SYNC HOOKS (replaces 2 useEffect calls)
+	// ============================================================================
+	useSyncedTitle(incomingTitle, setTitle, lastCommittedTitleRef);
+	useSyncedComments(element.customData.comments ?? [], setComments, commentsRef);
 
-		externalTitleRef.current = incomingTitle;
-		lastCommittedTitleRef.current = incomingTitle;
-		setTitle((current) => (current === incomingTitle ? current : incomingTitle));
-	}, [incomingTitle]);
+	// ============================================================================
+	// SELECTION HANDLER (replaces 1 useEffect call)
+	// ============================================================================
+	useDeselectHandler(isSelected, flush, setIsEditing, setShowCommentComposer);
 
-	useEffect(() => {
-		const nextComments = element.customData.comments ?? [];
-		const nextSignature = serializeComments(nextComments);
-		if (nextSignature === externalCommentsRef.current) return;
-
-		externalCommentsRef.current = nextSignature;
-		if (serializeComments(commentsRef.current) !== nextSignature) {
-			setComments(nextComments);
-		}
-	}, [element.customData.comments]);
-
-	const prevIsSelectedRef = useRef(isSelected);
-	useEffect(() => {
-		if (prevIsSelectedRef.current && !isSelected) {
-			flush('deselect');
-			setIsEditing(false);
-			setShowCommentComposer(false);
-		}
-		prevIsSelectedRef.current = isSelected;
-	}, [flush, isSelected]);
-
-	// Cleanup on unmount
-	useMountEffect(() => {
-		return () => {
-			flush('unmount');
-		};
-	});
-
-	// Derived: is actively editing
+	// ============================================================================
+	// DERIVED STATE
+	// ============================================================================
 	const isActivelyEditing = isEditing || commentsPanelOpen || showCommentComposer;
 
-	// Ref-based debounced title commit - moved to useEffect to avoid render-phase updates
-	useEffect(() => {
-		if (title !== externalTitleRef.current && title !== lastCommittedTitleRef.current) {
-			if (titleCommitTimeoutRef.current !== null) {
-				window.clearTimeout(titleCommitTimeoutRef.current);
-			}
-			titleCommitTimeoutRef.current = window.setTimeout(() => {
-				lastCommittedTitleRef.current = title;
-				onChange(element.id, { title });
-			}, 180);
-		}
-	}, [title, element.id, onChange]);
+	// ============================================================================
+	// ACTIVITY REPORTING (replaces 1 useEffect call - uses ref-based sync)
+	// ============================================================================
+	const lastReportedEditingRef = useActivityReporter(isActivelyEditing, onActivityChange);
 
-	// Report activity changes - moved to useEffect to avoid render-phase updates
-	useEffect(() => {
-		if (lastReportedEditingRef.current !== isActivelyEditing) {
-			lastReportedEditingRef.current = isActivelyEditing;
-			onActivityChangeRef.current?.(isActivelyEditing);
-		}
-	}, [isActivelyEditing]);
+	// ============================================================================
+	// DEBOUNCED TITLE COMMIT (replaces 1 useEffect call - uses useResettableTimeout)
+	// ============================================================================
+	const commitTitleToParent = useCallback(
+		(titleValue: string) => {
+			onChange(element.id, { title: titleValue });
+		},
+		[element.id, onChange],
+	);
+	useDebouncedTitleCommit(title, externalTitleRef, lastCommittedTitleRef, commitTitleToParent);
 
-	// Cleanup timeouts on unmount
+	// ============================================================================
+	// CLEANUP (replaces 2 useMountEffect calls - consolidated into 1)
+	// ============================================================================
 	useMountEffect(() => {
 		return () => {
+			// Flush pending changes
+			flush('unmount');
+
+			// Clear timeouts
 			if (titleNoticeTimeoutRef.current !== null) {
 				window.clearTimeout(titleNoticeTimeoutRef.current);
 			}
-			if (titleCommitTimeoutRef.current !== null) {
-				window.clearTimeout(titleCommitTimeoutRef.current);
-			}
+
+			// Report inactive on unmount if still active
 			if (lastReportedEditingRef.current) {
-				onActivityChangeRef.current?.(false);
+				onActivityChange?.(false);
 				lastReportedEditingRef.current = false;
 			}
 		};
 	});
 
-	// Derived: selected comment ID validation (filter out invalid selections)
+	// ============================================================================
+	// DERIVED: selected comment ID validation (filter out invalid selections)
+	// ============================================================================
 	const validSelectedCommentId = useMemo(() => {
 		if (!selectedCommentId) return null;
 		if (comments.some((thread) => thread.id === selectedCommentId)) {

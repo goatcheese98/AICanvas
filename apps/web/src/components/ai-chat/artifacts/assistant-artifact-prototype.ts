@@ -4,7 +4,6 @@ import type {
 	AssistantPrototypePatchArtifact,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
-import { extractCodeBlock } from './assistant-artifact-text';
 
 interface PrototypeArtifactPayload {
 	title?: string;
@@ -17,9 +16,6 @@ interface PrototypeArtifactPayload {
 	showPreview?: boolean;
 	prototype?: PrototypeOverlayCustomData;
 }
-
-const DEFAULT_REACT_PROTOTYPE_INDEX_CODE =
-	"import { StrictMode } from 'react';\nimport { createRoot } from 'react-dom/client';\nimport './styles.css';\n\nimport App from './App';\n\nconst container = document.getElementById('root');\n\nif (container) {\n  const root = createRoot(container);\n  root.render(\n    <StrictMode>\n      <App />\n    </StrictMode>\n  );\n}\n";
 
 export function parsePrototypePatchArtifact(
 	artifact: AssistantArtifact,
@@ -49,59 +45,29 @@ export function parsePrototypePatchArtifact(
 
 export function buildPrototypeFromArtifact(
 	artifact: AssistantArtifact,
-): PrototypeOverlayCustomData {
+): PrototypeOverlayCustomData | null {
 	if (artifact.type !== 'prototype-files') {
-		return normalizePrototypeOverlay();
+		return null;
 	}
 
 	try {
 		const parsed = JSON.parse(artifact.content) as PrototypeArtifactPayload;
-		return normalizePrototypeOverlay(
-			(typeof parsed.prototype === 'object' && parsed.prototype !== null
+		const payload =
+			typeof parsed.prototype === 'object' && parsed.prototype !== null
 				? parsed.prototype
-				: parsed) as PrototypeOverlayCustomData | PrototypeArtifactPayload,
-		);
+				: parsed;
+		if (typeof payload.files !== 'object' || payload.files === null) {
+			return null;
+		}
+
+		const prototype = normalizePrototypeOverlay(payload);
+		if (Object.keys(prototype.files).length === 0) {
+			return null;
+		}
+
+		const entryPath = prototype.template === 'react' ? '/index.jsx' : '/index.js';
+		return prototype.files[entryPath] ? prototype : null;
 	} catch {
-		return normalizePrototypeOverlay();
+		return null;
 	}
-}
-
-export function buildPrototypeFromMessageContent(
-	content: string,
-): PrototypeOverlayCustomData | null {
-	const html = extractCodeBlock(content, 'html');
-	const css = extractCodeBlock(content, 'css');
-	const javascript = extractCodeBlock(content, 'javascript') ?? extractCodeBlock(content, 'js');
-	const jsx = extractCodeBlock(content, 'jsx') ?? extractCodeBlock(content, 'tsx');
-
-	if (html && css && javascript) {
-		return normalizePrototypeOverlay({
-			title: 'Vanilla JS Prototype',
-			template: 'vanilla',
-			activeFile: '/index.js',
-			files: {
-				'/index.html': { code: html, hidden: true },
-				'/index.js': { code: javascript },
-				'/styles.css': { code: css },
-			},
-		});
-	}
-
-	if (jsx && css) {
-		return normalizePrototypeOverlay({
-			title: 'React Prototype',
-			template: 'react',
-			activeFile: '/App.jsx',
-			files: {
-				'/App.jsx': { code: jsx },
-				'/index.jsx': {
-					code: DEFAULT_REACT_PROTOTYPE_INDEX_CODE,
-					hidden: true,
-				},
-				'/styles.css': { code: css },
-			},
-		});
-	}
-
-	return null;
 }

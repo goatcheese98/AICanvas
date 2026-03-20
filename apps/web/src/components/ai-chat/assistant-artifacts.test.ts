@@ -7,7 +7,6 @@ import {
 	buildMarkdownPatchDiff,
 	buildMarkdownPatchHunks,
 	buildPrototypeFromArtifact,
-	buildPrototypeFromMessageContent,
 	detectMarkdownPatchConflict,
 	filterVisibleArtifacts,
 	getDiagramArtifactSource,
@@ -439,32 +438,25 @@ describe('assistant-artifacts', () => {
 
 		const prototype = buildPrototypeFromArtifact(artifact);
 
-		expect(prototype.title).toBe('PromptVault Landing');
-		expect(prototype.files['/App.jsx']?.code).toContain('PromptVault');
-		expect(prototype.files['/styles.css']?.code).toContain('#111827');
+		expect(prototype?.title).toBe('PromptVault Landing');
+		expect(prototype?.files['/App.jsx']?.code).toContain('PromptVault');
+		expect(prototype?.files['/styles.css']?.code).toContain('#111827');
 	});
 
-	it('builds a vanilla prototype overlay from assistant message code blocks', () => {
-		const prototype = buildPrototypeFromMessageContent(
-			[
-				'# Calculator App',
-				'',
-				'```html',
-				'<!DOCTYPE html><html><body><div id="app"></div><script type="module" src="./index.js"></script></body></html>',
-				'```',
-				'',
-				'```css',
-				'body { background: #f8fafc; }',
-				'```',
-				'',
-				'```javascript',
-				"document.getElementById('app').textContent = 'ready';",
-				'```',
-			].join('\n'),
-		);
+	it('rejects incomplete prototype file artifacts', () => {
+		const artifact: AssistantArtifact = {
+			type: 'prototype-files',
+			content: JSON.stringify({
+				title: 'Broken Prototype',
+				template: 'react',
+				files: {
+					'/App.jsx': {
+						code: 'export default function App() { return <main>Broken</main>; }',
+					},
+				},
+			}),
+		};
 
-		expect(prototype?.template).toBe('vanilla');
-		expect(prototype?.files['/index.html']?.code).toContain('<div id="app">');
-		expect(prototype?.files['/index.js']?.code).toContain("textContent = 'ready'");
+		expect(buildPrototypeFromArtifact(artifact)).toBeNull();
 	});
 });

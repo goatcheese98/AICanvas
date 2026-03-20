@@ -11,6 +11,11 @@ vi.mock('@/components/canvas/excalidraw-store-sync', () => ({
 	syncAppStoreFromExcalidraw: vi.fn(),
 }));
 
+vi.mock('@/lib/observability', () => ({
+	addObservabilityBreadcrumb: vi.fn(),
+	captureBrowserException: vi.fn(),
+}));
+
 vi.mock('./ai-chat-canvas-mutations', async (importOriginal) => {
 	const original = await importOriginal<typeof import('./ai-chat-canvas-mutations')>();
 	return {
@@ -121,6 +126,7 @@ describe('ai chat stored asset insertion helpers', () => {
 			status: 'inserted',
 			insertedElementIds: [expect.any(String)],
 			insertedFileIds: [expect.any(String)],
+			insertMode: 'image-file',
 		});
 		expect(setFiles).toHaveBeenCalledWith(expect.any(Object));
 		expect(setChatError).not.toHaveBeenCalled();

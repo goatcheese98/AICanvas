@@ -1,7 +1,8 @@
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
-import { vectorizeRasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
-import { vectorizeRasterBlobToSketchElements } from '@/lib/assistant/sketch-vectorizer';
+import { rasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
+import { vectorizeSketch } from '@/lib/assistant/sketch-vectorizer';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
+import { addObservabilityBreadcrumb } from '@/lib/observability';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
@@ -10,10 +11,28 @@ import {
 } from './ai-chat-canvas-mutations';
 import type { AssistantInsertionState } from './ai-chat-types';
 
+export type NativeVectorCompileStrategy = 'sketch-vectorizer' | 'svg-trace' | 'svg-compile';
+
 export interface NativeVectorCompileResult {
 	elements: ExcalidrawElement[];
 	width: number;
 	height: number;
+	strategy: NativeVectorCompileStrategy;
+}
+
+interface NativeVectorCompileFailure {
+	strategy: NativeVectorCompileStrategy;
+	message: string;
+}
+
+export class NativeVectorPipelineError extends Error {
+	readonly failures: NativeVectorCompileFailure[];
+
+	constructor(message: string, failures: NativeVectorCompileFailure[]) {
+		super(message);
+		this.name = 'NativeVectorPipelineError';
+		this.failures = failures;
+	}
 }
 
 function getElementsBounds(elements: readonly ExcalidrawElement[]) {
@@ -43,25 +62,140 @@ function offsetInsertedElements(
 	}));
 }
 
+function toErrorMessage(error: unknown): string {
+	return error instanceof Error ? error.message : 'Unknown vectorization failure';
+}
+
+function recordStrategyFailure(
+	source: string,
+	strategy: NativeVectorCompileStrategy,
+	error: unknown,
+) {
+	addObservabilityBreadcrumb(
+		'assistant.vectorization.strategy_failed',
+		{
+			source,
+			strategy,
+			message: toErrorMessage(error),
+		},
+		'warning',
+		'assistant',
+	);
+}
+
+function recordStrategySuccess(source: string, strategy: NativeVectorCompileStrategy) {
+	addObservabilityBreadcrumb(
+		'assistant.vectorization.strategy_selected',
+		{
+			source,
+			strategy,
+		},
+		'info',
+		'assistant',
+	);
+}
+
+function createPipelineError(
+	message: string,
+	failures: NativeVectorCompileFailure[],
+): NativeVectorPipelineError {
+	return new NativeVectorPipelineError(message, failures);
+}
+
+export function describeNativeVectorPipelineError(error: unknown, fallbackMessage: string): string {
+	if (!(error instanceof NativeVectorPipelineError)) {
+		return error instanceof Error ? error.message : fallbackMessage;
+	}
+
+	if (error.failures.length === 0) {
+		return error.message;
+	}
+
+	return `${error.message} Tried ${error.failures
+		.map((failure) => `${failure.strategy}: ${failure.message}`)
+		.join('; ')}`;
+}
+
 export async function compileRasterBlobToNativeVector(
 	blob: Blob,
-	customData: Record<string, unknown>,
+	input: {
+		customData: Record<string, unknown>;
+		source: 'artifact-raster' | 'source-raster';
+	},
 ): Promise<NativeVectorCompileResult> {
+	const failures: NativeVectorCompileFailure[] = [];
+
 	try {
-		return await vectorizeRasterBlobToSketchElements(blob, {
+		const compiled = await vectorizeSketch(blob, {
 			controls: { colorPalette: 10 },
-			customData,
+			customData: input.customData,
 		});
-	} catch {
-		const svgMarkup = await vectorizeRasterBlobToSvg(blob, {
+		recordStrategySuccess(input.source, 'sketch-vectorizer');
+		return {
+			...compiled,
+			strategy: 'sketch-vectorizer',
+		};
+	} catch (error) {
+		failures.push({
+			strategy: 'sketch-vectorizer',
+			message: toErrorMessage(error),
+		});
+		recordStrategyFailure(input.source, 'sketch-vectorizer', error);
+	}
+
+	try {
+		const svgMarkup = await rasterBlobToSvg(blob, {
 			maxSampleDimension: 192,
 			maxColors: 5,
 		});
-		return compileSvgToExcalidraw(svgMarkup, {
+		const compiled = compileSvgToExcalidraw(svgMarkup, {
 			maxPointsPerElement: 36,
 			maxElementCount: 60,
-			customData,
+			customData: input.customData,
 		});
+		recordStrategySuccess(input.source, 'svg-trace');
+		return {
+			...compiled,
+			strategy: 'svg-trace',
+		};
+	} catch (error) {
+		failures.push({
+			strategy: 'svg-trace',
+			message: toErrorMessage(error),
+		});
+		recordStrategyFailure(input.source, 'svg-trace', error);
+	}
+
+	throw createPipelineError(
+		'Raster image could not be converted into native vector elements.',
+		failures,
+	);
+}
+
+export function compileSvgMarkupToNativeVector(
+	svgMarkup: string,
+	input: {
+		customData: Record<string, unknown>;
+		source: 'stored-svg';
+	},
+): NativeVectorCompileResult {
+	try {
+		const compiled = compileSvgToExcalidraw(svgMarkup, {
+			customData: input.customData,
+		});
+		recordStrategySuccess(input.source, 'svg-compile');
+		return {
+			...compiled,
+			strategy: 'svg-compile',
+		};
+	} catch (error) {
+		recordStrategyFailure(input.source, 'svg-compile', error);
+		throw createPipelineError('SVG asset could not be converted into native vector elements.', [
+			{
+				strategy: 'svg-compile',
+				message: toErrorMessage(error),
+			},
+		]);
 	}
 }
 
@@ -160,5 +294,10 @@ export async function insertNativeVectorElementsOnCanvas({
 
 	restoreCanvasSelectionState(excalidrawApi);
 	syncAppStoreFromExcalidraw(excalidrawApi);
-	return { status: 'inserted', insertedElementIds };
+	return {
+		status: 'inserted',
+		insertedElementIds,
+		insertMode: 'native-vector',
+		vectorStrategy: compiled.strategy,
+	};
 }

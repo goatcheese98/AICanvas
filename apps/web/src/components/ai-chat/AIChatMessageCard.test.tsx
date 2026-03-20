@@ -219,7 +219,7 @@ describe('AIChatMessageCard', () => {
 		);
 
 		await waitFor(() => {
-			expect(within(container).getByRole('button', { name: 'Insert Native Vector' })).toBeTruthy();
+			expect(within(container).getByRole('button', { name: 'Insert Vector Asset' })).toBeTruthy();
 		});
 	});
 

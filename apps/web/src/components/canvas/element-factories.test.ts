@@ -1,4 +1,4 @@
-import type { KanbanOverlayCustomData, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import { describe, expect, it, vi } from 'vitest';
@@ -109,22 +109,16 @@ describe('element-factories', () => {
 			y: 0,
 		});
 
-		expect(data).toMatchObject({
+		expect(data).toEqual({
 			type: 'prototype',
 			title: 'Prototype',
 			template: 'react',
-			preview: {
-				eyebrow: 'PulseBoard',
-				title: 'Prototype',
-			},
-			activeFile: '/App.jsx',
+			files: {},
+			activeFile: undefined,
 			showEditor: true,
 			showPreview: true,
 			dependencies: {},
 		});
-		const prototypeData = data as PrototypeOverlayCustomData;
-		expect(prototypeData.files['/App.jsx']).toBeDefined();
-		expect(prototypeData.files['/index.jsx']).toBeDefined();
 	});
 
 	it('returns expected overlay defaults', () => {

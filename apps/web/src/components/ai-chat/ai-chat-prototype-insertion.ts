@@ -1,7 +1,6 @@
 import {
 	createOverlayElementDraft,
 	getOverlayDefaults,
-	getViewportSceneCenter,
 } from '@/components/canvas/element-factories';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
@@ -11,10 +10,7 @@ import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { getConvertToExcalidrawElements, getSelectedPrototypeElement } from './ai-chat-canvas';
 import { applyInsertedElements, resolveInsertionSceneCenter } from './ai-chat-canvas-mutations';
 import type { AssistantInsertionState } from './ai-chat-types';
-import {
-	buildPrototypeFromArtifact,
-	buildPrototypeFromMessageContent,
-} from './assistant-artifacts';
+import { buildPrototypeFromArtifact } from './assistant-artifacts';
 
 interface PrototypeInsertionContext {
 	excalidrawApi: ExcalidrawImperativeAPI;
@@ -59,6 +55,9 @@ export async function insertPrototypeArtifactOnCanvas({
 	setElements,
 }: PrototypeInsertionContext & { artifact: AssistantArtifact }): Promise<AssistantInsertionState> {
 	const prototype = buildPrototypeFromArtifact(artifact);
+	if (!prototype) {
+		throw new Error('Prototype artifact is invalid or incomplete.');
+	}
 	const currentElements = excalidrawApi.getSceneElements();
 	const selectedPrototype = getSelectedPrototypeElement(
 		currentElements as unknown as Record<string, unknown>[],
@@ -97,43 +96,4 @@ export async function insertPrototypeArtifactOnCanvas({
 		setElements,
 		insertedElements: converted,
 	});
-}
-
-export async function insertPrototypeMessageOnCanvas({
-	messageContent,
-	excalidrawApi,
-	selectedElementIds,
-}: Omit<PrototypeInsertionContext, 'elements' | 'setElements'> & {
-	messageContent: string;
-}): Promise<void> {
-	const prototype = buildPrototypeFromMessageContent(messageContent);
-	if (!prototype) {
-		return;
-	}
-
-	const convertToExcalidrawElements = await getConvertToExcalidrawElements();
-	const sceneCenter = getViewportSceneCenter(excalidrawApi.getAppState());
-	const currentElements = excalidrawApi.getSceneElements();
-	const selectedPrototype = getSelectedPrototypeElement(
-		currentElements as unknown as Record<string, unknown>[],
-		selectedElementIds,
-	);
-
-	if (selectedPrototype) {
-		applyPrototypeToSelectedElement({
-			excalidrawApi,
-			selectedPrototypeId: String(selectedPrototype.id),
-			prototype,
-		});
-		return;
-	}
-
-	const draft = createOverlayElementDraft(
-		'prototype',
-		sceneCenter,
-		prototype as unknown as Record<string, unknown>,
-	);
-	const converted = convertToExcalidrawElements([draft as never]);
-	excalidrawApi.updateScene({ elements: [...currentElements, ...converted] });
-	syncAppStoreFromExcalidraw(excalidrawApi);
 }

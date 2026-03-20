@@ -374,7 +374,7 @@ describe('assistant service', () => {
 		expect(result.message.content).toContain('```json');
 	});
 
-	it('returns prototype files for prototype mode', async () => {
+	it('returns a loud failure message when prototype mode has no AI payload', async () => {
 		const result = await generateAssistantResponse({
 			message: 'build a prototype landing page for prompt workflows',
 			contextMode: 'selected',
@@ -382,117 +382,216 @@ describe('assistant service', () => {
 		});
 
 		expect(result.message.generationMode).toBe('prototype');
+		expect(result.message.artifacts).toEqual([]);
+		expect(result.message.content).toContain('Prototype generation requires a valid AI-authored');
+	});
+
+	it('passes through valid Anthropic prototype files', async () => {
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'PromptVault Landing',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/App.jsx': {
+													code: 'export default function App() { return <main>PromptVault</main>; }',
+												},
+												'/styles.css': { code: 'main { color: #111827; }' },
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
+		);
+		globalThis.fetch = fetchMock as typeof fetch;
+
+		const result = await generateAssistantResponse({
+			message: 'build a prototype landing page for prompt workflows',
+			contextMode: 'selected',
+			generationMode: 'prototype',
+			bindings: {
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'clerk',
+				ANTHROPIC_API_KEY: 'anthropic',
+				ENVIRONMENT: 'test',
+			},
+		});
+
 		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-files' });
 		expect(result.message.content).toContain('Prepared prototype files');
-		expect(result.message.artifacts?.[0]?.content).toContain('Blank prototype scaffold');
+		expect(result.message.artifacts?.[0]?.content).toContain('PromptVault Landing');
 		expect(result.message.artifacts?.[0]?.content).toContain('/index.jsx');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('/App.jsx');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('PulseBoard');
+		expect(result.message.artifacts?.[0]?.content).toContain('PromptVault');
 	});
 
-	it('builds a functional calculator app for calculator requests', async () => {
+	it('repairs invalid prototype output on a follow-up attempt', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'Prototype',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/App.jsx': {
+													code: 'export default function App() { return <main>Broken first pass</main>; }',
+												},
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
+			)
+			.mockResolvedValueOnce(
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'Prototype',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/App.jsx': {
+													code: 'export default function App() { return <main>Recovered second pass</main>; }',
+												},
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
+			);
+		globalThis.fetch = fetchMock as typeof fetch;
+
 		const result = await generateAssistantResponse({
-			message: 'Create a prototype calculator app',
+			message: 'build a prototype landing page for prompt workflows',
 			contextMode: 'selected',
 			generationMode: 'prototype',
+			bindings: {
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'clerk',
+				ANTHROPIC_API_KEY: 'anthropic',
+				ENVIRONMENT: 'test',
+			},
 		});
 
-		expect(result.message.artifacts?.[0]?.content).toContain('/components/CalculatorButton.jsx');
-		expect(result.message.artifacts?.[0]?.content).toContain('evaluateExpression');
-		expect(result.message.artifacts?.[0]?.content).toContain('container-type: inline-size');
-		expect(result.message.artifacts?.[0]?.content).toContain('Expression Lab');
-		expect(result.message.artifacts?.[0]?.content).toContain("label: '='");
-		expect(result.message.artifacts?.[0]?.content).not.toContain('const overview = [');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('const tips = [');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('history.map((item)');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Quick checks');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('className="status-pill"');
-	});
-
-	it('builds a vanilla calculator app when requested', async () => {
-		const result = await generateAssistantResponse({
-			message: 'Create the prototype in Vanilla for a calculator app',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-		});
-
-		expect(result.message.artifacts?.[0]?.content).toContain('"template": "vanilla"');
-		expect(result.message.artifacts?.[0]?.content).toContain('/index.html');
-		expect(result.message.artifacts?.[0]?.content).toContain('/index.js');
-		expect(result.message.artifacts?.[0]?.content).toContain('container-type: inline-size');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('>READY<');
-	});
-
-	it('strips prompt filler from calculator prototype titles', async () => {
-		const result = await generateAssistantResponse({
-			message: 'Please create calculator prototype',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-		});
-
-		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Calculator App"');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Please Calculator App');
-		expect(result.message.artifacts?.[0]?.content).toContain('Expression Lab');
-	});
-
-	it('truncates longer calculator titles so themed prompts do not fail schema validation', async () => {
-		const result = await generateAssistantResponse({
-			message: 'Can you create a prototype of a calculator theme like Pokemon.',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-		});
-		const artifact = JSON.parse(String(result.message.artifacts?.[0]?.content)) as {
-			title: string;
-		};
-
-		expect(result.message.generationMode).toBe('prototype');
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-files' });
-		expect(artifact.title.length).toBeLessThanOrEqual(32);
-		expect(artifact.title.startsWith('Of ')).toBe(false);
+		expect(result.message.content).toContain('Validation passes: 2');
+		expect(result.message.artifacts?.[0]?.content).toContain('Recovered second pass');
 	});
 
-	it('builds a playable game prototype instead of a landing page for game requests', async () => {
-		const result = await generateAssistantResponse({
-			message: 'Create a tetris game prototype',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-		});
-
-		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
-		expect(result.message.artifacts?.[0]?.content).toContain('Playable prototype');
-		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
-		expect(result.message.artifacts?.[0]?.content).toContain('Arrow keys move');
-		expect(result.message.artifacts?.[0]?.content).toContain('Hard Drop');
-		expect(result.message.artifacts?.[0]?.content).toContain('lockPiece');
-		expect(result.message.artifacts?.[0]?.content).toContain('useEffect');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Conversion-ready website');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Book Demo');
-	});
-
-	it('keeps longer tetris app requests on the playable prototype path', async () => {
-		const result = await generateAssistantResponse({
-			message: 'Make an actual application for Tetris with the proper UI in your prototype.',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-		});
-
-		expect(result.message.generationMode).toBe('prototype');
-		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
-		expect(result.message.artifacts?.[0]?.content).toContain('"eyebrow": "Playable prototype"');
-		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
-		expect(result.message.artifacts?.[0]?.content).toContain(
-			'Game over. Press restart to play again.',
+	it('returns updated prototype files for selected prototype edit requests', async () => {
+		const fetchMock = vi.fn(
+			async () =>
+				new Response(
+					JSON.stringify({
+						content: [
+							{
+								type: 'text',
+								text: [
+									'```json',
+									JSON.stringify(
+										{
+											title: 'Tetris Game',
+											template: 'react',
+											activeFile: '/App.jsx',
+											files: {
+												'/index.jsx': {
+													code: "import { createRoot } from 'react-dom/client';",
+													hidden: true,
+												},
+												'/App.jsx': {
+													code: 'export default function App() { return <main>Updated game-board</main>; }',
+												},
+												'/styles.css': { code: 'body { margin: 0; }' },
+											},
+										},
+										null,
+										2,
+									),
+									'```',
+								].join('\n'),
+							},
+						],
+					}),
+					{ status: 200, headers: { 'Content-Type': 'application/json' } },
+				),
 		);
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Would you like me to');
-	});
+		globalThis.fetch = fetchMock as typeof fetch;
 
-	it('returns a reversible prototype patch for selected prototype edit requests', async () => {
 		const result = await generateAssistantResponse({
 			message: 'Can you actually turn this into an actual working demo?',
+			generationMode: 'prototype',
 			contextMode: 'selected',
+			prototypeContext: {
+				type: 'prototype',
+				title: 'Tetris Game',
+				template: 'react',
+				activeFile: '/App.jsx',
+				files: {
+					'/index.jsx': {
+						code: "import { createRoot } from 'react-dom/client';",
+						hidden: true,
+					},
+					'/App.jsx': {
+						code: 'export default function App() { return <main>Original game-board</main>; }',
+					},
+					'/styles.css': { code: 'body { margin: 0; }' },
+				},
+			},
 			contextSnapshot: {
 				canvasId: 'canvas-1',
 				totalElementCount: 1,
@@ -525,26 +624,20 @@ describe('assistant service', () => {
 					},
 				],
 			},
-			prototypeContext: {
-				type: 'prototype',
-				title: 'Tetris Game',
-				template: 'react',
-				activeFile: '/App.jsx',
-				files: {
-					'/App.jsx': { code: 'export default function App() { return <div>Placeholder</div>; }' },
-					'/index.jsx': { code: "import { createRoot } from 'react-dom/client';", hidden: true },
-					'/styles.css': { code: 'body { margin: 0; }' },
-				},
+			bindings: {
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'clerk',
+				ANTHROPIC_API_KEY: 'anthropic',
+				ENVIRONMENT: 'test',
 			},
 		});
 
 		expect(result.message.generationMode).toBe('prototype');
-		expect(result.message.content).toContain('Prepared reversible selection edits.');
-		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-patch' });
-		expect(result.message.artifacts?.[0]?.content).toContain('"kind": "prototype_patch"');
-		expect(result.message.artifacts?.[0]?.content).toContain('"targetId": "prototype-1"');
+		expect(result.message.content).toContain('Prepared prototype files');
+		expect(result.message.artifacts?.[0]).toMatchObject({ type: 'prototype-files' });
 		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
-		expect(result.message.artifacts?.[0]?.content).toContain('lockPiece');
+		expect(result.message.artifacts?.[0]?.content).toContain('Updated game-board');
 	});
 
 	it('infers a structured mode from a freeform request', async () => {
@@ -576,12 +669,12 @@ describe('assistant service', () => {
 			}),
 		).toBe('prototype');
 
-		expect(
-			resolveGenerationMode({
-				message: 'Can you actually turn this into an actual working demo?',
-				contextMode: 'selected',
-				prototypeContext: {
-					type: 'prototype',
+			expect(
+				resolveGenerationMode({
+					message: 'Can you rebuild this into an actual working demo?',
+					contextMode: 'selected',
+					prototypeContext: {
+						type: 'prototype',
 					title: 'Tetris Game',
 					template: 'react',
 					files: {},
@@ -864,7 +957,7 @@ describe('assistant service', () => {
 		});
 	});
 
-	it('falls back to a functional app when Anthropic returns a marketing prototype for an app request', async () => {
+	it('returns a loud failure message when Anthropic returns an incomplete prototype payload', async () => {
 		const fetchMock = vi.fn(
 			async () =>
 				new Response(
@@ -876,18 +969,12 @@ describe('assistant service', () => {
 									'```json',
 									JSON.stringify(
 										{
-											title: 'A Calculator Website',
+											title: 'Incomplete Prototype',
 											template: 'react',
-											activeFile: '/App.jsx',
 											files: {
 												'/App.jsx': {
-													code: 'export default function App() { return <main><button>Start Free</button><button>See the tour</button></main>; }',
+													code: 'export default function App() { return <main>Broken</main>; }',
 												},
-												'/index.jsx': {
-													code: "import { createRoot } from 'react-dom/client';",
-													hidden: true,
-												},
-												'/styles.css': { code: 'main { padding: 24px; }' },
 											},
 										},
 										null,
@@ -916,168 +1003,9 @@ describe('assistant service', () => {
 			},
 		});
 
-		expect(result.message.artifacts?.[0]?.content).toContain('/components/CalculatorButton.jsx');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
-	});
-
-	it('falls back to a playable game when Anthropic returns an interactive landing page for a game request', async () => {
-		const fetchMock = vi.fn(
-			async () =>
-				new Response(
-					JSON.stringify({
-						content: [
-							{
-								type: 'text',
-								text: [
-									'```json',
-									JSON.stringify(
-										{
-											title: 'Tetris Website',
-											template: 'react',
-											activeFile: '/App.jsx',
-											preview: {
-												eyebrow: 'Launch faster',
-												title: 'Tetris for modern teams',
-												description: 'An interactive waitlist and pricing surface.',
-												accent: '#7c3aed',
-												background: '#0f172a',
-												badges: ['Pricing', 'Waitlist'],
-												metrics: [{ label: 'Plans', value: '3' }],
-											},
-											files: {
-												'/App.jsx': {
-													code: [
-														"import { useState } from 'react';",
-														'',
-														'export default function App() {',
-														"  const [plan, setPlan] = useState('solo');",
-														'  return (',
-														'    <main className="landing-frame">',
-														'      <h1>Tetris for modern teams</h1>',
-														'      <p>Compare pricing and join the waitlist.</p>',
-														"      <button onClick={() => setPlan('solo')}>Solo</button>",
-														"      <button onClick={() => setPlan('team')}>Team</button>",
-														'      <div>{plan}</div>',
-														'    </main>',
-														'  );',
-														'}',
-													].join('\n'),
-												},
-												'/index.jsx': {
-													code: "import { createRoot } from 'react-dom/client';",
-													hidden: true,
-												},
-												'/styles.css': { code: '.landing-frame { padding: 24px; }' },
-											},
-										},
-										null,
-										2,
-									),
-									'```',
-								].join('\n'),
-							},
-						],
-					}),
-					{ status: 200, headers: { 'Content-Type': 'application/json' } },
-				),
-		);
-		globalThis.fetch = fetchMock as typeof fetch;
-
-		const result = await generateAssistantResponse({
-			message: 'Create a tetris game prototype',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-			bindings: {
-				DB: {} as D1Database,
-				R2: {} as R2Bucket,
-				CLERK_SECRET_KEY: 'clerk',
-				ANTHROPIC_API_KEY: 'anthropic',
-				ENVIRONMENT: 'test',
-			},
-		});
-
-		expect(result.message.artifacts?.[0]?.content).toContain('"title": "Tetris Game"');
-		expect(result.message.artifacts?.[0]?.content).toContain('game-board');
-		expect(result.message.artifacts?.[0]?.content).toContain('Move Left');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('"title": "Tetris Website"');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('join the waitlist');
-	});
-
-	it('falls back to a blank scaffold when Anthropic returns a starter-shaped landing page', async () => {
-		const fetchMock = vi.fn(
-			async () =>
-				new Response(
-					JSON.stringify({
-						content: [
-							{
-								type: 'text',
-								text: [
-									'```json',
-									JSON.stringify(
-										{
-											title: 'A Pok Website',
-											template: 'react',
-											activeFile: '/App.jsx',
-											preview: {
-												eyebrow: 'Conversion-ready website',
-												title: 'A Pok Website',
-												description: 'Launch a sharper story and faster conversion.',
-												accent: '#2563eb',
-												background: '#eff6ff',
-												badges: ['Launch', 'Conversion'],
-												metrics: [{ label: 'Visitors', value: '24k' }],
-											},
-											files: {
-												'/App.jsx': {
-													code: [
-														'export default function App() {',
-														'  return (',
-														'    <main className="landing-frame">',
-														'      <h1>Launch a pok mon with a sharper story.</h1>',
-														'      <button>Start Free</button>',
-														'      <button>See the tour</button>',
-														'    </main>',
-														'  );',
-														'}',
-													].join('\n'),
-												},
-												'/index.jsx': {
-													code: "import { createRoot } from 'react-dom/client';",
-													hidden: true,
-												},
-												'/styles.css': { code: '.landing-frame { padding: 24px; }' },
-											},
-										},
-										null,
-										2,
-									),
-									'```',
-								].join('\n'),
-							},
-						],
-					}),
-					{ status: 200, headers: { 'Content-Type': 'application/json' } },
-				),
-		);
-		globalThis.fetch = fetchMock as typeof fetch;
-
-		const result = await generateAssistantResponse({
-			message: 'Can you please create a prototype of a Pokemon landing page?',
-			contextMode: 'selected',
-			generationMode: 'prototype',
-			bindings: {
-				DB: {} as D1Database,
-				R2: {} as R2Bucket,
-				CLERK_SECRET_KEY: 'clerk',
-				ANTHROPIC_API_KEY: 'anthropic',
-				ENVIRONMENT: 'test',
-			},
-		});
-
-		expect(result.message.artifacts?.[0]?.content).toContain('Blank prototype scaffold');
-		expect(result.message.artifacts?.[0]?.content).toContain('/index.jsx');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('/App.jsx');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('Start Free');
-		expect(result.message.artifacts?.[0]?.content).not.toContain('PulseBoard');
+		expect(fetchMock).toHaveBeenCalledTimes(3);
+		expect(result.message.artifacts).toEqual([]);
+		expect(result.message.content).toContain('Prototype generation failed validation after 3 attempts.');
+		expect(result.message.content).toContain('Missing prototype entry file /index.jsx.');
 	});
 });

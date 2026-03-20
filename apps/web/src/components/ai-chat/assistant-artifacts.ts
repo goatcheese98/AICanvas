@@ -21,7 +21,6 @@ export {
 } from './artifacts/assistant-artifact-kanban';
 export {
 	buildPrototypeFromArtifact,
-	buildPrototypeFromMessageContent,
 	parsePrototypePatchArtifact,
 } from './artifacts/assistant-artifact-prototype';
 export {

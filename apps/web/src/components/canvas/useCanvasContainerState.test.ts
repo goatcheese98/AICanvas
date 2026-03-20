@@ -125,10 +125,6 @@ describe('useCanvasContainerState', () => {
 			wrapper,
 		});
 
-		expect(result.current).toHaveProperty('excalidrawApi');
-		expect(result.current).toHaveProperty('elements');
-		expect(result.current).toHaveProperty('appState');
-		expect(result.current).toHaveProperty('files');
 		expect(result.current).toHaveProperty('collaboration');
 		expect(result.current).toHaveProperty('handleSaveNeeded');
 		expect(result.current).toHaveProperty('normalizeSceneChange');

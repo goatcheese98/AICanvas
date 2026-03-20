@@ -255,7 +255,11 @@ export function buildResponseSummary(params: {
 	artifacts: AssistantArtifactRecord[];
 	summary: string;
 }): string {
-	const lines = [params.summary, '', `Request: ${summarizeRequest(params.message)}`];
+	const baseSummary =
+		params.mode === 'prototype' && params.artifacts.length === 0
+			? 'Prototype generation did not produce a valid file bundle.'
+			: params.summary;
+	const lines = [baseSummary, '', `Request: ${summarizeRequest(params.message)}`];
 	if (params.artifacts.length > 0) {
 		lines.push('', 'Prepared artifacts:');
 		for (const artifact of params.artifacts) {
@@ -266,7 +270,9 @@ export function buildResponseSummary(params: {
 	if (params.mode === 'prototype') {
 		lines.push(
 			'',
-			'The run prepared a multi-file prototype payload for the custom runtime and canvas preview.',
+			params.artifacts.length > 0
+				? 'The run prepared a multi-file prototype payload for the custom runtime and canvas preview.'
+				: 'No prototype artifact was stored for this run.',
 		);
 	}
 

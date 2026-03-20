@@ -11,6 +11,8 @@ export type AssistantInsertionState = {
 	status: 'inserted' | 'removed';
 	insertedElementIds: string[];
 	insertedFileIds?: string[];
+	insertMode?: 'native-vector' | 'image-file';
+	vectorStrategy?: 'sketch-vectorizer' | 'svg-trace' | 'svg-compile';
 };
 
 export type MarkdownPatchReviewState = {

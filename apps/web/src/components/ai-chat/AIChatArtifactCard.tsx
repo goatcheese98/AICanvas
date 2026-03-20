@@ -1,126 +1,22 @@
-import { useMountEffect } from '@/hooks/useMountEffect';
-import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
-import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
-import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
-import { useAuth } from '@clerk/clerk-react';
-import { useQuery } from '@tanstack/react-query';
-import { useMemo, useRef } from 'react';
-import { CodeSnippet } from './AIChatArtifactPrimitives';
-import { DiagramArtifactCard } from './AIChatDiagramArtifactCard';
 import { PatchArtifactCard } from './AIChatPatchArtifactCard';
-import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import type {
 	AssistantInsertionState,
 	AssistantPatchApplyOptions,
 	AssistantPatchApplyState,
-	DiagramInsertInput,
 	MarkdownPatchReviewState,
 } from './ai-chat-types';
-import { describeAssistantArtifact } from './assistant-artifacts';
+import {
+	CodeArtifactCard,
+	DiagramArtifactPreview,
+	ImageArtifactCard,
+	ImageVectorArtifactCard,
+	KanbanArtifactCard,
+	LayoutPlanArtifactCard,
+	PrototypeArtifactCard,
+} from './artifacts';
+import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
 
-function useStoredAssetPreview(artifact: AssistantArtifact) {
-	const { getToken, isSignedIn } = useAuth();
-	const objectUrlRef = useRef<string | null>(null);
-
-	// Cleanup object URL on unmount
-	useMountEffect(() => {
-		return () => {
-			if (objectUrlRef.current) {
-				URL.revokeObjectURL(objectUrlRef.current);
-				objectUrlRef.current = null;
-			}
-		};
-	});
-
-	const storedAsset = useMemo(
-		() => parseStoredAssistantAssetContent(artifact.content),
-		[artifact.content],
-	);
-
-	const query = useQuery({
-		queryKey: ['assistant-artifact-preview', storedAsset?.runId, storedAsset?.artifactId],
-		enabled: Boolean(isSignedIn && storedAsset?.runId && storedAsset?.artifactId),
-		queryFn: async () => {
-			// Revoke previous URL before fetching new one
-			if (objectUrlRef.current) {
-				URL.revokeObjectURL(objectUrlRef.current);
-				objectUrlRef.current = null;
-			}
-
-			// Type guard: storedAsset and its IDs are guaranteed by enabled check
-			if (!storedAsset?.runId || !storedAsset?.artifactId) {
-				throw new Error('Missing required asset identifiers');
-			}
-
-			const headers = await getRequiredAuthHeaders(async () => (await getToken?.()) ?? null);
-			const { blob } = await fetchAssistantArtifactAsset(
-				storedAsset.runId,
-				storedAsset.artifactId,
-				headers,
-			);
-			const url = URL.createObjectURL(blob);
-			objectUrlRef.current = url;
-			return url;
-		},
-		staleTime: 1000 * 60 * 5,
-	});
-
-	const status: 'idle' | 'loading' | 'ready' | 'error' =
-		!isSignedIn || !storedAsset?.artifactId || !storedAsset?.runId
-			? 'idle'
-			: query.isLoading
-				? 'loading'
-				: query.isError
-					? 'error'
-					: query.data
-						? 'ready'
-						: 'idle';
-
-	return { previewUrl: query.data ?? null, status };
-}
-
-function StoredAssetPreview({ artifact }: { artifact: AssistantArtifact }) {
-	const { previewUrl, status } = useStoredAssetPreview(artifact);
-
-	if (status === 'idle') {
-		return null;
-	}
-
-	return (
-		<div className="mb-3 overflow-hidden rounded-[10px] border border-stone-200 bg-white">
-			{previewUrl ? (
-				<img
-					src={previewUrl}
-					alt="Generated asset preview"
-					className="block max-h-64 w-full object-contain"
-				/>
-			) : (
-				<div className="flex h-40 items-center justify-center text-[11px] text-stone-500">
-					{status === 'error' ? 'Preview unavailable' : 'Loading preview...'}
-				</div>
-			)}
-		</div>
-	);
-}
-
-export function ArtifactCard({
-	artifact,
-	artifactKey,
-	elements,
-	onInsertArtifact,
-	onVectorizeArtifact,
-	insertionState,
-	onUndoInsertedArtifact,
-	onInsertRenderedDiagram,
-	patchApplyState,
-	markdownReviewState,
-	onChangeMarkdownAcceptedHunks,
-	onApplyPatch,
-	onUndoPatch,
-	onReapplyPatch,
-	generationMode,
-	hasVectorCompanionArtifact,
-}: {
+export interface ArtifactCardProps {
 	artifact: AssistantArtifact;
 	artifactKey: string;
 	elements?: readonly CanvasElement[];
@@ -128,7 +24,16 @@ export function ArtifactCard({
 	onVectorizeArtifact?: (artifactKey: string, artifact: AssistantArtifact) => void;
 	insertionState?: AssistantInsertionState;
 	onUndoInsertedArtifact?: (artifactKey: string) => void;
-	onInsertRenderedDiagram?: (artifactKey: string, input: DiagramInsertInput) => void;
+	onInsertRenderedDiagram?: (
+		artifactKey: string,
+		input: {
+			title: string;
+			svgMarkup: string;
+			width: number;
+			height: number;
+			diagram: { language: 'mermaid' | 'd2'; code: string };
+		},
+	) => void;
 	patchApplyState?: AssistantPatchApplyState;
 	markdownReviewState?: MarkdownPatchReviewState;
 	onChangeMarkdownAcceptedHunks?: (artifactKey: string, acceptedHunkIds: string[]) => void;
@@ -145,20 +50,17 @@ export function ArtifactCard({
 	) => void;
 	generationMode?: GenerationMode;
 	hasVectorCompanionArtifact?: boolean;
-}) {
-	const isDiagram = artifact.type === 'mermaid' || artifact.type === 'd2';
-	if (isDiagram) {
-		return (
-			<DiagramArtifactCard
-				artifactKey={artifactKey}
-				artifact={artifact}
-				insertionState={insertionState}
-				onUndoInsertedArtifact={onUndoInsertedArtifact}
-				onInsertRenderedDiagram={onInsertRenderedDiagram}
-			/>
-		);
+}
+
+export function ArtifactCard(props: ArtifactCardProps) {
+	const { artifact } = props;
+
+	// Diagram artifacts (mermaid, d2)
+	if (artifact.type === 'mermaid' || artifact.type === 'd2') {
+		return <DiagramArtifactPreview {...props} />;
 	}
 
+	// Patch artifacts (markdown-patch, kanban-patch, prototype-patch)
 	if (
 		artifact.type === 'markdown-patch' ||
 		artifact.type === 'kanban-patch' ||
@@ -166,234 +68,37 @@ export function ArtifactCard({
 	) {
 		return (
 			<PatchArtifactCard
-				artifact={artifact}
-				artifactKey={artifactKey}
-				applyState={patchApplyState}
-				elements={elements}
-				markdownReviewState={markdownReviewState}
-				onChangeMarkdownAcceptedHunks={onChangeMarkdownAcceptedHunks}
-				onApplyPatch={onApplyPatch}
-				onUndoPatch={onUndoPatch}
-				onReapplyPatch={onReapplyPatch}
+				artifact={props.artifact}
+				artifactKey={props.artifactKey}
+				applyState={props.patchApplyState}
+				elements={props.elements}
+				markdownReviewState={props.markdownReviewState}
+				onChangeMarkdownAcceptedHunks={props.onChangeMarkdownAcceptedHunks}
+				onApplyPatch={props.onApplyPatch}
+				onUndoPatch={props.onUndoPatch}
+				onReapplyPatch={props.onReapplyPatch}
 			/>
 		);
 	}
 
+	// Type-specific dispatch
 	switch (artifact.type) {
 		case 'markdown':
-			return (
-				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3">
-					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-stone-500">
-						Markdown
-					</div>
-					<CodeSnippet code={artifact.content} language="Markdown" compact />
-					{onInsertArtifact ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{insertionState?.status === 'inserted' ? (
-								<>
-									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-										Inserted Onto Canvas
-									</div>
-									{onUndoInsertedArtifact ? (
-										<button
-											type="button"
-											onClick={() => onUndoInsertedArtifact(artifactKey)}
-											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
-										>
-											Undo Insert
-										</button>
-									) : null}
-								</>
-							) : (
-								<button
-									type="button"
-									onClick={() => onInsertArtifact(artifactKey, artifact)}
-									className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-								>
-									Insert On Canvas
-								</button>
-							)}
-						</div>
-					) : null}
-				</div>
-			);
+			return <CodeArtifactCard {...props} label="Markdown" language="Markdown" />;
 		case 'kanban-ops':
-			return (
-				<div className="rounded-[10px] border border-indigo-200 bg-indigo-50 p-3">
-					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-600">
-						Kanban Ops
-					</div>
-					<CodeSnippet code={artifact.content} language="JSON" compact />
-					{onInsertArtifact ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{insertionState?.status === 'inserted' ? (
-								<>
-									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-										Inserted Onto Canvas
-									</div>
-									{onUndoInsertedArtifact ? (
-										<button
-											type="button"
-											onClick={() => onUndoInsertedArtifact(artifactKey)}
-											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
-										>
-											Undo Insert
-										</button>
-									) : null}
-								</>
-							) : (
-								<button
-									type="button"
-									onClick={() => onInsertArtifact(artifactKey, artifact)}
-									className="inline-flex h-8 items-center justify-center rounded-[7px] border border-indigo-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-indigo-700 transition-colors hover:border-indigo-400 hover:bg-indigo-100"
-								>
-									Insert On Canvas
-								</button>
-							)}
-						</div>
-					) : null}
-				</div>
-			);
+			return <KanbanArtifactCard {...props} />;
 		case 'prototype-files':
-			return (
-				<div className="rounded-[10px] border border-sky-200 bg-sky-50 p-3">
-					<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-sky-700">
-						Prototype Files
-					</div>
-					<CodeSnippet code={artifact.content} language="JSON" compact />
-					{onInsertArtifact ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{insertionState?.status === 'inserted' ? (
-								<>
-									<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-										Inserted Onto Canvas
-									</div>
-									{onUndoInsertedArtifact ? (
-										<button
-											type="button"
-											onClick={() => onUndoInsertedArtifact(artifactKey)}
-											className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
-										>
-											Undo Insert
-										</button>
-									) : null}
-								</>
-							) : (
-								<button
-									type="button"
-									onClick={() => onInsertArtifact(artifactKey, artifact)}
-									className="inline-flex h-8 items-center justify-center rounded-[7px] border border-sky-300 bg-white px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-sky-700 transition-colors hover:border-sky-400 hover:bg-sky-100"
-								>
-									Apply Prototype
-								</button>
-							)}
-						</div>
-					) : null}
-				</div>
-			);
+			return <PrototypeArtifactCard {...props} />;
 		case 'image':
-			const imageAsset = parseStoredAssistantAssetContent(artifact.content);
-			const isSketchRasterFallback =
-				generationMode === 'sketch' &&
-				!hasVectorCompanionArtifact &&
-				imageAsset?.mimeType !== 'image/svg+xml';
-			return (
-				<div className="rounded-[10px] border border-stone-200 bg-stone-50 p-3 text-[11px] text-stone-600">
-					<StoredAssetPreview artifact={artifact} />
-					{isSketchRasterFallback ? (
-						<div className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-							<div className="font-semibold">
-								Server vectorization was not available for this run.
-							</div>
-							<div className="mt-1">
-								This result is a raster sketch preview. You can still trace this exact image into
-								native Excalidraw elements locally, or insert the raster preview as-is.
-							</div>
-						</div>
-					) : null}
-					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Image" compact />
-					{onInsertArtifact ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{insertionState?.status === 'inserted' ? (
-								<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-									Inserted Onto Canvas
-								</div>
-							) : null}
-							{insertionState?.status === 'inserted' && onUndoInsertedArtifact ? (
-								<button
-									type="button"
-									onClick={() => onUndoInsertedArtifact(artifactKey)}
-									className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
-								>
-									Undo Last Insert
-								</button>
-							) : null}
-							{isSketchRasterFallback && onVectorizeArtifact ? (
-								<button
-									type="button"
-									onClick={() => onVectorizeArtifact(artifactKey, artifact)}
-									className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-								>
-									Insert Native Vector
-								</button>
-							) : null}
-							<button
-								type="button"
-								onClick={() => onInsertArtifact(artifactKey, artifact)}
-								className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-							>
-								{isSketchRasterFallback ? 'Insert Raster Sketch' : 'Insert Image'}
-							</button>
-						</div>
-					) : null}
-				</div>
-			);
+			return <ImageArtifactCard {...props} />;
 		case 'image-vector':
-			return (
-				<div className="rounded-[10px] border border-emerald-200 bg-emerald-50 p-3 text-[11px] text-emerald-900">
-					<StoredAssetPreview artifact={artifact} />
-					<CodeSnippet code={describeAssistantArtifact(artifact)} language="Vector Asset" compact />
-					{onInsertArtifact ? (
-						<div className="mt-3 flex flex-wrap gap-2">
-							{insertionState?.status === 'inserted' ? (
-								<div className="inline-flex h-8 items-center justify-center rounded-[7px] border border-emerald-200 bg-emerald-50 px-3 text-[9px] font-semibold uppercase tracking-[0.18em] text-emerald-700">
-									Inserted Onto Canvas
-								</div>
-							) : null}
-							{insertionState?.status === 'inserted' && onUndoInsertedArtifact ? (
-								<button
-									type="button"
-									onClick={() => onUndoInsertedArtifact(artifactKey)}
-									className={`${PANEL_BUTTON} ${PANEL_BUTTON_DANGER}`}
-								>
-									Undo Last Insert
-								</button>
-							) : null}
-							<button
-								type="button"
-								onClick={() => onInsertArtifact(artifactKey, artifact)}
-								className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-							>
-								Insert Native Vector
-							</button>
-						</div>
-					) : null}
-				</div>
-			);
+			return <ImageVectorArtifactCard {...props} />;
 		case 'layout-plan':
-			return (
-				<div className="rounded-[10px] border border-amber-200 bg-amber-50 p-3">
-					<details>
-						<summary className="cursor-pointer text-[9px] font-semibold uppercase tracking-[0.2em] text-amber-700">
-							Layout Plan
-						</summary>
-						<div className="mt-3">
-							<CodeSnippet code={artifact.content} language="JSON" compact />
-						</div>
-					</details>
-				</div>
-			);
+			return <LayoutPlanArtifactCard artifact={artifact} />;
 		default:
 			return null;
 	}
 }
+
+// Public API: export ArtifactCard as AIChatArtifactCard for backward compatibility
+export { ArtifactCard as AIChatArtifactCard };

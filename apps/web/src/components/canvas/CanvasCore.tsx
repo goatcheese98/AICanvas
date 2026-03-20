@@ -14,6 +14,13 @@ import {
 	cloneExcalidrawFiles,
 } from './excalidraw-store-sync';
 
+const CANVAS_UI_OPTIONS = {
+	canvasActions: {
+		loadScene: false,
+		export: false,
+	},
+} as const;
+
 interface CanvasCoreProps {
 	canvasId: string;
 	onSaveNeeded?: (
@@ -116,11 +123,15 @@ export function CanvasCore({
 
 	const handleApiReady = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
-			if (apiRef.current === api) {
+			if (apiRef.current) {
 				return;
 			}
 			apiRef.current = api;
-			setExcalidrawApi(api);
+			queueMicrotask(() => {
+				if (apiRef.current === api) {
+					setExcalidrawApi(api);
+				}
+			});
 		},
 		[setExcalidrawApi],
 	);
@@ -188,12 +199,7 @@ export function CanvasCore({
 				initialData={initialData}
 				onChange={handleChange}
 				onPointerUpdate={handlePointerUpdate}
-				UIOptions={{
-					canvasActions: {
-						loadScene: false,
-						export: false,
-					},
-				}}
+				UIOptions={CANVAS_UI_OPTIONS}
 			/>
 		</div>
 	);

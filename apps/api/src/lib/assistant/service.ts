@@ -36,17 +36,9 @@ import {
 	buildMermaidDraftFromHistory,
 	buildSvgPlaceholderDraft,
 } from './service/fallback-drafts';
-import { expectsFunctionalPrototype } from './service/text-utils';
-import { buildPromptDrivenPrototype } from './service/prototype-generators';
-import {
-	buildPrototypeDraft,
-	isFunctionalPrototypeOutput,
-	isStarterPrototypeOutput,
-	parsePrototypeArtifactContent,
-	serializePrototypeArtifact,
-} from './service/prototype-helpers';
+import { parsePrototypeArtifactContent, serializePrototypeArtifact } from './service/prototype-helpers';
+import { executePrototypeRun } from './service/prototype-runner';
 import { buildSelectedEditDraft } from './service/selection-edits';
-import { sentenceCase } from './service/service-utils';
 import type { AssistantDraft, AssistantServiceInput, AssistantServiceResult } from './types';
 
 function buildDraft(input: AssistantServiceInput): AssistantDraft {
@@ -66,7 +58,12 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 		case 'svg':
 			return buildSvgPlaceholderDraft(input);
 		case 'prototype':
-			return buildPrototypeDraft(input);
+			return {
+				content: [
+					'Prototype generation requires a valid AI-authored prototype JSON payload.',
+					'No prototype was created because the model response was unavailable or invalid.',
+				].join('\n\n'),
+			};
 		case 'chat':
 		default:
 			return buildChatDraft(input);
@@ -150,46 +147,44 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 	}
 
 	if (generationMode === 'prototype') {
-		const currentPrototypeJson = input.prototypeContext
-			? JSON.stringify(
-					{
-						title: input.prototypeContext.title,
-						template: input.prototypeContext.template,
-						activeFile: input.prototypeContext.activeFile,
-						dependencies: input.prototypeContext.dependencies ?? {},
-						preview: input.prototypeContext.preview,
-						files: input.prototypeContext.files,
-					},
-					null,
-					2,
-				)
-			: undefined;
-		const completion = await createAnthropicMessage(input.bindings, {
-			system: systemPrompt,
-			messages: buildAnthropicConversation(
-				input,
-				buildPrototypePrompt(input.message, currentPrototypeJson),
-			),
-			maxTokens: 4000,
+		const prototypeRun = await executePrototypeRun({
+			input: {
+				...input,
+				bindings: input.bindings,
+			},
+			systemPrompt,
 		});
-		const json = extractCodeBlock(completion.text, 'json') ?? completion.text.trim();
-		const prototype = parsePrototypeArtifactContent(json);
-		if (
-			!prototype ||
-			isStarterPrototypeOutput(prototype) ||
-			!isFunctionalPrototypeOutput(prototype, input.message)
-		) {
-			return null;
+		if (!prototypeRun.ok) {
+			return {
+				content: [
+					`Prototype generation failed validation after ${prototypeRun.attempts} attempt${prototypeRun.attempts === 1 ? '' : 's'}.`,
+					'',
+					'Last validation issues:',
+					...prototypeRun.diagnostics
+						.slice(0, 8)
+						.map((diagnostic) =>
+							`- ${diagnostic.path ? `${diagnostic.path}${diagnostic.line ? `:${diagnostic.line}` : ''}` : diagnostic.source}: ${diagnostic.message}`,
+						),
+				].join('\n'),
+			};
 		}
 		return {
 			content: [
 				'Prepared prototype files for the canvas.',
 				'',
-				`Prototype: ${prototype.title}`,
+				`Prototype: ${prototypeRun.prototype.title}`,
+				...(prototypeRun.attempts > 1
+					? [`Validation passes: ${prototypeRun.attempts}`]
+					: []),
 				'',
 				'The response includes a full multi-file prototype payload for the custom runtime.',
 			].join('\n'),
-			artifacts: [{ type: 'prototype-files', content: serializePrototypeArtifact(prototype) }],
+			artifacts: [
+				{
+					type: 'prototype-files',
+					content: serializePrototypeArtifact(prototypeRun.prototype),
+				},
+			],
 		};
 	}
 

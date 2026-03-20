@@ -1,34 +1,32 @@
 /**
- * Registry hook for canvas tour page.
+ * Canvas Tour Registry Hook - Orchestrator
  *
- * Container/Hook/Child Pattern:
- * - Manages registered scene library persistence
- * - Handles CRUD operations for scene registration
- * - Manages overlay draft state
+ * Composes domain-specific hooks:
+ * - useTourSceneRegistry: Scene definitions and lookups
+ * - useTourNavigation: Chapter navigation
+ * - useTourCapture: Scene capture/restore
+ * - useTourChapterState: Chapter completion tracking
+ *
+ * Target: ~80 lines of orchestration only.
  */
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { BinaryFileData } from '@excalidraw/excalidraw/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { CanvasTourChapter, CanvasTourGuideOverlay } from './canvas-tour-content';
 import { canvasTourChapters } from './canvas-tour-content';
-import type {
-	RegisteredTourSceneLibrary,
-	RegisteredTourSceneSnapshot,
-} from './canvas-tour-registry';
-import {
-	clearRegisteredTourScenes,
-	loadRegisteredTourScenes,
-	persistRegisteredTourScenes,
-} from './canvas-tour-registry';
-import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
 	ApplySceneSnapshotOptions,
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
 } from './useCanvasTourSceneController';
+import type { RegisteredTourSceneSnapshot } from './canvas-tour-registry';
+import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
+import type { RegisteredTourSceneLibrary } from './canvas-tour-registry';
 import type { CanvasTourRegistryState, CanvasTourRegistryActions } from './canvas-tour-types';
+import { useTourSceneRegistry, buildDefaultSceneSnapshot } from './hooks/useTourSceneRegistry';
+import { useTourCapture, type CaptureMode } from './hooks/useTourCapture';
 
 export interface UseCanvasTourRegistryResult extends CanvasTourRegistryState, CanvasTourRegistryActions {
 	activeChapter: CanvasTourChapter;
@@ -36,9 +34,7 @@ export interface UseCanvasTourRegistryResult extends CanvasTourRegistryState, Ca
 	getDefaultSceneForId: (sceneId: string) => RegisteredTourSceneSnapshot;
 	getRegisteredSceneForId: (sceneId: string) => RegisteredTourSceneSnapshot | null;
 	resolveChapter: (sceneId: string) => CanvasTourChapter;
-	setGuideBaseline: React.Dispatch<
-		React.SetStateAction<{ elements: ExcalidrawElement[]; camera: CameraTarget }>
-	>;
+	setGuideBaseline: React.Dispatch<React.SetStateAction<{ elements: ExcalidrawElement[]; camera: CameraTarget }>>;
 	setGuideOverlay: React.Dispatch<React.SetStateAction<CanvasTourGuideOverlay>>;
 	setOverlayDraft: React.Dispatch<React.SetStateAction<CanvasTourGuideOverlay>>;
 }
@@ -48,344 +44,175 @@ interface UseCanvasTourRegistryArgs {
 	setActiveTool: (tool: TourTool) => void;
 }
 
-function getChapterById(sceneId: string, fallback: CanvasTourChapter): CanvasTourChapter {
-	return canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? fallback;
-}
-
-export function useCanvasTourRegistry({
-	isGuideMode,
-	setActiveTool,
-}: UseCanvasTourRegistryArgs): UseCanvasTourRegistryResult {
+export function useCanvasTourRegistry({ isGuideMode, setActiveTool }: UseCanvasTourRegistryArgs): UseCanvasTourRegistryResult {
+	// Core refs
 	const imageId = TOUR_IMAGE_FILE_ID;
 	const activeChapter = canvasTourChapters[0];
 	const defaultSceneId = activeChapter?.id ?? 'canvas-tour-default';
 	const defaultOverlay = activeChapter.overlay;
 
-	const defaultScene = useMemo(() => {
-		const result = createCanvasTourScene(imageId);
-		return { ...result, imageId };
-	}, [imageId]);
+	// Default scene elements
+	const defaultScene = useMemo(() => ({ ...createCanvasTourScene(imageId), imageId }), [imageId]);
 
-	const [registeredSceneLibrary, setRegisteredSceneLibrary] =
-		useState<RegisteredTourSceneLibrary | null>(() => loadRegisteredTourScenes());
-
-	const initialRegisteredScene = registeredSceneLibrary?.scenes[defaultSceneId] ?? null;
-
-	const [guideBaseline, setGuideBaseline] = useState<{ elements: ExcalidrawElement[]; camera: CameraTarget }>(() => ({
-		elements: (initialRegisteredScene?.elements ?? defaultScene.elements) as ExcalidrawElement[],
-		camera: initialRegisteredScene?.camera ?? activeChapter.camera,
-	}));
-
-	const [guideOverlay, setGuideOverlay] = useState<CanvasTourGuideOverlay>(
-		initialRegisteredScene?.overlay ?? defaultOverlay,
-	);
-
-	const [devCaptureStatus, setDevCaptureStatus] = useState<string | null>(null);
+	// Domain hooks
+	const sceneRegistry = useTourSceneRegistry();
+	
+	// Registry state (managed locally, not in sub-hook due to init load pattern)
 	const [registrySceneId, setRegistrySceneId] = useState(defaultSceneId);
-	const [registryCaptureMode, setRegistryCaptureMode] = useState<'full' | 'camera' | 'elements'>(
-		'full',
-	);
-	const [overlayDraft, setOverlayDraft] = useState<CanvasTourGuideOverlay>(
-		initialRegisteredScene?.overlay ?? defaultOverlay,
-	);
+	const [registryCaptureMode, setRegistryCaptureMode] = useState<CaptureMode>('full');
+	const [devCaptureStatus, setDevCaptureStatus] = useState<string | null>(null);
 
-	const resolveChapter = useCallback(
-		(sceneId: string) => getChapterById(sceneId, activeChapter),
-		[activeChapter],
-	);
+	// Capture hook (initializes with loaded storage)
+	const capture = useTourCapture({
+		sceneLibrary: null,
+		defaultElements: defaultScene.elements,
+		captureMode: registryCaptureMode,
+	});
 
-	const getDefaultSceneForId = useCallback(
-		(sceneId: string): RegisteredTourSceneSnapshot => {
-			const chapter = resolveChapter(sceneId);
-			return {
-				sceneId,
-				elements: defaultScene.elements,
-				camera: chapter.camera,
-				overlay: chapter.overlay,
-				capturedAt: new Date(0).toISOString(),
-			};
-		},
-		[defaultScene.elements, resolveChapter],
-	);
+	// Initialize library from storage
+	const [registeredSceneLibrary, setRegisteredSceneLibrary] = useState(() => capture.loadFromStorage());
+	
+	// Guide state (derived from initial loaded scene)
+	const initialScene = registeredSceneLibrary?.scenes[defaultSceneId];
+	const [guideBaseline, setGuideBaseline] = useState({
+		elements: (initialScene?.elements ?? defaultScene.elements) as ExcalidrawElement[],
+		camera: initialScene?.camera ?? activeChapter.camera,
+	});
+	const [guideOverlay, setGuideOverlay] = useState(initialScene?.overlay ?? defaultOverlay);
+	const [overlayDraft, setOverlayDraft] = useState(initialScene?.overlay ?? defaultOverlay);
 
-	const getRegisteredSceneForId = useCallback(
-		(sceneId: string) => registeredSceneLibrary?.scenes[sceneId] ?? null,
-		[registeredSceneLibrary],
-	);
+	// Getters
+	const getDefaultSceneForId = useCallback((id: string) => buildDefaultSceneSnapshot(id, defaultScene.elements) as RegisteredTourSceneSnapshot, [defaultScene.elements]);
+	const getRegisteredSceneForId = useCallback((id: string) => registeredSceneLibrary?.scenes[id] ?? null, [registeredSceneLibrary]);
+	const resolveChapter = useCallback((id: string) => sceneRegistry.getChapterById(id) ?? activeChapter, [sceneRegistry, activeChapter]);
 
-	// Derived state pattern: compute next overlay from registrySceneId
-	const nextOverlayFromRegistry = useMemo(
-		() =>
-			getRegisteredSceneForId(registrySceneId)?.overlay ?? resolveChapter(registrySceneId).overlay,
-		[getRegisteredSceneForId, registrySceneId, resolveChapter],
-	);
-
-	// Sync overlayDraft when registry scene changes using ref comparison
-	const prevOverlayRef = useRef(nextOverlayFromRegistry);
-	if (nextOverlayFromRegistry !== prevOverlayRef.current) {
-		prevOverlayRef.current = nextOverlayFromRegistry;
-		setOverlayDraft(nextOverlayFromRegistry);
-	}
-
-	const registerCurrentLayout = useCallback(
-		(
-			getCurrentSceneSnapshot: () => CanvasSceneSnapshot,
-			createCameraFromAppState: (appState: Partial<unknown>) => CameraTarget,
-			applySceneSnapshot: (
-				snapshot: CanvasSceneSnapshot,
-				options?: ApplySceneSnapshotOptions,
-			) => void,
-		) => {
-			if (isGuideMode) {
-				setDevCaptureStatus('Switch to Explore Demo before registering a layout.');
-				return;
-			}
-			const snapshot = getCurrentSceneSnapshot();
-			const camera = createCameraFromAppState(snapshot.appState);
-			const previousScene =
-				getRegisteredSceneForId(registrySceneId) ?? getDefaultSceneForId(registrySceneId);
-			const nextScene: RegisteredTourSceneSnapshot = {
-				sceneId: registrySceneId,
-				elements: registryCaptureMode === 'camera' ? previousScene.elements : snapshot.elements,
-				camera: registryCaptureMode === 'elements' ? previousScene.camera : camera,
-				overlay: previousScene.overlay,
-				capturedAt: new Date().toISOString(),
-			};
-			const nextLibrary: RegisteredTourSceneLibrary = {
-				scenes: {
-					...(registeredSceneLibrary?.scenes ?? {}),
-					[registrySceneId]: nextScene,
-				},
-				updatedAt: nextScene.capturedAt,
-			};
-			persistRegisteredTourScenes(nextLibrary);
-			setRegisteredSceneLibrary(nextLibrary);
-			if (registrySceneId === activeChapter.id) {
-				setGuideBaseline({
-					elements: nextScene.elements,
-					camera: nextScene.camera,
-				});
-				setGuideOverlay(nextScene.overlay);
-			}
-			const scopeLabel =
-				registryCaptureMode === 'full'
-					? 'scene + camera'
-					: registryCaptureMode === 'camera'
-						? 'camera'
-						: 'elements';
-			setDevCaptureStatus(
-				`Registered ${scopeLabel} for ${resolveChapter(registrySceneId).label.toLowerCase()}.`,
-			);
-			void applySceneSnapshot;
-		},
-		[
-			activeChapter.id,
-			getDefaultSceneForId,
-			getRegisteredSceneForId,
-			isGuideMode,
-			registeredSceneLibrary?.scenes,
-			registryCaptureMode,
-			registrySceneId,
-			resolveChapter,
-		],
-	);
-
-	const restoreRegisteredLayout = useCallback(
-		(
-			imageFileData: BinaryFileData | null,
-			buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
-			buildExploreAppState: (camera: CameraTarget) => Partial<unknown>,
-			applySceneSnapshot: (
-				snapshot: CanvasSceneSnapshot,
-				options?: ApplySceneSnapshotOptions,
-			) => void,
-			setExploreSessionSnapshot: (snapshot: CanvasSceneSnapshot | null) => void,
-		) => {
-			const registered = getRegisteredSceneForId(registrySceneId);
-			if (!registered) {
-				setDevCaptureStatus(
-					`No registered layout found for ${resolveChapter(registrySceneId).label.toLowerCase()}.`,
-				);
-				return;
-			}
-			if (registrySceneId === activeChapter.id) {
-				setGuideBaseline({
-					elements: registered.elements,
-					camera: registered.camera,
-				});
-				setGuideOverlay(registered.overlay);
-			}
-			setOverlayDraft(registered.overlay);
-			const registeredFiles = imageFileData ? { [imageFileData.id]: imageFileData } : {};
-			const registeredSnapshot: CanvasSceneSnapshot = {
-				elements: registered.elements,
-				appState: buildExploreAppState(registered.camera),
-				files: registeredFiles,
-			};
-			if (isGuideMode) {
-				applySceneSnapshot(
-					{
-						elements: registered.elements,
-						appState: buildGuideAppState(registered.camera),
-						files: registeredFiles,
-					},
-					{ preserveSelection: false, cameraOverride: registered.camera },
-				);
-				setActiveTool('selection');
-			} else {
-				setExploreSessionSnapshot(registeredSnapshot);
-				applySceneSnapshot(registeredSnapshot, { preserveSelection: true });
-			}
-			setDevCaptureStatus(`Loaded ${resolveChapter(registrySceneId).label.toLowerCase()} layout.`);
-		},
-		[activeChapter.id, getRegisteredSceneForId, isGuideMode, registrySceneId, resolveChapter, setActiveTool],
-	);
-
-	const clearRegisteredLayout = useCallback(
-		(
-			imageFileData: BinaryFileData | null,
-			buildGuideAppState: (camera: CameraTarget) => Partial<unknown>,
-			applySceneSnapshot: (
-				snapshot: CanvasSceneSnapshot,
-				options?: ApplySceneSnapshotOptions,
-			) => void,
-		) => {
-			const nextScenes = { ...(registeredSceneLibrary?.scenes ?? {}) };
-			delete nextScenes[registrySceneId];
-			const hasScenes = Object.keys(nextScenes).length > 0;
-			const nextLibrary = hasScenes
-				? {
-						scenes: nextScenes,
-						updatedAt: new Date().toISOString(),
-					}
-				: null;
-			if (nextLibrary) {
-				persistRegisteredTourScenes(nextLibrary);
-			} else {
-				clearRegisteredTourScenes();
-			}
-			setRegisteredSceneLibrary(nextLibrary);
-			if (registrySceneId === activeChapter.id) {
-				setGuideBaseline({
-					elements: defaultScene.elements,
-					camera: activeChapter.camera,
-				});
-				setGuideOverlay(activeChapter.overlay);
-			}
-			setOverlayDraft(resolveChapter(registrySceneId).overlay);
-			if (isGuideMode && registrySceneId === activeChapter.id) {
-				applySceneSnapshot(
-					{
-						elements: defaultScene.elements,
-						appState: buildGuideAppState(activeChapter.camera),
-						files: imageFileData ? { [imageFileData.id]: imageFileData } : {},
-					},
-					{ preserveSelection: false, cameraOverride: activeChapter.camera },
-				);
-				setActiveTool('selection');
-			}
-			setDevCaptureStatus(`Cleared ${resolveChapter(registrySceneId).label.toLowerCase()} layout.`);
-		},
-		[
-			activeChapter.camera,
-			activeChapter.id,
-			activeChapter.overlay,
-			defaultScene.elements,
-			isGuideMode,
-			registeredSceneLibrary?.scenes,
-			registrySceneId,
-			resolveChapter,
-			setActiveTool,
-		],
-	);
-
-	const saveOverlayDraft = useCallback(() => {
-		const previousScene =
-			getRegisteredSceneForId(registrySceneId) ?? getDefaultSceneForId(registrySceneId);
+	// Action: Register current layout
+	const registerCurrentLayout = useCallback((
+		getSnapshot: () => CanvasSceneSnapshot,
+		createCamera: (appState: Partial<unknown>) => CameraTarget,
+		applySnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void
+	) => {
+		void applySnapshot;
+		if (isGuideMode) return setDevCaptureStatus('Switch to Explore Demo before registering.');
+		
+		const snapshot = getSnapshot();
+		const camera = createCamera(snapshot.appState);
+		const prev = getRegisteredSceneForId(registrySceneId) ?? getDefaultSceneForId(registrySceneId);
+		const mode = registryCaptureMode;
+		
 		const nextScene: RegisteredTourSceneSnapshot = {
-			...previousScene,
-			overlay: overlayDraft,
+			sceneId: registrySceneId,
+			elements: mode === 'camera' ? prev.elements : snapshot.elements as ExcalidrawElement[],
+			camera: mode === 'elements' ? prev.camera : camera,
+			overlay: prev.overlay,
 			capturedAt: new Date().toISOString(),
 		};
-		const nextLibrary: RegisteredTourSceneLibrary = {
-			scenes: {
-				...(registeredSceneLibrary?.scenes ?? {}),
-				[registrySceneId]: nextScene,
-			},
-			updatedAt: nextScene.capturedAt,
-		};
-		persistRegisteredTourScenes(nextLibrary);
+		
+		const nextLibrary = { scenes: { ...registeredSceneLibrary?.scenes, [registrySceneId]: nextScene }, updatedAt: nextScene.capturedAt };
 		setRegisteredSceneLibrary(nextLibrary);
+		capture.persistCapture(nextScene);
+		
 		if (registrySceneId === activeChapter.id) {
-			setGuideOverlay(overlayDraft);
+			setGuideBaseline({ elements: nextScene.elements, camera: nextScene.camera });
+			setGuideOverlay(nextScene.overlay);
 		}
-		setDevCaptureStatus(
-			`Saved overlay editor changes for ${resolveChapter(registrySceneId).label.toLowerCase()}.`,
-		);
-	}, [
-		activeChapter.id,
-		getDefaultSceneForId,
-		getRegisteredSceneForId,
-		overlayDraft,
-		registeredSceneLibrary?.scenes,
-		registrySceneId,
-		resolveChapter,
-	]);
+		setDevCaptureStatus(`Registered ${mode} for ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
+	}, [isGuideMode, registrySceneId, registryCaptureMode, registeredSceneLibrary, activeChapter.id, getDefaultSceneForId, getRegisteredSceneForId, resolveChapter, capture]);
+
+	// Action: Restore layout
+	const restoreRegisteredLayout = useCallback((
+		imageFileData: BinaryFileData | null,
+		buildGuide: (camera: CameraTarget) => Partial<unknown>,
+		buildExplore: (camera: CameraTarget) => Partial<unknown>,
+		applySnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void,
+		setExploreSession: (snapshot: CanvasSceneSnapshot | null) => void
+	) => {
+		const registered = getRegisteredSceneForId(registrySceneId);
+		if (!registered) return setDevCaptureStatus(`No registered layout for ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
+		
+		if (registrySceneId === activeChapter.id) {
+			setGuideBaseline({ elements: registered.elements, camera: registered.camera });
+			setGuideOverlay(registered.overlay);
+		}
+		setOverlayDraft(registered.overlay);
+		
+		const files = imageFileData ? { [imageFileData.id]: imageFileData } : {};
+		const snapshot = { elements: registered.elements, appState: isGuideMode ? buildGuide(registered.camera) : buildExplore(registered.camera), files };
+		
+		if (isGuideMode) {
+			applySnapshot({ ...snapshot, appState: buildGuide(registered.camera) }, { preserveSelection: false, cameraOverride: registered.camera });
+			setActiveTool('selection');
+		} else {
+			setExploreSession(snapshot);
+			applySnapshot(snapshot, { preserveSelection: true });
+		}
+		setDevCaptureStatus(`Loaded ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
+	}, [isGuideMode, registrySceneId, activeChapter.id, getRegisteredSceneForId, resolveChapter, setActiveTool]);
+
+	// Action: Clear layout
+	const clearRegisteredLayout = useCallback((
+		imageFileData: BinaryFileData | null,
+		buildGuide: (camera: CameraTarget) => Partial<unknown>,
+		applySnapshot: (snapshot: CanvasSceneSnapshot, options?: ApplySceneSnapshotOptions) => void
+	) => {
+		const scenes = { ...registeredSceneLibrary?.scenes };
+		delete scenes[registrySceneId];
+		const nextLibrary = Object.keys(scenes).length > 0 ? { scenes, updatedAt: new Date().toISOString() } : null;
+		setRegisteredSceneLibrary(nextLibrary);
+		if (!nextLibrary) capture.clearAllScenes();
+		
+		if (registrySceneId === activeChapter.id) {
+			setGuideBaseline({ elements: defaultScene.elements, camera: activeChapter.camera });
+			setGuideOverlay(activeChapter.overlay);
+		}
+		setOverlayDraft(resolveChapter(registrySceneId).overlay);
+		
+		if (isGuideMode && registrySceneId === activeChapter.id) {
+			applySnapshot({ elements: defaultScene.elements, appState: buildGuide(activeChapter.camera), files: imageFileData ? { [imageFileData.id]: imageFileData } : {} }, { preserveSelection: false, cameraOverride: activeChapter.camera });
+			setActiveTool('selection');
+		}
+		setDevCaptureStatus(`Cleared ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
+	}, [isGuideMode, registrySceneId, activeChapter, defaultScene.elements, registeredSceneLibrary, resolveChapter, capture, setActiveTool]);
+
+	// Overlay actions
+	const saveOverlayDraft = useCallback(() => {
+		const prev = getRegisteredSceneForId(registrySceneId) ?? (getDefaultSceneForId(registrySceneId) as RegisteredTourSceneSnapshot);
+		const nextScene: RegisteredTourSceneSnapshot = { ...prev, overlay: overlayDraft, capturedAt: new Date().toISOString() };
+		const nextLibrary: RegisteredTourSceneLibrary = { scenes: { ...registeredSceneLibrary?.scenes, [registrySceneId]: nextScene }, updatedAt: nextScene.capturedAt };
+		setRegisteredSceneLibrary(nextLibrary);
+		capture.persistCapture(nextScene);
+		if (registrySceneId === activeChapter.id) setGuideOverlay(overlayDraft);
+		setDevCaptureStatus(`Saved overlay for ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
+	}, [overlayDraft, registrySceneId, activeChapter.id, registeredSceneLibrary, getDefaultSceneForId, getRegisteredSceneForId, resolveChapter, capture]);
 
 	const applyOverlayDraft = useCallback(() => {
 		if (registrySceneId === activeChapter.id) {
 			setGuideOverlay(overlayDraft);
-			setDevCaptureStatus('Overlay draft is now live on the active scene.');
-			return;
+			setDevCaptureStatus('Overlay live on active scene.');
+		} else {
+			setDevCaptureStatus('Overlay updated. Save to register.');
 		}
-		setDevCaptureStatus('Overlay draft updated. Save it to register this scene.');
-	}, [activeChapter.id, overlayDraft, registrySceneId]);
+	}, [overlayDraft, registrySceneId, activeChapter.id]);
 
 	const copyRegisteredLayout = useCallback(async () => {
 		if (typeof window === 'undefined') return;
 		const registered = getRegisteredSceneForId(registrySceneId);
-		if (!registered) {
-			setDevCaptureStatus(
-				`No registered layout to copy for ${resolveChapter(registrySceneId).label.toLowerCase()}.`,
-			);
-			return;
-		}
+		if (!registered) return setDevCaptureStatus(`No layout to copy for ${resolveChapter(registrySceneId).label.toLowerCase()}.`);
 		try {
-			await window.navigator.clipboard.writeText(JSON.stringify(registered, null, 2));
-			setDevCaptureStatus('Copied registered layout JSON.');
+			await navigator.clipboard.writeText(JSON.stringify(registered, null, 2));
+			setDevCaptureStatus('Copied layout JSON.');
 		} catch {
-			setDevCaptureStatus('Could not copy layout JSON.');
+			setDevCaptureStatus('Copy failed.');
 		}
-	}, [getRegisteredSceneForId, registrySceneId, resolveChapter]);
+	}, [registrySceneId, getRegisteredSceneForId, resolveChapter]);
 
-	return {
-		// Core data
-		activeChapter,
-		defaultScene,
-		// State
-		registeredSceneLibrary,
-		registrySceneId,
-		registryCaptureMode,
-		guideBaseline,
-		guideOverlay,
-		overlayDraft,
-		devCaptureStatus,
-		// Getters
-		getDefaultSceneForId,
-		getRegisteredSceneForId,
-		resolveChapter,
-		// Setters (needed by orchestrator)
-		setGuideBaseline,
-		setGuideOverlay,
-		setOverlayDraft,
-		// Actions
-		registerCurrentLayout,
-		restoreRegisteredLayout,
-		clearRegisteredLayout,
-		saveOverlayDraft,
-		applyOverlayDraft,
-		copyRegisteredLayout,
-		setRegistrySceneId,
-		setRegistryCaptureMode,
-	};
+	return useMemo(() => ({
+		activeChapter, defaultScene, registeredSceneLibrary, registrySceneId, registryCaptureMode,
+		guideBaseline, guideOverlay, overlayDraft, devCaptureStatus,
+		getDefaultSceneForId, getRegisteredSceneForId, resolveChapter,
+		setGuideBaseline, setGuideOverlay, setOverlayDraft,
+		registerCurrentLayout, restoreRegisteredLayout, clearRegisteredLayout,
+		saveOverlayDraft, applyOverlayDraft, copyRegisteredLayout,
+		setRegistrySceneId, setRegistryCaptureMode,
+	}), [activeChapter, defaultScene, registeredSceneLibrary, registrySceneId, registryCaptureMode, guideBaseline, guideOverlay, overlayDraft, devCaptureStatus, getDefaultSceneForId, getRegisteredSceneForId, resolveChapter, registerCurrentLayout, restoreRegisteredLayout, clearRegisteredLayout, saveOverlayDraft, applyOverlayDraft, copyRegisteredLayout]);
 }

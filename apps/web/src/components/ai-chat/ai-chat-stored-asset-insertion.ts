@@ -1,6 +1,6 @@
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
-import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
+import { addObservabilityBreadcrumb, captureBrowserException } from '@/lib/observability';
 import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -17,8 +17,18 @@ import {
 import type { AssistantInsertionState } from './ai-chat-types';
 import {
 	compileRasterBlobToNativeVector,
+	compileSvgMarkupToNativeVector,
+	describeNativeVectorPipelineError,
 	insertNativeVectorElementsOnCanvas,
 } from './ai-chat-vector-insertion';
+
+type StoredAssistantAssetContent = NonNullable<
+	ReturnType<typeof parseStoredAssistantAssetContent>
+>;
+type StoredAssistantAssetReference = StoredAssistantAssetContent & {
+	artifactId: string;
+	runId: string;
+};
 
 function buildDataUrlFromBlob(blob: Blob): Promise<BinaryFileData['dataURL']> {
 	return blob.arrayBuffer().then((buffer) => {
@@ -69,6 +79,84 @@ function constrainImageSize(input: { width: number; height: number }) {
 	};
 }
 
+function requireStoredAssetReference(
+	artifact: AssistantArtifact,
+	setChatError?: (error: string | null) => void,
+): StoredAssistantAssetReference | null {
+	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
+	if (storedAsset?.artifactId && storedAsset.runId) {
+		return {
+			...storedAsset,
+			artifactId: storedAsset.artifactId,
+			runId: storedAsset.runId,
+		};
+	}
+
+	setChatError?.('This generated asset is missing a downloadable reference.');
+	return null;
+}
+
+async function fetchStoredAssetById({
+	runId,
+	artifactId,
+	getToken,
+}: {
+	runId: string;
+	artifactId: string;
+	getToken: () => Promise<string | null>;
+}) {
+	const headers = await getRequiredAuthHeaders(getToken);
+	return fetchAssistantArtifactAsset(runId, artifactId, headers);
+}
+
+function resolveAssetMimeType(
+	downloadedAsset: { mimeType: string },
+	storedAsset: StoredAssistantAssetContent,
+) {
+	return (downloadedAsset.mimeType || storedAsset.mimeType) as BinaryFileData['mimeType'];
+}
+
+function isRasterImageMimeType(mimeType: string) {
+	return mimeType.startsWith('image/') && mimeType !== 'image/svg+xml';
+}
+
+function buildAssetCustomData(
+	artifact: AssistantArtifact,
+	storedAsset: StoredAssistantAssetContent,
+	extra: Record<string, unknown> = {},
+) {
+	return {
+		provider: storedAsset.provider,
+		model: storedAsset.model,
+		prompt: storedAsset.prompt,
+		artifactType: artifact.type,
+		...extra,
+	};
+}
+
+function buildNativeVectorErrorMessage(error: unknown, fallbackMessage: string) {
+	return describeNativeVectorPipelineError(error, fallbackMessage);
+}
+
+function recordImageVectorFallback(
+	storedAsset: StoredAssistantAssetContent,
+	reason: string,
+	mode: 'asset-image' | 'unsupported-native-source',
+) {
+	addObservabilityBreadcrumb(
+		'assistant.vectorization.image_vector_fallback',
+		{
+			mode,
+			reason,
+			sourceArtifactId: storedAsset.sourceArtifactId ?? null,
+			provider: storedAsset.provider ?? null,
+			model: storedAsset.model ?? null,
+		},
+		'warning',
+		'assistant',
+	);
+}
+
 interface StoredAssetInsertionContext {
 	artifact: AssistantArtifact;
 	getToken: () => Promise<string | null>;
@@ -87,31 +175,28 @@ export async function vectorizeRasterAssetOnCanvas({
 	selectedElementIds,
 	setChatError,
 }: Omit<StoredAssetInsertionContext, 'setFiles'>): Promise<AssistantInsertionState | null> {
-	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
-	if (!storedAsset?.artifactId || !storedAsset.runId) {
-		setChatError('This generated asset is missing a downloadable reference.');
+	const storedAsset = requireStoredAssetReference(artifact, setChatError);
+	if (!storedAsset) {
 		return null;
 	}
 
-	const headers = await getRequiredAuthHeaders(getToken);
-	const { blob, mimeType } = await fetchAssistantArtifactAsset(
-		storedAsset.runId,
-		storedAsset.artifactId,
-		headers,
-	);
-	const resolvedMimeType = mimeType || storedAsset.mimeType;
-	if (!resolvedMimeType.startsWith('image/') || resolvedMimeType === 'image/svg+xml') {
+	const downloadedAsset = await fetchStoredAssetById({
+		runId: storedAsset.runId,
+		artifactId: storedAsset.artifactId,
+		getToken,
+	});
+	const resolvedMimeType = resolveAssetMimeType(downloadedAsset, storedAsset);
+	if (!isRasterImageMimeType(resolvedMimeType)) {
 		setChatError('Only raster image assets can be vectorized from this card.');
 		return null;
 	}
 
 	try {
-		const compiled = await compileRasterBlobToNativeVector(blob, {
-			source: 'assistant-raster-vectorizer',
-			provider: storedAsset.provider,
-			model: storedAsset.model,
-			prompt: storedAsset.prompt,
-			artifactType: artifact.type,
+		const compiled = await compileRasterBlobToNativeVector(downloadedAsset.blob, {
+			source: 'artifact-raster',
+			customData: buildAssetCustomData(artifact, storedAsset, {
+				source: 'assistant-raster-vectorizer',
+			}),
 		});
 		return await insertNativeVectorElementsOnCanvas({
 			compiled,
@@ -120,56 +205,117 @@ export async function vectorizeRasterAssetOnCanvas({
 			selectedElementIds,
 		});
 	} catch (error) {
+		captureBrowserException(error, {
+			tags: {
+				area: 'assistant',
+				action: 'vectorize_raster_asset',
+			},
+			extra: {
+				artifactType: artifact.type,
+				mimeType: resolvedMimeType,
+				provider: storedAsset.provider ?? null,
+				model: storedAsset.model ?? null,
+			},
+		});
 		setChatError(
-			error instanceof Error
-				? error.message
-				: 'This raster sketch could not be vectorized natively.',
+			buildNativeVectorErrorMessage(
+				error,
+				'This raster sketch could not be vectorized natively.',
+			),
 		);
 		return null;
 	}
 }
 
-export async function insertSourceRasterAsNativeVector({
+async function insertImageVectorAssetNatively({
 	artifact,
-	getToken,
+	storedAsset,
+	downloadedAsset,
 	excalidrawApi,
 	elements,
 	selectedElementIds,
-}: Omit<
-	StoredAssetInsertionContext,
-	'setFiles' | 'setChatError'
->): Promise<AssistantInsertionState | null> {
-	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
-	if (!storedAsset?.sourceArtifactId || !storedAsset.runId) {
+	getToken,
+}: {
+	artifact: AssistantArtifact;
+	storedAsset: StoredAssistantAssetReference;
+	downloadedAsset: { blob: Blob; mimeType: string };
+	excalidrawApi: ExcalidrawImperativeAPI;
+	elements: readonly ExcalidrawElement[];
+	selectedElementIds: Record<string, boolean>;
+	getToken: () => Promise<string | null>;
+}): Promise<AssistantInsertionState | null> {
+	if (!storedAsset.sourceArtifactId && downloadedAsset.mimeType !== 'image/svg+xml') {
+		recordImageVectorFallback(
+			storedAsset,
+			'Image-vector artifact has no source raster or SVG payload for native insertion.',
+			'unsupported-native-source',
+		);
 		return null;
 	}
 
-	const headers = await getRequiredAuthHeaders(getToken);
-	const sourceAsset = await fetchAssistantArtifactAsset(
-		storedAsset.runId,
-		storedAsset.sourceArtifactId,
-		headers,
-	);
-	const sourceMimeType = sourceAsset.mimeType;
-	if (!sourceMimeType.startsWith('image/') || sourceMimeType === 'image/svg+xml') {
+	if (storedAsset.sourceArtifactId) {
+		try {
+			const sourceAsset = await fetchStoredAssetById({
+				runId: storedAsset.runId,
+				artifactId: storedAsset.sourceArtifactId,
+				getToken,
+			});
+			if (isRasterImageMimeType(sourceAsset.mimeType)) {
+				const compiled = await compileRasterBlobToNativeVector(sourceAsset.blob, {
+					source: 'source-raster',
+					customData: buildAssetCustomData(artifact, storedAsset, {
+						source: 'assistant-source-raster-vectorizer',
+						sourceArtifactId: storedAsset.sourceArtifactId,
+					}),
+				});
+				return await insertNativeVectorElementsOnCanvas({
+					compiled,
+					excalidrawApi,
+					elements,
+					selectedElementIds,
+				});
+			}
+		} catch (error) {
+			recordImageVectorFallback(
+				storedAsset,
+				buildNativeVectorErrorMessage(
+					error,
+					'Source raster insertion failed before SVG fallback.',
+				),
+				'asset-image',
+			);
+		}
+	}
+
+	if (downloadedAsset.mimeType !== 'image/svg+xml') {
+		recordImageVectorFallback(
+			storedAsset,
+			'Downloaded vector artifact is not SVG, so it cannot be compiled natively.',
+			'asset-image',
+		);
 		return null;
 	}
 
-	const compiled = await compileRasterBlobToNativeVector(sourceAsset.blob, {
-		source: 'assistant-source-raster-vectorizer',
-		provider: storedAsset.provider,
-		model: storedAsset.model,
-		prompt: storedAsset.prompt,
-		artifactType: artifact.type,
-		sourceArtifactId: storedAsset.sourceArtifactId,
-	});
-
-	return await insertNativeVectorElementsOnCanvas({
-		compiled,
-		excalidrawApi,
-		elements,
-		selectedElementIds,
-	});
+	try {
+		const svgMarkup = await downloadedAsset.blob.text();
+		const compiled = compileSvgMarkupToNativeVector(svgMarkup, {
+			source: 'stored-svg',
+			customData: buildAssetCustomData(artifact, storedAsset),
+		});
+		return await insertNativeVectorElementsOnCanvas({
+			compiled,
+			excalidrawApi,
+			elements,
+			selectedElementIds,
+		});
+	} catch (error) {
+		recordImageVectorFallback(
+			storedAsset,
+			buildNativeVectorErrorMessage(error, 'SVG native insertion failed.'),
+			'asset-image',
+		);
+		return null;
+	}
 }
 
 export async function insertStoredAssetOnCanvas({
@@ -181,60 +327,34 @@ export async function insertStoredAssetOnCanvas({
 	setFiles,
 	setChatError,
 }: StoredAssetInsertionContext): Promise<AssistantInsertionState | null> {
-	const storedAsset = parseStoredAssistantAssetContent(artifact.content);
-	if (!storedAsset?.artifactId || !storedAsset.runId) {
-		setChatError('This generated asset is missing a downloadable reference.');
+	const storedAsset = requireStoredAssetReference(artifact, setChatError);
+	if (!storedAsset) {
 		return null;
 	}
 
-	const headers = await getRequiredAuthHeaders(getToken);
-	const { blob, mimeType } = await fetchAssistantArtifactAsset(
-		storedAsset.runId,
-		storedAsset.artifactId,
-		headers,
-	);
-	const resolvedMimeType = (mimeType || storedAsset.mimeType) as BinaryFileData['mimeType'];
+	const downloadedAsset = await fetchStoredAssetById({
+		runId: storedAsset.runId,
+		artifactId: storedAsset.artifactId,
+		getToken,
+	});
+	const resolvedMimeType = resolveAssetMimeType(downloadedAsset, storedAsset);
 
 	if (artifact.type === 'image-vector') {
-		try {
-			const nativeSourceInsertion = await insertSourceRasterAsNativeVector({
-				artifact,
-				getToken,
-				excalidrawApi,
-				elements,
-				selectedElementIds,
-			});
-			if (nativeSourceInsertion) {
-				return nativeSourceInsertion;
-			}
-		} catch {
-			// Fall through to SVG/image insertion if the layered native path fails.
+		const nativeVectorInsertion = await insertImageVectorAssetNatively({
+			artifact,
+			storedAsset,
+			downloadedAsset,
+			excalidrawApi,
+			elements,
+			selectedElementIds,
+			getToken,
+		});
+		if (nativeVectorInsertion) {
+			return nativeVectorInsertion;
 		}
 	}
 
-	if (artifact.type === 'image-vector' && resolvedMimeType === 'image/svg+xml') {
-		try {
-			const svgMarkup = await blob.text();
-			const compiled = compileSvgToExcalidraw(svgMarkup, {
-				customData: {
-					provider: storedAsset.provider,
-					model: storedAsset.model,
-					prompt: storedAsset.prompt,
-					artifactType: artifact.type,
-				},
-			});
-			return await insertNativeVectorElementsOnCanvas({
-				compiled,
-				excalidrawApi,
-				elements,
-				selectedElementIds,
-			});
-		} catch {
-			// Fall back to inserting the SVG as an image asset so the user still gets a usable result.
-		}
-	}
-
-	const dataURL = await buildDataUrlFromBlob(blob);
+	const dataURL = await buildDataUrlFromBlob(downloadedAsset.blob);
 	const naturalSize = await getImageDimensions(dataURL);
 	const { width, height } = constrainImageSize(naturalSize);
 	const fileId = crypto.randomUUID() as BinaryFileData['id'];
@@ -262,9 +382,9 @@ export async function insertStoredAssetOnCanvas({
 		height,
 		customData: {
 			type: artifact.type === 'image-vector' ? 'ai-generated-vector-asset' : 'ai-generated-image',
-			provider: storedAsset.provider,
-			model: storedAsset.model,
-			prompt: storedAsset.prompt,
+			...buildAssetCustomData(artifact, storedAsset, {
+				insertMode: 'image-file',
+			}),
 		},
 	});
 
@@ -288,5 +408,6 @@ export async function insertStoredAssetOnCanvas({
 		status: 'inserted',
 		insertedElementIds: [String(imageElement.id)],
 		insertedFileIds: [fileId],
+		insertMode: 'image-file',
 	};
 }

@@ -113,6 +113,19 @@ describe('assistant task execution helpers', () => {
 		expect(summary).not.toContain('placement plan');
 	});
 
+	it('reports prototype run failures without claiming a file bundle was produced', () => {
+		const summary = buildResponseSummary({
+			mode: 'prototype',
+			message: 'build a prototype landing page for prompt workflows',
+			summary: 'Prepared prototype files for the canvas.',
+			artifacts: [],
+		});
+
+		expect(summary).toContain('Prototype generation did not produce a valid file bundle.');
+		expect(summary).toContain('No prototype artifact was stored for this run.');
+		expect(summary).not.toContain('Prepared artifacts:');
+	});
+
 	it('resolves vectorization inputs from the referenced upstream image task', () => {
 		const artifact = resolveSourceArtifactForTask({
 			currentTaskId: 'task-vectorize',

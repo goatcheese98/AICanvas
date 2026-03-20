@@ -1,16 +1,16 @@
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import { useMountEffect } from '../../../hooks/useMountEffect';
 import type { KanbanBoardProps } from './kanban-board-types';
-import {
-	formatRelativeTime,
-	normalizeKanbanBoard,
-	serializeKanbanBoard,
-} from './kanban-utils';
+import { formatRelativeTime, normalizeKanbanBoard } from './kanban-utils';
+import { useKanbanActivity } from './useKanbanActivity';
+import { useKanbanElementLifecycle } from './useKanbanElementLifecycle';
+import { useKanbanExternalSync } from './useKanbanExternalSync';
 import { useKanbanHistory } from './useKanbanHistory';
 import { useKanbanMutations } from './useKanbanMutations';
 import { useKanbanResize } from './useKanbanResize';
+import { useKanbanTitleSync } from './useKanbanTitleSync';
 
 interface UseKanbanBoardStateResult {
 	board: KanbanOverlayCustomData;
@@ -87,90 +87,14 @@ export function useKanbanBoardState({
 	const boardRef = useRef(board);
 	const boardTitleDraftRef = useRef(boardTitleDraft);
 	const onChangeRef = useRef(onChange);
-	const onActivityChangeRef = useRef(onActivityChange);
-	const lastReportedEditingRef = useRef<boolean | null>(null);
-	const externalBoardSignatureRef = useRef(serializeKanbanBoard(normalizedInitialBoard));
-	const lastBoardTitleRef = useRef(normalizedInitialBoard.title);
-	const elementIdRef = useRef(element.id);
 
 	// Update refs on each render (not useEffect)
 	boardRef.current = board;
 	boardTitleDraftRef.current = boardTitleDraft;
 	onChangeRef.current = onChange;
-	onActivityChangeRef.current = onActivityChange;
 
-	const nextExternalBoard = useMemo(
-		() => normalizeKanbanBoard(element.customData),
-		[element.customData],
-	);
-	const nextExternalSignature = useMemo(
-		() => serializeKanbanBoard(nextExternalBoard),
-		[nextExternalBoard],
-	);
-
-	// Track isSelected changes in ref for useEffect
-	const lastIsSelectedForCleanupRef = useRef(isSelected);
-
-	// Sync with external element.customData changes
-	useEffect(() => {
-		if (nextExternalSignature === externalBoardSignatureRef.current) return;
-
-		externalBoardSignatureRef.current = nextExternalSignature;
-		if (serializeKanbanBoard(boardRef.current) === nextExternalSignature) return;
-
-		boardRef.current = nextExternalBoard;
-		setBoard(nextExternalBoard);
-		setBoardTitleDraft((current) =>
-			current === nextExternalBoard.title ? current : nextExternalBoard.title,
-		);
-	}, [nextExternalBoard, nextExternalSignature]);
-
-	// Sync board title draft when board title changes externally
-	useEffect(() => {
-		if (board.title === lastBoardTitleRef.current) return;
-
-		lastBoardTitleRef.current = board.title;
-		setBoardTitleDraft(board.title);
-	}, [board.title]);
-
-	// Activity reporting - track isSelected changes
-	useEffect(() => {
-		if (lastReportedEditingRef.current !== isSelected) {
-			lastReportedEditingRef.current = isSelected;
-			onActivityChangeRef.current?.(isSelected);
-		}
-	}, [isSelected]);
-
-	// Cleanup on unmount
-	useMountEffect(() => {
-		return () => {
-			// Flush draft on unmount
-			const nextTitle = boardTitleDraftRef.current;
-			if (nextTitle.trim().length > 0 && nextTitle !== boardRef.current.title) {
-				const nextBoard = normalizeKanbanBoard({
-					...boardRef.current,
-					title: nextTitle,
-				});
-				boardRef.current = nextBoard;
-				onChangeRef.current(element.id, nextBoard);
-			}
-			if (lastReportedEditingRef.current) {
-				onActivityChangeRef.current?.(false);
-				lastReportedEditingRef.current = false;
-			}
-		};
-	});
-
-	// Extracted hooks - called early so effects can use their returned values
-	const {
-		undoStackRef,
-		redoStackRef,
-		handleUndo,
-		handleRedo,
-		canUndo,
-		canRedo,
-		clearStacks,
-	} = useKanbanHistory({
+	// Extracted sync hooks
+	const { clearStacks, ...history } = useKanbanHistory({
 		elementId: element.id,
 		boardRef,
 		setBoard,
@@ -184,55 +108,50 @@ export function useKanbanBoardState({
 		mode,
 	});
 
-	const {
-		updateBoard,
-		pendingDeleteColumnId,
-		setPendingDeleteColumnId,
-		pendingDeleteCardId,
-		setPendingDeleteCardId,
-		pendingDeleteCardColumnId,
-		setPendingDeleteCardColumnId,
-		pendingDeleteColumn,
-		pendingDeleteCard,
-		clearPendingDeletes,
-		handleColumnChange,
-		handleAddColumn,
-		handleRequestDeleteColumn,
-		handleDeletePendingColumn,
-		handleAddCard,
-		handleUpdateCard,
-		handleRequestDeleteCard,
-		handleCancelDeleteCard,
-		handleDeletePendingCard,
-		handleDeleteCard,
-		handleResetBoard,
-		handleSetFont,
-		handleAdjustFontSize,
-		commitBoardTitle,
-	} = useKanbanMutations({
+	const mutations = useKanbanMutations({
 		elementId: element.id,
 		board,
 		boardRef,
 		setBoard,
 		onChange,
-		undoStackRef,
-		redoStackRef,
+		undoStackRef: history.undoStackRef,
+		redoStackRef: history.redoStackRef,
 		boardTitleDraftRef,
 		setBoardTitleDraft,
 	});
 
-	// Clear history stacks when element ID changes
-	useEffect(() => {
-		if (elementIdRef.current === element.id) return;
-		elementIdRef.current = element.id;
-		clearStacks();
-		clearPendingDeletes();
-	}, [element.id, clearStacks, clearPendingDeletes]);
+	// New focused sync hooks
+	useKanbanExternalSync({
+		element,
+		boardRef,
+		setBoard,
+		setBoardTitleDraft,
+	});
 
-	// Deselect handling - clear UI state and flush draft
-	useEffect(() => {
-		if (lastIsSelectedForCleanupRef.current && !isSelected) {
-			// Flush draft on deselect
+	useKanbanTitleSync({
+		board,
+		setBoardTitleDraft,
+	});
+
+	useKanbanActivity({
+		isSelected,
+		onActivityChange,
+	});
+
+	useKanbanElementLifecycle({
+		element,
+		isSelected,
+		boardRef,
+		boardTitleDraftRef,
+		onChange,
+		setShowSettings,
+		clearPendingDeletes: mutations.clearPendingDeletes,
+		clearStacks,
+	});
+
+	// Cleanup on unmount - flush draft
+	useMountEffect(() => {
+		return () => {
 			const nextTitle = boardTitleDraftRef.current;
 			if (nextTitle.trim().length > 0 && nextTitle !== boardRef.current.title) {
 				const nextBoard = normalizeKanbanBoard({
@@ -242,24 +161,20 @@ export function useKanbanBoardState({
 				boardRef.current = nextBoard;
 				onChangeRef.current(element.id, nextBoard);
 			}
-			// Clear UI state
-			setShowSettings(false);
-			clearPendingDeletes();
-		}
-		lastIsSelectedForCleanupRef.current = isSelected;
-	}, [isSelected, element.id, clearPendingDeletes]);
+		};
+	});
 
 	// UI helpers
 	const dismissPanels = useCallback(() => {
 		setShowSettings(false);
-		clearPendingDeletes();
-	}, [clearPendingDeletes]);
+		mutations.clearPendingDeletes();
+	}, [mutations.clearPendingDeletes]);
 
 	const handleEscapeKey = useCallback(() => {
 		setShowSettings(false);
-		clearPendingDeletes();
+		mutations.clearPendingDeletes();
 		setSearchQuery('');
-	}, [clearPendingDeletes]);
+	}, [mutations.clearPendingDeletes]);
 
 	const formattedLastUpdated = useMemo(() => {
 		if (!board.lastUpdated) return '';
@@ -271,41 +186,41 @@ export function useKanbanBoardState({
 		boardRef,
 		boardTitleDraft,
 		showSettings,
-		pendingDeleteColumnId,
-		pendingDeleteColumn,
-		pendingDeleteCardId,
-		pendingDeleteCardColumnId,
-		pendingDeleteCard,
+		pendingDeleteColumnId: mutations.pendingDeleteColumnId,
+		pendingDeleteColumn: mutations.pendingDeleteColumn,
+		pendingDeleteCardId: mutations.pendingDeleteCardId,
+		pendingDeleteCardColumnId: mutations.pendingDeleteCardColumnId,
+		pendingDeleteCard: mutations.pendingDeleteCard,
 		searchQuery,
 		searchFocused,
 		isLiveResizing,
-		canUndo,
-		canRedo,
+		canUndo: history.canUndo,
+		canRedo: history.canRedo,
 		formattedLastUpdated,
 		setBoardTitleDraft,
 		setShowSettings,
-		setPendingDeleteColumnId,
-		setPendingDeleteCardId,
-		setPendingDeleteCardColumnId,
+		setPendingDeleteColumnId: mutations.setPendingDeleteColumnId,
+		setPendingDeleteCardId: mutations.setPendingDeleteCardId,
+		setPendingDeleteCardColumnId: mutations.setPendingDeleteCardColumnId,
 		setSearchQuery,
 		setSearchFocused,
-		updateBoard,
-		handleUndo,
-		handleRedo,
-		commitBoardTitle,
-		handleColumnChange,
-		handleRequestDeleteColumn,
-		handleAddCard,
-		handleUpdateCard,
-		handleRequestDeleteCard,
-		handleCancelDeleteCard,
-		handleDeletePendingCard,
-		handleDeleteCard,
-		handleDeletePendingColumn,
-		handleAddColumn,
-		handleResetBoard,
-		handleSetFont,
-		handleAdjustFontSize,
+		updateBoard: mutations.updateBoard,
+		handleUndo: history.handleUndo,
+		handleRedo: history.handleRedo,
+		commitBoardTitle: mutations.commitBoardTitle,
+		handleColumnChange: mutations.handleColumnChange,
+		handleRequestDeleteColumn: mutations.handleRequestDeleteColumn,
+		handleAddCard: mutations.handleAddCard,
+		handleUpdateCard: mutations.handleUpdateCard,
+		handleRequestDeleteCard: mutations.handleRequestDeleteCard,
+		handleCancelDeleteCard: mutations.handleCancelDeleteCard,
+		handleDeletePendingCard: mutations.handleDeletePendingCard,
+		handleDeleteCard: mutations.handleDeleteCard,
+		handleDeletePendingColumn: mutations.handleDeletePendingColumn,
+		handleAddColumn: mutations.handleAddColumn,
+		handleResetBoard: mutations.handleResetBoard,
+		handleSetFont: mutations.handleSetFont,
+		handleAdjustFontSize: mutations.handleAdjustFontSize,
 		dismissPanels,
 		handleEscapeKey,
 	};

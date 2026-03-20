@@ -1,5 +1,4 @@
 import { svgToDataUrl } from '@/lib/assistant/diagram-renderer';
-import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
@@ -18,14 +17,17 @@ import {
 } from './ai-chat-overlay-insertion';
 import {
 	insertPrototypeArtifactOnCanvas,
-	insertPrototypeMessageOnCanvas,
 } from './ai-chat-prototype-insertion';
 import {
 	insertStoredAssetOnCanvas as insertStoredAssetOnCanvasInternal,
 	vectorizeRasterAssetOnCanvas as vectorizeRasterAssetOnCanvasInternal,
 } from './ai-chat-stored-asset-insertion';
 import type { AssistantInsertionState } from './ai-chat-types';
-import { insertNativeVectorElementsOnCanvas } from './ai-chat-vector-insertion';
+import {
+	compileSvgMarkupToNativeVector,
+	describeNativeVectorPipelineError,
+	insertNativeVectorElementsOnCanvas,
+} from './ai-chat-vector-insertion';
 import { buildMarkdownArtifactContent } from './assistant-artifacts';
 
 export function useAIChatInsertionActions({
@@ -129,7 +131,8 @@ export function useAIChatInsertionActions({
 			}
 
 			try {
-				const compiled = compileSvgToExcalidraw(svgMarkup, {
+				const compiled = compileSvgMarkupToNativeVector(svgMarkup, {
+					source: 'stored-svg',
 					customData: {
 						source: 'assistant-svg-message',
 					},
@@ -140,12 +143,17 @@ export function useAIChatInsertionActions({
 					elements,
 					selectedElementIds,
 				});
-			} catch {
-				setChatError('This SVG could not be converted into native canvas elements.');
+			} catch (error) {
+				setChatError(
+					describeNativeVectorPipelineError(
+						error,
+						'This SVG could not be converted into native canvas elements.',
+					),
+				);
 				return null;
 			}
 		},
-		[elements, excalidrawApi, selectedElementIds, setChatError, setElements],
+		[elements, excalidrawApi, selectedElementIds, setChatError],
 	);
 
 	const vectorizeRasterAssetOnCanvas = useCallback(
@@ -221,13 +229,22 @@ export function useAIChatInsertionActions({
 				case 'image-vector':
 					return await insertStoredAssetOnCanvas(artifact);
 				case 'prototype-files':
-					return await insertPrototypeArtifactOnCanvas({
-						artifact,
-						excalidrawApi,
-						elements,
-						selectedElementIds,
-						setElements,
-					});
+					try {
+						return await insertPrototypeArtifactOnCanvas({
+							artifact,
+							excalidrawApi,
+							elements,
+							selectedElementIds,
+							setElements,
+						});
+					} catch (error) {
+						setChatError(
+							error instanceof Error
+								? error.message
+								: 'Prototype artifact is invalid or incomplete.',
+						);
+						return null;
+					}
 				default:
 					setChatError('This artifact type is not insertable yet.');
 					return null;
@@ -246,18 +263,12 @@ export function useAIChatInsertionActions({
 
 	const insertPrototypeOnCanvas = useCallback(
 		async (messageContent: string) => {
-			if (!excalidrawApi) {
-				setChatError('Canvas is not ready yet.');
-				return;
-			}
-
-			await insertPrototypeMessageOnCanvas({
-				messageContent,
-				excalidrawApi,
-				selectedElementIds,
-			});
+			void messageContent;
+			setChatError(
+				'Prototype insertion from raw assistant text is no longer supported. Insert a prototype-files artifact instead.',
+			);
 		},
-		[excalidrawApi, selectedElementIds, setChatError],
+		[setChatError],
 	);
 
 	const getPrototypeContextForRequest = useCallback(

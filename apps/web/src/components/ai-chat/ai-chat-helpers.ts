@@ -1,6 +1,6 @@
 import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
 import type { AssistantPatchApplyState, PatchArtifactDescriptor } from './ai-chat-types';
-import { buildPrototypeFromMessageContent, filterVisibleArtifacts } from './assistant-artifacts';
+import { filterVisibleArtifacts } from './assistant-artifacts';
 
 export function clonePatchCustomData<T extends Record<string, unknown>>(value: T): T {
 	if (typeof structuredClone === 'function') {
@@ -72,7 +72,7 @@ export function canInsertMessageAsMarkdown(message: AssistantMessage): boolean {
 }
 
 export function canApplyMessageAsPrototype(message: AssistantMessage): boolean {
-	return message.role === 'assistant' && buildPrototypeFromMessageContent(message.content) !== null;
+	return false;
 }
 
 export function extractCodeBlock(content: string, language: string): string | null {
