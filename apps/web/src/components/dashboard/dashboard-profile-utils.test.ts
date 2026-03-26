@@ -1,11 +1,11 @@
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	DEFAULT_PERSONAL_PREFERENCES,
+	DEFAULT_WORKSPACE_SETTINGS,
+	getPersonalPreferencesKey,
+	getWorkspaceSettingsKey,
 	readStoredValue,
 	writeStoredValue,
-	DEFAULT_WORKSPACE_SETTINGS,
-	DEFAULT_PERSONAL_PREFERENCES,
-	getWorkspaceSettingsKey,
-	getPersonalPreferencesKey,
 } from './dashboard-profile-utils';
 
 describe('dashboard-profile-utils', () => {
@@ -82,10 +82,7 @@ describe('dashboard-profile-utils', () => {
 
 	describe('workspace settings', () => {
 		it('should return default settings when none stored', () => {
-			const settings = readStoredValue(
-				getWorkspaceSettingsKey(),
-				DEFAULT_WORKSPACE_SETTINGS,
-			);
+			const settings = readStoredValue(getWorkspaceSettingsKey(), DEFAULT_WORKSPACE_SETTINGS);
 			expect(settings).toEqual(DEFAULT_WORKSPACE_SETTINGS);
 		});
 

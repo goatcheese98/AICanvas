@@ -36,9 +36,7 @@ export function SceneSelector({
 				</div>
 				<div className="canvas-tour-layout-stat">
 					<span>Live center</span>
-					<strong>
-						{formatCameraCoordinates(liveCamera.x, liveCamera.y)}
-					</strong>
+					<strong>{formatCameraCoordinates(liveCamera.x, liveCamera.y)}</strong>
 				</div>
 				<div className="canvas-tour-layout-stat">
 					<span>Saved zoom</span>
@@ -46,9 +44,7 @@ export function SceneSelector({
 				</div>
 				<div className="canvas-tour-layout-stat">
 					<span>Saved at</span>
-					<strong>
-						{formatCapturedTime(selectedRegisteredScene?.capturedAt ?? null)}
-					</strong>
+					<strong>{formatCapturedTime(selectedRegisteredScene?.capturedAt ?? null)}</strong>
 				</div>
 			</div>
 		</div>

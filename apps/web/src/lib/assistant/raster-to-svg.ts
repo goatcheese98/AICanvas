@@ -1,8 +1,14 @@
-import type { RasterToSvgOptions } from './raster/types';
 import { DEFAULT_TRACE_OPTIONS } from './raster/config';
-import { preprocess, trace, optimize, optimizeLayers, serialize } from './raster/stages';
-import type { PreprocessOutput, TraceOutput, OptimizeOutput, SerializeOutput, TraceLayer } from './raster/types';
 import { vectorizeImageDataToSvg as vectorizeImageData } from './raster/imagedata';
+import { optimize, optimizeLayers, preprocess, serialize, trace } from './raster/stages';
+import type { RasterToSvgOptions } from './raster/types';
+import type {
+	OptimizeOutput,
+	PreprocessOutput,
+	SerializeOutput,
+	TraceLayer,
+	TraceOutput,
+} from './raster/types';
 
 // ─── Re-exports ─────────────────────────────────────────────────────────────────
 
@@ -13,7 +19,9 @@ export type { RasterToSvgOptions } from './raster/types';
 function mergeOptions(options?: RasterToSvgOptions) {
 	return {
 		...DEFAULT_TRACE_OPTIONS,
-		...(options?.maxSampleDimension !== undefined && { maxSampleDimension: options.maxSampleDimension }),
+		...(options?.maxSampleDimension !== undefined && {
+			maxSampleDimension: options.maxSampleDimension,
+		}),
 		...(options?.maxColors !== undefined && { maxColors: options.maxColors }),
 	};
 }
@@ -25,7 +33,10 @@ function mergeOptions(options?: RasterToSvgOptions) {
  * This is a simplified path that maintains backward compatibility for tests.
  * For production use, prefer rasterBlobToSvg.
  */
-export function vectorizeImageDataToSvg(imageData: ImageData, options?: RasterToSvgOptions): string {
+export function vectorizeImageDataToSvg(
+	imageData: ImageData,
+	options?: RasterToSvgOptions,
+): string {
 	const mergedOptions = mergeOptions(options);
 	return vectorizeImageData(imageData, mergedOptions);
 }
@@ -92,6 +103,9 @@ export async function rasterBlobToSvg(blob: Blob, options?: RasterToSvgOptions):
 /**
  * @deprecated Use rasterBlobToSvg instead.
  */
-export async function vectorizeRasterBlobToSvg(blob: Blob, options?: RasterToSvgOptions): Promise<string> {
+export async function vectorizeRasterBlobToSvg(
+	blob: Blob,
+	options?: RasterToSvgOptions,
+): Promise<string> {
 	return rasterBlobToSvg(blob, options);
 }

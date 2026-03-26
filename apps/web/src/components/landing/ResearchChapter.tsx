@@ -99,14 +99,14 @@ export function ResearchChapter({ active }: ResearchChapterProps) {
 						</div>
 					</div>
 					<div className="landing-embed-controls">
-						<button className="landing-embed-btn" type="button">
-							<svg viewBox="0 0 24 24" fill="currentColor">
+						<button className="landing-embed-btn" type="button" aria-label="Play preview clip">
+							<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
 								<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
 							</svg>
 						</button>
 						<span className="landing-embed-time">1:24 / 3:45</span>
-						<button className="landing-embed-btn" type="button">
-							<svg viewBox="0 0 24 24" fill="currentColor">
+						<button className="landing-embed-btn" type="button" aria-label="Pause preview clip">
+							<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
 								<path d="M16 5v14h4V5h-4zM6 19h4V5H6v14z" />
 							</svg>
 						</button>
@@ -116,7 +116,7 @@ export function ResearchChapter({ active }: ResearchChapterProps) {
 
 			{/* Flow connector */}
 			<div className="landing-flow-connector landing-flow-research-to-plan" aria-hidden="true">
-				<svg viewBox="0 0 180 60" preserveAspectRatio="none">
+				<svg viewBox="0 0 180 60" preserveAspectRatio="none" aria-hidden="true" focusable="false">
 					<path d="M0 25 Q45 45, 90 30 T180 35" />
 				</svg>
 			</div>

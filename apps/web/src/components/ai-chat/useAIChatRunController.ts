@@ -13,31 +13,25 @@ import type {
 	AssistantMessage,
 	AssistantRunCreated,
 	AssistantThread,
-	GenerationMode,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import { useCallback, useState } from 'react';
+import { getAIChatCommandMenuState, resolveAIChatRequest } from './ai-chat-command-helpers';
 import { AFFIRMATIVE_PATCH_REPLY, NEGATIVE_PATCH_REPLY } from './ai-chat-constants';
 import { buildConversationHistory } from './ai-chat-helpers';
-import type {
-	AssistantPatchApplyState,
-	PatchArtifactDescriptor,
-	PendingSelectionConfirmation,
-} from './ai-chat-types';
+import type { AssistantPatchApplyState, PatchArtifactDescriptor } from './ai-chat-types';
 import {
 	type AssistantRunProgress,
 	applyAssistantRunEvent,
 	createAssistantRunProgress,
 	reconcileAssistantRunProgress,
 } from './run-progress';
-import { getSelectedElementIdsFromMap, shouldConfirmSelectionForPrompt } from './selection-context';
+import { getSelectedElementIdsFromMap } from './selection-context';
 
 export function useAIChatRunController({
 	canvasId,
 	getToken,
 	isSignedIn,
-	contextMode,
-	modeHint,
 	selectedElementIds,
 	input,
 	setInput,
@@ -57,8 +51,6 @@ export function useAIChatRunController({
 	canvasId: string;
 	getToken: () => Promise<string | null>;
 	isSignedIn: boolean | undefined;
-	contextMode: AssistantContextMode;
-	modeHint?: GenerationMode;
 	selectedElementIds: Record<string, boolean>;
 	input: string;
 	setInput: (value: string) => void;
@@ -84,8 +76,6 @@ export function useAIChatRunController({
 }) {
 	const [runProgress, setRunProgressState] = useState<AssistantRunProgress | null>(null);
 	const [isRunProgressExpanded, setIsRunProgressExpanded] = useState(true);
-	const [pendingSelectionConfirmation, setPendingSelectionConfirmation] =
-		useState<PendingSelectionConfirmation>(null);
 
 	// Helper to update run progress and sync UI state (derived state pattern)
 	const setRunProgress = useCallback(
@@ -112,9 +102,7 @@ export function useAIChatRunController({
 	);
 
 	const sendMessage = async (options?: {
-		contextModeOverride?: AssistantContextMode;
 		promptOverride?: string;
-		skipSelectionConfirmation?: boolean;
 	}) => {
 		const rawText = options?.promptOverride ?? input;
 		const text = rawText.trim();
@@ -122,80 +110,81 @@ export function useAIChatRunController({
 			return;
 		}
 
-		if (!pendingSelectionConfirmation) {
-			const isAffirmativePatchReply = AFFIRMATIVE_PATCH_REPLY.test(text);
-			const isNegativePatchReply = NEGATIVE_PATCH_REPLY.test(text);
+		const isAffirmativePatchReply = AFFIRMATIVE_PATCH_REPLY.test(text);
+		const isNegativePatchReply = NEGATIVE_PATCH_REPLY.test(text);
 
-			if (isAffirmativePatchReply || isNegativePatchReply) {
-				if (!options?.promptOverride) {
-					setInput('');
-				}
-				setChatError(null);
+		if (isAffirmativePatchReply || isNegativePatchReply) {
+			if (!options?.promptOverride) {
+				setInput('');
+			}
+			setChatError(null);
 
-				if (latestPendingPatchArtifacts.length === 1) {
-					const [{ artifact, artifactKey }] = latestPendingPatchArtifacts;
-					if (isAffirmativePatchReply) {
-						const patchState = assistantPatchStates[artifactKey];
-						const didApply = applyAssistantPatch(
-							artifactKey,
-							artifact,
-							patchState?.status === 'undone' ? 'reapply' : 'apply',
-						);
-						if (didApply) {
-							appendLocalAssistantMessage(
-								patchState?.status === 'undone'
-									? 'Reapplied the pending patch to the selected canvas item.'
-									: 'Applied the pending patch to the selected canvas item.',
-							);
-						}
-					} else {
+			if (latestPendingPatchArtifacts.length === 1) {
+				const [{ artifact, artifactKey }] = latestPendingPatchArtifacts;
+				if (isAffirmativePatchReply) {
+					const patchState = assistantPatchStates[artifactKey];
+					const didApply = applyAssistantPatch(
+						artifactKey,
+						artifact,
+						patchState?.status === 'undone' ? 'reapply' : 'apply',
+					);
+					if (didApply) {
 						appendLocalAssistantMessage(
-							'Kept the pending patch as a suggestion. Nothing changed on the canvas.',
+							patchState?.status === 'undone'
+								? 'Reapplied the pending patch to the selected canvas item.'
+								: 'Applied the pending patch to the selected canvas item.',
 						);
 					}
-					return;
-				}
-
-				if (latestPendingPatchArtifacts.length > 1) {
-					setChatError(
-						'There are multiple pending patches right now. Use the specific patch button so we apply the right change.',
+				} else {
+					appendLocalAssistantMessage(
+						'Kept the pending patch as a suggestion. Nothing changed on the canvas.',
 					);
-					return;
 				}
+				return;
+			}
 
-				appendLocalAssistantMessage(
-					"There isn't a pending structured patch ready to apply right now. Use an Apply Patch button when one is shown, or ask me to regenerate the change.",
+			if (latestPendingPatchArtifacts.length > 1) {
+				setChatError(
+					'There are multiple pending patches right now. Use the specific patch button so we apply the right change.',
 				);
 				return;
 			}
-		}
 
-		const effectiveContextMode = options?.contextModeOverride ?? contextMode;
-		const requestSelectedIds = getSelectedElementIdsFromMap(selectedElementIds);
-		if (
-			!options?.skipSelectionConfirmation &&
-			shouldConfirmSelectionForPrompt({
-				contextMode: effectiveContextMode,
-				prompt: text,
-				selectionCount: requestSelectedIds.length,
-			})
-		) {
-			setPendingSelectionConfirmation({
-				prompt: text,
-				createdAt: new Date().toISOString(),
-			});
-			setInput('');
+			appendLocalAssistantMessage(
+				"There isn't a pending structured patch ready to apply right now. Use an Apply Patch button when one is shown, or ask me to regenerate the change.",
+			);
 			return;
 		}
 
-		setPendingSelectionConfirmation(null);
+		const requestSelectedIds = getSelectedElementIdsFromMap(selectedElementIds);
+		const resolvedRequest = resolveAIChatRequest(text, requestSelectedIds.length);
+		const menuState = getAIChatCommandMenuState(text);
+		if (text.trimStart().startsWith('/') && resolvedRequest.commands.length === 0) {
+			setChatError('Unknown slash command. Try /select, /selectall, /raster, /vector, or /svg.');
+			return;
+		}
+		if (
+			resolvedRequest.commands.some((command) => command.name === 'select') &&
+			requestSelectedIds.length === 0
+		) {
+			setChatError('There is no current selection to use. Select an item or use /selectall.');
+			return;
+		}
+		if (resolvedRequest.commands.length > 0 && !resolvedRequest.prompt) {
+			setChatError('Add a prompt after the command, for example "/select rewrite this".');
+			return;
+		}
+
+		const effectiveContextMode = resolvedRequest.contextMode;
+		const effectiveModeHint = resolvedRequest.modeHint;
+
 		setChatError(null);
 		setIsChatLoading(true);
 
 		const userMessage: AssistantMessage = {
 			id: crypto.randomUUID(),
 			role: 'user',
-			content: text,
+			content: resolvedRequest.prompt,
 			createdAt: new Date().toISOString(),
 		};
 		const history = buildConversationHistory(messages);
@@ -217,9 +206,9 @@ export function useAIChatRunController({
 					json: {
 						threadId: ensuredThread.id,
 						canvasId,
-						message: text,
+						message: resolvedRequest.prompt,
 						contextMode: effectiveContextMode,
-						modeHint,
+						modeHint: effectiveModeHint,
 						history,
 						selectedElementIds: requestSelectedIds,
 						prototypeContext,
@@ -289,8 +278,10 @@ export function useAIChatRunController({
 					canvasId,
 					contextMode: effectiveContextMode,
 					hasCurrentThread: Boolean(currentThread),
-					messageLength: text.length,
+					messageLength: resolvedRequest.prompt.length,
 					selectedElementCount: requestSelectedIds.length,
+					commandCount: resolvedRequest.commands.length,
+					menuOpen: Boolean(menuState),
 				},
 			});
 			setChatError(error instanceof Error ? error.message : 'Assistant request failed');
@@ -304,8 +295,6 @@ export function useAIChatRunController({
 		setRunProgress,
 		isRunProgressExpanded,
 		setIsRunProgressExpanded,
-		pendingSelectionConfirmation,
-		setPendingSelectionConfirmation,
 		sendMessage,
 	};
 }

@@ -1,5 +1,5 @@
-import { CodeSnippet } from '../AIChatArtifactPrimitives';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
+import { CodeSnippet } from '../AIChatArtifactPrimitives';
 
 interface LayoutPlanArtifactCardProps {
 	artifact: AssistantArtifact;

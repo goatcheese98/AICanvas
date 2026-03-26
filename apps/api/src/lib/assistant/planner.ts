@@ -38,7 +38,7 @@ function getSelectedContexts(request: PlannerRequest) {
 
 function hasSingleSelectedContextKind(
 	request: PlannerRequest,
-	kind: 'kanban' | 'markdown',
+	kind: 'kanban' | 'markdown' | 'prototype',
 ): boolean {
 	const selectedContexts = getSelectedContexts(request);
 	return selectedContexts.length === 1 && selectedContexts[0]?.kind === kind;
@@ -72,6 +72,14 @@ function shouldPatchSelectedMarkdown(request: PlannerRequest): boolean {
 	);
 }
 
+function shouldUpdateSelectedPrototype(request: PlannerRequest): boolean {
+	return (
+		hasSingleSelectedContextKind(request, 'prototype') &&
+		Boolean(request.prototypeContext) &&
+		(isEditIntent(request.message) || /\bturn this into\b/i.test(request.message))
+	);
+}
+
 function buildTaskTitle(mode: GenerationMode): string {
 	switch (mode) {
 		case 'mermaid':
@@ -88,7 +96,6 @@ function buildTaskTitle(mode: GenerationMode): string {
 			return 'Prepare image response';
 		case 'sketch':
 			return 'Prepare sketch response';
-		case 'chat':
 		default:
 			return 'Generate assistant response';
 	}
@@ -207,6 +214,7 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 		contextMode: request.contextMode,
 		generationMode: request.modeHint,
 		history: request.history,
+		prototypeContext: request.prototypeContext,
 	});
 
 	const imageTasks =
@@ -238,6 +246,8 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 							resolvedMode === 'kanban' && shouldPatchSelectedKanban(request);
 						const shouldPatchMarkdown =
 							resolvedMode === 'chat' && shouldPatchSelectedMarkdown(request);
+						const shouldUpdatePrototype =
+							resolvedMode === 'prototype' && shouldUpdateSelectedPrototype(request);
 						const includeArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban'
 								? shouldPatchKanban
@@ -249,11 +259,12 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 										? ['markdown-patch']
 										: [];
 						const isInsertableCreation =
-							(resolvedMode === 'kanban' && !shouldPatchKanban) || resolvedMode === 'prototype';
+							(resolvedMode === 'kanban' && !shouldPatchKanban) ||
+							(resolvedMode === 'prototype' && !shouldUpdatePrototype);
 						const targetArtifactTypes: AssistantArtifact['type'][] =
 							resolvedMode === 'kanban' && !shouldPatchKanban
 								? ['kanban-ops']
-								: resolvedMode === 'prototype'
+								: resolvedMode === 'prototype' && !shouldUpdatePrototype
 									? ['prototype-files']
 									: [];
 						return [
@@ -272,7 +283,9 @@ export function planAssistantRun(request: PlannerRequest): AssistantPlan {
 											: resolvedMode === 'svg'
 												? 'Prepared an SVG illustration draft.'
 												: resolvedMode === 'prototype'
-													? 'Prepared prototype files for the canvas.'
+													? shouldUpdatePrototype
+														? 'Prepared updated prototype files for the selected card.'
+														: 'Prepared prototype files for the canvas.'
 													: shouldPatchMarkdown
 														? 'Prepared a reversible markdown patch for the selected note.'
 														: 'Prepared an assistant response for the canvas.',

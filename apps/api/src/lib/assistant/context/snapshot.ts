@@ -3,17 +3,21 @@
  */
 
 import type {
-	AssistantContextSnapshot,
-	AssistantContextMode,
 	AssistantCanvasMeta,
+	AssistantContextMode,
+	AssistantContextSnapshot,
 	CanvasElement,
 } from '@ai-canvas/shared/types';
 import type { AppEnv } from '../../../types';
 import { loadCanvasFromR2 } from '../../storage/canvas-storage';
-import { toElementId, getOverlayType } from './element-parsers';
-import { getSelectionBounds, buildSelectionEnvironment } from './geometry';
-import { buildCanvasSummary, buildCanvasElementSummaries } from './summary-builders';
-import { buildSelectedContext, compareByPriorityAndLabel, buildSelectionSummary } from './context-builders';
+import {
+	buildSelectedContext,
+	buildSelectionSummary,
+	compareByPriorityAndLabel,
+} from './context-builders';
+import { getOverlayType, toElementId } from './element-parsers';
+import { buildSelectionEnvironment, getSelectionBounds } from './geometry';
+import { buildCanvasElementSummaries, buildCanvasSummary } from './summary-builders';
 
 /** Input for building assistant context snapshot */
 export interface BuildAssistantContextSnapshotInput {

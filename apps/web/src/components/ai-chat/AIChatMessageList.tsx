@@ -1,26 +1,14 @@
 import type { CanvasElement } from '@ai-canvas/shared/types';
-import type { AssistantContextMode } from '@ai-canvas/shared/types';
 import { MessageCard } from './AIChatArtifacts';
 import { AIChatRunStatus } from './AIChatRunStatus';
-import { SelectionConfirmationCard } from './AIChatSelectionConfirmationCard';
 import type { AIChatMessageListProps } from './ai-chat-panel-types';
-import type { PendingSelectionConfirmation } from './ai-chat-types';
-import type { SelectionIndicator } from './ai-chat-types';
 
 interface ExtendedAIChatMessageListProps extends AIChatMessageListProps {
-	selectionIndicator: SelectionIndicator;
-	pendingSelectionConfirmation: PendingSelectionConfirmation;
-	setContextMode: (mode: AssistantContextMode) => void;
-	sendMessage: (options?: {
-		contextModeOverride?: AssistantContextMode;
-		promptOverride?: string;
-		skipSelectionConfirmation?: boolean;
-	}) => Promise<void>;
 	isChatLoading: boolean;
 }
 
 /**
- * Renders the list of chat messages, run status, and selection confirmation.
+ * Renders the list of chat messages and run status.
  */
 export function AIChatMessageList({
 	messages,
@@ -31,10 +19,6 @@ export function AIChatMessageList({
 	setIsRunProgressExpanded,
 	latestMessage,
 	setChatError,
-	selectionIndicator,
-	pendingSelectionConfirmation,
-	setContextMode,
-	sendMessage,
 	isChatLoading,
 }: ExtendedAIChatMessageListProps) {
 	const shouldAppendRunStatusToLatestMessage =
@@ -144,28 +128,6 @@ export function AIChatMessageList({
 					}
 				/>
 			))}
-
-			{pendingSelectionConfirmation && selectionIndicator ? (
-				<SelectionConfirmationCard
-					prompt={pendingSelectionConfirmation.prompt}
-					selectionLabel={selectionIndicator.label}
-					onUseSelection={() => {
-						setContextMode('selected');
-						void sendMessage({
-							contextModeOverride: 'selected',
-							promptOverride: pendingSelectionConfirmation?.prompt,
-							skipSelectionConfirmation: true,
-						});
-					}}
-					onContinueWithoutSelection={() => {
-						void sendMessage({
-							contextModeOverride: 'none',
-							promptOverride: pendingSelectionConfirmation?.prompt,
-							skipSelectionConfirmation: true,
-						});
-					}}
-				/>
-			) : null}
 
 			{runProgress && !shouldAppendRunStatusToLatestMessage ? (
 				<AIChatRunStatus

@@ -281,7 +281,6 @@ export function MarkdownHybridEditor({
 									/>
 								) : (
 									<textarea
-										autoFocus
 										value={editingDraft}
 										onChange={(event) => setEditingDraft(event.target.value)}
 										onBlur={() => finishEditingBlock(block.id, editingDraft)}

@@ -67,7 +67,7 @@ export function PlanChapter({ active }: PlanChapterProps) {
 
 			{/* Flow connector */}
 			<div className="landing-flow-connector landing-flow-plan-to-polish" aria-hidden="true">
-				<svg viewBox="0 0 200 60" preserveAspectRatio="none">
+				<svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true" focusable="false">
 					<path d="M0 30 Q50 15, 100 25 T200 20" />
 				</svg>
 			</div>

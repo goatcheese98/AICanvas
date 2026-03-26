@@ -4,6 +4,7 @@ export type {
 	CanvasAppState,
 	CanvasFiles,
 	CanvasSavePayload,
+	SaveCanvasRequest,
 } from './canvas';
 export type {
 	OverlayType,

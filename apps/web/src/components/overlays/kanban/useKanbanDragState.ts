@@ -160,12 +160,15 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 		[boardRef, dispatchDrag],
 	);
 
-	const handleColumnDragStart = useCallback((event: DragEvent<HTMLElement>, columnId: string) => {
-		event.stopPropagation();
-		event.dataTransfer.effectAllowed = 'move';
-		event.dataTransfer.setData('text/plain', columnId);
-		dispatchDrag({ type: 'COLUMN_START', columnId });
-	}, [dispatchDrag]);
+	const handleColumnDragStart = useCallback(
+		(event: DragEvent<HTMLElement>, columnId: string) => {
+			event.stopPropagation();
+			event.dataTransfer.effectAllowed = 'move';
+			event.dataTransfer.setData('text/plain', columnId);
+			dispatchDrag({ type: 'COLUMN_START', columnId });
+		},
+		[dispatchDrag],
+	);
 
 	const handleColumnReorderDragOver = useCallback(
 		(event: DragEvent<HTMLDivElement>, hoveredColumnId: string) => {
@@ -232,11 +235,14 @@ export function useKanbanDragState({ boardRef, updateBoard }: UseKanbanDragState
 		dispatchDrag({ type: 'CARD_DELETE_TARGET' });
 	}, []);
 
-	const handleColumnDropAtEnd = useCallback((event: DragEvent<HTMLElement>) => {
-		event.preventDefault();
-		if (dragStateRef.current.mode !== 'column') return;
-		dispatchDrag({ type: 'COLUMN_OVER', projectedDropId: null });
-	}, [dispatchDrag]);
+	const handleColumnDropAtEnd = useCallback(
+		(event: DragEvent<HTMLElement>) => {
+			event.preventDefault();
+			if (dragStateRef.current.mode !== 'column') return;
+			dispatchDrag({ type: 'COLUMN_OVER', projectedDropId: null });
+		},
+		[dispatchDrag],
+	);
 
 	return {
 		dragState,

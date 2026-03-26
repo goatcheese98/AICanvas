@@ -1,6 +1,6 @@
 /**
  * Assistant context building module
- * 
+ *
  * This module provides utilities for building context snapshots for the AI assistant,
  * including element parsing, geometry calculations, summary building, and text formatting.
  */

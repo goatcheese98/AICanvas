@@ -1,5 +1,4 @@
 import type { SvgPoint } from './points';
-import { distance } from './points';
 
 const SAMPLE_LENGTH = 8;
 const MIN_CURVE_SEGMENTS = 6;
@@ -21,7 +20,12 @@ export function cubicBezierPoint(
 	};
 }
 
-export function quadraticBezierPoint(p0: SvgPoint, p1: SvgPoint, p2: SvgPoint, t: number): SvgPoint {
+export function quadraticBezierPoint(
+	p0: SvgPoint,
+	p1: SvgPoint,
+	p2: SvgPoint,
+	t: number,
+): SvgPoint {
 	const mt = 1 - t;
 	return {
 		x: mt * mt * p0.x + 2 * mt * t * p1.x + t * t * p2.x,

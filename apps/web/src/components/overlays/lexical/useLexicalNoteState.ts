@@ -2,7 +2,6 @@ import { useMountEffect } from '@/hooks/useMountEffect';
 import { useResettableTimeout } from '@/hooks/useResettableTimeout';
 import type { NewLexCommentThread } from '@ai-canvas/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { BufferedCommitReason } from './useBufferedDocument';
 import {
 	CONTENT_COMMIT_DEBOUNCE_MS,
 	DEFAULT_NEWLEX_CONTENT,
@@ -19,6 +18,7 @@ import type {
 	ReplyDraftByThread,
 	UpdateThreadFn,
 } from './lexical-note-types';
+import type { BufferedCommitReason } from './useBufferedDocument';
 import { useBufferedDocument } from './useBufferedDocument';
 
 interface UseLexicalNoteStateArgs extends LexicalNoteProps {}

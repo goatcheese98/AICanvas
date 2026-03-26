@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
+import {
+	buildPersistedCanvasData,
+	readCanvasVersion,
+	shouldWaitForCanvasHydration,
+} from './canvas-persistence-utils';
 
 describe('buildPersistedCanvasData', () => {
 	it('drops volatile app state fields before persistence', () => {
@@ -34,5 +38,22 @@ describe('shouldWaitForCanvasHydration', () => {
 	it('allows hydration once the request is settled', () => {
 		expect(shouldWaitForCanvasHydration('success', 'idle')).toBe(false);
 		expect(shouldWaitForCanvasHydration('error', 'idle')).toBe(false);
+	});
+});
+
+describe('readCanvasVersion', () => {
+	it('returns the canvas version when present', () => {
+		expect(
+			readCanvasVersion({
+				canvas: {
+					version: 4,
+				},
+			}),
+		).toBe(4);
+	});
+
+	it('returns null when the canvas version is unavailable', () => {
+		expect(readCanvasVersion({ canvas: {} })).toBeNull();
+		expect(readCanvasVersion(null)).toBeNull();
 	});
 });

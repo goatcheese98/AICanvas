@@ -12,7 +12,6 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import type { CanvasTourGuideOverlay } from './canvas-tour-content';
 import {
 	OVERLAY_DEFAULT_HEIGHT_REM,
-	type OverlayPlacementBounds,
 	type OverlayPlacementPreset,
 	type OverlaySafeArea,
 	buildOverlayPlacementBounds,
@@ -24,8 +23,8 @@ import {
 } from './canvas-tour-page-utils';
 import type {
 	CanvasTourOverlayMeasurementState,
-	CanvasTourOverlayPlacementState,
 	CanvasTourOverlayPlacementActions,
+	CanvasTourOverlayPlacementState,
 } from './canvas-tour-types';
 
 export interface UseOverlayPlacementResult

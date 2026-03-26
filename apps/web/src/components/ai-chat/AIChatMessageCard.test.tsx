@@ -114,7 +114,7 @@ describe('AIChatMessageCard', () => {
 			createdAt: '2026-03-15T10:02:00.000Z',
 		};
 
-		const { container } = renderWithQueryClient(
+		renderWithQueryClient(
 			<MessageCard message={message} onInsertArtifact={vi.fn()} onVectorizeArtifact={vi.fn()} />,
 		);
 

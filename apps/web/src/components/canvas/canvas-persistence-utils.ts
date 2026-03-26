@@ -27,3 +27,19 @@ export function shouldWaitForCanvasHydration(
 ): boolean {
 	return status === 'pending' || fetchStatus === 'fetching';
 }
+
+export function readCanvasVersion(canvasQueryData: unknown): number | null {
+	if (
+		!canvasQueryData ||
+		typeof canvasQueryData !== 'object' ||
+		!('canvas' in canvasQueryData) ||
+		!canvasQueryData.canvas ||
+		typeof canvasQueryData.canvas !== 'object' ||
+		!('version' in canvasQueryData.canvas)
+	) {
+		return null;
+	}
+
+	const version = canvasQueryData.canvas.version;
+	return typeof version === 'number' && Number.isInteger(version) && version > 0 ? version : null;
+}

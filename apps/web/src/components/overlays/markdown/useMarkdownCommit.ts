@@ -1,5 +1,5 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useRef } from 'react';
 import { serializeNoteState } from './markdown-note-helpers';
 

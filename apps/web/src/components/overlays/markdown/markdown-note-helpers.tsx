@@ -141,8 +141,6 @@ export function abbreviateMarkdownTitle(title: string) {
 	return (compact.slice(0, 2) || title.slice(0, 2) || 'MD').toUpperCase();
 }
 
-
-
 export function renderModeIcon(icon: (typeof MODE_OPTIONS)[number]['icon']): ReactNode {
 	if (icon === 'raw') {
 		return (

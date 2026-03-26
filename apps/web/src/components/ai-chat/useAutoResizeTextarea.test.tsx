@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 import { CHAT_INPUT_MAX_HEIGHT } from './ai-chat-constants';
+import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
 // Test component that uses the hook
 function TestComponent({

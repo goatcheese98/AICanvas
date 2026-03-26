@@ -1,5 +1,5 @@
-import type { SvgPoint } from '../math/points';
 import { estimateCurveSegments } from '../math/bezier';
+import type { SvgPoint } from '../math/points';
 
 export function createRectanglePoints(x: number, y: number, width: number, height: number) {
 	return [

@@ -17,7 +17,7 @@ describe('LandingPage', () => {
 			name: /one canvas for rough ideas, research, plans, and polished work/i,
 		});
 		expect(heroHeadings.length).toBeGreaterThan(0);
-		
+
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
 		// Hero description text (may appear in multiple places)
 		expect(screen.getAllByText(/keep early fragments/i).length).toBeGreaterThan(0);

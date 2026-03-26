@@ -1,6 +1,6 @@
-import type { WorkspaceSettings } from './dashboard-profile-utils';
 import { PanelHeader } from './DashboardProfilePanelHeader';
 import { ToggleRow } from './DashboardProfileToggleRow';
+import type { WorkspaceSettings } from './dashboard-profile-utils';
 
 interface WorkspaceSettingsViewProps {
 	settings: WorkspaceSettings;
@@ -40,9 +40,9 @@ export function WorkspaceSettingsView({
 
 			<div className="space-y-4 px-3 py-4">
 				<div>
-					<label className="mb-2 block px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+					<div className="mb-2 block px-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
 						Default sharing
-					</label>
+					</div>
 					<div className="grid gap-2">
 						<button
 							type="button"

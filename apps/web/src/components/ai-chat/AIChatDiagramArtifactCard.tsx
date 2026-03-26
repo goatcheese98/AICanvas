@@ -209,8 +209,12 @@ export function DiagramArtifactCard({
 					<div className="px-4 py-10 text-center text-[12px] text-rose-700">{renderError}</div>
 				) : rendered ? (
 					<div
+						ref={(node) => {
+							if (node && node.innerHTML !== rendered.svgMarkup) {
+								node.innerHTML = rendered.svgMarkup;
+							}
+						}}
 						className="max-h-[320px] overflow-auto p-3"
-						dangerouslySetInnerHTML={{ __html: rendered.svgMarkup }}
 					/>
 				) : null}
 			</div>

@@ -204,6 +204,28 @@ describe('useWebEmbedState', () => {
 			expect(result.current.isEditing).toBe(false);
 			expect(result.current.isLoading).toBe(true);
 		});
+
+		it('syncs urlInput from external element updates', () => {
+			const { result, rerender } = renderHook(
+				(props: { element: { id: string; customData: { url: string } } }) =>
+					useWebEmbedState({
+						element: props.element,
+						onChange: vi.fn(),
+					}),
+				{
+					initialProps: { element: createElement('') },
+				},
+			);
+
+			expect(result.current.urlInput).toBe('');
+			expect(result.current.isEditing).toBe(true);
+
+			rerender({ element: createElement('https://example.com') });
+
+			expect(result.current.urlInput).toBe('https://example.com');
+			expect(result.current.isEditing).toBe(false);
+			expect(result.current.isLoading).toBe(false);
+		});
 	});
 
 	describe('view mode transitions', () => {

@@ -17,7 +17,6 @@ export function MarkdownPlainEditor({
 }: MarkdownPlainEditorProps) {
 	return (
 		<textarea
-			autoFocus
 			value={value}
 			onChange={(event) => onChange(event.target.value)}
 			onPaste={(event) => {

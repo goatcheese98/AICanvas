@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OverlayPlacementPreset } from './canvas-tour-page-utils';
 
 // Simple tests for the types and interfaces exported by the module
@@ -9,7 +9,12 @@ describe('useCanvasTourPageState types', () => {
 
 	describe('OverlayPlacementPreset type', () => {
 		it('accepts valid placement presets', () => {
-			const presets: OverlayPlacementPreset[] = ['top-left', 'top-center', 'top-right', 'bottom-left'];
+			const presets: OverlayPlacementPreset[] = [
+				'top-left',
+				'top-center',
+				'top-right',
+				'bottom-left',
+			];
 
 			expect(presets).toContain('top-left');
 			expect(presets).toContain('top-center');

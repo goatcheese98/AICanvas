@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { useEffect, useRef } from 'react';
 
 interface UseKanbanTitleSyncOptions {
 	board: KanbanOverlayCustomData;

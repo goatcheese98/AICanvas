@@ -109,7 +109,7 @@ export function CaptureChapter({ active }: CaptureChapterProps) {
 
 			{/* Flow connector */}
 			<div className="landing-flow-connector landing-flow-capture-to-research" aria-hidden="true">
-				<svg viewBox="0 0 200 60" preserveAspectRatio="none">
+				<svg viewBox="0 0 200 60" preserveAspectRatio="none" aria-hidden="true" focusable="false">
 					<path d="M0 40 Q50 20, 100 30 T200 25" />
 				</svg>
 			</div>

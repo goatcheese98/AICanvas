@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
 	formatCameraCoordinates,
+	formatCapturedTime,
 	formatDimensions,
 	formatPreviewShift,
 	formatZoom,
-	formatCapturedTime,
 	getSavedZoomLabel,
 } from './canvas-tour-layout-utils';
+import type { RegisteredTourSceneSnapshot } from './canvas-tour-registry';
 
 describe('canvas-tour-layout-utils', () => {
 	describe('formatZoom', () => {
@@ -52,14 +53,22 @@ describe('canvas-tour-layout-utils', () => {
 		});
 
 		it('should format zoom from scene camera', () => {
-			const scene = {
-				id: 'test',
-				chapterId: 'chapter1',
-				capturedAt: Date.now(),
+			const scene: RegisteredTourSceneSnapshot = {
+				sceneId: 'chapter1',
+				capturedAt: new Date(0).toISOString(),
 				camera: { x: 0, y: 0, zoom: 1.5 },
 				elements: [],
+				overlay: {
+					label: 'Guide',
+					title: 'Title',
+					description: 'Description',
+					hint: 'Hint',
+					accentColor: '#000',
+					surfaceOpacity: 0.5,
+					placement: { leftRem: 0, topRem: 0, widthRem: 0 },
+				},
 			};
-			expect(getSavedZoomLabel(scene as any)).toBe('1.50x');
+			expect(getSavedZoomLabel(scene)).toBe('1.50x');
 		});
 	});
 

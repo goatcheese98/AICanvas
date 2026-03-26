@@ -7,7 +7,7 @@
  * - Scene definitions and metadata access only
  */
 
-import { useMemo, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { CanvasTourChapter } from '../canvas-tour-content';
 import { canvasTourChapters } from '../canvas-tour-content';
 import type { RegisteredTourSceneSnapshot } from '../canvas-tour-registry';
@@ -59,32 +59,35 @@ function slugifyLabel(label: string): string {
 }
 
 export function useTourSceneRegistry(): UseTourSceneRegistryReturn {
-	const scenes = useMemo(
-		() => canvasTourChapters.map(chapterToScene),
-		[]
-	);
+	const scenes = useMemo(() => canvasTourChapters.map(chapterToScene), []);
 
 	const getSceneById = useCallback((id: string): TourScene | undefined => {
 		const chapter = canvasTourChapters.find((c) => c.id === id);
 		return chapter ? chapterToScene(chapter) : undefined;
 	}, []);
 
-	const getSceneBySlug = useCallback((slug: string): TourScene | undefined => {
-		// Try exact ID match first
-		const byId = getSceneById(slug);
-		if (byId) return byId;
+	const getSceneBySlug = useCallback(
+		(slug: string): TourScene | undefined => {
+			// Try exact ID match first
+			const byId = getSceneById(slug);
+			if (byId) return byId;
 
-		// Try label slug match
-		return scenes.find((s) => s.slug === slug || slugifyLabel(s.label) === slug);
-	}, [scenes, getSceneById]);
+			// Try label slug match
+			return scenes.find((s) => s.slug === slug || slugifyLabel(s.label) === slug);
+		},
+		[scenes, getSceneById],
+	);
 
 	const getChapterById = useCallback((id: string): CanvasTourChapter | undefined => {
 		return canvasTourChapters.find((c) => c.id === id);
 	}, []);
 
-	const getChapterScene = useCallback((chapterId: string): TourScene | undefined => {
-		return getSceneById(chapterId);
-	}, [getSceneById]);
+	const getChapterScene = useCallback(
+		(chapterId: string): TourScene | undefined => {
+			return getSceneById(chapterId);
+		},
+		[getSceneById],
+	);
 
 	const getDefaultScene = useCallback((): TourScene => {
 		return chapterToScene(canvasTourChapters[0]);
@@ -123,7 +126,7 @@ export function useTourSceneRegistry(): UseTourSceneRegistryReturn {
 			hasScene,
 			getSceneIndex,
 			sceneCount,
-		]
+		],
 	);
 }
 
@@ -133,7 +136,7 @@ export function useTourSceneRegistry(): UseTourSceneRegistryReturn {
  */
 export function buildDefaultSceneSnapshot(
 	sceneId: string,
-	defaultElements: unknown[]
+	defaultElements: unknown[],
 ): Omit<RegisteredTourSceneSnapshot, 'elements'> & { elements: unknown[] } {
 	const chapter = canvasTourChapters.find((c) => c.id === sceneId) ?? canvasTourChapters[0];
 	return {
@@ -151,11 +154,7 @@ export function buildDefaultSceneSnapshot(
  */
 export function resolveChapterById(
 	sceneId: string,
-	fallback?: CanvasTourChapter
+	fallback?: CanvasTourChapter,
 ): CanvasTourChapter {
-	return (
-		canvasTourChapters.find((c) => c.id === sceneId) ??
-		fallback ??
-		canvasTourChapters[0]
-	);
+	return canvasTourChapters.find((c) => c.id === sceneId) ?? fallback ?? canvasTourChapters[0];
 }

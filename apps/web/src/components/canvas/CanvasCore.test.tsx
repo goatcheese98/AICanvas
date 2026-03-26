@@ -1,5 +1,6 @@
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import type { BinaryFiles } from '@excalidraw/excalidraw/types';
 import { act, render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CanvasCore } from './CanvasCore';
@@ -7,16 +8,9 @@ import { CanvasCore } from './CanvasCore';
 let latestExcalidrawProps: Record<string, unknown> | null = null;
 
 vi.mock('@excalidraw/excalidraw', async () => {
-	const React = await import('react');
-
 	return {
 		Excalidraw: (props: Record<string, unknown>) => {
 			latestExcalidrawProps = props;
-
-			React.useEffect(() => {
-				const onReady = props.excalidrawAPI as ((api: unknown) => void) | undefined;
-				onReady?.({} as never);
-			}, [props.excalidrawAPI]);
 
 			return <div data-testid="mock-excalidraw" />;
 		},
@@ -113,30 +107,82 @@ describe('CanvasCore', () => {
 		});
 	});
 
-	it('ignores repeated Excalidraw API callbacks for the same instance', () => {
+	it('replaces the stored Excalidraw API when a new instance arrives', async () => {
 		render(<CanvasCore canvasId="canvas-1" />);
 
 		expect(latestExcalidrawProps).not.toBeNull();
 
 		const listener = vi.fn();
 		const unsubscribe = useAppStore.subscribe(listener);
-		const stableApi = { refresh: vi.fn() } as never;
+		const firstApi = { refresh: vi.fn() } as never;
+		const secondApi = { refresh: vi.fn() } as never;
 
 		try {
 			act(() => {
-				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
-				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(firstApi);
+			});
+			await act(async () => {
+				await Promise.resolve();
+			});
+			expect(useAppStore.getState().excalidrawApi).toBe(firstApi);
+
+			act(() => {
+				(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(secondApi);
+			});
+			await act(async () => {
+				await Promise.resolve();
 			});
 
-			expect(useAppStore.getState().excalidrawApi).toBe(stableApi);
-			expect(listener).toHaveBeenCalledTimes(1);
+			expect(useAppStore.getState().excalidrawApi).toBe(secondApi);
+			expect(listener).toHaveBeenCalledTimes(2);
 		} finally {
 			unsubscribe();
 		}
 	});
 
-	it('syncs live scene snapshots during active pointer interactions so overlays can track drag motion', () => {
+	it('clears the stored Excalidraw API on unmount so inserts cannot target a dead canvas', async () => {
+		const { unmount } = render(<CanvasCore canvasId="canvas-1" />);
+		const stableApi = { refresh: vi.fn() } as never;
+
+		act(() => {
+			(latestExcalidrawProps?.excalidrawAPI as (api: unknown) => void)(stableApi);
+		});
+		await act(async () => {
+			await Promise.resolve();
+		});
+		expect(useAppStore.getState().excalidrawApi).toBe(stableApi);
+
+		unmount();
+
+		expect(useAppStore.getState().excalidrawApi).toBeNull();
+	});
+
+	it('syncs only live app state during active pointer interactions so overlay elements stay stable', () => {
 		const onPointerUpdate = vi.fn();
+		const existingElements = [
+			{
+				id: 'overlay-1',
+				type: 'rectangle',
+				x: 10,
+				y: 20,
+				width: 200,
+				height: 140,
+				angle: 0,
+			},
+		] as unknown as readonly ExcalidrawElement[];
+		const existingFiles = {
+			fileA: {
+				id: 'fileA',
+				mimeType: 'image/png' as const,
+				dataURL: 'data:image/png;base64,AAAA',
+				created: 1,
+			},
+		} as unknown as BinaryFiles;
+
+		useAppStore.setState({
+			elements: existingElements as ExcalidrawElement[],
+			files: existingFiles,
+		});
 
 		render(<CanvasCore canvasId="canvas-1" onPointerUpdate={onPointerUpdate} />);
 
@@ -159,14 +205,11 @@ describe('CanvasCore', () => {
 			selectedElementIds: { 'overlay-1': true },
 			zoom: { value: 1.2 },
 		};
-		const liveFiles = {
-			fileA: { id: 'fileA', mimeType: 'image/png' },
-		};
 		const stableApi = {
 			refresh: vi.fn(),
 			getSceneElements: () => liveElements,
 			getAppState: () => liveAppState,
-			getFiles: () => liveFiles,
+			getFiles: () => existingFiles,
 		} as never;
 
 		act(() => {
@@ -194,12 +237,12 @@ describe('CanvasCore', () => {
 			button: 'down',
 			pointersMap: new Map([[1, { x: 320, y: 240 }]]),
 		});
-		expect(state.elements).toEqual(liveElements);
-		expect(state.elements).not.toBe(liveElements);
+		expect(state.elements).toEqual(existingElements);
+		expect(state.elements).toBe(existingElements);
 		expect(state.appState).toEqual(liveAppState);
 		expect(state.appState).not.toBe(liveAppState);
-		expect(state.files).toEqual(liveFiles);
-		expect(state.files).not.toBe(liveFiles);
+		expect(state.files).toEqual(existingFiles);
+		expect(state.files).toBe(existingFiles);
 	});
 
 	it('applies normalized scene changes before syncing ai-managed vector resizes', () => {

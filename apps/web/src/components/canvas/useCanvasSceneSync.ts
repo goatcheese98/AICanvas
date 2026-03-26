@@ -41,9 +41,9 @@ interface UseCanvasSceneSyncReturn {
  * Pure scene data coordination only.
  */
 export function useCanvasSceneSync({
-	canvasId,
+	canvasId: _canvasId,
 	isInitializedRef,
-	coordinatorLoadSnapshot,
+	coordinatorLoadSnapshot: _coordinatorLoadSnapshot,
 }: UseCanvasSceneSyncProps): UseCanvasSceneSyncReturn {
 	const elements = useAppStore((s) => s.elements);
 	const appState = useAppStore((s) => s.appState);

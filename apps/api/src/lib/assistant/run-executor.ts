@@ -173,7 +173,7 @@ export async function executeAssistantRun(
 async function handleRunError(
 	error: unknown,
 	db: AssistantDb,
-	bindings: AppEnv['Bindings'],
+	_bindings: AppEnv['Bindings'],
 	ownerId: string,
 	runId: string,
 	input: ExecuteAssistantRunInput,

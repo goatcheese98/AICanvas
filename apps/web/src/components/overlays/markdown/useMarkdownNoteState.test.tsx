@@ -592,13 +592,13 @@ describe('useMarkdownNoteState', () => {
 		act(() => vi.advanceTimersByTime(200));
 
 		expect(onChange).toHaveBeenCalledTimes(1);
-			expect(onChange).toHaveBeenLastCalledWith(
-				'markdown-element',
-				'Hello\n\n![diagram.png](image://11111111-1111-1111-1111-111111111111)',
-				{ '11111111-1111-1111-1111-111111111111': 'data:image/png;base64,AAAA' },
-				'MD',
-				expect.any(Object),
-				'raw',
+		expect(onChange).toHaveBeenLastCalledWith(
+			'markdown-element',
+			'Hello\n\n![diagram.png](image://11111111-1111-1111-1111-111111111111)',
+			{ '11111111-1111-1111-1111-111111111111': 'data:image/png;base64,AAAA' },
+			'MD',
+			expect.any(Object),
+			'raw',
 		);
 	});
 });

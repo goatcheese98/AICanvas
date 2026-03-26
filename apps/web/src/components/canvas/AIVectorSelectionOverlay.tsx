@@ -51,8 +51,7 @@ function elementToSvgPath(
 			return `${sx},${sy}`;
 		};
 
-		const d =
-			renderPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toScreen(p[0], p[1])}`).join(' ') + ' Z';
+		const d = `${renderPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toScreen(p[0], p[1])}`).join(' ')} Z`;
 		return d;
 	}
 
@@ -106,6 +105,15 @@ export function AIVectorSelectionOverlay() {
 	const strokeColor = result.isFullGroup ? '#6c87f7' : '#a8beff';
 	const shadowColor = 'rgba(0,0,0,0.5)';
 	const dashArray = `${DASH_LEN} ${GAP_LEN}`;
+	const pathCounts = new Map<string, number>();
+	const keyedPaths = result.paths.map((pathData) => {
+		const occurrence = pathCounts.get(pathData) ?? 0;
+		pathCounts.set(pathData, occurrence + 1);
+		return {
+			key: `${pathData}-${occurrence}`,
+			pathData,
+		};
+	});
 
 	return (
 		<div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 3 }}>
@@ -126,11 +134,11 @@ export function AIVectorSelectionOverlay() {
 						}
 					`}</style>
 				</defs>
-				{result.paths.map((d, i) => (
-					<g key={i}>
+				{keyedPaths.map(({ key, pathData }) => (
+					<g key={key}>
 						{/* Dark shadow stroke for contrast on any background */}
 						<path
-							d={d}
+							d={pathData}
 							fill="none"
 							stroke={shadowColor}
 							strokeWidth={3.5}
@@ -140,7 +148,7 @@ export function AIVectorSelectionOverlay() {
 						/>
 						{/* Animated foreground marching ants */}
 						<path
-							d={d}
+							d={pathData}
 							fill="none"
 							stroke={strokeColor}
 							strokeWidth={2}

@@ -1,12 +1,12 @@
 import { captureBrowserException } from '@/lib/observability';
 import type { ClientToServerMessage } from '@ai-canvas/shared/types';
 import { useCallback, useRef, useState } from 'react';
+import { RECONNECT_BASE_MS, RECONNECT_MAX_MS } from './collaboration-session';
 import {
 	getPartykitHost,
 	getPartykitWebSocketUrl,
 	getReconnectDelayMs,
 } from './collaboration-utils';
-import { RECONNECT_BASE_MS, RECONNECT_MAX_MS } from './collaboration-session';
 
 export type WebSocketStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 

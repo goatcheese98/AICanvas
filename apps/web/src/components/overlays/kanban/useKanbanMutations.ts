@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
-	KanbanBoardProps,
 	KanbanBoardMutationOptions,
+	KanbanBoardProps,
 	UpdateKanbanBoard,
 } from './kanban-board-types';
 import {

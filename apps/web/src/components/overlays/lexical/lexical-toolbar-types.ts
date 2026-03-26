@@ -1,5 +1,3 @@
-import type { HeadingTagType } from '@lexical/rich-text';
-
 export type BlockType =
 	| 'paragraph'
 	| 'h1'

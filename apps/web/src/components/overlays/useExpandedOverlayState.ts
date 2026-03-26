@@ -106,7 +106,7 @@ function resizeRect(
 	deltaX: number,
 	deltaY: number,
 ): OverlayShellRect {
-	let next = { ...rect };
+	const next = { ...rect };
 
 	if (handle.includes('e')) {
 		next.width = rect.width + deltaX;
@@ -144,7 +144,7 @@ function useStableViewport(): ViewportSize {
 			return `${vp.width},${vp.height}`;
 		},
 	);
-	
+
 	// Parse the string once per change
 	return useMemo(() => {
 		const [width, height] = viewportStr.split(',').map(Number);
@@ -165,12 +165,14 @@ export function useExpandedOverlayState({
 	// Clamp rect when viewport changes, but only if values actually change
 	useEffect(() => {
 		// Only update if viewport actually changed
-		if (prevViewportRef.current.width === viewport.width && 
-		    prevViewportRef.current.height === viewport.height) {
+		if (
+			prevViewportRef.current.width === viewport.width &&
+			prevViewportRef.current.height === viewport.height
+		) {
 			return;
 		}
 		prevViewportRef.current = viewport;
-		
+
 		setRect((prev) => {
 			const clamped = clampRect(prev, viewport);
 			return rectsEqual(prev, clamped) ? prev : clamped;

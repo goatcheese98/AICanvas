@@ -1,9 +1,18 @@
-import * as Sentry from '@sentry/cloudflare';
 import type { AssistantTask } from '@ai-canvas/shared/types';
-import { generateAssistantResponse } from '../service';
-import { createAssistantArtifactRecord, listAssistantArtifactsRecord, updateAssistantRunRecord, appendAssistantRunEventRecord } from '../store';
-import { buildResponseArtifacts, buildResponseSummary, getArtifactTitle } from '../artifact-builders';
+import * as Sentry from '@sentry/cloudflare';
+import {
+	buildResponseArtifacts,
+	buildResponseSummary,
+	getArtifactTitle,
+} from '../artifact-builders';
 import { publishAssistantRunEvent } from '../runtime-store';
+import { generateAssistantResponse } from '../service';
+import {
+	appendAssistantRunEventRecord,
+	createAssistantArtifactRecord,
+	listAssistantArtifactsRecord,
+	updateAssistantRunRecord,
+} from '../store';
 import type { TaskHandlerContext, TaskHandlerResult } from './index';
 
 export async function executeAssistantResponseTask(

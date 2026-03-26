@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@clerk/clerk-react', () => ({
@@ -14,14 +14,15 @@ vi.mock('@/lib/api', () => ({
 				':id': {
 					$get: vi.fn().mockResolvedValue({
 						ok: true,
-						json: () => Promise.resolve({
-							data: {
-								id: 'canvas-1',
-								elements: [],
-								appState: {},
-								files: {},
-							},
-						}),
+						json: () =>
+							Promise.resolve({
+								data: {
+									id: 'canvas-1',
+									elements: [],
+									appState: {},
+									files: {},
+								},
+							}),
 					}),
 					$put: vi.fn().mockResolvedValue({ ok: true }),
 				},
@@ -52,7 +53,7 @@ describe('PrototypeStudioPage', () => {
 		const saved = { template: 'react', title: 'Test', files: {} };
 		const draftSignature = JSON.stringify(draft);
 		const savedSignature = JSON.stringify(saved);
-		
+
 		// Same data should not be dirty
 		const isDirty = draftSignature !== savedSignature;
 		expect(isDirty).toBe(false);
@@ -72,7 +73,8 @@ describe('PrototypeStudioPage', () => {
 		const canvasQuery = { isLoading: false };
 
 		// Should navigate if no match and not loading
-		const shouldNavigate = fallbackPrototypeElement && !matchedPrototypeElement && !canvasQuery.isLoading;
+		const shouldNavigate =
+			fallbackPrototypeElement && !matchedPrototypeElement && !canvasQuery.isLoading;
 		expect(shouldNavigate).toBe(true);
 
 		// Should not navigate if already navigated to this prototype
@@ -87,7 +89,8 @@ describe('PrototypeStudioPage', () => {
 		expect(navigatedFallbackRef.current).toBe('proto-1');
 
 		// Second call should skip
-		const shouldNavigateAgain = fallbackPrototypeElement && !matchedPrototypeElement && !canvasQuery.isLoading;
+		const shouldNavigateAgain =
+			fallbackPrototypeElement && !matchedPrototypeElement && !canvasQuery.isLoading;
 		let navigated = false;
 		if (shouldNavigateAgain) {
 			if (navigatedFallbackRef.current === fallbackPrototypeElement.id) {

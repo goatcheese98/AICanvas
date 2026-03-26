@@ -1,5 +1,6 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { Route as CanvasRoute } from '@/routes/_app/canvas.$id';
+import { useAppStore } from '@/stores/store';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -8,7 +9,6 @@ import { OverlayExpandButton } from '../OverlayExpandButton';
 import { PrototypeStudioEditor } from './PrototypeStudioEditor';
 import { usePrototypePreview } from './prototype-preview-runtime';
 import { getPrototypeStudioPath } from './prototype-utils';
-import { useAppStore } from '@/stores/store';
 
 type PrototypeElement = ExcalidrawElement & {
 	customData: PrototypeOverlayCustomData;
@@ -33,7 +33,6 @@ function getPreviewStatusLabel(status: 'idle' | 'compiling' | 'running' | 'ready
 			return 'Ready';
 		case 'error':
 			return 'Needs attention';
-		case 'idle':
 		default:
 			return 'Idle';
 	}

@@ -4,9 +4,9 @@
 
 import type { AssistantCanvasBounds, CanvasElement } from '@ai-canvas/shared/types';
 import type { AssistantCanvasStyleHints } from '@ai-canvas/shared/types';
-import { toObjectRecord, toElementId } from './element-parsers';
 import { SELECTION_ENVIRONMENT_LIMIT } from './constants';
 import { buildElementSummary, compareByPriorityAndLabel } from './context-builders';
+import { toElementId, toObjectRecord } from './element-parsers';
 
 /** Build bounds from element position and dimensions */
 export function buildBounds(element: CanvasElement): AssistantCanvasBounds | undefined {

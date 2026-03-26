@@ -1,10 +1,10 @@
+import { BILATERAL_FILTER, KMEANS } from '../config';
 import type {
+	ColorQuantizationResult,
 	PreprocessInput,
 	PreprocessOutput,
 	RgbaColor,
-	ColorQuantizationResult,
 } from '../types';
-import { BILATERAL_FILTER, KMEANS } from '../config';
 
 // ─── Color Utilities ────────────────────────────────────────────────────────────
 
@@ -235,11 +235,12 @@ function mergeSimilarCenters(
 
 	const parent = Array.from({ length: n }, (_, i) => i);
 	const find = (x: number): number => {
-		while (parent[x] !== x) {
-			parent[x] = parent[parent[x]];
-			x = parent[x];
+		let current = x;
+		while (parent[current] !== current) {
+			parent[current] = parent[parent[current]];
+			current = parent[current];
 		}
-		return x;
+		return current;
 	};
 
 	const sq = threshold * threshold;
@@ -364,7 +365,12 @@ export async function preprocess(input: PreprocessInput): Promise<PreprocessOutp
 	const { bgIndex, bgLuminance } = detectBackground(centers, options.bgLuminanceThreshold);
 
 	// Detect if image is monochrome
-	const isMonochrome = detectMonochrome(centers, bgIndex, bgLuminance, options.monochromeSaturationThreshold);
+	const isMonochrome = detectMonochrome(
+		centers,
+		bgIndex,
+		bgLuminance,
+		options.monochromeSaturationThreshold,
+	);
 
 	// Prune components smaller than min area ratio
 	const minArea = Math.max(4, Math.round(width * height * options.minAreaRatio));

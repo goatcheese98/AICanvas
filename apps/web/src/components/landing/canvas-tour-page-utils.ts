@@ -96,10 +96,7 @@ export function clampOverlayPlacement(
 	const widthRem = clamp(
 		placement.widthRem,
 		OVERLAY_MIN_WIDTH_REM,
-		Math.max(
-			OVERLAY_MIN_WIDTH_REM,
-			Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx),
-		),
+		Math.max(OVERLAY_MIN_WIDTH_REM, Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx)),
 	);
 	const widthPx = widthRem * rootFontSizePx;
 	const maxLeftRem = Math.max(OVERLAY_LEFT_MARGIN_REM, (area.rightPx - widthPx) / rootFontSizePx);
@@ -174,7 +171,9 @@ export function createCameraFromAppState(
 	const width =
 		typeof appState.width === 'number' && appState.width > 0 ? appState.width : viewportSize.width;
 	const height =
-		typeof appState.height === 'number' && appState.height > 0 ? appState.height : viewportSize.height;
+		typeof appState.height === 'number' && appState.height > 0
+			? appState.height
+			: viewportSize.height;
 	const scrollX = typeof appState.scrollX === 'number' ? appState.scrollX : 0;
 	const scrollY = typeof appState.scrollY === 'number' ? appState.scrollY : 0;
 

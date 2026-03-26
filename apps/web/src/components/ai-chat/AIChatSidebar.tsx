@@ -52,6 +52,8 @@ export function AIChatSidebar({
 							/>
 							<svg
 								viewBox="0 0 12 12"
+								aria-hidden="true"
+								focusable="false"
 								className={`relative ml-1 h-3.5 w-3.5 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
 									isHistoryCollapsed ? 'rotate-180' : 'rotate-0'
 								}`}

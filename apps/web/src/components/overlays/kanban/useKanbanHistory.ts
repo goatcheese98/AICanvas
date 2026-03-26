@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { useCallback, useRef, useState } from 'react';
 import { cloneKanbanBoard, pushKanbanHistory } from './kanban-utils';
 
 interface UseKanbanHistoryOptions {
@@ -29,7 +29,7 @@ export function useKanbanHistory({
 	const redoStackRef = useRef<KanbanOverlayCustomData[]>([]);
 
 	// Use a counter to force re-renders when stacks change (for canUndo/canRedo)
-	const [stackVersion, setStackVersion] = useState(0);
+	const [_stackVersion, setStackVersion] = useState(0);
 
 	const bumpVersion = useCallback(() => {
 		setStackVersion((v) => v + 1);

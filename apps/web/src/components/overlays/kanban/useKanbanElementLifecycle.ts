@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { useCallback, useEffect, useRef } from 'react';
 import { normalizeKanbanBoard } from './kanban-utils';
 
 interface UseKanbanElementLifecycleOptions {

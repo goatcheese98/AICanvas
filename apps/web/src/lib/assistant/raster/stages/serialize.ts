@@ -1,11 +1,13 @@
 import type { SvgPoint } from '../../svg-path-utils';
-import type { SerializeInput, SerializeOutput, TracedPath, TraceLayer } from '../types';
 import { SIMPLIFICATION } from '../config';
+import type { SerializeInput, SerializeOutput, TraceLayer, TracedPath } from '../types';
 
 // ─── Path Serialization ─────────────────────────────────────────────────────────
 
 function formatCoordinate(n: number): string {
-	return String(Math.round(n * SIMPLIFICATION.DECIMAL_PRECISION) / SIMPLIFICATION.DECIMAL_PRECISION);
+	return String(
+		Math.round(n * SIMPLIFICATION.DECIMAL_PRECISION) / SIMPLIFICATION.DECIMAL_PRECISION,
+	);
 }
 
 function polygonPath(points: SvgPoint[]): string {
@@ -38,11 +40,7 @@ function serializeMonochrome(
 
 // ─── Color SVG Serialization ────────────────────────────────────────────────────
 
-function serializeColor(
-	width: number,
-	height: number,
-	layers: TraceLayer[],
-): string {
+function serializeColor(width: number, height: number, layers: TraceLayer[]): string {
 	const pathElems = layers
 		.flatMap((layer) =>
 			layer.paths.map((path) => `<path d="${path}" fill="${layer.fill}" stroke="transparent" />`),

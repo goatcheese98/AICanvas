@@ -22,9 +22,7 @@ import {
 	insertNativeVectorElementsOnCanvas,
 } from './ai-chat-vector-insertion';
 
-type StoredAssistantAssetContent = NonNullable<
-	ReturnType<typeof parseStoredAssistantAssetContent>
->;
+type StoredAssistantAssetContent = NonNullable<ReturnType<typeof parseStoredAssistantAssetContent>>;
 type StoredAssistantAssetReference = StoredAssistantAssetContent & {
 	artifactId: string;
 	runId: string;
@@ -218,10 +216,7 @@ export async function vectorizeRasterAssetOnCanvas({
 			},
 		});
 		setChatError(
-			buildNativeVectorErrorMessage(
-				error,
-				'This raster sketch could not be vectorized natively.',
-			),
+			buildNativeVectorErrorMessage(error, 'This raster sketch could not be vectorized natively.'),
 		);
 		return null;
 	}
@@ -278,10 +273,7 @@ async function insertImageVectorAssetNatively({
 		} catch (error) {
 			recordImageVectorFallback(
 				storedAsset,
-				buildNativeVectorErrorMessage(
-					error,
-					'Source raster insertion failed before SVG fallback.',
-				),
+				buildNativeVectorErrorMessage(error, 'Source raster insertion failed before SVG fallback.'),
 				'asset-image',
 			);
 		}

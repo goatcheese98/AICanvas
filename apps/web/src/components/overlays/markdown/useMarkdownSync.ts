@@ -80,10 +80,8 @@ export function hasLocalEdits(
 	return (
 		localState.content !== externalNormalizedElement.content ||
 		localState.title !== externalNormalizedElement.title ||
-		JSON.stringify(localState.images) !==
-			JSON.stringify(externalNormalizedElement.images ?? {}) ||
-		JSON.stringify(localState.settings) !==
-			JSON.stringify(externalNormalizedElement.settings) ||
+		JSON.stringify(localState.images) !== JSON.stringify(externalNormalizedElement.images ?? {}) ||
+		JSON.stringify(localState.settings) !== JSON.stringify(externalNormalizedElement.settings) ||
 		localState.editorMode !== (externalNormalizedElement.editorMode ?? 'raw')
 	);
 }

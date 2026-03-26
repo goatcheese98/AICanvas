@@ -26,7 +26,10 @@ interface UseTourCameraReturn {
 	createCameraFromAppState: (appState: Partial<AppState>) => CameraTarget;
 }
 
-export function useTourCamera({ initialCamera, viewportSize }: UseTourCameraArgs): UseTourCameraReturn {
+export function useTourCamera({
+	initialCamera,
+	viewportSize,
+}: UseTourCameraArgs): UseTourCameraReturn {
 	const cameraRef = useRef<CameraTarget>(initialCamera);
 	const [liveCamera, setLiveCamera] = useState<CameraTarget>(initialCamera);
 

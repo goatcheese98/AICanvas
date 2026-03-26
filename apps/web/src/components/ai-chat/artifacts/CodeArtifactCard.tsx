@@ -1,6 +1,6 @@
+import type { ArtifactCardProps } from '../AIChatArtifactCard';
 import { CodeSnippet } from '../AIChatArtifactPrimitives';
 import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from '../ai-chat-constants';
-import type { ArtifactCardProps } from '../AIChatArtifactCard';
 
 interface CodeArtifactCardProps extends ArtifactCardProps {
 	label: string;

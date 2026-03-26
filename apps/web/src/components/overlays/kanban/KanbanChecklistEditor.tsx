@@ -76,7 +76,7 @@ export function KanbanChecklistEditor({
 									checked={item.done}
 									onChange={(event) =>
 										updateChecklist((current) =>
-											current.map((candidate, candidateIndex) =>
+											current.map((candidate, _candidateIndex) =>
 												candidate.id === item.id
 													? { ...candidate, done: event.target.checked }
 													: candidate,
@@ -89,7 +89,7 @@ export function KanbanChecklistEditor({
 									value={item.text}
 									onChange={(event) =>
 										updateChecklist((current) =>
-											current.map((candidate, candidateIndex) =>
+											current.map((candidate, _candidateIndex) =>
 												candidate.id === item.id
 													? { ...candidate, text: event.target.value }
 													: candidate,

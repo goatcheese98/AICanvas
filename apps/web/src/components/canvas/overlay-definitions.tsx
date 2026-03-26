@@ -203,7 +203,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		),
 	},
 	'web-embed': {
-		defaultSize: { width: 640, height: 480 },
+		defaultSize: { width: 960, height: 720 },
 		normalizeCustomData: normalizeWebEmbedOverlay,
 		createCustomData: (options) =>
 			normalizeWebEmbedOverlay({

@@ -13,15 +13,13 @@
  */
 
 import { useMemo, useRef } from 'react';
-import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 import type { CanvasTourChapter } from './canvas-tour-content';
 import { canvasTourChapters } from './canvas-tour-content';
-import type { RegisteredTourSceneSnapshot } from './canvas-tour-registry';
+import { TOUR_IMAGE_FILE_ID } from './canvas-tour-scene';
 import type { CanvasTourPageState } from './canvas-tour-types';
 import { useCanvasTourNavigation } from './useCanvasTourNavigation';
 import { useCanvasTourRegistry } from './useCanvasTourRegistry';
 import { useOverlayPlacement } from './useOverlayPlacement';
-import { TOUR_IMAGE_FILE_ID } from './canvas-tour-scene';
 
 function getChapterById(sceneId: string, fallback: CanvasTourChapter): CanvasTourChapter {
 	return canvasTourChapters.find((chapter) => chapter.id === sceneId) ?? fallback;

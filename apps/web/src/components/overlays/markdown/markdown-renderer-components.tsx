@@ -77,6 +77,7 @@ const MarkdownImage = memo(function MarkdownImage({
 
 	return (
 		<img
+			{...(props ?? {})}
 			src={src}
 			alt={alt || 'Embedded image'}
 			loading="lazy"
@@ -99,7 +100,6 @@ const MarkdownImage = memo(function MarkdownImage({
 			onError={() => {
 				markImageAsFailed(src);
 			}}
-			{...(props ?? {})}
 		/>
 	);
 });

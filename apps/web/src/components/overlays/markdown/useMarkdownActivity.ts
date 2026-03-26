@@ -1,5 +1,5 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useRef, useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 interface UseMarkdownActivityProps {
 	isEditing: boolean;

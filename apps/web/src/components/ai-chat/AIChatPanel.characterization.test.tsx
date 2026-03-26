@@ -45,7 +45,6 @@ describe('AIChatPanel characterization', () => {
 	const mockSetFiles = vi.fn();
 	const mockSetIsChatLoading = vi.fn();
 	const mockSetChatError = vi.fn();
-	const mockSetContextMode = vi.fn();
 	const mockUpdateScene = vi.fn();
 	const mockAddFiles = vi.fn();
 
@@ -54,6 +53,10 @@ describe('AIChatPanel characterization', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockElements.length = 0;
+		for (const key of Object.keys(mockSelectedElementIds)) {
+			delete mockSelectedElementIds[key];
+		}
 
 		vi.mocked(useAuth).mockReturnValue({
 			getToken: mockGetToken,
@@ -69,7 +72,6 @@ describe('AIChatPanel characterization', () => {
 				},
 				isChatLoading: false,
 				chatError: null,
-				contextMode: 'all',
 				elements: mockElements,
 				appState: {
 					selectedElementIds: mockSelectedElementIds,
@@ -78,7 +80,6 @@ describe('AIChatPanel characterization', () => {
 				setFiles: mockSetFiles,
 				setIsChatLoading: mockSetIsChatLoading,
 				setChatError: mockSetChatError,
-				setContextMode: mockSetContextMode,
 			} as never),
 		);
 
@@ -99,7 +100,15 @@ describe('AIChatPanel characterization', () => {
 			screen.getByPlaceholderText('Describe the result you want on the canvas...'),
 		).toBeTruthy();
 		expect(screen.getByRole('button', { name: 'New Chat' })).toBeTruthy();
-		expect(screen.getByLabelText('Output style')).toBeTruthy();
+		expect(screen.queryByLabelText('Canvas context')).toBeNull();
+		expect(screen.queryByLabelText('Output style')).toBeNull();
+		expect(
+			screen.getByText(
+				(_, node) =>
+					node?.textContent?.replace(/\s+/g, ' ').trim() ===
+					'Type / for commands. Cmd/Ctrl+Enter to send.',
+			),
+		).toBeTruthy();
 
 		await waitFor(() => {
 			expect(api.getRequiredAuthHeaders).toHaveBeenCalledWith(mockGetToken);
@@ -125,5 +134,48 @@ describe('AIChatPanel characterization', () => {
 		renderWithQueryClient(<AIChatPanel canvasId={canvasId} />);
 
 		expect(await screen.findByRole('button', { name: /launch planning/i })).toBeTruthy();
+	});
+
+	it('shows selection as automatic context instead of a context toggle', async () => {
+		mockElements.push({
+			id: 'el-1',
+			type: 'rectangle',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 80,
+			angle: 0,
+			strokeColor: '#000000',
+			backgroundColor: 'transparent',
+			fillStyle: 'solid',
+			strokeWidth: 1,
+			strokeStyle: 'solid',
+			roughness: 0,
+			opacity: 100,
+			groupIds: [],
+			frameId: null,
+			roundness: null,
+			seed: 1,
+			version: 1,
+			versionNonce: 1,
+			isDeleted: false,
+			boundElements: null,
+			updated: 1,
+			link: null,
+			locked: false,
+		} as CanvasElement);
+		mockSelectedElementIds['el-1'] = true;
+
+		renderWithQueryClient(<AIChatPanel canvasId={canvasId} />);
+
+		expect(screen.queryByLabelText('Canvas context')).toBeNull();
+		expect(
+			screen.getAllByText(/The assistant will use it automatically when it helps\./i).length,
+		).toBeGreaterThan(0);
+		await waitFor(() => {
+			expect(api.fetchAssistantThreads).toHaveBeenCalledWith(canvasId, {
+				Authorization: 'Bearer test-token',
+			});
+		});
 	});
 });

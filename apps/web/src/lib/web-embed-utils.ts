@@ -26,6 +26,11 @@ const EMBED_PATTERNS = [
 		convert: (project: string) => `https://stackblitz.com/edit/${project}?embed=1`,
 	},
 	{
+		pattern: /open\.spotify\.com\/(playlist|album|track|artist|show|episode)\/([a-zA-Z0-9]+)/,
+		convert: (resourceType: string, id: string) =>
+			`https://open.spotify.com/embed/${resourceType}/${id}`,
+	},
+	{
 		pattern: /docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/,
 		convert: (type: string, id: string) => `https://docs.google.com/${type}/d/${id}/preview`,
 	},
@@ -43,46 +48,51 @@ const EMBED_PATTERNS = [
 	},
 ] as const;
 
-const BLOCKED_SITES = [
-	{
-		domain: 'google.com',
-		message:
-			"Google doesn't allow its pages to be previewed here. Use a direct embeddable page URL or open in a new tab.",
-	},
-	{
-		domain: 'youtube.com',
-		message: "YouTube homepages can't be previewed here. Try pasting a specific video URL instead.",
-	},
-	{
-		domain: 'facebook.com',
-		message: "Facebook doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-	{
-		domain: 'twitter.com',
-		message:
-			"X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-	{
-		domain: 'x.com',
-		message:
-			"X (Twitter) doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-	{
-		domain: 'instagram.com',
-		message:
-			"Instagram doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-	{
-		domain: 'linkedin.com',
-		message: "LinkedIn doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-	{
-		domain: 'reddit.com',
-		message: "Reddit doesn't allow its pages to be previewed here. Open it in a new tab instead.",
-	},
-] as const;
+function extractGoogleMapsQuery(url: URL): string | null {
+	const query = url.searchParams.get('q') || url.searchParams.get('query');
+	if (query) {
+		return query;
+	}
+
+	const pathMatch = url.pathname.match(/\/maps\/(?:place|search)\/([^/]+)/i);
+	if (!pathMatch?.[1]) {
+		return null;
+	}
+
+	return decodeURIComponent(pathMatch[1]).replace(/\+/g, ' ');
+}
+
+function convertGoogleMapsUrlToEmbedUrl(url: string): string | null {
+	const mapsEmbedApiKey = import.meta.env.VITE_GOOGLE_MAPS_EMBED_API_KEY?.trim();
+	if (!mapsEmbedApiKey) {
+		return null;
+	}
+
+	try {
+		const parsed = new URL(url);
+		const isGoogleMapsHost =
+			parsed.hostname.includes('google.com') || parsed.hostname.includes('google.ca');
+		if (!isGoogleMapsHost || !parsed.pathname.startsWith('/maps')) {
+			return null;
+		}
+
+		const query = extractGoogleMapsQuery(parsed);
+		if (!query) {
+			return null;
+		}
+
+		return `https://www.google.com/maps/embed/v1/place?key=${encodeURIComponent(mapsEmbedApiKey)}&q=${encodeURIComponent(query)}`;
+	} catch {
+		return null;
+	}
+}
 
 export function convertToEmbedUrl(url: string): string | null {
+	const googleMapsEmbedUrl = convertGoogleMapsUrlToEmbedUrl(url);
+	if (googleMapsEmbedUrl) {
+		return googleMapsEmbedUrl;
+	}
+
 	for (const { pattern, convert } of EMBED_PATTERNS) {
 		const match = url.match(pattern);
 		if (!match) continue;
@@ -91,6 +101,13 @@ export function convertToEmbedUrl(url: string): string | null {
 	}
 
 	return null;
+}
+
+export function getMicrolinkApiUrl(url: string): string {
+	const apiUrl = new URL('https://api.microlink.io/');
+	apiUrl.searchParams.set('url', url);
+	apiUrl.searchParams.set('screenshot', 'true');
+	return apiUrl.toString();
 }
 
 export function isKnownEmbeddable(url: string): boolean {
@@ -114,7 +131,12 @@ export function isKnownEmbeddable(url: string): boolean {
 			'notion.site',
 			'loom.com',
 			'canva.com',
+			'spotify.com',
 		];
+
+		if (hostname.includes('google.com') && url.includes('/maps/embed/')) {
+			return true;
+		}
 
 		if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
 			return url.includes('/embed/') || url.includes('/watch?v=') || url.includes('youtu.be/');
@@ -157,18 +179,16 @@ export function enhanceUrl(input: string): {
 
 	try {
 		const parsed = new URL(url);
-		const blocked = BLOCKED_SITES.find((site) => parsed.hostname.includes(site.domain));
-
-		if (blocked?.domain === 'youtube.com') {
-			if (!url.includes('/watch?v=') && !url.includes('/embed/') && !url.includes('youtu.be/')) {
-				return { url, isSearch: false, warning: blocked.message };
-			}
-		} else if (blocked?.domain === 'google.com') {
-			if (!url.includes('/search?')) {
-				return { url, isSearch: false, warning: blocked.message };
-			}
-		} else if (blocked) {
-			return { url, isSearch: false, warning: blocked.message };
+		const isGoogleMapsUrl =
+			(parsed.hostname.includes('google.com') || parsed.hostname.includes('google.ca')) &&
+			parsed.pathname.startsWith('/maps');
+		if (isGoogleMapsUrl && !import.meta.env.VITE_GOOGLE_MAPS_EMBED_API_KEY?.trim()) {
+			return {
+				url,
+				isSearch: false,
+				warning:
+					'Google Maps links need VITE_GOOGLE_MAPS_EMBED_API_KEY configured to use Google’s official embed URL.',
+			};
 		}
 	} catch {
 		return { url: '', isSearch: false };

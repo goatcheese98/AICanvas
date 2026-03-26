@@ -1,11 +1,10 @@
-import { useClerk } from '@clerk/clerk-react';
-import { useDashboardProfileMenuState } from './useDashboardProfileMenuState';
-import { DashboardProfileTrigger } from './DashboardProfileTrigger';
-import { MenuContent } from './DashboardProfileMenuContent';
-import { WorkspaceSettingsView } from './DashboardProfileWorkspaceView';
-import { PreferencesView } from './DashboardProfilePreferencesView';
 import { useMountEffect } from '@/hooks/useMountEffect';
+import { MenuContent } from './DashboardProfileMenuContent';
+import { PreferencesView } from './DashboardProfilePreferencesView';
+import { DashboardProfileTrigger } from './DashboardProfileTrigger';
+import { WorkspaceSettingsView } from './DashboardProfileWorkspaceView';
 import type { DashboardProfileMenuProps } from './dashboard-profile-utils';
+import { useDashboardProfileMenuState } from './useDashboardProfileMenuState';
 
 export type { DashboardProfileMenuProps } from './dashboard-profile-utils';
 
@@ -15,7 +14,6 @@ export function DashboardProfileMenu({
 	imageUrl,
 	initials,
 }: DashboardProfileMenuProps) {
-	const { signOut } = useClerk();
 	const {
 		menuRef,
 		activeView,
@@ -52,19 +50,6 @@ export function DashboardProfileMenu({
 		};
 	});
 
-	const getAriaLabel = () => {
-		switch (activeView) {
-			case 'menu':
-				return 'Profile menu';
-			case 'workspace':
-				return 'Workspace settings';
-			case 'preferences':
-				return 'Preferences';
-			default:
-				return 'Profile menu';
-		}
-	};
-
 	return (
 		<div className="relative" ref={menuRef}>
 			<DashboardProfileTrigger
@@ -77,11 +62,7 @@ export function DashboardProfileMenu({
 			/>
 
 			{isMenuOpen ? (
-				<div
-					role="dialog"
-					aria-label={getAriaLabel()}
-					className="app-panel app-panel-strong absolute right-0 top-[calc(100%+0.75rem)] z-30 w-[24rem] overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-white/96 shadow-[0_24px_64px_rgba(15,23,42,0.16)] backdrop-blur"
-				>
+				<div className="app-panel app-panel-strong absolute right-0 top-[calc(100%+0.75rem)] z-30 w-[24rem] overflow-hidden rounded-[18px] border border-[var(--color-border)] bg-white/96 shadow-[0_24px_64px_rgba(15,23,42,0.16)] backdrop-blur">
 					{activeView === 'menu' ? (
 						<MenuContent
 							displayName={displayName}

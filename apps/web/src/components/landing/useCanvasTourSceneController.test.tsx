@@ -460,7 +460,12 @@ describe('useCanvasTourSceneController', () => {
 			elements: [createElement('store-element', 300, 400)],
 			appState: { scrollX: -25, scrollY: -50, selectedElementIds: {} },
 			files: {
-				storeFile: { id: 'storeFile' as unknown as BinaryFileData['id'], mimeType: 'image/png', dataURL: 'data:xyz' as unknown as BinaryFileData['dataURL'], created: 2 },
+				storeFile: {
+					id: 'storeFile' as unknown as BinaryFileData['id'],
+					mimeType: 'image/png',
+					dataURL: 'data:xyz' as unknown as BinaryFileData['dataURL'],
+					created: 2,
+				},
 			},
 		});
 

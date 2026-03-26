@@ -1,8 +1,5 @@
 import type { CanvasTourGuideOverlay } from './canvas-tour-content';
-import {
-	formatDimensions,
-	formatPreviewShift,
-} from './canvas-tour-layout-utils';
+import { formatDimensions, formatPreviewShift } from './canvas-tour-layout-utils';
 import type { OverlayEditorProps } from './canvas-tour-layout-utils';
 
 const OVERLAY_PRESETS: Array<{
@@ -52,9 +49,7 @@ export function OverlayEditor({
 						<textarea
 							rows={4}
 							value={overlayDraft.description}
-							onChange={(event) =>
-								updateOverlayDraft({ description: event.target.value })
-							}
+							onChange={(event) => updateOverlayDraft({ description: event.target.value })}
 						/>
 					</label>
 					<label className="canvas-tour-layout-field">
@@ -116,8 +111,8 @@ function OverlayPlacementControls({
 			<div className="canvas-tour-layout-placement-header">
 				<p className="canvas-tour-layout-section-title">Overlay placement</p>
 				<p className="canvas-tour-layout-help">
-					Guide placement uses the full presentation viewport. Preview stays inside an
-					editor-safe area when layout tools are open.
+					Guide placement uses the full presentation viewport. Preview stays inside an editor-safe
+					area when layout tools are open.
 				</p>
 				<div className="canvas-tour-layout-preset-grid">
 					{OVERLAY_PRESETS.map(({ preset, label }) => (
@@ -226,9 +221,7 @@ function OverlayPlacementControls({
 						max="1"
 						step="0.01"
 						value={overlayDraft.surfaceOpacity}
-						onChange={(event) =>
-							updateOverlayDraft({ surfaceOpacity: Number(event.target.value) })
-						}
+						onChange={(event) => updateOverlayDraft({ surfaceOpacity: Number(event.target.value) })}
 					/>
 					<input
 						type="number"
@@ -236,9 +229,7 @@ function OverlayPlacementControls({
 						max="1"
 						step="0.01"
 						value={overlayDraft.surfaceOpacity}
-						onChange={(event) =>
-							updateOverlayDraft({ surfaceOpacity: Number(event.target.value) })
-						}
+						onChange={(event) => updateOverlayDraft({ surfaceOpacity: Number(event.target.value) })}
 					/>
 				</label>
 				<label className="canvas-tour-layout-field">
@@ -246,9 +237,7 @@ function OverlayPlacementControls({
 					<input
 						type="color"
 						value={overlayDraft.accentColor}
-						onChange={(event) =>
-							updateOverlayDraft({ accentColor: event.target.value })
-						}
+						onChange={(event) => updateOverlayDraft({ accentColor: event.target.value })}
 					/>
 				</label>
 			</div>

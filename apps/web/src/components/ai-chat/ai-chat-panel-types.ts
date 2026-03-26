@@ -5,7 +5,6 @@ import type {
 	DiagramInsertInput,
 	MarkdownPatchReviewState,
 } from './ai-chat-types';
-import type { AssistantOutputStyle } from './output-style';
 import type { AssistantRunProgress } from './run-progress';
 
 /**
@@ -78,6 +77,4 @@ export interface AIChatPanelUIState {
 	setInput: (value: string) => void;
 	isHistoryCollapsed: boolean;
 	setIsHistoryCollapsed: (value: boolean | ((prev: boolean) => boolean)) => void;
-	outputStyle: AssistantOutputStyle;
-	setOutputStyle: (value: AssistantOutputStyle) => void;
 }

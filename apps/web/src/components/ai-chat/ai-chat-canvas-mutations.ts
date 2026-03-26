@@ -24,7 +24,7 @@ export function restoreCanvasSelectionState(excalidrawApi: ExcalidrawImperativeA
 
 export function updateOverlayElementById({
 	excalidrawApi,
-	setElements,
+	setElements: _setElements,
 	targetId,
 	targetType,
 	payload,
@@ -65,7 +65,11 @@ export function updateOverlayElementById({
 
 		if (targetType === 'prototype') {
 			const prototype = normalizePrototypeOverlay(payload);
-			return applyOverlayUpdateByType('prototype', candidate as never, prototype) as typeof candidate;
+			return applyOverlayUpdateByType(
+				'prototype',
+				candidate as never,
+				prototype,
+			) as typeof candidate;
 		}
 
 		const board = normalizeKanbanOverlay(payload);
@@ -127,7 +131,7 @@ export function resolveInsertionSceneCenter({
 
 export function applyInsertedElements({
 	excalidrawApi,
-	setElements,
+	setElements: _setElements,
 	insertedElements,
 }: {
 	excalidrawApi: ExcalidrawImperativeAPI;
@@ -155,7 +159,7 @@ export function applyInsertedElements({
 
 export function removeInsertedArtifactFromScene({
 	excalidrawApi,
-	setElements,
+	setElements: _setElements,
 	setFiles,
 	insertionState,
 }: {

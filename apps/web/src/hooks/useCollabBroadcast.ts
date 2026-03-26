@@ -1,11 +1,11 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useRef } from 'react';
 import {
+	CURSOR_THROTTLE_MS,
+	type CollaboratorColor,
+	SCENE_THROTTLE_MS,
 	buildCursorBroadcastPayload,
 	buildSceneBroadcastPayload,
-	CURSOR_THROTTLE_MS,
-	SCENE_THROTTLE_MS,
-	type CollaboratorColor,
 } from './collaboration-session';
 import { useThrottledCallback } from './useThrottledCallback';
 
@@ -31,7 +31,11 @@ export interface CollabBroadcast {
 interface BroadcastDependencies {
 	isConnected: () => boolean;
 	encrypt: (plaintext: string) => Promise<{ payload: string; iv: string } | null>;
-	send: (message: { type: 'server-volatile-broadcast' | 'server-broadcast'; payload: string; iv: string }) => boolean;
+	send: (message: {
+		type: 'server-volatile-broadcast' | 'server-broadcast';
+		payload: string;
+		iv: string;
+	}) => boolean;
 	sentFileIdsRef: { current: Set<string> };
 }
 

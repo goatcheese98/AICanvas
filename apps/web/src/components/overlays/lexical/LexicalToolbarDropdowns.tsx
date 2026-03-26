@@ -1,8 +1,8 @@
 import type { ReactElement } from 'react';
 import { PortalDropdown } from './LexicalToolbarDropdown';
-import { TableIcon, SigmaIcon } from './lexical-toolbar-icons';
+import { SigmaIcon, TableIcon } from './lexical-toolbar-icons';
+import { ACCENT_TEXT, HIGHLIGHT_COLORS, TEXT_COLORS } from './lexical-toolbar-types';
 import { getButtonStyle } from './lexical-toolbar-utils';
-import { ACCENT_TEXT, TEXT_COLORS, HIGHLIGHT_COLORS } from './lexical-toolbar-types';
 
 interface TextColorDropdownProps {
 	triggerRef: React.RefObject<HTMLButtonElement | null>;
@@ -35,7 +35,9 @@ export function TextColorDropdown({
 				onClick={() => {}}
 				title="Text color"
 			>
-				<span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1, fontFamily: 'serif' }}>A</span>
+				<span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1, fontFamily: 'serif' }}>
+					A
+				</span>
 				<span
 					style={{ width: 14, height: 2.5, background: currentColor || '#000', borderRadius: 1 }}
 				/>
@@ -100,7 +102,13 @@ export function HighlightDropdown({
 				title="Highlight color"
 			>
 				<span style={{ fontSize: 11, lineHeight: 1.3, color: '#57534e' }}>
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ display: 'block' }}>
+					<svg
+						width="13"
+						height="13"
+						viewBox="0 0 24 24"
+						fill="currentColor"
+						style={{ display: 'block' }}
+					>
 						<path d="M12 3l1.5 4.5H18l-3.75 2.75 1.5 4.5L12 12 8.25 14.75l1.5-4.5L6 7.5h4.5z" />
 					</svg>
 				</span>
@@ -128,8 +136,7 @@ export function HighlightDropdown({
 								height: 22,
 								borderRadius: '50%',
 								background:
-									color ||
-									'linear-gradient(135deg, #fff 45%, #e2e8f0 45%, #e2e8f0 55%, #fff 55%)',
+									color || 'linear-gradient(135deg, #fff 45%, #e2e8f0 45%, #e2e8f0 55%, #fff 55%)',
 								border: color === currentColor ? '2.5px solid #374151' : '1.5px solid #d1d5db',
 								cursor: 'pointer',
 								padding: 0,
@@ -294,7 +301,6 @@ export function EquationDropdown({
 						value={value}
 						onChange={(event) => onValueChange(event.target.value)}
 						placeholder="e.g. x^2 + y^2 = r^2"
-						autoFocus
 						style={{
 							padding: '6px 8px',
 							border: '1px solid #e7e5e4',

@@ -36,9 +36,7 @@ export interface PrototypePreviewState {
 	refresh: () => void;
 }
 
-export function setPrototypeCompilerWorkerFactoryForTests(
-	factory: (() => Worker) | null,
-): void {
+export function setPrototypeCompilerWorkerFactoryForTests(factory: (() => Worker) | null): void {
 	prototypeCompilerWorkerFactory = factory ?? (() => new PrototypeCompilerWorker());
 }
 

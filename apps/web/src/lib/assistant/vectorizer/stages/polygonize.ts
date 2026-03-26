@@ -1,6 +1,6 @@
-import type { Point, Component, BoundaryEdge, RGB, PolygonElementCandidate } from '../types.js';
-import type { SketchVectorControls } from '../types.js';
 import { STYLE_ROUGHNESS } from '../config.js';
+import type { BoundaryEdge, Component, Point, PolygonElementCandidate, RGB } from '../types.js';
+import type { SketchVectorControls } from '../types.js';
 
 /** Check if two points are equal */
 function pointEquals(a: Point, b: Point): boolean {

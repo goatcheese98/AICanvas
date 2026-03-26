@@ -669,12 +669,12 @@ describe('assistant service', () => {
 			}),
 		).toBe('prototype');
 
-			expect(
-				resolveGenerationMode({
-					message: 'Can you rebuild this into an actual working demo?',
-					contextMode: 'selected',
-					prototypeContext: {
-						type: 'prototype',
+		expect(
+			resolveGenerationMode({
+				message: 'Can you rebuild this into an actual working demo?',
+				contextMode: 'selected',
+				prototypeContext: {
+					type: 'prototype',
 					title: 'Tetris Game',
 					template: 'react',
 					files: {},
@@ -1005,7 +1005,9 @@ describe('assistant service', () => {
 
 		expect(fetchMock).toHaveBeenCalledTimes(3);
 		expect(result.message.artifacts).toEqual([]);
-		expect(result.message.content).toContain('Prototype generation failed validation after 3 attempts.');
+		expect(result.message.content).toContain(
+			'Prototype generation failed validation after 3 attempts.',
+		);
 		expect(result.message.content).toContain('Missing prototype entry file /index.jsx.');
 	});
 });

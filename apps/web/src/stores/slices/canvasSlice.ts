@@ -17,7 +17,7 @@ export interface CanvasSlice {
 	hasUnsavedChanges: boolean;
 
 	// Actions
-	setExcalidrawApi: (api: ExcalidrawImperativeAPI) => void;
+	setExcalidrawApi: (api: ExcalidrawImperativeAPI | null) => void;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
 	setAppState: (appState: Partial<AppState>) => void;
 	setFiles: (files: BinaryFiles) => void;

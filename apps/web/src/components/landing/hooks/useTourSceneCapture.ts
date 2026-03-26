@@ -1,12 +1,16 @@
 import {
 	cloneExcalidrawAppState,
 	syncAppStoreFromExcalidraw,
-	updateSceneAndSyncAppStore,
 } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { AppState, BinaryFileData, BinaryFiles, Collaborator, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type {
+	AppState,
+	BinaryFileData,
+	Collaborator,
+	ExcalidrawImperativeAPI,
+} from '@excalidraw/excalidraw/types';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ApplySceneSnapshotOptions, CameraTarget, CanvasSceneSnapshot } from '../tour-types';
 

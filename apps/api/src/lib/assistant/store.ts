@@ -1,12 +1,12 @@
 /**
  * Assistant Store Module
- * 
+ *
  * This module provides data access operations for assistant-related entities:
  * - Threads: Conversation threads
  * - Runs: Individual assistant runs within threads
  * - Tasks: Sub-tasks within runs
  * - Artifacts: Generated content from tasks
- * 
+ *
  * The implementation has been refactored into focused sub-modules under `store/`:
  * - parsing.ts: JSON parsing helpers
  * - transforms.ts: Row-to-object transformers
@@ -14,7 +14,7 @@
  * - run-repository.ts: Run CRUD operations
  * - task-repository.ts: Task CRUD operations
  * - artifact-repository.ts: Artifact CRUD operations
- * 
+ *
  * This file re-exports all functions for backward compatibility.
  */
 

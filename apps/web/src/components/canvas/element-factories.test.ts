@@ -125,7 +125,7 @@ describe('element-factories', () => {
 		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 450 });
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
 		expect(getOverlayDefaults('kanban')).toEqual({ width: 1050, height: 900 });
-		expect(getOverlayDefaults('web-embed')).toEqual({ width: 640, height: 480 });
+		expect(getOverlayDefaults('web-embed')).toEqual({ width: 960, height: 720 });
 		expect(getOverlayDefaults('prototype')).toEqual({ width: 720, height: 520 });
 	});
 

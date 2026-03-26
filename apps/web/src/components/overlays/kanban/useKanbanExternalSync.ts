@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { normalizeKanbanBoard, serializeKanbanBoard } from './kanban-utils';
 
 interface UseKanbanExternalSyncOptions {

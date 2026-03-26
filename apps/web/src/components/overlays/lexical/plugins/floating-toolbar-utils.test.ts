@@ -1,15 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-	computePosition,
-	requestLinkUrl,
-	isValidSelection,
-	getSelectionRect,
-	TOOLBAR_HEIGHT,
+	ACCENT_BG,
+	ACCENT_TEXT,
+	NOTE_FONT_STACK,
 	OFFSET_Y,
 	TEXT_COLORS,
-	ACCENT_TEXT,
-	ACCENT_BG,
-	NOTE_FONT_STACK,
+	TOOLBAR_HEIGHT,
+	computePosition,
+	getSelectionRect,
+	isValidSelection,
+	requestLinkUrl,
 } from './floating-toolbar-utils';
 
 describe('floating-toolbar-utils', () => {

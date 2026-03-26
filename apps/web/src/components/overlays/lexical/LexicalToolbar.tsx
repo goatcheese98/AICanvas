@@ -1,43 +1,39 @@
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode';
 import {
+	$getSelection,
+	$isRangeSelection,
 	FORMAT_ELEMENT_COMMAND,
 	FORMAT_TEXT_COMMAND,
 	REDO_COMMAND,
 	UNDO_COMMAND,
-	$getSelection,
-	$isRangeSelection,
 } from 'lexical';
-import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode';
-import { useLexicalToolbarState } from './useLexicalToolbarState';
-import { BlockTypeSelect, CodeLanguageSelect } from './LexicalToolbarSelects';
+import type { ReactElement } from 'react';
 import {
-	TextColorDropdown,
+	EquationDropdown,
 	HighlightDropdown,
 	TableDropdown,
-	EquationDropdown,
+	TextColorDropdown,
 } from './LexicalToolbarDropdowns';
+import { BlockTypeSelect, CodeLanguageSelect } from './LexicalToolbarSelects';
 import {
-	UndoIcon,
-	RedoIcon,
-	LinkIcon,
-	HrIcon,
-	MarkdownCopyIcon,
-	ImageIcon,
-	WordCountIcon,
+	AlignCenterIcon,
+	AlignLeftIcon,
+	AlignRightIcon,
 	CommentAddIcon,
 	CommentListIcon,
-	AlignLeftIcon,
-	AlignCenterIcon,
-	AlignRightIcon,
+	HrIcon,
+	ImageIcon,
+	LinkIcon,
+	MarkdownCopyIcon,
+	RedoIcon,
+	UndoIcon,
+	WordCountIcon,
 } from './lexical-toolbar-icons';
-import {
-	getButtonStyle,
-	getDividerStyle,
-	getToolbarContainerStyle,
-} from './lexical-toolbar-utils';
 import { NOTE_FONT_STACK } from './lexical-toolbar-types';
 import type { LexicalToolbarProps } from './lexical-toolbar-types';
-import type { ReactElement } from 'react';
+import { getButtonStyle, getDividerStyle, getToolbarContainerStyle } from './lexical-toolbar-utils';
+import { useLexicalToolbarState } from './useLexicalToolbarState';
 
 export function LexicalToolbar({
 	onRequestComment,
@@ -77,17 +73,19 @@ export function LexicalToolbar({
 			{/* Block Type */}
 			<BlockTypeSelect blockType={state.blockType} onChange={actions.applyBlockType} />
 			{state.blockType === 'code' ? (
-				<CodeLanguageSelect
-					codeLanguage={state.codeLanguage}
-					onChange={actions.setCodeLanguage}
-				/>
+				<CodeLanguageSelect codeLanguage={state.codeLanguage} onChange={actions.setCodeLanguage} />
 			) : null}
 			{divider}
 
 			{/* Text Formatting */}
 			<button
 				type="button"
-				style={{ ...getButtonStyle(state.isBold), fontWeight: 700, fontFamily: 'serif', fontSize: 14 }}
+				style={{
+					...getButtonStyle(state.isBold),
+					fontWeight: 700,
+					fontFamily: 'serif',
+					fontSize: 14,
+				}}
 				onMouseDown={(event) => event.preventDefault()}
 				onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold')}
 				title="Bold"
@@ -119,7 +117,11 @@ export function LexicalToolbar({
 			</button>
 			<button
 				type="button"
-				style={{ ...getButtonStyle(state.isStrikethrough), textDecoration: 'line-through', fontSize: 14 }}
+				style={{
+					...getButtonStyle(state.isStrikethrough),
+					textDecoration: 'line-through',
+					fontSize: 14,
+				}}
 				onMouseDown={(event) => event.preventDefault()}
 				onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough')}
 				title="Strikethrough"

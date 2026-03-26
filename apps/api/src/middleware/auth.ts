@@ -61,7 +61,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 		} else {
 			// New user — fetch their profile from Clerk and sync to D1.
 			const clerk = createClerkClient({ secretKey: c.env.CLERK_SECRET_KEY });
-			let clerkUser;
+			let clerkUser: Parameters<typeof buildAuthUser>[0];
 			try {
 				clerkUser = await clerk.users.getUser(session.sub);
 			} catch (err) {

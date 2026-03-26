@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import type { ActiveView, WorkspaceSettings, PersonalPreferences } from './dashboard-profile-utils';
+import type { ActiveView, PersonalPreferences, WorkspaceSettings } from './dashboard-profile-utils';
 import {
-	loadWorkspaceSettings,
 	loadPersonalPreferences,
-	saveWorkspaceSettings,
+	loadWorkspaceSettings,
 	savePersonalPreferences,
+	saveWorkspaceSettings,
 } from './dashboard-profile-utils';
 
 interface UseDashboardProfileMenuStateReturn {

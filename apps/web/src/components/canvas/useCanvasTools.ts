@@ -1,4 +1,3 @@
-import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import { useCallback, useRef } from 'react';

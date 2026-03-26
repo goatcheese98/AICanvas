@@ -1,5 +1,5 @@
-import type { Point, PolygonElementCandidate, RGB } from '../types.js';
 import { CONTAINMENT_MARGIN, MAX_CHAIKIN_ITERATIONS } from '../config.js';
+import type { Point, PolygonElementCandidate, RGB } from '../types.js';
 
 /** Check if two points are equal */
 function pointEquals(a: Point, b: Point): boolean {

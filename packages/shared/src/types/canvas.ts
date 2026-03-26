@@ -14,6 +14,7 @@ export interface Canvas {
 	r2Key: string;
 	thumbnailUrl?: string;
 	isFavorite: boolean;
+	version?: number;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -22,4 +23,8 @@ export interface CanvasSavePayload {
 	elements: readonly CanvasElement[];
 	appState: CanvasAppState;
 	files: CanvasFiles;
+}
+
+export interface SaveCanvasRequest extends CanvasSavePayload {
+	expectedVersion: number;
 }

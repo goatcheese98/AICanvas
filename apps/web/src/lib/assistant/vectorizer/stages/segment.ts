@@ -1,5 +1,5 @@
-import type { Component, RGB } from '../types.js';
 import { DARK_CLUSTER_THRESHOLD } from '../config.js';
+import type { Component, RGB } from '../types.js';
 
 /** Create a binary mask for a specific label */
 export function binaryMaskForLabel(
@@ -16,7 +16,12 @@ export function binaryMaskForLabel(
 }
 
 /** Morphological erosion operation */
-function morphErode(mask: Uint8Array, width: number, height: number, kernelSize: number): Uint8Array {
+function morphErode(
+	mask: Uint8Array,
+	width: number,
+	height: number,
+	kernelSize: number,
+): Uint8Array {
 	const output = new Uint8Array(width * height);
 	const half = Math.floor(kernelSize / 2);
 	const start = -half;
@@ -56,7 +61,12 @@ function morphErode(mask: Uint8Array, width: number, height: number, kernelSize:
 }
 
 /** Morphological dilation operation */
-function morphDilate(mask: Uint8Array, width: number, height: number, kernelSize: number): Uint8Array {
+function morphDilate(
+	mask: Uint8Array,
+	width: number,
+	height: number,
+	kernelSize: number,
+): Uint8Array {
 	const output = new Uint8Array(width * height);
 	const half = Math.floor(kernelSize / 2);
 	const start = -half;

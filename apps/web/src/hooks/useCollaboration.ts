@@ -4,6 +4,14 @@ import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { processCollaborationServerMessage } from './collaboration-messages';
+import { applyRemoteSceneUpdate } from './collaboration-remote-scene';
+import {
+	type CollabFile,
+	type CollaborationApi,
+	type RemoteElement,
+	createId,
+} from './collaboration-session';
 import {
 	buildRoomHash,
 	buildRoomLink,
@@ -11,15 +19,6 @@ import {
 	parseRoomHash,
 	readStoredUsername,
 } from './collaboration-utils';
-import { processCollaborationServerMessage } from './collaboration-messages';
-import {
-	createId,
-	type CollaborationApi,
-	type CollaboratorState,
-	type CollabFile,
-	type RemoteElement,
-} from './collaboration-session';
-import { applyRemoteSceneUpdate } from './collaboration-remote-scene';
 import { useCollabBroadcast } from './useCollabBroadcast';
 import { useCollabCollaborators } from './useCollabCollaborators';
 import { useCollabEncryption } from './useCollabEncryption';
@@ -45,7 +44,9 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	const [username, setUsernameState] = useState(() =>
 		typeof window === 'undefined' ? 'Anonymous' : readStoredUsername(window.localStorage),
 	);
-	const [sessionStatus, setSessionStatus] = useState<'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'>('idle');
+	const [sessionStatus, setSessionStatus] = useState<
+		'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
+	>('idle');
 	const [sessionError, setSessionError] = useState<string | null>(null);
 
 	const apiRef = useRef<CollaborationApi | null>(excalidrawApi);
@@ -132,8 +133,18 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	}, []);
 
 	const applyRemoteScene = useCallback(
-		(targetApi: CollaborationApi, elements: RemoteElement[], files?: Record<string, CollabFile>) => {
-			applyRemoteSceneUpdate(targetApi, elements, files, sentFileIdsRef.current, isApplyingRemoteRef);
+		(
+			targetApi: CollaborationApi,
+			elements: RemoteElement[],
+			files?: Record<string, CollabFile>,
+		) => {
+			applyRemoteSceneUpdate(
+				targetApi,
+				elements,
+				files,
+				sentFileIdsRef.current,
+				isApplyingRemoteRef,
+			);
 		},
 		[],
 	);
@@ -141,7 +152,9 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 	const connect = useCallback(
 		(roomId: string, key: CryptoKey, keyBase64: string) => {
 			const isReconnect =
-				ws.roomIdRef.current === roomId && keyBase64Ref.current === keyBase64 && ws.reconnectAttemptRef.current > 0;
+				ws.roomIdRef.current === roomId &&
+				keyBase64Ref.current === keyBase64 &&
+				ws.reconnectAttemptRef.current > 0;
 
 			if (!isReconnect) {
 				collaborators.applyCollaborators(new Map());
@@ -165,7 +178,11 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 		if (typeof window !== 'undefined') {
 			const hash = buildRoomHash(roomId, keyBase64);
-			window.history.pushState(null, '', `${window.location.pathname}${window.location.search}${hash}`);
+			window.history.pushState(
+				null,
+				'',
+				`${window.location.pathname}${window.location.search}${hash}`,
+			);
 		}
 
 		connect(roomId, key, keyBase64);
@@ -187,14 +204,25 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 		}
 	}, [encryption, ws, collaborators]);
 
-	const broadcastCursor = useCallback(
-		(pointer: { x: number; y: number }, button: 'down' | 'up', selectedElementIds: Record<string, boolean>) => {
-			broadcast.broadcastCursor(pointer, button, selectedElementIds, username, collaborators.clientId, collaborators.collaboratorColor);
+	const _broadcastCursor = useCallback(
+		(
+			pointer: { x: number; y: number },
+			button: 'down' | 'up',
+			selectedElementIds: Record<string, boolean>,
+		) => {
+			broadcast.broadcastCursor(
+				pointer,
+				button,
+				selectedElementIds,
+				username,
+				collaborators.clientId,
+				collaborators.collaboratorColor,
+			);
 		},
 		[broadcast, username, collaborators],
 	);
 
-	const broadcastScene = useCallback(
+	const _broadcastScene = useCallback(
 		(elements: readonly ExcalidrawElement[], files: Record<string, unknown> | null) => {
 			broadcast.broadcastScene(elements, files);
 		},
@@ -231,7 +259,11 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 
 	const lastSyncedApiRef = useRef<typeof excalidrawApi>(null);
 	useEffect(() => {
-		if (!excalidrawApi || lastSyncedApiRef.current === excalidrawApi || !isCollaboratingRef.current) {
+		if (
+			!excalidrawApi ||
+			lastSyncedApiRef.current === excalidrawApi ||
+			!isCollaboratingRef.current
+		) {
 			return;
 		}
 
@@ -273,11 +305,16 @@ export function useCollaboration({ onError }: CollaborationOptions = {}) {
 					tags: { area: 'collaboration', action: 'import_room_key' },
 					extra: { roomId: parsed.roomId },
 				});
-				const message = 'Could not join collaboration room — the link appears to be invalid or corrupted.';
+				const message =
+					'Could not join collaboration room — the link appears to be invalid or corrupted.';
 				setSessionStatus('error');
 				setSessionError(message);
 				onErrorRef.current?.(message);
-				window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+				window.history.replaceState(
+					null,
+					'',
+					`${window.location.pathname}${window.location.search}`,
+				);
 			});
 	}, [connect, stopSession, encryption, ws]);
 

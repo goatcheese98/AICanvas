@@ -1,5 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import { CANVAS_DEFAULTS } from '@ai-canvas/shared/constants';
 import type { CanvasSavePayload } from '@ai-canvas/shared/types';
 import { logApiEvent } from '../observability';
 
@@ -13,6 +14,29 @@ function thumbnailKey(userId: string, canvasId: string): string {
 	return `${CANVAS_PREFIX}/${userId}/${canvasId}/thumbnail.png`;
 }
 
+export class CanvasPayloadTooLargeError extends Error {
+	constructor(
+		readonly byteLength: number,
+		readonly maxByteLength: number,
+	) {
+		super(`Canvas payload exceeds the ${maxByteLength}-byte limit.`);
+		this.name = 'CanvasPayloadTooLargeError';
+	}
+}
+
+export function getCanvasR2Key(userId: string, canvasId: string): string {
+	return canvasKey(userId, canvasId);
+}
+
+function getCanvasPayloadBody(payload: CanvasSavePayload): string {
+	const body = JSON.stringify(payload);
+	const byteLength = new TextEncoder().encode(body).byteLength;
+	if (byteLength > CANVAS_DEFAULTS.MAX_CANVAS_SIZE_BYTES) {
+		throw new CanvasPayloadTooLargeError(byteLength, CANVAS_DEFAULTS.MAX_CANVAS_SIZE_BYTES);
+	}
+	return body;
+}
+
 export async function saveCanvasToR2(
 	r2: R2Bucket,
 	userId: string,
@@ -20,7 +44,7 @@ export async function saveCanvasToR2(
 	payload: CanvasSavePayload,
 ): Promise<string> {
 	const key = canvasKey(userId, canvasId);
-	const body = JSON.stringify(payload);
+	const body = getCanvasPayloadBody(payload);
 
 	try {
 		await r2.put(key, body, {
@@ -108,6 +132,46 @@ export async function deleteCanvasFromR2(
 		logApiEvent('error', 'r2.canvas_delete_failed', {
 			userId,
 			canvasId,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
+}
+
+export async function deleteCanvasDataFromR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+): Promise<void> {
+	const key = canvasKey(userId, canvasId);
+
+	try {
+		await r2.delete(key);
+	} catch (err) {
+		logApiEvent('error', 'r2.canvas_data_delete_failed', {
+			userId,
+			canvasId,
+			key,
+			message: err instanceof Error ? err.message : String(err),
+		});
+		throw err;
+	}
+}
+
+export async function deleteThumbnailFromR2(
+	r2: R2Bucket,
+	userId: string,
+	canvasId: string,
+): Promise<void> {
+	const key = thumbnailKey(userId, canvasId);
+
+	try {
+		await r2.delete(key);
+	} catch (err) {
+		logApiEvent('error', 'r2.thumbnail_delete_failed', {
+			userId,
+			canvasId,
+			key,
 			message: err instanceof Error ? err.message : String(err),
 		});
 		throw err;

@@ -43,4 +43,36 @@ describe('canvas schemas', () => {
 		expect((result.elements[1]?.customData as { columns: unknown[] }).columns).toHaveLength(3);
 		expect(result.elements[2]?.customData).toBeUndefined();
 	});
+
+	it('rejects canvas data larger than 10MB', () => {
+		const result = canvasSchemas.data.safeParse({
+			elements: [],
+			appState: {},
+			files: {
+				oversized: {
+					data: 'x'.repeat(10 * 1024 * 1024 + 1),
+				},
+			},
+		});
+
+		expect(result.success).toBe(false);
+		if (result.success) {
+			throw new Error('Expected oversized canvas payload to fail validation');
+		}
+		expect(result.error.issues[0]?.message).toBe('Canvas data exceeds the 10MB size limit.');
+	});
+
+	it('requires an expected version when saving canvas data', () => {
+		const result = canvasSchemas.save.safeParse({
+			elements: [],
+			appState: {},
+			files: null,
+		});
+
+		expect(result.success).toBe(false);
+		if (result.success) {
+			throw new Error('Expected save payload without version to fail validation');
+		}
+		expect(result.error.issues[0]?.path).toEqual(['expectedVersion']);
+	});
 });

@@ -53,9 +53,7 @@ export function buildPrototypeFromArtifact(
 	try {
 		const parsed = JSON.parse(artifact.content) as PrototypeArtifactPayload;
 		const payload =
-			typeof parsed.prototype === 'object' && parsed.prototype !== null
-				? parsed.prototype
-				: parsed;
+			typeof parsed.prototype === 'object' && parsed.prototype !== null ? parsed.prototype : parsed;
 		if (typeof payload.files !== 'object' || payload.files === null) {
 			return null;
 		}

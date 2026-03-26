@@ -60,7 +60,9 @@ describe('store/transforms', () => {
 				createdAt: now,
 				updatedAt: now,
 			} as const;
-			const messages: AssistantMessage[] = [{ id: 'msg-1', role: 'user', content: 'hello', createdAt: now.toISOString() }];
+			const messages: AssistantMessage[] = [
+				{ id: 'msg-1', role: 'user', content: 'hello', createdAt: now.toISOString() },
+			];
 
 			const result = toAssistantThread(row, messages);
 
@@ -107,8 +109,18 @@ describe('store/transforms', () => {
 				{
 					id: 'run-1',
 					status: 'completed',
-					request: { threadId: 't1', canvasId: 'c1', message: 'Hello', contextMode: 'full' as const },
-					resultMessage: { id: 'msg-2', role: 'assistant', content: 'Hi there', createdAt: '2024-01-01' },
+					request: {
+						threadId: 't1',
+						canvasId: 'c1',
+						message: 'Hello',
+						contextMode: 'full' as const,
+					},
+					resultMessage: {
+						id: 'msg-2',
+						role: 'assistant',
+						content: 'Hi there',
+						createdAt: '2024-01-01',
+					},
 					createdAt: '2024-01-01T00:00:00.000Z',
 					updatedAt: '2024-01-01T00:00:00.000Z',
 				},
@@ -126,7 +138,12 @@ describe('store/transforms', () => {
 				{
 					id: 'run-1',
 					status: 'running',
-					request: { threadId: 't1', canvasId: 'c1', message: 'Hello', contextMode: 'full' as const },
+					request: {
+						threadId: 't1',
+						canvasId: 'c1',
+						message: 'Hello',
+						contextMode: 'full' as const,
+					},
 					createdAt: '2024-01-01T00:00:00.000Z',
 					updatedAt: '2024-01-01T00:00:00.000Z',
 				},

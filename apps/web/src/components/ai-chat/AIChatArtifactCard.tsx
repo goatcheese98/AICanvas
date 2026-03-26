@@ -1,3 +1,4 @@
+import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
 import { PatchArtifactCard } from './AIChatPatchArtifactCard';
 import type {
 	AssistantInsertionState,
@@ -14,7 +15,6 @@ import {
 	LayoutPlanArtifactCard,
 	PrototypeArtifactCard,
 } from './artifacts';
-import type { AssistantArtifact, CanvasElement, GenerationMode } from '@ai-canvas/shared/types';
 
 export interface ArtifactCardProps {
 	artifact: AssistantArtifact;

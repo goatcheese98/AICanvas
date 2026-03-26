@@ -1,5 +1,5 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type BufferedCommitReason = 'debounce' | 'editing-exit' | 'deselect' | 'unmount';
 

@@ -31,7 +31,7 @@ export default class CollabRoom implements Server {
 		this.broadcastUserChange();
 	}
 
-	onClose(conn: Connection) {
+	onClose(_conn: Connection) {
 		this.broadcastUserChange();
 	}
 

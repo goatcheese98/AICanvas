@@ -1,3 +1,4 @@
+import { readCanvasVersion } from '@/components/canvas/canvas-persistence-utils';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
@@ -10,7 +11,7 @@ import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Navigate } from '@tanstack/react-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
@@ -27,6 +28,7 @@ interface PrototypeStudioSessionProps {
 		appState?: Record<string, unknown> | null;
 		files?: Record<string, unknown> | null;
 	};
+	canvasVersion: number | null;
 	getToken: ReturnType<typeof useAuth>['getToken'];
 	queryClient: ReturnType<typeof useQueryClient>;
 }
@@ -38,13 +40,22 @@ function PrototypeStudioSession({
 	savedSignature,
 	elements,
 	canvasData,
+	canvasVersion,
 	getToken,
 	queryClient,
 }: PrototypeStudioSessionProps) {
 	const [draft, setDraft] = useState(normalizedPrototype);
-	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error' | 'conflict'>(
+		'idle',
+	);
+	const canvasVersionRef = useRef<number | null>(canvasVersion);
+	const hasVersionConflictRef = useRef(false);
 	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
 	const isDirty = draftSignature !== savedSignature;
+
+	if (canvasVersion !== null && !hasVersionConflictRef.current) {
+		canvasVersionRef.current = canvasVersion;
+	}
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
 		setDraft(nextDraft);
@@ -53,6 +64,11 @@ function PrototypeStudioSession({
 
 	const saveDraft = useCallback(async () => {
 		if (!isDirty) return;
+
+		if (hasVersionConflictRef.current || typeof canvasVersionRef.current !== 'number') {
+			setSaveState('conflict');
+			return;
+		}
 
 		setSaveState('saving');
 
@@ -83,14 +99,29 @@ function PrototypeStudioSession({
 						elements: nextElements as Record<string, unknown>[],
 						appState: (canvasData.appState ?? {}) as Record<string, unknown>,
 						files: (canvasData.files ?? {}) as Record<string, unknown>,
+						expectedVersion: canvasVersionRef.current,
 					},
 				},
 				{ headers },
 			);
 
+			if (response.status === 409) {
+				hasVersionConflictRef.current = true;
+				setSaveState('conflict');
+				return;
+			}
+
 			if (!response.ok) {
 				throw new Error(await response.text());
 			}
+
+			const result = (await response.json()) as { success?: boolean; version?: number };
+			if (!result.success || typeof result.version !== 'number') {
+				throw new Error('Canvas save returned an invalid response.');
+			}
+
+			canvasVersionRef.current = result.version;
+			hasVersionConflictRef.current = false;
 
 			await queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] });
 			setSaveState('saved');
@@ -108,7 +139,17 @@ function PrototypeStudioSession({
 			});
 			setSaveState('error');
 		}
-	}, [canvasData.appState, canvasData.files, canvasId, draft, elements, getToken, isDirty, prototypeElement.id, queryClient]);
+	}, [
+		canvasData.appState,
+		canvasData.files,
+		canvasId,
+		draft,
+		elements,
+		getToken,
+		isDirty,
+		prototypeElement.id,
+		queryClient,
+	]);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
@@ -128,11 +169,13 @@ function PrototypeStudioSession({
 							? 'Saving...'
 							: saveState === 'saved'
 								? 'Saved'
-								: saveState === 'error'
-									? 'Save failed'
-									: isDirty
-										? 'Unsaved changes'
-										: 'Up to date'}
+								: saveState === 'conflict'
+									? 'Refresh to sync'
+									: saveState === 'error'
+										? 'Save failed'
+										: isDirty
+											? 'Unsaved changes'
+											: 'Up to date'}
 					</div>
 					<button
 						type="button"
@@ -282,6 +325,7 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			savedSignature={savedSignature}
 			elements={elements}
 			canvasData={canvasQuery.data.data}
+			canvasVersion={readCanvasVersion(canvasQuery.data)}
 			getToken={getToken}
 			queryClient={queryClient}
 		/>

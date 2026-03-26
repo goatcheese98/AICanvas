@@ -1,5 +1,4 @@
-import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform';
-import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
+import { sanitizeSvgMarkup } from './svg-sanitizer';
 
 export type D2RenderVariant = 'default' | 'sketch' | 'ascii';
 
@@ -20,8 +19,6 @@ type D2Engine = {
 	render: (diagram: unknown, options?: unknown) => Promise<string>;
 };
 
-type SvgExportAppState = Partial<Omit<AppState, 'offsetTop' | 'offsetLeft'>>;
-
 let d2EnginePromise: Promise<D2Engine> | undefined;
 
 async function getD2Engine(): Promise<D2Engine> {
@@ -41,139 +38,6 @@ async function getD2Engine(): Promise<D2Engine> {
 		d2EnginePromise = undefined;
 		throw error;
 	}
-}
-
-function toSceneCompatibleElements(elements: unknown[]): ExcalidrawElementSkeleton[] {
-	const rawElements = elements as ReadonlyArray<Record<string, unknown>>;
-	return rawElements.map((raw) => {
-		const element = raw ?? {};
-		const isText = element.type === 'text';
-		const textValue = typeof element.text === 'string' ? element.text : '';
-		const fontSize = typeof element.fontSize === 'number' ? element.fontSize : 20;
-		const fallbackTextWidth = Math.max(
-			16,
-			Math.round(textValue.length * Math.max(10, fontSize * 0.58)),
-		);
-		const fallbackTextHeight = Math.max(16, Math.round(fontSize * 1.25));
-		const width =
-			typeof element.width === 'number' && element.width > 0
-				? element.width
-				: isText
-					? fallbackTextWidth
-					: 100;
-		const height =
-			typeof element.height === 'number' && element.height > 0
-				? element.height
-				: isText
-					? fallbackTextHeight
-					: 100;
-		const normalized: Record<string, unknown> = {
-			type: typeof element.type === 'string' ? element.type : 'rectangle',
-			x: typeof element.x === 'number' ? element.x : 0,
-			y: typeof element.y === 'number' ? element.y : 0,
-			width,
-			height,
-			id:
-				typeof element.id === 'string'
-					? element.id
-					: `diagram_${Math.random().toString(36).slice(2, 10)}`,
-			angle: typeof element.angle === 'number' ? element.angle : 0,
-			strokeColor:
-				typeof element.strokeColor === 'string'
-					? element.strokeColor
-					: isText
-						? '#111827'
-						: '#000000',
-			backgroundColor:
-				typeof element.backgroundColor === 'string' ? element.backgroundColor : 'transparent',
-			fillStyle:
-				typeof element.fillStyle === 'string' ? element.fillStyle : isText ? 'solid' : 'hachure',
-			strokeWidth: typeof element.strokeWidth === 'number' ? element.strokeWidth : 1,
-			strokeStyle: typeof element.strokeStyle === 'string' ? element.strokeStyle : 'solid',
-			roughness: typeof element.roughness === 'number' ? element.roughness : isText ? 0 : 1,
-			opacity: typeof element.opacity === 'number' ? element.opacity : 100,
-			roundness:
-				typeof element.roundness === 'object' || element.roundness === null
-					? element.roundness
-					: null,
-			seed: typeof element.seed === 'number' ? element.seed : Math.floor(Math.random() * 100000),
-			version: typeof element.version === 'number' ? element.version : 1,
-			versionNonce: typeof element.versionNonce === 'number' ? element.versionNonce : Date.now(),
-			isDeleted: typeof element.isDeleted === 'boolean' ? element.isDeleted : false,
-			groupIds: Array.isArray(element.groupIds) ? element.groupIds : [],
-			frameId:
-				typeof element.frameId === 'string' || element.frameId === null ? element.frameId : null,
-			boundElements:
-				Array.isArray(element.boundElements) || element.boundElements === null
-					? element.boundElements
-					: null,
-			updated: typeof element.updated === 'number' ? element.updated : Date.now(),
-			link: typeof element.link === 'string' || element.link === null ? element.link : null,
-			locked: typeof element.locked === 'boolean' ? element.locked : false,
-		};
-
-		if (isText) {
-			normalized.text = textValue;
-			normalized.originalText =
-				typeof element.originalText === 'string' ? element.originalText : textValue;
-			normalized.fontSize = fontSize;
-			normalized.fontFamily = typeof element.fontFamily === 'number' ? element.fontFamily : 3;
-			normalized.textAlign = typeof element.textAlign === 'string' ? element.textAlign : 'left';
-			normalized.verticalAlign =
-				typeof element.verticalAlign === 'string' ? element.verticalAlign : 'top';
-			normalized.lineHeight = typeof element.lineHeight === 'number' ? element.lineHeight : 1.25;
-			normalized.baseline =
-				typeof element.baseline === 'number' ? element.baseline : Math.round(fontSize * 1.2);
-			normalized.containerId =
-				typeof element.containerId === 'string' || element.containerId === null
-					? element.containerId
-					: null;
-		} else {
-			if (typeof element.text === 'string') normalized.text = element.text;
-			if (typeof element.fontSize === 'number') normalized.fontSize = element.fontSize;
-			if (typeof element.fontFamily === 'number') normalized.fontFamily = element.fontFamily;
-		}
-
-		if (Array.isArray(element.points)) normalized.points = element.points;
-		if (typeof element.endArrowhead !== 'undefined') normalized.endArrowhead = element.endArrowhead;
-		if (typeof element.startArrowhead !== 'undefined')
-			normalized.startArrowhead = element.startArrowhead;
-		if (typeof element.customData === 'object' && element.customData !== null) {
-			normalized.customData = element.customData;
-		}
-
-		return normalized as ExcalidrawElementSkeleton;
-	});
-}
-
-async function exportElementsToSvgMarkup(
-	elements: unknown[],
-	files?: BinaryFiles,
-): Promise<string> {
-	const { exportToSvg, convertToExcalidrawElements } = await import('@excalidraw/excalidraw');
-	const normalized = convertToExcalidrawElements(toSceneCompatibleElements(elements));
-
-	if (normalized.length === 0) {
-		throw new Error('No drawable elements were generated');
-	}
-
-	const exportAppState: SvgExportAppState = {
-		exportBackground: true,
-		exportWithDarkMode: false,
-		viewBackgroundColor: '#ffffff',
-	};
-
-	const svg = await exportToSvg({
-		elements: normalized,
-		appState: exportAppState,
-		files: files ?? {},
-	});
-
-	if (!svg?.outerHTML) {
-		throw new Error('Failed to render SVG');
-	}
-
-	return svg.outerHTML;
 }
 
 function escapeSvgText(text: string): string {
@@ -352,7 +216,7 @@ export async function renderCodeArtifactToSvg(input: {
 }): Promise<DiagramSvgRenderResult> {
 	if (input.language === 'mermaid') {
 		const { renderMermaidToSvg } = await import('@/lib/assistant/mermaid-converter');
-		const svgMarkup = await renderMermaidToSvg(input.code);
+		const svgMarkup = sanitizeSvgMarkup(await renderMermaidToSvg(input.code));
 		return {
 			svgMarkup,
 			...parseSvgDimensions(svgMarkup),
@@ -361,14 +225,14 @@ export async function renderCodeArtifactToSvg(input: {
 
 	const d2Variant = input.d2Variant ?? 'default';
 	try {
-		const svgMarkup = await renderD2WithEngine(input.code, d2Variant);
+		const svgMarkup = sanitizeSvgMarkup(await renderD2WithEngine(input.code, d2Variant));
 		return {
 			svgMarkup,
 			...parseSvgDimensions(svgMarkup),
 		};
 	} catch (error) {
 		if (d2Variant === 'ascii') {
-			const svgMarkup = asciiToSvg(asciiFromD2(input.code));
+			const svgMarkup = sanitizeSvgMarkup(asciiToSvg(asciiFromD2(input.code)));
 			return {
 				svgMarkup,
 				...parseSvgDimensions(svgMarkup),

@@ -9,12 +9,10 @@ import { AIChatMessageList } from './AIChatMessageList';
 import { AIChatSidebar } from './AIChatSidebar';
 import { getLatestPendingPatchArtifacts } from './ai-chat-helpers';
 import type { AIChatPanelProps } from './ai-chat-panel-types';
-import { outputStyleToModeHint } from './output-style';
 import { useAIChatCanvasActions } from './useAIChatCanvasActions';
 import { useAIChatPanelState } from './useAIChatPanelState';
 import { useAIChatRunController } from './useAIChatRunController';
 import { useAIChatThreads } from './useAIChatThreads';
-import { useAssistantCapabilities } from './useAssistantCapabilities';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
 /**
@@ -33,7 +31,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 	const isChatLoading = useAppStore((s) => s.isChatLoading);
 	const chatError = useAppStore((s) => s.chatError);
-	const contextMode = useAppStore((s) => s.contextMode);
 	const elements = useAppStore((s) => s.elements);
 	const selectedElementIds = useAppStore(
 		(s) => (s.appState.selectedElementIds ?? {}) as Record<string, boolean>,
@@ -42,7 +39,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 	const setFiles = useAppStore((s) => s.setFiles);
 	const setIsChatLoading = useAppStore((s) => s.setIsChatLoading);
 	const setChatError = useAppStore((s) => s.setChatError);
-	const setContextMode = useAppStore((s) => s.setContextMode);
 
 	// UI State hook
 	const {
@@ -50,8 +46,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 		setInput,
 		isHistoryCollapsed,
 		setIsHistoryCollapsed,
-		outputStyle,
-		setOutputStyle,
 		selectionIndicator,
 		isDisabled,
 	} = useAIChatPanelState({
@@ -61,12 +55,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 
 	// Textarea auto-resize
 	const { textareaRef, resizeTextarea } = useAutoResizeTextarea();
-
-	// Assistant capabilities (TanStack Query - no useEffect)
-	const { data: assistantCapabilities } = useAssistantCapabilities({
-		getToken,
-		isSignedIn,
-	});
 
 	// Thread management
 	const {
@@ -127,15 +115,11 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 		setRunProgress,
 		isRunProgressExpanded,
 		setIsRunProgressExpanded,
-		pendingSelectionConfirmation,
-		setPendingSelectionConfirmation,
 		sendMessage,
 	} = useAIChatRunController({
 		canvasId,
 		getToken,
 		isSignedIn,
-		contextMode,
-		modeHint: outputStyleToModeHint(outputStyle),
 		selectedElementIds,
 		input,
 		setInput,
@@ -163,7 +147,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 			canvasActions.setAssistantPatchStates({});
 			canvasActions.setAssistantInsertionStates({});
 			canvasActions.setMarkdownPatchReviewStates({});
-			setPendingSelectionConfirmation(null);
 		} catch (error) {
 			captureBrowserException(error, {
 				tags: { area: 'ai_chat', action: 'create_thread' },
@@ -197,7 +180,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 		canvasActions.setAssistantPatchStates({});
 		canvasActions.setAssistantInsertionStates({});
 		canvasActions.setMarkdownPatchReviewStates({});
-		setPendingSelectionConfirmation(null);
 	};
 
 	// Input change handler with resize
@@ -212,10 +194,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 		setInput(suggestion);
 		requestAnimationFrame(resizeTextarea);
 	};
-
-	// Selection confirmation clear on selection loss (event-driven)
-	// This is called implicitly when the selection changes via setContextMode
-	// The useAIChatRunController handles the selection confirmation logic
 
 	return (
 		<div className="flex h-full min-h-0 overflow-hidden rounded-[12px] border border-stone-200 bg-stone-50 shadow-xl">
@@ -233,11 +211,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 				<AIChatHeader
 					messagesCount={messages.length}
 					selectionIndicator={selectionIndicator}
-					contextMode={contextMode}
-					outputStyle={outputStyle}
-					isVectorizationAvailable={assistantCapabilities?.vectorizationEnabled ?? false}
-					onContextModeChange={setContextMode}
-					onOutputStyleChange={setOutputStyle}
 					onClearThread={() => {
 						if (currentThread) {
 							void handleDeleteThread(currentThread.id);
@@ -260,10 +233,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 							setIsRunProgressExpanded={setIsRunProgressExpanded}
 							latestMessage={latestMessage}
 							setChatError={setChatError}
-							selectionIndicator={selectionIndicator}
-							pendingSelectionConfirmation={pendingSelectionConfirmation}
-							setContextMode={setContextMode}
-							sendMessage={sendMessage}
 							isChatLoading={isChatLoading}
 						/>
 					)}
@@ -272,7 +241,6 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 				<AIChatComposer
 					chatError={chatError}
 					selectionIndicator={selectionIndicator}
-					contextMode={contextMode}
 					textareaRef={textareaRef}
 					input={input}
 					disabled={disabled}

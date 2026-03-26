@@ -1,9 +1,9 @@
-import { describeAssistantArtifact } from '../assistant-artifacts';
-import { CodeSnippet } from '../AIChatArtifactPrimitives';
-import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from '../ai-chat-constants';
-import { StoredAssetPreview } from './StoredAssetPreview';
 import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type { ArtifactCardProps } from '../AIChatArtifactCard';
+import { CodeSnippet } from '../AIChatArtifactPrimitives';
+import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from '../ai-chat-constants';
+import { describeAssistantArtifact } from '../assistant-artifacts';
+import { StoredAssetPreview } from './StoredAssetPreview';
 
 export function ImageArtifactCard({
 	artifact,
@@ -26,12 +26,10 @@ export function ImageArtifactCard({
 			<StoredAssetPreview artifact={artifact} />
 			{isSketchRasterFallback ? (
 				<div className="mb-3 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-					<div className="font-semibold">
-						Server vectorization was not available for this run.
-					</div>
+					<div className="font-semibold">Server vectorization was not available for this run.</div>
 					<div className="mt-1">
-						This result is a raster sketch preview. You can still trace this exact image into
-						native Excalidraw elements locally, or insert the raster preview as-is.
+						This result is a raster sketch preview. You can still trace this exact image into native
+						Excalidraw elements locally, or insert the raster preview as-is.
 					</div>
 				</div>
 			) : null}

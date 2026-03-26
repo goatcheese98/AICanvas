@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { useAppStore } from '@/stores/store';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -47,23 +48,8 @@ interface CanvasCoreProps {
 	}) => void;
 }
 
-export function CanvasCore({
-	canvasId,
-	onSaveNeeded,
-	onSceneChange,
-	normalizeSceneChange,
-	initialData,
-	onPointerUpdate,
-}: CanvasCoreProps) {
-	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
-	const setElements = useAppStore((s) => s.setElements);
-	const setAppState = useAppStore((s) => s.setAppState);
-	const setFiles = useAppStore((s) => s.setFiles);
-	const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
-	const isApplyingNormalizedSceneRef = useRef(false);
-	const previousElementsRef = useRef<readonly ExcalidrawElement[]>([]);
-
-	const areElementPointSetsEqual = (left: unknown, right: unknown) =>
+function areElementPointSetsEqual(left: unknown, right: unknown) {
+	return (
 		Array.isArray(left) &&
 		Array.isArray(right) &&
 		left.length === right.length &&
@@ -77,12 +63,15 @@ export function CanvasCore({
 				return false;
 			}
 			return entry[0] === right[index][0] && entry[1] === right[index][1];
-		});
+		})
+	);
+}
 
-	const areElementsEquivalent = (
-		left: readonly ExcalidrawElement[],
-		right: readonly ExcalidrawElement[],
-	) =>
+function areElementsEquivalent(
+	left: readonly ExcalidrawElement[],
+	right: readonly ExcalidrawElement[],
+) {
+	return (
 		left.length === right.length &&
 		left.every((element, index) => {
 			const other = right[index];
@@ -104,26 +93,39 @@ export function CanvasCore({
 				return areElementPointSetsEqual(leftPoints, rightPoints);
 			}
 			return true;
-		});
+		})
+	);
+}
 
-	const syncLiveSceneFromApi = useCallback(() => {
+export function CanvasCore({
+	canvasId: _canvasId,
+	onSaveNeeded,
+	onSceneChange,
+	normalizeSceneChange,
+	initialData,
+	onPointerUpdate,
+}: CanvasCoreProps) {
+	const setExcalidrawApi = useAppStore((s) => s.setExcalidrawApi);
+	const setElements = useAppStore((s) => s.setElements);
+	const setAppState = useAppStore((s) => s.setAppState);
+	const setFiles = useAppStore((s) => s.setFiles);
+	const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+	const isApplyingNormalizedSceneRef = useRef(false);
+	const previousElementsRef = useRef<readonly ExcalidrawElement[]>([]);
+
+	const syncLiveAppStateFromApi = useCallback(() => {
 		const api = apiRef.current;
 		if (!api) {
 			return;
 		}
 
-		const elementSnapshot = cloneExcalidrawElements(api.getSceneElements());
 		const appStateSnapshot = cloneExcalidrawAppState(api.getAppState());
-		const filesSnapshot = cloneExcalidrawFiles(api.getFiles());
-
-		setElements(elementSnapshot);
 		setAppState(appStateSnapshot);
-		setFiles(filesSnapshot);
-	}, [setAppState, setElements, setFiles]);
+	}, [setAppState]);
 
 	const handleApiReady = useCallback(
 		(api: ExcalidrawImperativeAPI) => {
-			if (apiRef.current) {
+			if (apiRef.current === api) {
 				return;
 			}
 			apiRef.current = api;
@@ -135,6 +137,13 @@ export function CanvasCore({
 		},
 		[setExcalidrawApi],
 	);
+
+	useMountEffect(() => {
+		return () => {
+			apiRef.current = null;
+			setExcalidrawApi(null);
+		};
+	});
 
 	const handleChange = useCallback(
 		(elements: readonly ExcalidrawElement[], appState: AppState, files: BinaryFiles) => {
@@ -185,11 +194,11 @@ export function CanvasCore({
 		}) => {
 			const hasActivePointers = payload.button === 'down' || payload.pointersMap.size > 0;
 			if (hasActivePointers) {
-				syncLiveSceneFromApi();
+				syncLiveAppStateFromApi();
 			}
 			onPointerUpdate?.(payload);
 		},
-		[onPointerUpdate, syncLiveSceneFromApi],
+		[onPointerUpdate, syncLiveAppStateFromApi],
 	);
 
 	return (

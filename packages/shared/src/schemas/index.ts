@@ -4,6 +4,7 @@ export {
 	getCanvasTitleKey,
 	type CreateCanvas,
 	type UpdateCanvas,
+	type SaveCanvas,
 } from './canvas';
 export {
 	overlaySchemas,

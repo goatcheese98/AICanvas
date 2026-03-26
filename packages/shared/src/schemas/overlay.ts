@@ -1,38 +1,16 @@
 import * as z from 'zod';
 import { OVERLAY_TYPES } from '../constants';
 import type { OverlayCustomData } from '../types';
-import {
-	normalizePrototypeOverlay,
-	prototypeOverlaySchema,
-} from './overlay-prototype';
+import { kanbanOverlaySchema, normalizeKanbanOverlay } from './overlay-kanban';
 import {
 	markdownEditorModeSchema,
 	markdownNoteSettingsSchema,
 	markdownOverlaySchema,
 	normalizeMarkdownOverlay,
-	normalizeMarkdownSettings,
-	MARKDOWN_SYSTEM_FONT_STACK,
-	DEFAULT_MARKDOWN_NOTE_SETTINGS,
 } from './overlay-markdown';
-import {
-	newLexCommentReplySchema,
-	newLexCommentThreadSchema,
-	newLexOverlaySchema,
-	normalizeNewLexOverlay,
-} from './overlay-newlex';
-import {
-	kanbanChecklistItemSchema,
-	kanbanCardSchema,
-	kanbanColumnSchema,
-	kanbanOverlaySchema,
-	createStarterKanbanColumns,
-	normalizeKanbanOverlay,
-	summarizeKanbanOverlay,
-} from './overlay-kanban';
-import {
-	webEmbedOverlaySchema,
-	normalizeWebEmbedOverlay,
-} from './overlay-webembed';
+import { newLexOverlaySchema, normalizeNewLexOverlay } from './overlay-newlex';
+import { normalizePrototypeOverlay, prototypeOverlaySchema } from './overlay-prototype';
+import { normalizeWebEmbedOverlay, webEmbedOverlaySchema } from './overlay-webembed';
 
 // Re-export from overlay-prototype
 export {

@@ -55,6 +55,16 @@ export function PatchArtifactCard({
 
 	if (markdownPatch) {
 		const diffLines = buildMarkdownPatchDiff(markdownPatch.base, markdownPatch.next);
+		const diffLineCounts = new Map<string, number>();
+		const diffLinesWithKeys = diffLines.map((line) => {
+			const baseKey = `${line.type}:${line.text}`;
+			const occurrence = diffLineCounts.get(baseKey) ?? 0;
+			diffLineCounts.set(baseKey, occurrence + 1);
+			return {
+				key: `${artifactKey}-md-${baseKey}-${occurrence}`,
+				line,
+			};
+		});
 		const markdownHunks = buildMarkdownPatchHunks(markdownPatch.base, markdownPatch.next);
 		const acceptedHunkIds =
 			markdownReviewState?.acceptedHunkIds.filter((hunkId) =>
@@ -209,9 +219,9 @@ export function PatchArtifactCard({
 				) : (
 					<div className="overflow-hidden rounded-[10px] border border-stone-200 bg-white">
 						<pre className="max-h-56 overflow-auto p-3 font-mono text-[11px] leading-6 text-stone-800">
-							{diffLines.map((line, index) => (
+							{diffLinesWithKeys.map(({ key, line }) => (
 								<div
-									key={`${artifactKey}-md-${index}`}
+									key={key}
 									className={
 										line.type === 'add'
 											? 'bg-emerald-50 text-emerald-800'
@@ -273,6 +283,15 @@ export function PatchArtifactCard({
 	}
 
 	const kanbanChanges = summarizeKanbanPatchChanges(kanbanPatch);
+	const kanbanChangeCounts = new Map<string, number>();
+	const kanbanChangesWithKeys = kanbanChanges.map((change) => {
+		const occurrence = kanbanChangeCounts.get(change) ?? 0;
+		kanbanChangeCounts.set(change, occurrence + 1);
+		return {
+			change,
+			key: `${artifactKey}-kanban-${change}-${occurrence}`,
+		};
+	});
 	return (
 		<div className="rounded-[10px] border border-indigo-200 bg-indigo-50 p-3">
 			<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-indigo-700">
@@ -284,9 +303,9 @@ export function PatchArtifactCard({
 					Planned Changes
 				</div>
 				<div className="mt-2 space-y-2">
-					{kanbanChanges.map((change, index) => (
+					{kanbanChangesWithKeys.map(({ change, key }) => (
 						<div
-							key={`${artifactKey}-kanban-${index}`}
+							key={key}
 							className="rounded-[8px] bg-stone-50 px-3 py-2 text-[11px] text-stone-700"
 						>
 							{change}

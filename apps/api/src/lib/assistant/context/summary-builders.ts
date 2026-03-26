@@ -4,17 +4,17 @@
 
 import type { AssistantCanvasSummary, CanvasElement } from '@ai-canvas/shared/types';
 import {
-	EDITABLE_OVERLAY_TYPES,
-	CANVAS_HIGHLIGHT_LIMIT,
 	CANVAS_ELEMENT_SUMMARY_LIMIT,
+	CANVAS_HIGHLIGHT_LIMIT,
+	EDITABLE_OVERLAY_TYPES,
 } from './constants';
+import { buildElementSummary, compareByPriorityAndLabel } from './context-builders';
 import {
-	getElementType,
-	getOverlayLikeType,
 	buildElementLabel,
 	buildElementTextExcerpt,
+	getElementType,
+	getOverlayLikeType,
 } from './element-parsers';
-import { buildElementSummary, compareByPriorityAndLabel } from './context-builders';
 import { toElementId } from './element-parsers';
 
 /** Compare elements for canvas summary prioritization */

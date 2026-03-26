@@ -1,8 +1,8 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import type {
 	KanbanCard as KanbanCardType,
 	KanbanColumn as KanbanColumnType,
 } from '@ai-canvas/shared/types';
-import { useMountEffect } from '@/hooks/useMountEffect';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { DragEvent, FormEvent } from 'react';
 import { KanbanCard } from './KanbanCard';

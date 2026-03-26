@@ -1,9 +1,9 @@
 import { $isCodeNode, CodeNode } from '@lexical/code';
 import { $isLinkNode } from '@lexical/link';
 import { $isListNode, ListNode } from '@lexical/list';
-import { $getNearestNodeOfType } from '@lexical/utils';
 import { $isHeadingNode, $isQuoteNode } from '@lexical/rich-text';
-import { $getSelection, $isRangeSelection } from 'lexical';
+import { $getNearestNodeOfType } from '@lexical/utils';
+import { type $getSelection, $isRangeSelection } from 'lexical';
 import type { BlockType } from './lexical-toolbar-types';
 
 export function getBlockType(selection: ReturnType<typeof $getSelection>): BlockType {

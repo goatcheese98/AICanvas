@@ -49,15 +49,13 @@ export async function executeTask(
 	}
 }
 
+import { buildMarkdownOverlayArtifact, buildPlacementPlanArtifact } from '../artifact-builders';
 import { planAssistantRun } from '../planner';
 import {
 	createAssistantTaskRecord,
 	listAssistantArtifactsRecord,
 	listAssistantTasksRecord,
-	updateAssistantRunRecord,
 } from '../store';
-import { buildMarkdownOverlayArtifact, buildPlacementPlanArtifact } from '../artifact-builders';
-import { resolveSourceArtifactForTask } from '../task-execution';
 
 async function executePlanRunTask(
 	task: AssistantTask,

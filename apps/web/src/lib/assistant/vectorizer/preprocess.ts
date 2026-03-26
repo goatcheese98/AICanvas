@@ -1,9 +1,5 @@
+import { BASE_SIZE_BY_COMPLEXITY, MAX_WORKING_SIZE, MIN_WORKING_SIZE } from './config.js';
 import type { DecodedImageData, SketchVectorControls, SketchVectorizerOptions } from './types.js';
-import {
-	BASE_SIZE_BY_COMPLEXITY,
-	MAX_WORKING_SIZE,
-	MIN_WORKING_SIZE,
-} from './config.js';
 
 /** Calculate pixel luminance */
 function pixelLuminance(r: number, g: number, b: number): number {

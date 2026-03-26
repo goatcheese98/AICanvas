@@ -65,6 +65,24 @@ describe('generation mode helpers', () => {
 		);
 	});
 
+	it('treats selected prototype rebuild requests as prototype runs', () => {
+		expect(
+			resolveGenerationMode(
+				createInput({
+					message: 'turn this into an actual working demo',
+					contextMode: 'selected',
+					prototypeContext: {
+						type: 'prototype',
+						title: 'Tetris Game',
+						template: 'react',
+						files: {},
+						activeFile: '/App.jsx',
+					},
+				}),
+			),
+		).toBe('prototype');
+	});
+
 	it('finds the last diagram artifact from history', () => {
 		const artifact = getLastDiagramArtifact([
 			{

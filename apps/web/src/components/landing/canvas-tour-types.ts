@@ -9,13 +9,20 @@
 import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 import type { CanvasTourChapter, CanvasTourGuideOverlay } from './canvas-tour-content';
 import type {
+	OverlayPlacementBounds,
+	OverlayPlacementPreset,
+	OverlaySafeArea,
+} from './canvas-tour-page-utils';
+import type {
+	RegisteredTourSceneLibrary,
+	RegisteredTourSceneSnapshot,
+} from './canvas-tour-registry';
+import type {
 	ApplySceneSnapshotOptions,
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
 } from './useCanvasTourSceneController';
-import type { RegisteredTourSceneLibrary, RegisteredTourSceneSnapshot } from './canvas-tour-registry';
-import type { OverlayPlacementBounds, OverlayPlacementPreset, OverlaySafeArea } from './canvas-tour-page-utils';
 
 // =============================================================================
 // Core Refs and Data

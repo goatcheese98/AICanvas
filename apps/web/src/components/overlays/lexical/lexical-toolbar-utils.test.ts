@@ -1,14 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-	getBlockType,
-	requestLinkUrl,
 	getButtonStyle,
 	getDividerStyle,
 	getToolbarContainerStyle,
-	isLinkNodeAtSelection,
-	getCodeNodeFromSelection,
+	requestLinkUrl,
 } from './lexical-toolbar-utils';
-import type { BlockType } from './lexical-toolbar-types';
 
 // Mock lexical modules
 vi.mock('@lexical/code', () => ({

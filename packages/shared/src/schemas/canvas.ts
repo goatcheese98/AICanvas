@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { CANVAS_DEFAULTS } from '../constants/canvas';
 import { isOverlayCustomData, normalizeOverlayCustomData } from './overlay';
 
 export function normalizeCanvasTitle(title: string): string {
@@ -53,12 +54,47 @@ const canvasElementSchema = z.record(z.string(), z.unknown()).transform((element
 	};
 });
 
-// Canvas blob data remains mostly opaque, but known overlay payloads are normalized.
-export const canvasDataSchema = z.object({
+function getCanvasDataByteLength(data: {
+	elements: unknown[];
+	appState: Record<string, unknown>;
+	files: Record<string, unknown> | null;
+}): number {
+	return new TextEncoder().encode(JSON.stringify(data)).byteLength;
+}
+
+function validateCanvasDataSize(
+	value: {
+		elements: unknown[];
+		appState: Record<string, unknown>;
+		files: Record<string, unknown> | null;
+	},
+	ctx: z.RefinementCtx,
+): void {
+	if (getCanvasDataByteLength(value) <= CANVAS_DEFAULTS.MAX_CANVAS_SIZE_BYTES) {
+		return;
+	}
+
+	ctx.addIssue({
+		code: z.ZodIssueCode.custom,
+		message: 'Canvas data exceeds the 10MB size limit.',
+	});
+}
+
+const canvasDataShape = {
 	elements: z.array(canvasElementSchema),
 	appState: z.record(z.string(), z.unknown()),
 	files: z.record(z.string(), z.unknown()).nullable(),
-});
+} as const;
+
+// Canvas blob data remains mostly opaque, but known overlay payloads are normalized.
+export const canvasDataSchema = z.object(canvasDataShape).superRefine(validateCanvasDataSize);
+
+export const saveCanvasSchema = z
+	.object({
+		...canvasDataShape,
+		expectedVersion: z.coerce.number().int().min(1),
+	})
+	.superRefine(validateCanvasDataSize);
 
 export const canvasSchemas = {
 	create: createCanvasSchema,
@@ -66,8 +102,10 @@ export const canvasSchemas = {
 	id: canvasIdSchema,
 	list: canvasListSchema,
 	data: canvasDataSchema,
+	save: saveCanvasSchema,
 } as const;
 
 export type CreateCanvas = z.infer<typeof createCanvasSchema>;
 export type UpdateCanvas = z.infer<typeof updateCanvasSchema>;
 export type CanvasData = z.infer<typeof canvasDataSchema>;
+export type SaveCanvas = z.infer<typeof saveCanvasSchema>;

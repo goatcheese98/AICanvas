@@ -71,7 +71,7 @@ export function canInsertMessageAsMarkdown(message: AssistantMessage): boolean {
 	);
 }
 
-export function canApplyMessageAsPrototype(message: AssistantMessage): boolean {
+export function canApplyMessageAsPrototype(_message: AssistantMessage): boolean {
 	return false;
 }
 

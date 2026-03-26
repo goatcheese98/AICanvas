@@ -20,16 +20,15 @@
 	--landing-sky: #8ed2ff;
 	--landing-peach: #ffca90;
 	--landing-stage-height: calc(100vh - 6.7rem);
-	
+
 	/* Animation timing */
 	--transition-fast: 150ms cubic-bezier(0.22, 1, 0.36, 1);
 	--transition-medium: 350ms cubic-bezier(0.22, 1, 0.36, 1);
 	--transition-slow: 600ms cubic-bezier(0.22, 1, 0.36, 1);
 	--transition-camera: 700ms cubic-bezier(0.22, 1, 0.36, 1);
-	
+
 	min-height: 100%;
-	background: 
-		linear-gradient(var(--landing-grid) 1px, transparent 1px),
+	background: linear-gradient(var(--landing-grid) 1px, transparent 1px),
 		linear-gradient(90deg, var(--landing-grid) 1px, transparent 1px),
 		radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 28%),
 		linear-gradient(180deg, #faf8f3 0%, var(--landing-bg) 100%);
@@ -115,7 +114,8 @@
 	letter-spacing: 0.14em;
 	text-transform: uppercase;
 	color: rgba(31, 36, 48, 0.7);
-	transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+	transition: background-color var(--transition-fast), color var(--transition-fast), transform
+		var(--transition-fast);
 }
 
 .landing-window-nav-link:hover {
@@ -266,8 +266,9 @@
 	letter-spacing: 0.16em;
 	text-transform: uppercase;
 	text-decoration: none;
-	transition: transform var(--transition-fast), border-color var(--transition-fast), 
-		background-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+	transition: transform var(--transition-fast), border-color var(--transition-fast),
+		background-color var(--transition-fast), box-shadow var(--transition-fast), color
+		var(--transition-fast);
 }
 
 .landing-button:hover {
@@ -300,8 +301,7 @@
 	max-width: min(100%, calc(var(--landing-stage-height) * 1.5));
 	border: 1px solid var(--landing-border);
 	border-radius: 30px;
-	background: 
-		linear-gradient(rgba(31, 36, 48, 0.035) 1px, transparent 1px),
+	background: linear-gradient(rgba(31, 36, 48, 0.035) 1px, transparent 1px),
 		linear-gradient(90deg, rgba(31, 36, 48, 0.035) 1px, transparent 1px),
 		linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 243, 238, 0.8));
 	background-size: 30px 30px, 30px 30px, 100% 100%;
@@ -462,8 +462,7 @@
 }
 
 .landing-canvas-viewport::before {
-	background: 
-		radial-gradient(circle at top left, rgba(255, 255, 255, 0.78), transparent 20%),
+	background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.78), transparent 20%),
 		radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.72), transparent 22%);
 	z-index: 1;
 }
@@ -812,11 +811,15 @@
 	height: 100px;
 }
 
-.landing-canvas-board:has([data-chapter="capture"][data-active="true"]) .landing-flow-capture-to-research,
-.landing-canvas-board:has([data-chapter="research"][data-active="true"]) .landing-flow-research-to-plan,
+.landing-canvas-board:has([data-chapter="capture"][data-active="true"])
+	.landing-flow-capture-to-research,
+.landing-canvas-board:has([data-chapter="research"][data-active="true"])
+	.landing-flow-research-to-plan,
 .landing-canvas-board:has([data-chapter="plan"][data-active="true"]) .landing-flow-plan-to-polish,
-.landing-canvas-board:has([data-chapter="polish"][data-active="true"]) .landing-flow-polish-to-waitlist,
-.landing-canvas-board:has([data-chapter="waitlist"][data-active="true"]) .landing-flow-polish-to-waitlist {
+.landing-canvas-board:has([data-chapter="polish"][data-active="true"])
+	.landing-flow-polish-to-waitlist,
+.landing-canvas-board:has([data-chapter="waitlist"][data-active="true"])
+	.landing-flow-polish-to-waitlist {
 	opacity: 1;
 }
 
@@ -829,12 +832,8 @@
 	border-radius: 20px;
 	background: rgba(255, 255, 255, 0.92);
 	box-shadow: 0 8px 24px rgba(31, 36, 48, 0.06), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
-	transition: 
-		transform var(--transition-medium),
-		opacity var(--transition-medium),
-		box-shadow var(--transition-medium),
-		filter var(--transition-medium),
-		z-index 0ms var(--transition-medium);
+	transition: transform var(--transition-medium), opacity var(--transition-medium), box-shadow
+		var(--transition-medium), filter var(--transition-medium), z-index 0ms var(--transition-medium);
 	will-change: transform, opacity, filter;
 	z-index: 1;
 }
@@ -853,21 +852,23 @@
 	filter: blur(0);
 	box-shadow: 0 16px 40px rgba(31, 36, 48, 0.1), 0 1px 0 rgba(255, 255, 255, 0.95) inset;
 	z-index: 100;
-	transition: 
-		transform var(--transition-medium),
-		opacity var(--transition-medium),
-		box-shadow var(--transition-medium),
-		filter var(--transition-medium),
-		z-index 0ms;
+	transition: transform var(--transition-medium), opacity var(--transition-medium), box-shadow
+		var(--transition-medium), filter var(--transition-medium), z-index 0ms;
 }
 
 /* When a specific chapter is active, dim other chapters more */
-.landing-canvas-board:has([data-chapter="capture"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="capture"]),
-.landing-canvas-board:has([data-chapter="research"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="research"]),
-.landing-canvas-board:has([data-chapter="plan"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="plan"]),
-.landing-canvas-board:has([data-chapter="polish"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="polish"]),
-.landing-canvas-board:has([data-chapter="waitlist"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="waitlist"]),
-.landing-canvas-board:has([data-chapter="intro"][data-active="true"]) .landing-board-card[data-chapter]:not([data-chapter="intro"]) {
+.landing-canvas-board:has([data-chapter="capture"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="capture"]),
+.landing-canvas-board:has([data-chapter="research"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="research"]),
+.landing-canvas-board:has([data-chapter="plan"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="plan"]),
+.landing-canvas-board:has([data-chapter="polish"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="polish"]),
+.landing-canvas-board:has([data-chapter="waitlist"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="waitlist"]),
+.landing-canvas-board:has([data-chapter="intro"][data-active="true"])
+	.landing-board-card[data-chapter]:not([data-chapter="intro"]) {
 	opacity: 0.25;
 	transform: scale(0.94);
 	filter: blur(1.5px);
@@ -956,10 +957,19 @@
 }
 
 @keyframes landing-cursor-bounce {
-	0%, 100% { transform: translate(0, 0); }
-	25% { transform: translate(8px, -4px); }
-	50% { transform: translate(16px, 0); }
-	75% { transform: translate(8px, 4px); }
+	0%,
+	100% {
+		transform: translate(0, 0);
+	}
+	25% {
+		transform: translate(8px, -4px);
+	}
+	50% {
+		transform: translate(16px, 0);
+	}
+	75% {
+		transform: translate(8px, 4px);
+	}
 }
 
 .landing-intro-hint {
@@ -1002,15 +1012,13 @@
 }
 
 .landing-cluster-thumb-photo {
-	background: 
-		linear-gradient(135deg, rgba(31, 36, 48, 0.1), transparent 55%),
+	background: linear-gradient(135deg, rgba(31, 36, 48, 0.1), transparent 55%),
 		radial-gradient(circle at 35% 22%, rgba(255, 255, 255, 0.55), transparent 20%),
 		linear-gradient(180deg, #91a7a0, #40504f);
 }
 
 .landing-cluster-thumb-voice {
-	background: 
-		linear-gradient(180deg, rgba(35, 41, 52, 0.18), rgba(35, 41, 52, 0.05)),
+	background: linear-gradient(180deg, rgba(35, 41, 52, 0.18), rgba(35, 41, 52, 0.05)),
 		linear-gradient(180deg, #f0d8dc, #cad9ec);
 	color: rgba(31, 36, 48, 0.82);
 }
@@ -1324,7 +1332,7 @@
 }
 
 .landing-tutorial-step.active .landing-tutorial-bar::after {
-	content: '';
+	content: "";
 	display: block;
 	height: 100%;
 	width: 60%;
@@ -1333,8 +1341,12 @@
 }
 
 @keyframes landing-progress {
-	0% { width: 0%; }
-	100% { width: 100%; }
+	0% {
+		width: 0%;
+	}
+	100% {
+		width: 100%;
+	}
 }
 
 .landing-embed-progress {
@@ -1538,7 +1550,7 @@
 }
 
 .landing-richdoc-item::before {
-	content: '•';
+	content: "•";
 	position: absolute;
 	left: 0.3rem;
 	color: var(--landing-accent);
@@ -1877,7 +1889,8 @@
 	border-radius: 26px;
 	background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(250, 246, 240, 0.88));
 	box-shadow: 0 18px 36px rgba(31, 36, 48, 0.06), 0 1px 0 rgba(255, 255, 255, 0.82) inset;
-	transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+	transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow
+		var(--transition-fast);
 }
 
 .landing-rail-card[data-active="true"] {

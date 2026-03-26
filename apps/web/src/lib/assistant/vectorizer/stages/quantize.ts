@@ -1,21 +1,16 @@
-import type {
-	RGB,
-	DecodedImageData,
-	QuantizationResult,
-	SketchVectorControls,
-} from '../types.js';
 import {
-	MAX_KMEANS_SAMPLES,
+	BACKGROUND_BRIGHTNESS_THRESHOLD,
+	BILATERAL_SIGMA_COLOR,
+	BILATERAL_SIGMA_SPACE,
+	KMEANS_MAX_CLUSTERS,
 	KMEANS_MAX_ITERATIONS,
 	KMEANS_MIN_CLUSTERS,
-	KMEANS_MAX_CLUSTERS,
+	MAX_KMEANS_SAMPLES,
 	MERGE_BRIGHT_CUTOFF,
 	MERGE_DARK_CUTOFF,
 	MERGE_MAX_DIST_SQ,
-	BILATERAL_SIGMA_COLOR,
-	BILATERAL_SIGMA_SPACE,
-	BACKGROUND_BRIGHTNESS_THRESHOLD,
 } from '../config.js';
+import type { DecodedImageData, QuantizationResult, RGB, SketchVectorControls } from '../types.js';
 
 /** Clamp value between min and max */
 function clamp(value: number, min: number, max: number): number {
@@ -192,11 +187,12 @@ function mergeSimilarColorClusters(
 	const parent = Array.from({ length: n }, (_, i) => i);
 
 	function find(x: number): number {
-		while (parent[x] !== x) {
-			parent[x] = parent[parent[x]];
-			x = parent[x];
+		let current = x;
+		while (parent[current] !== current) {
+			parent[current] = parent[parent[current]];
+			current = parent[current];
 		}
-		return x;
+		return current;
 	}
 
 	// Guard: skip merging at both ends of the brightness spectrum
@@ -291,7 +287,7 @@ function assignLabels(
 /** Detect which color labels represent background colors */
 function detectBackgroundLabels(
 	centers: RGB[],
-	counts: Uint32Array,
+	_counts: Uint32Array,
 ): { backgroundLabel: number; backgroundLabels: Set<number> } {
 	const backgroundLabels = new Set<number>();
 

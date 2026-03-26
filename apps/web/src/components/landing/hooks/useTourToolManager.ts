@@ -1,6 +1,6 @@
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useCallback } from 'react';
-import { getTourTool, type TourTool } from '../tour-types';
+import { type TourTool, getTourTool } from '../tour-types';
 
 interface UseTourToolManagerArgs {
 	excalidrawApiRef: React.MutableRefObject<ExcalidrawImperativeAPI | null>;

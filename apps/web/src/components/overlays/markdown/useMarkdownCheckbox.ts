@@ -1,7 +1,7 @@
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { useCallback } from 'react';
-import { commitState } from './useMarkdownCommit';
 import { toggleMarkdownCheckboxLine } from './markdown-utils';
+import { commitState } from './useMarkdownCommit';
 
 interface CheckboxState {
 	content: string;
@@ -29,7 +29,10 @@ interface UseMarkdownCheckboxProps {
 }
 
 interface UseMarkdownCheckboxReturn {
-	handleEditorCheckboxToggle: (lineIndex: number, onContentChange: (content: string) => void) => void;
+	handleEditorCheckboxToggle: (
+		lineIndex: number,
+		onContentChange: (content: string) => void,
+	) => void;
 	handlePreviewCheckboxToggle: (lineIndex: number) => void;
 }
 

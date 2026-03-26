@@ -218,7 +218,7 @@ export function resolveGenerationMode(input: AssistantServiceInput): GenerationM
 			message,
 		) ||
 		(Boolean(input.prototypeContext) &&
-			/(react|vanilla|html|css|javascript|js|jsx|tsx|convert|rewrite|migrate|refactor|restyle|rebuild)/.test(
+			/(react|vanilla|html|css|javascript|js|jsx|tsx|convert|rewrite|migrate|refactor|restyle|rebuild|turn this into|working demo|interactive demo)/.test(
 				message,
 			))
 	) {

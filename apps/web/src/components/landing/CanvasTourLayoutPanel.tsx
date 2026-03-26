@@ -7,7 +7,7 @@ import { SceneActions } from './SceneActions';
 import { SceneSelector } from './SceneSelector';
 import type { CanvasTourLayoutPanelProps } from './canvas-tour-layout-utils';
 
-export { type CanvasTourLayoutPanelProps } from './canvas-tour-layout-utils';
+export type { CanvasTourLayoutPanelProps } from './canvas-tour-layout-utils';
 
 export const CanvasTourLayoutPanel = forwardRef<HTMLDivElement, CanvasTourLayoutPanelProps>(
 	function CanvasTourLayoutPanel(

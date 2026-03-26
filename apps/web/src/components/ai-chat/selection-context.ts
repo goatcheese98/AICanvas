@@ -11,6 +11,8 @@ const SELECTION_KIND_PRIORITY: Record<string, number> = {
 
 const SELECTION_DEPENDENT_PROMPT_PATTERN =
 	/\b(this|these|it|them|selected|selection|current|here|above|below|that note|that board|that card)\b/i;
+const SELECTION_TRANSFORM_PROMPT_PATTERN =
+	/\b(change|convert|edit|expand|fix|improve|make|organize|refine|rename|rewrite|shorten|summarize|transform|turn|update)\b/i;
 
 export interface SelectionIndicator {
 	count: number;
@@ -80,8 +82,8 @@ export function buildSelectionIndicator(
 			: `${selectedElements.length} selected`;
 	const detail =
 		distinctKinds.length === 1
-			? 'Selection available as chat context.'
-			: `${primaryCount} ${getSelectionLabel(primaryKind, primaryCount)}${remainderCount > 0 ? `, ${remainderCount} more item${remainderCount === 1 ? '' : 's'}` : ''}.`;
+			? 'The assistant will use this automatically when it helps.'
+			: `${primaryCount} ${getSelectionLabel(primaryKind, primaryCount)}${remainderCount > 0 ? `, ${remainderCount} more item${remainderCount === 1 ? '' : 's'}` : ''}. The assistant will use this automatically when it helps.`;
 
 	return {
 		count: selectedElements.length,
@@ -90,19 +92,32 @@ export function buildSelectionIndicator(
 	};
 }
 
-export function shouldConfirmSelectionForPrompt(input: {
-	contextMode: AssistantContextMode;
+export function resolveAssistantContextMode(input: {
 	prompt: string;
 	selectionCount: number;
-}): boolean {
-	if (input.contextMode !== 'none' || input.selectionCount === 0) {
-		return false;
+}): AssistantContextMode {
+	if (input.selectionCount === 0) {
+		return 'none';
 	}
 
 	const normalized = input.prompt.trim();
 	if (!normalized) {
-		return false;
+		return 'selected';
 	}
 
-	return SELECTION_DEPENDENT_PROMPT_PATTERN.test(normalized);
+	if (WHOLE_CANVAS_PROMPT_PATTERN.test(normalized)) {
+		return 'all';
+	}
+
+	if (
+		SELECTION_DEPENDENT_PROMPT_PATTERN.test(normalized) ||
+		SELECTION_TRANSFORM_PROMPT_PATTERN.test(normalized)
+	) {
+		return 'selected';
+	}
+
+	return 'selected';
 }
+
+const WHOLE_CANVAS_PROMPT_PATTERN =
+	/\b(whole canvas|entire canvas|full canvas|all canvas|the canvas|everything on the canvas|canvas-wide|across the canvas|entire board|whole board)\b/i;

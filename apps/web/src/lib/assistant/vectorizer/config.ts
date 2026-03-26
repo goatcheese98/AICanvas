@@ -1,8 +1,4 @@
-import type {
-	SketchVectorControls,
-	SketchVectorComplexity,
-	SketchVectorStyle,
-} from './types.js';
+import type { SketchVectorComplexity, SketchVectorControls, SketchVectorStyle } from './types.js';
 
 /** Default values for user-facing controls */
 export const DEFAULT_CONTROLS: SketchVectorControls = {

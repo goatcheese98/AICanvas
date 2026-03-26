@@ -172,7 +172,7 @@ export const assistantRoutes = new Hono<AppEnv>()
 				throw error;
 			}
 		}
-		let run;
+		let run: Awaited<ReturnType<typeof createAssistantRunRecord>>;
 		try {
 			run = await createAssistantRunRecord(db, ownerId, {
 				threadId,

@@ -8,6 +8,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { OverlayExpandButton } from '../OverlayExpandButton';
 import { useWebEmbedState } from './useWebEmbedState';
+import { WebEmbedPreviewCard } from './WebEmbedPreviewCard';
 
 type WebEmbedElement = ExcalidrawElement & {
 	customData: WebEmbedOverlayCustomData;
@@ -79,8 +80,11 @@ export function WebEmbed(props: WebEmbedProps) {
 		[element.customData.url, urlInput],
 	);
 	const previewUrl = enhanced.embedUrl || enhanced.url;
-	const canRenderIframe = Boolean(previewUrl && !enhanced.warning);
 	const embeddable = previewUrl ? isKnownEmbeddable(previewUrl) : false;
+	const shouldRenderPreviewCard = Boolean(
+		enhanced.url && !enhanced.isSearch && (!enhanced.embedUrl || enhanced.warning),
+	);
+	const canRenderIframe = Boolean(previewUrl && !enhanced.warning && !shouldRenderPreviewCard);
 
 	const handlePipMouseDown = useCallback(
 		(event: React.MouseEvent<HTMLDivElement>) => {
@@ -110,6 +114,14 @@ export function WebEmbed(props: WebEmbedProps) {
 		},
 		[clearPipDragListeners, pipDragCleanupRef, pipPosition, setPipPosition],
 	);
+
+	const handleOpenExpandedOverlay = useCallback(() => {
+		const trimmedUrl = urlInput.trim();
+		if (trimmedUrl && trimmedUrl !== element.customData.url) {
+			onChange(element.id, trimmedUrl);
+		}
+		openExpandedOverlay(element.id);
+	}, [element.customData.url, element.id, onChange, openExpandedOverlay, urlInput]);
 
 	const frame = (
 		<OverlaySurface element={element} isSelected={isSelected} className="flex h-full flex-col">
@@ -168,8 +180,16 @@ export function WebEmbed(props: WebEmbedProps) {
 				)}
 			</div>
 
-			<div className="relative min-h-0 flex-1 bg-stone-950/5">
-				{enhanced.warning ? (
+				<div className="relative min-h-0 flex-1 bg-stone-950/5">
+				{shouldRenderPreviewCard ? (
+					<WebEmbedPreviewCard
+						url={enhanced.url}
+						warning={enhanced.warning}
+						width={element.width}
+						height={element.height}
+						mode={mode}
+					/>
+				) : enhanced.warning ? (
 					<div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
 						<p className="max-w-md text-sm text-stone-600">{enhanced.warning}</p>
 						{enhanced.url && (
@@ -212,7 +232,7 @@ export function WebEmbed(props: WebEmbedProps) {
 			</div>
 
 			{mode !== 'shell' && isSelected ? (
-				<OverlayExpandButton onClick={() => openExpandedOverlay(element.id)} />
+				<OverlayExpandButton onClick={handleOpenExpandedOverlay} />
 			) : null}
 		</OverlaySurface>
 	);

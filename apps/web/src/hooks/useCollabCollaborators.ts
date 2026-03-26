@@ -1,12 +1,12 @@
 import { useAppStore } from '@/stores/store';
 import { useCallback, useRef, useState } from 'react';
 import {
-	applyCollaboratorsSnapshot,
-	createId,
-	getSessionCollaboratorColor,
 	type CollaborationApi,
 	type CollaboratorColor,
 	type CollaboratorState,
+	applyCollaboratorsSnapshot,
+	createId,
+	getSessionCollaboratorColor,
 } from './collaboration-session';
 
 export interface CollabCollaborators {
@@ -21,9 +21,9 @@ function createCollaboratorState(): Map<string, CollaboratorState> {
 	return new Map();
 }
 
-export function useCollabCollaborators(
-	apiRef: { current: CollaborationApi | null },
-): CollabCollaborators {
+export function useCollabCollaborators(apiRef: {
+	current: CollaborationApi | null;
+}): CollabCollaborators {
 	const setAppState = useAppStore((s) => s.setAppState);
 	const [collaborators, setCollaborators] = useState<Map<string, CollaboratorState>>(
 		createCollaboratorState(),
@@ -40,7 +40,7 @@ export function useCollabCollaborators(
 		[setAppState, apiRef],
 	);
 
-	const resetCollaborators = useCallback(() => {
+	const _resetCollaborators = useCallback(() => {
 		collaboratorsRef.current = createCollaboratorState();
 		setCollaborators(createCollaboratorState());
 	}, []);

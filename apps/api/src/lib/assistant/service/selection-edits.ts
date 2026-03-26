@@ -4,13 +4,13 @@ import type {
 	GenerationMode,
 } from '@ai-canvas/shared/types';
 import type { AssistantDraft, AssistantServiceInput } from '../types';
+import { buildSelectedKanbanDraft } from './kanban-edits';
+import { buildSelectedMarkdownDraft } from './markdown-edits';
 import {
 	isCreateNewArtifactIntent,
 	isEditableSelectionRequest,
 	sentenceCase,
 } from './service-utils';
-import { buildSelectedKanbanDraft } from './kanban-edits';
-import { buildSelectedMarkdownDraft } from './markdown-edits';
 
 function getSelectedEditableContexts(input: AssistantServiceInput): AssistantSelectedContext[] {
 	return (input.contextSnapshot?.selectedContexts ?? []).filter(

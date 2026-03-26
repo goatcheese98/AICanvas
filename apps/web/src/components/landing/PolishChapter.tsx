@@ -39,7 +39,8 @@ export function PolishChapter({ active }: PolishChapterProps) {
 				<div className="landing-richdoc-content" aria-hidden="true">
 					<div className="landing-richdoc-heading">Product Strategy Q2</div>
 					<div className="landing-richdoc-paragraph">
-						<span className="landing-richdoc-bold">Objective:</span> Reduce time-to-value by 40% through improved onboarding.
+						<span className="landing-richdoc-bold">Objective:</span> Reduce time-to-value by 40%
+						through improved onboarding.
 					</div>
 					<div className="landing-richdoc-list">
 						<div className="landing-richdoc-item">Simplify first-run experience</div>
@@ -114,7 +115,7 @@ export function PolishChapter({ active }: PolishChapterProps) {
 
 			{/* Flow connector */}
 			<div className="landing-flow-connector landing-flow-polish-to-waitlist" aria-hidden="true">
-				<svg viewBox="0 0 180 100" preserveAspectRatio="none">
+				<svg viewBox="0 0 180 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
 					<path d="M0 80 Q45 70, 90 45 T160 20" />
 				</svg>
 			</div>

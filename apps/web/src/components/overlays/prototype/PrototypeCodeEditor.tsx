@@ -1,3 +1,4 @@
+import { useMountEffect } from '@/hooks/useMountEffect';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { cssLanguage } from '@codemirror/lang-css';
 import { htmlLanguage } from '@codemirror/lang-html';
@@ -6,7 +7,6 @@ import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, highlightActiveLine, lineNumbers } from '@codemirror/view';
 import { keymap } from '@codemirror/view';
-import { useMountEffect } from '@/hooks/useMountEffect';
 import { useEffect, useMemo, useRef } from 'react';
 
 interface PrototypeCodeEditorProps {

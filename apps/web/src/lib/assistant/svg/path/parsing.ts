@@ -1,5 +1,3 @@
-import type { SvgPoint } from '../math/points';
-import { distance, simplifyPoints } from '../math/points';
 import {
 	addPoint,
 	arcToCenterParameters,
@@ -8,6 +6,8 @@ import {
 	quadraticBezierPoint,
 	reflect,
 } from '../math/bezier';
+import type { SvgPoint } from '../math/points';
+import { distance, simplifyPoints } from '../math/points';
 
 export interface SvgPathContour {
 	points: SvgPoint[];

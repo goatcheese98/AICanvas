@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	type CollaboratorState,
+	LAST_COLOR_INDEX_KEY,
 	applyCursorBroadcastPayload,
 	buildCursorBroadcastPayload,
 	buildSceneBroadcastPayload,
 	getSessionCollaboratorColor,
-	LAST_COLOR_INDEX_KEY,
 	pruneCollaboratorsBySocketIds,
-	type CollaboratorState,
 } from './collaboration-session';
 
 describe('collaboration-session', () => {

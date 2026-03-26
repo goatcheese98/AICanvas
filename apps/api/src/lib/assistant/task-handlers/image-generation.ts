@@ -1,10 +1,8 @@
-import {
-	serializeStoredAssistantAssetContent,
-} from '@ai-canvas/shared/schemas';
+import { serializeStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
 import type { AssistantTask } from '@ai-canvas/shared/types';
+import { saveAssistantAssetToR2 } from '../../storage/assistant-asset-storage';
 import { generateImageAsset } from '../media-adapters';
 import { createAssistantArtifactRecord } from '../store';
-import { saveAssistantAssetToR2 } from '../../storage/assistant-asset-storage';
 import type { TaskHandlerContext, TaskHandlerResult } from './index';
 
 export async function executeImageGenerationTask(

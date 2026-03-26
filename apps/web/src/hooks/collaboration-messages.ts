@@ -3,9 +3,9 @@ import { addObservabilityBreadcrumb } from '@/lib/observability';
 import type { ServerToClientMessage } from '@ai-canvas/shared/types';
 import type {
 	BroadcastPayload,
+	CollabFile,
 	CollaborationApi,
 	CollaboratorState,
-	CollabFile,
 	RemoteElement,
 } from './collaboration-session';
 import {

@@ -2,7 +2,13 @@
 export { quantize } from './quantize.js';
 
 // Segmentation stage
-export { processLabel, extractComponents, binaryMaskForLabel, morphOpen, morphClose } from './segment.js';
+export {
+	processLabel,
+	extractComponents,
+	binaryMaskForLabel,
+	morphOpen,
+	morphClose,
+} from './segment.js';
 
 // Polygonization stage
 export { buildBoundaryLoops, selectLargestLoop, createPolygonSkeleton } from './polygonize.js';

@@ -152,11 +152,7 @@ export function getSavedZoomLabel(scene: RegisteredTourSceneSnapshot | null): st
 /**
  * Format preview shift for display.
  */
-export function formatPreviewShift(
-	panelAware: boolean,
-	x: number,
-	y: number,
-): string {
+export function formatPreviewShift(panelAware: boolean, x: number, y: number): string {
 	if (!panelAware) return 'None';
 	return `${x.toFixed(1)}rem, ${y.toFixed(1)}rem`;
 }

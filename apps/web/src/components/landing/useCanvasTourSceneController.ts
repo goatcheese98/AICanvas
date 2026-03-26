@@ -4,6 +4,7 @@ import {
 } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { useMountEffect } from '@/hooks/useMountEffect';
+import { captureBrowserException } from '@/lib/observability';
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
@@ -13,19 +14,24 @@ import type {
 	Collaborator,
 	ExcalidrawImperativeAPI,
 } from '@excalidraw/excalidraw/types';
-import { captureBrowserException } from '@/lib/observability';
 import { useCallback, useRef, useState } from 'react';
 import { useTourCamera, useTourSceneCapture, useTourToolManager } from './hooks';
 import {
-	getTourTool,
 	type ApplySceneSnapshotOptions,
 	type CameraTarget,
 	type CanvasSceneSnapshot,
 	type CanvasTourDefaultScene,
 	type TourTool,
+	getTourTool,
 } from './tour-types';
 
-export type { ApplySceneSnapshotOptions, CameraTarget, CanvasSceneSnapshot, CanvasTourDefaultScene, TourTool };
+export type {
+	ApplySceneSnapshotOptions,
+	CameraTarget,
+	CanvasSceneSnapshot,
+	CanvasTourDefaultScene,
+	TourTool,
+};
 export { getTourTool };
 
 interface UseCanvasTourSceneControllerArgs {
@@ -146,7 +152,16 @@ export function useCanvasTourSceneController({
 			if (nextTool) setActiveTool(nextTool);
 			setFiles(files);
 		},
-		[createCameraFromAppState, isGuideMode, setActiveTool, setAppState, setElements, setFiles, cameraRef, exploreSessionRef],
+		[
+			createCameraFromAppState,
+			isGuideMode,
+			setActiveTool,
+			setAppState,
+			setElements,
+			setFiles,
+			cameraRef,
+			exploreSessionRef,
+		],
 	);
 
 	// Mount effects
@@ -195,7 +210,7 @@ export function useCanvasTourSceneController({
 		};
 	});
 
-	useMountEffect(() => () => setExcalidrawApi(null as never));
+	useMountEffect(() => () => setExcalidrawApi(null));
 
 	useMountEffect(() => {
 		if (typeof ResizeObserver === 'undefined') return;

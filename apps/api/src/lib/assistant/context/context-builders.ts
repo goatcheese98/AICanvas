@@ -2,26 +2,30 @@
  * Selected context building for assistant context
  */
 
-import type { AssistantCanvasElementSummary, AssistantSelectedContext, CanvasElement } from '@ai-canvas/shared/types';
 import { summarizeKanbanOverlay } from '@ai-canvas/shared/schemas';
+import type {
+	AssistantCanvasElementSummary,
+	AssistantSelectedContext,
+	CanvasElement,
+} from '@ai-canvas/shared/types';
 import {
 	SELECTION_CONTEXT_PRIORITY,
 	SELECTION_SUMMARY_LIMIT,
 	TEXT_EXCERPT_LIMIT,
 } from './constants';
 import {
-	toObjectRecord,
-	getOverlayType,
-	getOverlayLikeType,
-	parseGeneratedDiagramMetadata,
-	getElementType,
 	buildElementLabel,
 	buildElementTextExcerpt,
-	normalizeText,
-	normalizeMarkdownOverlay,
+	getElementType,
+	getOverlayLikeType,
+	getOverlayType,
 	normalizeKanbanOverlay,
-	normalizeWebEmbedOverlay,
+	normalizeMarkdownOverlay,
 	normalizePrototypeOverlay,
+	normalizeText,
+	normalizeWebEmbedOverlay,
+	parseGeneratedDiagramMetadata,
+	toObjectRecord,
 } from './element-parsers';
 import { buildBounds, buildStyleHints } from './geometry';
 
@@ -177,9 +181,12 @@ export function buildSelectedContext(element: CanvasElement): AssistantSelectedC
 }
 
 /** Build selection summary for snapshot */
-export function buildSelectionSummary(
-	selectedElements: CanvasElement[],
-): Array<{ id: string; elementType: string; overlayType: string | undefined; label: string | undefined }> {
+export function buildSelectionSummary(selectedElements: CanvasElement[]): Array<{
+	id: string;
+	elementType: string;
+	overlayType: string | undefined;
+	label: string | undefined;
+}> {
 	return selectedElements.slice(0, SELECTION_SUMMARY_LIMIT).map((element) => ({
 		id: String(element.id),
 		elementType: getElementType(element),

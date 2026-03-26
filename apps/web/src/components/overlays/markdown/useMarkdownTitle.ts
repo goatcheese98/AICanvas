@@ -1,5 +1,5 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { useCallback, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction, useCallback, useRef, useState } from 'react';
 import { MAX_MARKDOWN_TITLE_LENGTH } from './markdown-note-helpers';
 
 interface UseMarkdownTitleProps {

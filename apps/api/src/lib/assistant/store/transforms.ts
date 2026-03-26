@@ -10,7 +10,7 @@ import type {
 	AssistantTask,
 	AssistantThread,
 } from '@ai-canvas/shared/types';
-import {
+import type {
 	assistantArtifacts,
 	assistantRunEvents,
 	assistantRuns,
@@ -97,7 +97,9 @@ export function buildThreadMessages(runs: AssistantRun[]): AssistantMessage[] {
 	});
 }
 
-export function toAssistantRunEvent(row: typeof assistantRunEvents.$inferSelect): AssistantRunEvent {
+export function toAssistantRunEvent(
+	row: typeof assistantRunEvents.$inferSelect,
+): AssistantRunEvent {
 	return {
 		id: row.id,
 		runId: row.runId,

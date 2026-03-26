@@ -43,9 +43,8 @@ interface UseCanvasInitializationReturn {
  * Manages canvas initialization from remote or local snapshot.
  *
  * Responsibilities:
- * - Compare local vs remote timestamps
- * - Load from localStorage if newer
- * - Load from API if remote is newer
+ * - Prefer remote API data when it exists
+ * - Fall back to localStorage only when remote data is unavailable
  * - Sync app store after initialization
  * - Refresh Excalidraw after scene load
  *
@@ -72,26 +71,10 @@ export function useCanvasInitialization({
 		if (shouldWaitForCanvasHydration(status, fetchStatus)) return;
 
 		const localSnapshot = loadSnapshot(canvasId) ?? null;
-		const localSavedAt = localSnapshot?.savedAt ?? 0;
 
-		const remoteUpdatedAt =
-			status === 'success' &&
-			canvasQueryData &&
-			typeof canvasQueryData === 'object' &&
-			'canvas' in canvasQueryData &&
-			canvasQueryData.canvas &&
-			typeof canvasQueryData.canvas === 'object' &&
-			'updatedAt' in canvasQueryData.canvas
-				? new Date(String(canvasQueryData.canvas.updatedAt)).getTime()
-				: 0;
-
-		const shouldUseLocalSnapshot = Boolean(localSnapshot && localSavedAt > remoteUpdatedAt);
-
-		if (status === 'success' && canvasQueryData && !shouldUseLocalSnapshot) {
+		if (status === 'success' && canvasQueryData) {
 			const data =
-				typeof canvasQueryData === 'object' &&
-				'data' in canvasQueryData &&
-				canvasQueryData.data
+				typeof canvasQueryData === 'object' && 'data' in canvasQueryData && canvasQueryData.data
 					? (canvasQueryData.data as unknown as HydratedCanvasScene)
 					: null;
 			if (data) {

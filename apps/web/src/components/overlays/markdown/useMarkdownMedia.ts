@@ -14,10 +14,13 @@ interface UseMarkdownMediaProps {
 
 interface UseMarkdownMediaReturn {
 	fileInputRef: React.RefObject<HTMLInputElement | null>;
-	insertImageFiles: (fileList: FileList | null, currentState: {
-		content: string;
-		images: Record<string, string>;
-	}) => Promise<InsertResult | null>;
+	insertImageFiles: (
+		fileList: FileList | null,
+		currentState: {
+			content: string;
+			images: Record<string, string>;
+		},
+	) => Promise<InsertResult | null>;
 }
 
 async function processImageFile(file: File): Promise<{ imageId: string; dataUrl: string }> {

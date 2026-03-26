@@ -1,9 +1,9 @@
 import { createOverlayElementDraft } from '@/components/canvas/element-factories';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { convertToExcalidrawElements } from '@excalidraw/excalidraw';
+import { FONT_FAMILY } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFileData } from '@excalidraw/excalidraw/types';
-import { FONT_FAMILY } from '@excalidraw/excalidraw';
 import type {
 	TourAnchorConfig,
 	TourBindableNode,
@@ -251,7 +251,9 @@ export function createBoundCard({
 		},
 	]);
 
-	const boundElements: { id: string; type: 'arrow' | 'text' }[] = [{ id: textElement.id, type: 'text' }];
+	const boundElements: { id: string; type: 'arrow' | 'text' }[] = [
+		{ id: textElement.id, type: 'text' },
+	];
 
 	const container = {
 		...containerElement,
@@ -363,7 +365,20 @@ export function createCardFromConfig(config: TourCardConfig): TourBindableNode {
 
 export function createSceneNodes(
 	cards: Record<Exclude<TourNodeKey, 'studyNote' | 'checklistNote'>, TourCardConfig>,
-	notes: Record<'studyNote' | 'checklistNote', { left: number; top: number; width: number; height: number; backgroundColor: string; strokeColor: string; strokeWidth: number; roundness: ExcalidrawElement['roundness']; customData: Record<string, unknown> }>,
+	notes: Record<
+		'studyNote' | 'checklistNote',
+		{
+			left: number;
+			top: number;
+			width: number;
+			height: number;
+			backgroundColor: string;
+			strokeColor: string;
+			strokeWidth: number;
+			roundness: ExcalidrawElement['roundness'];
+			customData: Record<string, unknown>;
+		}
+	>,
 ): Record<TourNodeKey, TourBindableNode> {
 	return {
 		attention: createCardFromConfig(cards.attention),

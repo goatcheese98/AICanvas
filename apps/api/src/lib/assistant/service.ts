@@ -1,10 +1,4 @@
-import { normalizeKanbanOverlay, normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
-import type {
-	AssistantArtifact,
-	AssistantMessage,
-	GenerationMode,
-	PrototypeOverlayCustomData,
-} from '@ai-canvas/shared/types';
+import type { AssistantArtifact, AssistantMessage } from '@ai-canvas/shared/types';
 import { nanoid } from 'nanoid';
 import { createAnthropicMessage } from './anthropic';
 import { summarizeAssistantContextSnapshot } from './context';
@@ -21,7 +15,6 @@ import {
 	buildKanbanPrompt,
 	buildMermaidEditPrompt,
 	buildMermaidPrompt,
-	buildPrototypePrompt,
 	buildSvgEditPrompt,
 	buildSvgPrompt,
 	extractCodeBlock,
@@ -36,7 +29,7 @@ import {
 	buildMermaidDraftFromHistory,
 	buildSvgPlaceholderDraft,
 } from './service/fallback-drafts';
-import { parsePrototypeArtifactContent, serializePrototypeArtifact } from './service/prototype-helpers';
+import { serializePrototypeArtifact } from './service/prototype-helpers';
 import { executePrototypeRun } from './service/prototype-runner';
 import { buildSelectedEditDraft } from './service/selection-edits';
 import type { AssistantDraft, AssistantServiceInput, AssistantServiceResult } from './types';
@@ -64,7 +57,6 @@ function buildDraft(input: AssistantServiceInput): AssistantDraft {
 					'No prototype was created because the model response was unavailable or invalid.',
 				].join('\n\n'),
 			};
-		case 'chat':
 		default:
 			return buildChatDraft(input);
 	}
@@ -162,8 +154,9 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 					'Last validation issues:',
 					...prototypeRun.diagnostics
 						.slice(0, 8)
-						.map((diagnostic) =>
-							`- ${diagnostic.path ? `${diagnostic.path}${diagnostic.line ? `:${diagnostic.line}` : ''}` : diagnostic.source}: ${diagnostic.message}`,
+						.map(
+							(diagnostic) =>
+								`- ${diagnostic.path ? `${diagnostic.path}${diagnostic.line ? `:${diagnostic.line}` : ''}` : diagnostic.source}: ${diagnostic.message}`,
 						),
 				].join('\n'),
 			};
@@ -173,9 +166,7 @@ async function buildAnthropicDraft(input: AssistantServiceInput): Promise<Assist
 				'Prepared prototype files for the canvas.',
 				'',
 				`Prototype: ${prototypeRun.prototype.title}`,
-				...(prototypeRun.attempts > 1
-					? [`Validation passes: ${prototypeRun.attempts}`]
-					: []),
+				...(prototypeRun.attempts > 1 ? [`Validation passes: ${prototypeRun.attempts}`] : []),
 				'',
 				'The response includes a full multi-file prototype payload for the custom runtime.',
 			].join('\n'),

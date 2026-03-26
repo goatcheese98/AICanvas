@@ -11,18 +11,13 @@ import {
 } from '@/lib/api';
 import { captureBrowserException } from '@/lib/observability';
 import {
-	CanvasPersistenceCoordinator,
 	type CanvasData,
+	CanvasPersistenceCoordinator,
 	type PersistenceState,
 } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import { useAppStore } from '@/stores/store';
 
-import {
-	getExportToBlob,
-	getThumbnailSignature,
-	toBinaryFileList,
-	toBinaryFiles,
-} from './canvas-container-utils';
+import { getExportToBlob, getThumbnailSignature } from './canvas-container-utils';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
 const THUMBNAIL_MIME_TYPE = 'image/png';
@@ -32,8 +27,14 @@ interface UseCanvasPersistenceProps {
 }
 
 interface UseCanvasPersistenceReturn extends PersistenceState {
+	/** Latest confirmed server-side canvas version */
+	canvasVersionRef: React.RefObject<number | null>;
 	/** Coordinator instance for local storage persistence */
 	coordinatorRef: React.RefObject<CanvasPersistenceCoordinator | null>;
+	/** Whether a server save still needs to be flushed */
+	hasPendingServerSaveRef: React.RefObject<boolean>;
+	/** Whether saving is blocked until the user refreshes after a conflict */
+	hasVersionConflictRef: React.RefObject<boolean>;
 	/** Latest scene data ref for access during cleanup */
 	latestSceneRef: React.RefObject<CanvasData | null>;
 	/** Trigger a server save with throttling */
@@ -63,6 +64,7 @@ export function useCanvasPersistence({
 }: UseCanvasPersistenceProps): UseCanvasPersistenceReturn {
 	const { getToken } = useAuth();
 	const queryClient = useQueryClient();
+	const addToast = useAppStore((s) => s.addToast);
 	const setPersistenceState = useAppStore((s) => s.setPersistenceState);
 
 	// Coordinator is stable for the lifetime of this component
@@ -75,9 +77,20 @@ export function useCanvasPersistence({
 
 	// Throttled server save — only fires after 5s of inactivity
 	const serverSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const serverSaveInFlightRef = useRef(false);
+	const canvasVersionRef = useRef<number | null>(null);
+	const hasPendingServerSaveRef = useRef(false);
+	const hasVersionConflictRef = useRef(false);
 	const latestSceneRef = useRef<CanvasData | null>(null);
 	const latestThumbnailSignatureRef = useRef<string | null>(null);
 	const inFlightThumbnailSignatureRef = useRef<string | null>(null);
+
+	const clearScheduledServerSave = useCallback(() => {
+		if (serverSaveTimeoutRef.current) {
+			clearTimeout(serverSaveTimeoutRef.current);
+			serverSaveTimeoutRef.current = null;
+		}
+	}, []);
 
 	const persistThumbnail = useCallback(
 		async (data: CanvasData) => {
@@ -114,17 +127,14 @@ export function useCanvasPersistence({
 				});
 
 				const headers = await getRequiredAuthHeaders(getToken);
-				const response = await observedFetch(
-					toApiUrl(`/api/canvas/${canvasId}/thumbnail`),
-					{
-						method: 'POST',
-						headers: {
-							...headers,
-							'Content-Type': THUMBNAIL_MIME_TYPE,
-						},
-						body: blob,
+				const response = await observedFetch(toApiUrl(`/api/canvas/${canvasId}/thumbnail`), {
+					method: 'POST',
+					headers: {
+						...headers,
+						'Content-Type': THUMBNAIL_MIME_TYPE,
 					},
-				);
+					body: blob,
+				});
 
 				if (!response.ok) {
 					throw await createObservedResponseError(
@@ -158,6 +168,27 @@ export function useCanvasPersistence({
 
 	const persistServerSave = useCallback(
 		async (data: CanvasData) => {
+			if (serverSaveInFlightRef.current) {
+				hasPendingServerSaveRef.current = true;
+				return;
+			}
+
+			if (hasVersionConflictRef.current) {
+				return;
+			}
+
+			const expectedVersion = canvasVersionRef.current;
+			if (typeof expectedVersion !== 'number' || expectedVersion < 1) {
+				hasPendingServerSaveRef.current = false;
+				hasVersionConflictRef.current = true;
+				addToast({
+					message: 'Canvas sync state is stale. Refresh before saving again.',
+					type: 'error',
+				});
+				return;
+			}
+
+			serverSaveInFlightRef.current = true;
 			try {
 				const headers = await getRequiredAuthHeaders(getToken);
 				const response = await api.api.canvas[':id'].$put(
@@ -167,21 +198,46 @@ export function useCanvasPersistence({
 							elements: data.elements as Record<string, unknown>[],
 							appState: data.appState,
 							files: data.files as Record<string, unknown> | null,
+							expectedVersion,
 						},
 					},
 					{ headers },
 				);
 
+				if (response.status === 409) {
+					hasPendingServerSaveRef.current = false;
+					hasVersionConflictRef.current = true;
+					clearScheduledServerSave();
+					addToast({
+						message: 'Canvas changed in another session. Refresh before saving again.',
+						type: 'error',
+					});
+					return;
+				}
+
 				if (!response.ok) {
 					throw new Error(await response.text());
 				}
+
+				const result = (await response.json()) as {
+					success?: boolean;
+					version?: number;
+				};
+				if (!result.success || typeof result.version !== 'number') {
+					throw new Error('Canvas save returned an invalid response.');
+				}
+
+				canvasVersionRef.current = result.version;
+				hasVersionConflictRef.current = false;
 
 				await Promise.all([
 					queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] }),
 					queryClient.invalidateQueries({ queryKey: ['canvases'] }),
 				]);
+				hasPendingServerSaveRef.current = latestSceneRef.current !== data;
 				void persistThumbnail(data);
 			} catch (err) {
+				hasPendingServerSaveRef.current = true;
 				console.error('Server auto-save failed:', err);
 				captureBrowserException(err, {
 					tags: {
@@ -193,47 +249,65 @@ export function useCanvasPersistence({
 						elementCount: data.elements.length,
 					},
 				});
+			} finally {
+				serverSaveInFlightRef.current = false;
+				if (
+					hasPendingServerSaveRef.current &&
+					latestSceneRef.current &&
+					latestSceneRef.current !== data &&
+					!hasVersionConflictRef.current &&
+					serverSaveTimeoutRef.current === null
+				) {
+					void persistServerSave(latestSceneRef.current);
+				}
 			}
 		},
-		[canvasId, getToken, persistThumbnail, queryClient],
+		[addToast, canvasId, clearScheduledServerSave, getToken, persistThumbnail, queryClient],
 	);
 
 	const scheduleServerSave = useCallback(
 		(data: CanvasData) => {
 			latestSceneRef.current = data;
-			if (serverSaveTimeoutRef.current) clearTimeout(serverSaveTimeoutRef.current);
+			hasPendingServerSaveRef.current = true;
+			clearScheduledServerSave();
 			serverSaveTimeoutRef.current = setTimeout(() => {
+				serverSaveTimeoutRef.current = null;
 				void persistServerSave(data);
 			}, SERVER_SAVE_THROTTLE_MS);
 		},
-		[persistServerSave],
+		[clearScheduledServerSave, persistServerSave],
 	);
 
 	const forceServerSave = useCallback(
 		async (data: CanvasData) => {
+			hasPendingServerSaveRef.current = true;
+			clearScheduledServerSave();
 			await persistServerSave(data);
 		},
-		[persistServerSave],
+		[clearScheduledServerSave, persistServerSave],
 	);
 
 	const cleanup = useCallback(() => {
 		coordinatorRef.current?.dispose();
-		if (serverSaveTimeoutRef.current) {
-			clearTimeout(serverSaveTimeoutRef.current);
-			serverSaveTimeoutRef.current = null;
-		}
-	}, []);
+		clearScheduledServerSave();
+	}, [clearScheduledServerSave]);
 
 	// Get current persistence state from coordinator
-	const coordinatorState = coordinatorRef.current?.getState() ?? {
-		isSaving: false,
-		lastSaved: null,
-		hasUnsavedChanges: false,
-	};
+	const coordinatorState =
+		typeof coordinatorRef.current?.getState === 'function'
+			? coordinatorRef.current.getState()
+			: {
+					isSaving: false,
+					lastSaved: null,
+					hasUnsavedChanges: false,
+				};
 
 	return {
 		...coordinatorState,
+		canvasVersionRef,
 		coordinatorRef,
+		hasPendingServerSaveRef,
+		hasVersionConflictRef,
 		latestSceneRef,
 		scheduleServerSave,
 		persistThumbnail,

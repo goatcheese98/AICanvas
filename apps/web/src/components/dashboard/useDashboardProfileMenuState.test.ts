@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useDashboardProfileMenuState } from './useDashboardProfileMenuState';
+import { act, renderHook } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-	DEFAULT_WORKSPACE_SETTINGS,
 	DEFAULT_PERSONAL_PREFERENCES,
+	DEFAULT_WORKSPACE_SETTINGS,
 } from './dashboard-profile-utils';
+import { useDashboardProfileMenuState } from './useDashboardProfileMenuState';
 
 describe('useDashboardProfileMenuState', () => {
 	beforeEach(() => {

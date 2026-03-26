@@ -1,5 +1,5 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
-import { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
+import type { normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -14,7 +14,7 @@ import { useMarkdownCommit } from './useMarkdownCommit';
 import { useMarkdownDerivedState } from './useMarkdownDerivedState';
 import { useMarkdownLayout } from './useMarkdownLayout';
 import { useMarkdownMedia } from './useMarkdownMedia';
-import { useMarkdownSync, hasLocalEdits as checkHasLocalEdits } from './useMarkdownSync';
+import { hasLocalEdits as checkHasLocalEdits, useMarkdownSync } from './useMarkdownSync';
 import { useMarkdownTitle } from './useMarkdownTitle';
 import { useMarkdownUtilityPanel } from './useMarkdownUtilityPanel';
 
@@ -94,7 +94,13 @@ export function useMarkdownNoteState({
 	const [isPreviewState, setIsPreview] = useState(false);
 
 	// State ref for commit/checkbox handlers that need synchronous access
-	const stateRef = useRef({ content, images, title: resolvedNormalizedElement.title, settings, editorMode });
+	const stateRef = useRef({
+		content,
+		images,
+		title: resolvedNormalizedElement.title,
+		settings,
+		editorMode,
+	});
 
 	// Commit logic hook
 	const commit = useMarkdownCommit({
@@ -111,7 +117,12 @@ export function useMarkdownNoteState({
 		initialTitle: resolvedNormalizedElement.title,
 		onTitleChange: useCallback(
 			(newTitle: string) => {
-				commit.scheduleAutoCommit({ ...stateRef.current, title: newTitle, isPreview: isPreviewState, activeUtilityPanel: utilityPanel.activeUtilityPanel });
+				commit.scheduleAutoCommit({
+					...stateRef.current,
+					title: newTitle,
+					isPreview: isPreviewState,
+					activeUtilityPanel: utilityPanel.activeUtilityPanel,
+				});
 			},
 			[commit.scheduleAutoCommit, isPreviewState, utilityPanel.activeUtilityPanel],
 		),
@@ -149,9 +160,16 @@ export function useMarkdownNoteState({
 	// Media hook
 	const media = useMarkdownMedia({
 		scheduleAutoCommit: useCallback(() => {
-			commit.scheduleAutoCommit({ ...stateRef.current, isPreview, activeUtilityPanel: utilityPanel.activeUtilityPanel });
+			commit.scheduleAutoCommit({
+				...stateRef.current,
+				isPreview,
+				activeUtilityPanel: utilityPanel.activeUtilityPanel,
+			});
 		}, [commit.scheduleAutoCommit, isPreview, utilityPanel.activeUtilityPanel]),
-		onPanelClose: useCallback(() => utilityPanel.setActiveUtilityPanel('none'), [utilityPanel.setActiveUtilityPanel]),
+		onPanelClose: useCallback(
+			() => utilityPanel.setActiveUtilityPanel('none'),
+			[utilityPanel.setActiveUtilityPanel],
+		),
 	});
 
 	// Checkbox hook
@@ -163,7 +181,10 @@ export function useMarkdownNoteState({
 	});
 
 	// Activity tracking
-	useMarkdownActivity({ isEditing: isSelected && (!isPreview || utilityPanel.activeUtilityPanel !== 'none'), onActivityChange });
+	useMarkdownActivity({
+		isEditing: isSelected && (!isPreview || utilityPanel.activeUtilityPanel !== 'none'),
+		onActivityChange,
+	});
 
 	// Cleanup debounce on unmount
 	useMountEffect(() => () => commit.cleanupDebounce(stateRef.current));
@@ -178,13 +199,30 @@ export function useMarkdownNoteState({
 	});
 
 	// Setter factory with auto-commit
-	const makeSetter = <T>(setter: Dispatch<SetStateAction<T>>, key: keyof typeof stateRef.current, current: T) =>
-		useCallback((value: SetStateAction<T>) => {
-			const next = typeof value === 'function' ? (value as (prev: T) => T)(current) : value;
-			setter(next);
-			stateRef.current = { ...stateRef.current, [key]: next };
-			commit.scheduleAutoCommit({ ...stateRef.current, isPreview: derived.isPreview, activeUtilityPanel: utilityPanel.activeUtilityPanel });
-		}, [setter, current, commit.scheduleAutoCommit, derived.isPreview, utilityPanel.activeUtilityPanel]);
+	const makeSetter = <T>(
+		setter: Dispatch<SetStateAction<T>>,
+		key: keyof typeof stateRef.current,
+		current: T,
+	) =>
+		useCallback(
+			(value: SetStateAction<T>) => {
+				const next = typeof value === 'function' ? (value as (prev: T) => T)(current) : value;
+				setter(next);
+				stateRef.current = { ...stateRef.current, [key]: next };
+				commit.scheduleAutoCommit({
+					...stateRef.current,
+					isPreview: derived.isPreview,
+					activeUtilityPanel: utilityPanel.activeUtilityPanel,
+				});
+			},
+			[
+				setter,
+				current,
+				commit.scheduleAutoCommit,
+				derived.isPreview,
+				utilityPanel.activeUtilityPanel,
+			],
+		);
 
 	const setContentState = makeSetter(setContent, 'content', content);
 	const setImagesState = makeSetter(setImages, 'images', images);
@@ -192,25 +230,59 @@ export function useMarkdownNoteState({
 	const setEditorModeState = makeSetter(setEditorMode, 'editorMode', editorMode);
 
 	// Local edits detection
-	const hasLocalEdits = useMemo(() => checkHasLocalEdits(stateRef.current, resolvedNormalizedElement), 
-		[resolvedNormalizedElement, content, images, titleState.title, settings, editorMode]);
+	const hasLocalEdits = useMemo(
+		() => checkHasLocalEdits(stateRef.current, resolvedNormalizedElement),
+		[resolvedNormalizedElement, content, images, titleState.title, settings, editorMode],
+	);
 
 	// Handler wrappers
-	const handleCommit = useCallback(() => commit.handleCommit(stateRef.current), [commit.handleCommit]);
+	const handleCommit = useCallback(
+		() => commit.handleCommit(stateRef.current),
+		[commit.handleCommit],
+	);
 
-	const handleSurfaceStyleChange = useCallback((elementStyle: { backgroundColor?: string; strokeColor?: string; strokeWidth?: number; roundness?: ExcalidrawElement['roundness'] }) => {
-		const fn = commit.onChangeRef.current;
-		if (fn) fn(element.id, stateRef.current.content, stateRef.current.images, stateRef.current.title, stateRef.current.settings, stateRef.current.editorMode, elementStyle);
-	}, [element.id, commit.onChangeRef]);
+	const handleSurfaceStyleChange = useCallback(
+		(elementStyle: {
+			backgroundColor?: string;
+			strokeColor?: string;
+			strokeWidth?: number;
+			roundness?: ExcalidrawElement['roundness'];
+		}) => {
+			const fn = commit.onChangeRef.current;
+			if (fn)
+				fn(
+					element.id,
+					stateRef.current.content,
+					stateRef.current.images,
+					stateRef.current.title,
+					stateRef.current.settings,
+					stateRef.current.editorMode,
+					elementStyle,
+				);
+		},
+		[element.id, commit.onChangeRef],
+	);
 
-	const insertImageFiles = useCallback(async (fileList: FileList | null) => {
-		const result = await media.insertImageFiles(fileList, { content: stateRef.current.content, images: stateRef.current.images });
-		if (result) { setImagesState(result.nextImages); setContentState(result.nextContent); }
-	}, [media.insertImageFiles, setContentState, setImagesState]);
+	const insertImageFiles = useCallback(
+		async (fileList: FileList | null) => {
+			const result = await media.insertImageFiles(fileList, {
+				content: stateRef.current.content,
+				images: stateRef.current.images,
+			});
+			if (result) {
+				setImagesState(result.nextImages);
+				setContentState(result.nextContent);
+			}
+		},
+		[media.insertImageFiles, setContentState, setImagesState],
+	);
 
-	const handleEditorCheckboxToggle = useCallback((lineIndex: number) => {
-		checkbox.handleEditorCheckboxToggle(lineIndex, (newContent) => setContentState(newContent));
-	}, [checkbox.handleEditorCheckboxToggle, setContentState]);
+	const handleEditorCheckboxToggle = useCallback(
+		(lineIndex: number) => {
+			checkbox.handleEditorCheckboxToggle(lineIndex, (newContent) => setContentState(newContent));
+		},
+		[checkbox.handleEditorCheckboxToggle, setContentState],
+	);
 
 	return {
 		normalizedElement: resolvedNormalizedElement,

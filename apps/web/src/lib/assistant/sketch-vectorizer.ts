@@ -1,18 +1,23 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type {
-	SketchVectorStyle,
-	SketchVectorComplexity,
-	SketchVectorControls,
-	SketchVectorizerOptions,
-	SketchVectorizationMetadata,
-	CompiledSketchVectorization,
-} from './vectorizer/types.js';
 import { DEFAULT_CONTROLS, MAX_ELEMENTS_BY_COMPLEXITY } from './vectorizer/config.js';
 import { decodeImageData } from './vectorizer/preprocess.js';
+import {
+	buildBoundaryLoops,
+	createPolygonSkeleton,
+	selectLargestLoop,
+} from './vectorizer/stages/polygonize.js';
 import { quantize } from './vectorizer/stages/quantize.js';
 import { processLabel } from './vectorizer/stages/segment.js';
-import { buildBoundaryLoops, selectLargestLoop, createPolygonSkeleton } from './vectorizer/stages/polygonize.js';
-import { chaikinSmoothClosed, simplifyClosedPolygon, sortByRenderOrder } from './vectorizer/stages/smooth.js';
+import {
+	chaikinSmoothClosed,
+	simplifyClosedPolygon,
+	sortByRenderOrder,
+} from './vectorizer/stages/smooth.js';
+import type {
+	CompiledSketchVectorization,
+	SketchVectorControls,
+	SketchVectorizerOptions,
+} from './vectorizer/types.js';
 
 // Re-export public types
 export type { SketchVectorStyle, SketchVectorComplexity } from './vectorizer/types.js';
@@ -60,7 +65,10 @@ async function getConvertToExcalidrawElements() {
 	return convertToExcalidrawElementsLoader;
 }
 
-function getElementsBounds(elements: readonly ExcalidrawElement[]): { width: number; height: number } {
+function getElementsBounds(elements: readonly ExcalidrawElement[]): {
+	width: number;
+	height: number;
+} {
 	const left = Math.min(...elements.map((element) => element.x));
 	const top = Math.min(...elements.map((element) => element.y));
 	const right = Math.max(...elements.map((element) => element.x + Math.abs(element.width ?? 0)));

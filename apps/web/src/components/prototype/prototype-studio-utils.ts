@@ -22,7 +22,6 @@ export function getPrototypeStudioStatusCopy({
 			return 'Saved to canvas.';
 		case 'error':
 			return 'Save failed. Changes are still local to this studio.';
-		case 'idle':
 		default:
 			return isDirty
 				? 'Unsaved changes. Save to push edits back to the canvas.'

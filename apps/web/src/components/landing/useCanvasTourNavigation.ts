@@ -8,10 +8,12 @@
  */
 
 import { useCallback, useState } from 'react';
-import type { TourTool, CanvasSceneSnapshot } from './useCanvasTourSceneController';
-import type { CanvasTourNavigationState, CanvasTourNavigationActions } from './canvas-tour-types';
+import type { CanvasTourNavigationActions, CanvasTourNavigationState } from './canvas-tour-types';
+import type { CanvasSceneSnapshot, TourTool } from './useCanvasTourSceneController';
 
-export interface UseCanvasTourNavigationResult extends CanvasTourNavigationState, CanvasTourNavigationActions {
+export interface UseCanvasTourNavigationResult
+	extends CanvasTourNavigationState,
+		CanvasTourNavigationActions {
 	setActiveTool: React.Dispatch<React.SetStateAction<TourTool>>;
 }
 

@@ -252,7 +252,7 @@ describe('assistant planner', () => {
 		});
 	});
 
-	it('expects prototype patches for selected prototype edit runs', () => {
+	it('expects updated prototype files for selected prototype edit runs', () => {
 		const plan = planAssistantRun({
 			message: 'turn this into an actual working demo',
 			contextMode: 'selected',
@@ -313,11 +313,11 @@ describe('assistant planner', () => {
 		expect(plan.tasks).toHaveLength(2);
 		expect(plan.tasks[0]?.input).toMatchObject({
 			kind: 'generate_response',
-			includeArtifactTypes: ['prototype-patch'],
+			includeArtifactTypes: ['prototype-files'],
 		});
 		expect(plan.tasks[1]?.input).toMatchObject({
 			kind: 'verify_run',
-			requiredArtifactTypes: ['prototype-patch'],
+			requiredArtifactTypes: ['prototype-files'],
 		});
 	});
 });

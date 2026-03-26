@@ -1,13 +1,19 @@
+import { CANVAS_DEFAULTS } from '@ai-canvas/shared/constants';
 import { canvasSchemas, getCanvasTitleKey } from '@ai-canvas/shared/schemas';
 import { zValidator } from '@hono/zod-validator';
 import { and, desc, eq, like } from 'drizzle-orm';
 import { Hono } from 'hono';
+import type { MiddlewareHandler } from 'hono';
 import { nanoid } from 'nanoid';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
 import { logApiEvent } from '../lib/observability';
 import {
+	CanvasPayloadTooLargeError,
+	deleteCanvasDataFromR2,
 	deleteCanvasFromR2,
+	deleteThumbnailFromR2,
+	getCanvasR2Key,
 	loadCanvasFromR2,
 	loadThumbnailFromR2,
 	saveCanvasToR2,
@@ -25,6 +31,7 @@ const canvasSelect = {
 	thumbnailUrl: canvases.thumbnailUrl,
 	isPublic: canvases.isPublic,
 	isFavorite: canvases.isFavorite,
+	version: canvases.version,
 	createdAt: canvases.createdAt,
 	updatedAt: canvases.updatedAt,
 } as const;
@@ -44,12 +51,31 @@ function isUniqueCanvasTitleError(error: unknown): boolean {
 	return error instanceof Error && error.message.includes('canvases_user_normalized_title_unique');
 }
 
+function getCanvasPayloadTooLargeMessage(): string {
+	return `Canvas payload too large (max ${Math.floor(CANVAS_DEFAULTS.MAX_CANVAS_SIZE_BYTES / (1024 * 1024))}MB).`;
+}
+
+const enforceCanvasPayloadLimit: MiddlewareHandler<AppEnv> = async (c, next) => {
+	const contentLengthHeader = c.req.header('content-length');
+	if (!contentLengthHeader) {
+		await next();
+		return;
+	}
+
+	const contentLength = Number.parseInt(contentLengthHeader, 10);
+	if (Number.isFinite(contentLength) && contentLength > CANVAS_DEFAULTS.MAX_CANVAS_SIZE_BYTES) {
+		return c.json({ error: getCanvasPayloadTooLargeMessage() }, 413);
+	}
+
+	await next();
+};
+
 export const canvasRoutes = new Hono<AppEnv>()
 	.use(requireAuth)
 
 	// List canvases
 	.get('/list', zValidator('query', canvasSchemas.list), async (c) => {
-		const { limit, search, cursor } = c.req.valid('query');
+		const { limit, search } = c.req.valid('query');
 		const user = c.get('user');
 		const db = createDb(c.env.DB);
 
@@ -91,11 +117,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 		}
 
 		const id = nanoid();
-		const r2Key = await saveCanvasToR2(c.env.R2, user.id, id, {
-			elements: [],
-			appState: {},
-			files: {},
-		});
+		const r2Key = getCanvasR2Key(user.id, id);
 
 		try {
 			const [canvas] = await db
@@ -110,6 +132,35 @@ export const canvasRoutes = new Hono<AppEnv>()
 					r2Key,
 				})
 				.returning(canvasSelect);
+
+			if (!canvas) {
+				throw new Error('Failed to create canvas record');
+			}
+
+			try {
+				await saveCanvasToR2(c.env.R2, user.id, id, {
+					elements: [],
+					appState: {},
+					files: {},
+				});
+			} catch (error) {
+				try {
+					await db.delete(canvases).where(eq(canvases.id, id));
+				} catch (rollbackError) {
+					logApiEvent('error', 'canvas.create_rollback_failed', {
+						userId: user.id,
+						canvasId: id,
+						message: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+					});
+				}
+
+				logApiEvent('error', 'canvas.create_blob_failed', {
+					userId: user.id,
+					canvasId: id,
+					message: error instanceof Error ? error.message : String(error),
+				});
+				throw error;
+			}
 
 			logApiEvent('info', 'canvas.created', { userId: user.id, canvasId: id });
 			return c.json(withVersionedThumbnailUrl(canvas), 201);
@@ -147,15 +198,36 @@ export const canvasRoutes = new Hono<AppEnv>()
 			return c.json({ error: 'Thumbnail too large (max 2MB)' }, 400);
 		}
 
+		const previousThumbnail = await loadThumbnailFromR2(c.env.R2, user.id, id);
+		const previousThumbnailData = previousThumbnail ? await previousThumbnail.arrayBuffer() : null;
+
 		await saveThumbnailToR2(c.env.R2, user.id, id, body);
 
 		const thumbnailUrl = `/api/canvas/${id}/thumbnail`;
-		// Also update updatedAt so the versioned thumbnail URL (?v=<timestamp>) changes,
-		// which busts the CanvasPreviewThumbnail React Query cache on the dashboard.
-		await db
-			.update(canvases)
-			.set({ thumbnailUrl, updatedAt: new Date() })
-			.where(eq(canvases.id, id));
+		try {
+			// Also update updatedAt so the versioned thumbnail URL (?v=<timestamp>) changes,
+			// which busts the CanvasPreviewThumbnail React Query cache on the dashboard.
+			await db
+				.update(canvases)
+				.set({ thumbnailUrl, updatedAt: new Date() })
+				.where(eq(canvases.id, id));
+		} catch (error) {
+			try {
+				if (previousThumbnailData) {
+					await saveThumbnailToR2(c.env.R2, user.id, id, previousThumbnailData);
+				} else {
+					await deleteThumbnailFromR2(c.env.R2, user.id, id);
+				}
+			} catch (rollbackError) {
+				logApiEvent('error', 'canvas.thumbnail_rollback_failed', {
+					userId: user.id,
+					canvasId: id,
+					message: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+				});
+			}
+
+			throw error;
+		}
 
 		return c.json({ thumbnailUrl });
 	})
@@ -255,7 +327,7 @@ export const canvasRoutes = new Hono<AppEnv>()
 	})
 
 	// Save canvas (auto-save)
-	.put('/:id', zValidator('json', canvasSchemas.data), async (c) => {
+	.put('/:id', enforceCanvasPayloadLimit, zValidator('json', canvasSchemas.save), async (c) => {
 		const id = c.req.param('id');
 		const user = c.get('user');
 		const db = createDb(c.env.DB);
@@ -266,19 +338,78 @@ export const canvasRoutes = new Hono<AppEnv>()
 		});
 
 		if (!canvas) return c.json({ error: 'Not found' }, 404);
+		if (body.expectedVersion !== canvas.version) {
+			return c.json(
+				{
+					error: 'Canvas has changed since your last sync. Refresh before saving again.',
+					currentVersion: canvas.version,
+				},
+				409,
+			);
+		}
 
-		await saveCanvasToR2(c.env.R2, user.id, id, {
-			...body,
-			files: body.files ?? {},
-		});
+		const previousData = await loadCanvasFromR2(c.env.R2, user.id, id);
+		let didWriteCanvas = false;
 
-		await db
-			.update(canvases)
-			.set({ updatedAt: new Date(), version: canvas.version + 1 })
-			.where(eq(canvases.id, id));
+		try {
+			await saveCanvasToR2(c.env.R2, user.id, id, {
+				elements: body.elements,
+				appState: body.appState,
+				files: body.files ?? {},
+			});
+			didWriteCanvas = true;
 
-		logApiEvent('info', 'canvas.saved', { userId: user.id, canvasId: id });
-		return c.json({ success: true });
+			const nextVersion = body.expectedVersion + 1;
+			const [updatedCanvas] = await db
+				.update(canvases)
+				.set({ updatedAt: new Date(), version: nextVersion })
+				.where(and(eq(canvases.id, id), eq(canvases.version, body.expectedVersion)))
+				.returning({ version: canvases.version });
+
+			if (!updatedCanvas) {
+				throw new Error('Canvas version conflict during save.');
+			}
+
+			logApiEvent('info', 'canvas.saved', { userId: user.id, canvasId: id });
+			return c.json({ success: true, version: updatedCanvas.version });
+		} catch (error) {
+			if (didWriteCanvas) {
+				try {
+					if (previousData) {
+						await saveCanvasToR2(c.env.R2, user.id, id, previousData);
+					} else {
+						await deleteCanvasDataFromR2(c.env.R2, user.id, id);
+					}
+				} catch (rollbackError) {
+					logApiEvent('error', 'canvas.save_rollback_failed', {
+						userId: user.id,
+						canvasId: id,
+						message: rollbackError instanceof Error ? rollbackError.message : String(rollbackError),
+					});
+				}
+			}
+
+			if (error instanceof Error && error.message === 'Canvas version conflict during save.') {
+				return c.json(
+					{
+						error: 'Canvas has changed since your last sync. Refresh before saving again.',
+						currentVersion: canvas.version,
+					},
+					409,
+				);
+			}
+
+			if (error instanceof CanvasPayloadTooLargeError) {
+				return c.json({ error: getCanvasPayloadTooLargeMessage() }, 413);
+			}
+
+			logApiEvent('error', 'canvas.save_failed', {
+				userId: user.id,
+				canvasId: id,
+				message: error instanceof Error ? error.message : String(error),
+			});
+			throw error;
+		}
 	})
 
 	// Delete canvas
@@ -293,8 +424,17 @@ export const canvasRoutes = new Hono<AppEnv>()
 
 		if (!canvas) return c.json({ error: 'Not found' }, 404);
 
-		await deleteCanvasFromR2(c.env.R2, user.id, id);
 		await db.delete(canvases).where(eq(canvases.id, id));
+
+		try {
+			await deleteCanvasFromR2(c.env.R2, user.id, id);
+		} catch (error) {
+			logApiEvent('error', 'canvas.delete_storage_cleanup_failed', {
+				userId: user.id,
+				canvasId: id,
+				message: error instanceof Error ? error.message : String(error),
+			});
+		}
 
 		logApiEvent('info', 'canvas.deleted', { userId: user.id, canvasId: id });
 		return c.json({ success: true });

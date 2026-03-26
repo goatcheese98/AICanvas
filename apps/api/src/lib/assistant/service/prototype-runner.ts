@@ -111,8 +111,7 @@ function resolvePrototypeImport(
 
 function collectImportSpecifiers(code: string) {
 	const specifiers = new Set<string>();
-	const staticImportPattern =
-		/\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1/g;
+	const staticImportPattern = /\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?(['"])([^'"]+)\1/g;
 	const dynamicImportPattern = /\bimport\(\s*(['"])([^'"]+)\1\s*\)/g;
 
 	for (const pattern of [staticImportPattern, dynamicImportPattern]) {
@@ -145,11 +144,9 @@ function validateJsonSource(path: string, code: string): PrototypeRunDiagnostic[
 		return [];
 	} catch (error) {
 		return [
-			createDiagnostic(
-				'compile',
-				error instanceof Error ? error.message : 'Invalid JSON file.',
-				{ path },
-			),
+			createDiagnostic('compile', error instanceof Error ? error.message : 'Invalid JSON file.', {
+				path,
+			}),
 		];
 	}
 }
@@ -164,7 +161,9 @@ function validatePrototypeWorkspace(
 
 	if (!files[entryPath]) {
 		diagnostics.push(
-			createDiagnostic('compile', `Missing prototype entry file ${entryPath}.`, { path: entryPath }),
+			createDiagnostic('compile', `Missing prototype entry file ${entryPath}.`, {
+				path: entryPath,
+			}),
 		);
 	}
 
@@ -213,9 +212,7 @@ function validatePrototypeWorkspace(
 		}
 
 		if (!PROTOTYPE_ALLOWED_DEPENDENCIES.has(dependency)) {
-			diagnostics.push(
-				createDiagnostic('dependency', `Unsupported dependency "${dependency}".`),
-			);
+			diagnostics.push(createDiagnostic('dependency', `Unsupported dependency "${dependency}".`));
 		}
 	}
 
@@ -249,6 +246,8 @@ function buildPrototypeRepairPrompt(params: {
 		'Keep the file graph complete. Do not return a partial patch.',
 		'- For React prototypes, /index.jsx is required.',
 		'- For vanilla prototypes, /index.js is required.',
+		'- dependencies must be a JSON object map, not an array.',
+		'- files must be a JSON object map of path -> { code, hidden?, active?, readOnly? }.',
 		'- Only use dependencies from this allowlist: react, react-dom/client, framer-motion, lucide-react, @radix-ui/react-dialog, @radix-ui/react-tabs.',
 		'',
 		`Original request: ${params.userText}`,
@@ -269,12 +268,7 @@ function buildPrototypeFailureDiagnostic(responseText: string): PrototypeRunDiag
 			'The model response was not a valid prototype JSON payload with files and a required entry file.',
 		),
 		...(responseText.trim()
-			? [
-					createDiagnostic(
-						'model',
-						`Last response excerpt: ${responseText.trim().slice(0, 240)}`,
-					),
-				]
+			? [createDiagnostic('model', `Last response excerpt: ${responseText.trim().slice(0, 240)}`)]
 			: []),
 	];
 }

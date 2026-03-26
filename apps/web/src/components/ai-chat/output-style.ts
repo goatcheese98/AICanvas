@@ -12,7 +12,6 @@ export function outputStyleToModeHint(
 			return 'sketch';
 		case 'svg':
 			return 'svg';
-		case 'auto':
 		default:
 			return undefined;
 	}

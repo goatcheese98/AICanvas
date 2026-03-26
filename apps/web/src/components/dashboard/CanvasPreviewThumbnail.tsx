@@ -1,4 +1,3 @@
-import { useMountEffect } from '@/hooks/useMountEffect';
 import {
 	createObservedResponseError,
 	getRequiredAuthHeaders,
@@ -8,7 +7,7 @@ import {
 import { captureBrowserException } from '@/lib/observability';
 import { useAuth } from '@clerk/clerk-react';
 import { useQuery } from '@tanstack/react-query';
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface CanvasPreviewThumbnailProps {
 	canvasId: string;

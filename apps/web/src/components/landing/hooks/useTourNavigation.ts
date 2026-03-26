@@ -7,7 +7,7 @@
  * - Explicit guards and progress tracking
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { canvasTourChapters } from '../canvas-tour-content';
 
 export interface TourNavigationState {
@@ -56,9 +56,9 @@ export interface TourProgress {
 
 export interface UseTourNavigationReturn
 	extends TourNavigationState,
-			TourNavigationActions,
-			TourNavigationGuards,
-			TourProgress {
+		TourNavigationActions,
+		TourNavigationGuards,
+		TourProgress {
 	/** Current chapter ID */
 	currentChapterId: string;
 	/** Set chapter index directly (for controlled usage) */
@@ -95,7 +95,7 @@ export function useTourNavigation({
 			isAtStart: currentChapterIndex === 0,
 			isAtEnd: currentChapterIndex === totalChapters - 1,
 		}),
-		[currentChapterIndex, totalChapters]
+		[currentChapterIndex, totalChapters],
 	);
 
 	const progress = useMemo(
@@ -105,7 +105,7 @@ export function useTourNavigation({
 			chapterNumber: currentChapterIndex + 1,
 			totalChapters,
 		}),
-		[currentChapterIndex, totalChapters]
+		[currentChapterIndex, totalChapters],
 	);
 
 	const nextChapter = useCallback((): boolean => {
@@ -151,7 +151,7 @@ export function useTourNavigation({
 			onChapterChange?.(chapterId, index);
 			return true;
 		},
-		[totalChapters, canNavigateToChapter, onChapterChange]
+		[totalChapters, canNavigateToChapter, onChapterChange],
 	);
 
 	const goToChapter = useCallback(
@@ -160,19 +160,16 @@ export function useTourNavigation({
 			if (index === -1) return false;
 			return goToChapterIndex(index);
 		},
-		[goToChapterIndex]
+		[goToChapterIndex],
 	);
 
-	const goToStep = useCallback(
-		(stepIndex: number): boolean => {
-			// For now, chapters don't have internal steps
-			// This is reserved for future multi-step chapters
-			if (stepIndex !== 0) return false;
-			setCurrentStepIndex(stepIndex);
-			return true;
-		},
-		[]
-	);
+	const goToStep = useCallback((stepIndex: number): boolean => {
+		// For now, chapters don't have internal steps
+		// This is reserved for future multi-step chapters
+		if (stepIndex !== 0) return false;
+		setCurrentStepIndex(stepIndex);
+		return true;
+	}, []);
 
 	const resetNavigation = useCallback((): void => {
 		setCurrentChapterIndex(initialChapterIndex);
@@ -211,6 +208,6 @@ export function useTourNavigation({
 			resetNavigation,
 			guards,
 			progress,
-		]
+		],
 	);
 }

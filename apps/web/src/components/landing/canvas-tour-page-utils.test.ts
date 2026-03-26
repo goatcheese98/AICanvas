@@ -1,20 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { canvasTourChapters } from './canvas-tour-content';
 import {
+	OVERLAY_DEFAULT_HEIGHT_REM,
+	OVERLAY_LEFT_MARGIN_REM,
+	OVERLAY_MAX_WIDTH_REM,
+	OVERLAY_MIN_WIDTH_REM,
+	OVERLAY_TOP_MARGIN_REM,
 	buildOverlayPlacementBounds,
 	buildSafeArea,
 	calculateOverlayPreset,
 	clamp,
 	clampOverlayPlacement,
 	getChapterById,
-	OVERLAY_BOTTOM_MARGIN_REM,
-	OVERLAY_DEFAULT_HEIGHT_REM,
-	OVERLAY_LEFT_MARGIN_REM,
-	OVERLAY_MAX_WIDTH_REM,
-	OVERLAY_MIN_WIDTH_REM,
-	OVERLAY_RIGHT_MARGIN_REM,
-	OVERLAY_TOP_MARGIN_REM,
 } from './canvas-tour-page-utils';
-import { canvasTourChapters } from './canvas-tour-content';
 
 describe('canvas-tour-page-utils', () => {
 	describe('clamp', () => {
@@ -128,7 +126,10 @@ describe('canvas-tour-page-utils', () => {
 			const clamped = clampOverlayPlacement(placement, area, overlayHeightPx, rootFontSizePx);
 
 			expect(clamped.widthRem).toBeLessThanOrEqual(
-				Math.max(OVERLAY_MIN_WIDTH_REM, Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx)),
+				Math.max(
+					OVERLAY_MIN_WIDTH_REM,
+					Math.min(OVERLAY_MAX_WIDTH_REM, area.widthPx / rootFontSizePx),
+				),
 			);
 		});
 	});
@@ -154,14 +155,26 @@ describe('canvas-tour-page-utils', () => {
 		};
 
 		it('calculates top-left preset', () => {
-			const preset = calculateOverlayPreset('top-left', guideSafeArea, overlayHeightPx, rootFontSizePx, bounds);
+			const preset = calculateOverlayPreset(
+				'top-left',
+				guideSafeArea,
+				overlayHeightPx,
+				rootFontSizePx,
+				bounds,
+			);
 
 			expect(preset.leftRem).toBeGreaterThanOrEqual(bounds.leftMinRem);
 			expect(preset.topRem).toBeGreaterThanOrEqual(bounds.topMinRem);
 		});
 
 		it('calculates top-center preset', () => {
-			const preset = calculateOverlayPreset('top-center', guideSafeArea, overlayHeightPx, rootFontSizePx, bounds);
+			const preset = calculateOverlayPreset(
+				'top-center',
+				guideSafeArea,
+				overlayHeightPx,
+				rootFontSizePx,
+				bounds,
+			);
 
 			expect(preset.leftRem).toBeGreaterThanOrEqual(bounds.leftMinRem);
 			expect(preset.topRem).toBeGreaterThanOrEqual(bounds.topMinRem);
@@ -170,14 +183,26 @@ describe('canvas-tour-page-utils', () => {
 		});
 
 		it('calculates top-right preset', () => {
-			const preset = calculateOverlayPreset('top-right', guideSafeArea, overlayHeightPx, rootFontSizePx, bounds);
+			const preset = calculateOverlayPreset(
+				'top-right',
+				guideSafeArea,
+				overlayHeightPx,
+				rootFontSizePx,
+				bounds,
+			);
 
 			expect(preset.leftRem).toBeGreaterThanOrEqual(bounds.leftMinRem);
 			expect(preset.topRem).toBeGreaterThanOrEqual(bounds.topMinRem);
 		});
 
 		it('calculates bottom-left preset', () => {
-			const preset = calculateOverlayPreset('bottom-left', guideSafeArea, overlayHeightPx, rootFontSizePx, bounds);
+			const preset = calculateOverlayPreset(
+				'bottom-left',
+				guideSafeArea,
+				overlayHeightPx,
+				rootFontSizePx,
+				bounds,
+			);
 
 			expect(preset.leftRem).toBeGreaterThanOrEqual(bounds.leftMinRem);
 			expect(preset.topRem).toBeGreaterThan(bounds.topMinRem);

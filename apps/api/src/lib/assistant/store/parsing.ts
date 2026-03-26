@@ -45,7 +45,9 @@ export function parseMessageHistory(value: string | null): AssistantMessage[] | 
 	}
 }
 
-export function parsePrototypeContext(value: string | null): PrototypeOverlayCustomData | undefined {
+export function parsePrototypeContext(
+	value: string | null,
+): PrototypeOverlayCustomData | undefined {
 	if (!value) {
 		return undefined;
 	}

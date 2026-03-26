@@ -1,10 +1,10 @@
 import type { FormEventHandler } from 'react';
 import { CanvasStage } from './CanvasStage';
-import { IntroChapter } from './IntroChapter';
 import { CaptureChapter } from './CaptureChapter';
-import { ResearchChapter } from './ResearchChapter';
+import { IntroChapter } from './IntroChapter';
 import { PlanChapter } from './PlanChapter';
 import { PolishChapter } from './PolishChapter';
+import { ResearchChapter } from './ResearchChapter';
 import { WaitlistSection } from './WaitlistSection';
 
 type CanvasBoardProps = {

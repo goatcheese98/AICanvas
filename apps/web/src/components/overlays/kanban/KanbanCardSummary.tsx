@@ -386,7 +386,10 @@ export function KanbanCardSummary({
 						</label>
 					))}
 					{checklist.length > 2 ? (
-						<div className="px-2 py-1 text-xs italic" style={{ color: 'var(--color-text-tertiary)' }}>
+						<div
+							className="px-2 py-1 text-xs italic"
+							style={{ color: 'var(--color-text-tertiary)' }}
+						>
 							⋯ {checklist.length - 2} more
 						</div>
 					) : null}

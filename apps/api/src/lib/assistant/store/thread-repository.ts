@@ -14,8 +14,8 @@ import {
 	assistantThreads,
 	canvases,
 } from '../../db/schema';
-import { buildThreadMessages, normalizeThreadTitle, summarizeAssistantThreadTitle, toAssistantThread } from './transforms';
 import { listAssistantRunsByThreadRecord } from './run-repository';
+import { buildThreadMessages, normalizeThreadTitle, toAssistantThread } from './transforms';
 
 export async function createAssistantThreadRecord(
 	db: Database,

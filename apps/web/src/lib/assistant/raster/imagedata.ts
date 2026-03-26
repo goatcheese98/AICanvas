@@ -1,6 +1,5 @@
-import { simplifyPoints } from '../svg-path-utils';
-import type { TraceOutput, TraceLayer, RgbaColor, ColorQuantizationResult } from './types';
-import { trace, optimize, optimizeLayers, serialize } from './stages';
+import { optimize, optimizeLayers, serialize, trace } from './stages';
+import type { ColorQuantizationResult, RgbaColor, TraceLayer, TraceOutput } from './types';
 import type { OptimizeOutput, SerializeOutput } from './types';
 
 // ─── Color Utilities ────────────────────────────────────────────────────────────
@@ -116,11 +115,12 @@ function mergeSimilarCenters(
 
 	const parent = Array.from({ length: n }, (_, i) => i);
 	const find = (x: number): number => {
-		while (parent[x] !== x) {
-			parent[x] = parent[parent[x]];
-			x = parent[x];
+		let current = x;
+		while (parent[current] !== current) {
+			parent[current] = parent[parent[current]];
+			current = parent[current];
 		}
-		return x;
+		return current;
 	};
 
 	const sq = threshold * threshold;

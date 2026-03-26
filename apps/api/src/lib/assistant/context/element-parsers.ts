@@ -2,13 +2,13 @@
  * Element parsing utilities for assistant context
  */
 
-import type { CanvasElement } from '@ai-canvas/shared/types';
 import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
+import type { CanvasElement } from '@ai-canvas/shared/types';
 import { OVERLAY_TYPES, TEXT_EXCERPT_LIMIT } from './constants';
 
 /** Interface for generated diagram metadata */
@@ -61,7 +61,9 @@ export function getOverlayLikeType(element: CanvasElement): string | undefined {
 }
 
 /** Parse generated diagram metadata from element if present */
-export function parseGeneratedDiagramMetadata(element: CanvasElement): GeneratedDiagramMetadata | null {
+export function parseGeneratedDiagramMetadata(
+	element: CanvasElement,
+): GeneratedDiagramMetadata | null {
 	const customData = toObjectRecord(element.customData);
 	if (customData?.type !== 'ai-generated-diagram') {
 		return null;

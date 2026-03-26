@@ -15,7 +15,7 @@ export async function renderMermaidToSvg(code: string): Promise<string> {
 	if (!isMermaidInitialized) {
 		mermaid.initialize({
 			startOnLoad: false,
-			securityLevel: 'loose',
+			securityLevel: 'strict',
 			theme: 'neutral',
 			flowchart: {
 				curve: 'basis',

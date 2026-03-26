@@ -70,12 +70,15 @@ export async function generateCloudflareImageAsset(
 	let payload: CloudflareImagePayload;
 
 	try {
-		payload = (await bindings.AI.run(model as Parameters<Ai['run']>[0], {
-			multipart: {
-				body: formBody,
-				contentType,
-			},
-		} as unknown as Parameters<Ai['run']>[1])) as CloudflareImagePayload;
+		payload = (await bindings.AI.run(
+			model as Parameters<Ai['run']>[0],
+			{
+				multipart: {
+					body: formBody,
+					contentType,
+				},
+			} as unknown as Parameters<Ai['run']>[1],
+		)) as CloudflareImagePayload;
 	} catch (error) {
 		throw normalizeError(error, input.style);
 	}

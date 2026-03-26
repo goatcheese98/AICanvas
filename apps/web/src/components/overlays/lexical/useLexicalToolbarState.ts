@@ -1,46 +1,39 @@
-import { useCallback, useRef, useState } from 'react';
-import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { mergeRegister } from '@lexical/utils';
-import {
-	$getSelection,
-	$isRangeSelection,
-	FORMAT_ELEMENT_COMMAND,
-	FORMAT_TEXT_COMMAND,
-	REDO_COMMAND,
-	UNDO_COMMAND,
-	$createParagraphNode,
-} from 'lexical';
-import { $setBlocksType, $getSelectionStyleValueForProperty, $patchStyleText } from '@lexical/selection';
-import {
-	$createHeadingNode,
-	$createQuoteNode,
-	type HeadingTagType,
-} from '@lexical/rich-text';
-import {
-	$createCodeNode,
-	CodeNode,
-} from '@lexical/code';
-import {
-	INSERT_UNORDERED_LIST_COMMAND,
-	INSERT_ORDERED_LIST_COMMAND,
-	INSERT_CHECK_LIST_COMMAND,
-	REMOVE_LIST_COMMAND,
-} from '@lexical/list';
-import { $isLinkNode, TOGGLE_LINK_COMMAND } from '@lexical/link';
-import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
-import { INSERT_TABLE_COMMAND } from '@lexical/table';
-import { INSERT_HORIZONTAL_RULE_COMMAND } from '@lexical/react/LexicalHorizontalRuleNode';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useResettableTimeout } from '@/hooks/useResettableTimeout';
-import { INSERT_EQUATION_COMMAND } from './plugins/EquationPlugin';
-import { INSERT_IMAGE_COMMAND, openImageFilePicker } from './plugins/ImagesPlugin';
+import { $createCodeNode } from '@lexical/code';
+import { TOGGLE_LINK_COMMAND } from '@lexical/link';
+import {
+	INSERT_CHECK_LIST_COMMAND,
+	INSERT_ORDERED_LIST_COMMAND,
+	INSERT_UNORDERED_LIST_COMMAND,
+	REMOVE_LIST_COMMAND,
+} from '@lexical/list';
+import { $convertToMarkdownString, TRANSFORMERS } from '@lexical/markdown';
+import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
+import { $createHeadingNode, $createQuoteNode, type HeadingTagType } from '@lexical/rich-text';
+import {
+	$getSelectionStyleValueForProperty,
+	$patchStyleText,
+	$setBlocksType,
+} from '@lexical/selection';
+import { INSERT_TABLE_COMMAND } from '@lexical/table';
+import { mergeRegister } from '@lexical/utils';
+import { $createParagraphNode, $getSelection, $isRangeSelection } from 'lexical';
+import { useCallback, useRef, useState } from 'react';
+import type {
+	BlockType,
+	ToolbarActions,
+	ToolbarDropdownType,
+	ToolbarState,
+} from './lexical-toolbar-types';
 import {
 	getBlockType,
-	requestLinkUrl,
-	isLinkNodeAtSelection,
 	getCodeNodeFromSelection,
+	isLinkNodeAtSelection,
+	requestLinkUrl,
 } from './lexical-toolbar-utils';
-import type { BlockType, ToolbarDropdownType, ToolbarState, ToolbarActions } from './lexical-toolbar-types';
+import { INSERT_EQUATION_COMMAND } from './plugins/EquationPlugin';
+import { INSERT_IMAGE_COMMAND, openImageFilePicker } from './plugins/ImagesPlugin';
 
 export interface UseLexicalToolbarStateReturn {
 	editor: ReturnType<typeof useLexicalComposerContext>[0];

@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import ReactDOM from 'react-dom';
 import { useMountEffect } from '@/hooks/useMountEffect';
+import { useCallback, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 interface PortalDropdownProps {
 	triggerRef: React.RefObject<HTMLElement | null>;

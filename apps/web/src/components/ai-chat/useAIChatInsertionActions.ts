@@ -15,9 +15,7 @@ import {
 	insertMarkdownOnCanvas as insertMarkdownOnCanvasInternal,
 	insertRenderedDiagramOnCanvas as insertRenderedDiagramOnCanvasInternal,
 } from './ai-chat-overlay-insertion';
-import {
-	insertPrototypeArtifactOnCanvas,
-} from './ai-chat-prototype-insertion';
+import { insertPrototypeArtifactOnCanvas } from './ai-chat-prototype-insertion';
 import {
 	insertStoredAssetOnCanvas as insertStoredAssetOnCanvasInternal,
 	vectorizeRasterAssetOnCanvas as vectorizeRasterAssetOnCanvasInternal,

@@ -7,24 +7,20 @@
  * - Pure data transformations
  */
 
-import { useCallback, useMemo } from 'react';
-import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type {
-	ApplySceneSnapshotOptions,
-	CameraTarget,
-	CanvasSceneSnapshot,
-} from '../useCanvasTourSceneController';
+import type { BinaryFileData } from '@excalidraw/excalidraw/types';
+import { useCallback, useMemo } from 'react';
+import { canvasTourChapters } from '../canvas-tour-content';
 import type {
 	RegisteredTourSceneLibrary,
 	RegisteredTourSceneSnapshot,
 } from '../canvas-tour-registry';
 import {
+	clearRegisteredTourScenes,
 	loadRegisteredTourScenes,
 	persistRegisteredTourScenes,
-	clearRegisteredTourScenes,
 } from '../canvas-tour-registry';
-import { canvasTourChapters } from '../canvas-tour-content';
+import type { CameraTarget, CanvasSceneSnapshot } from '../useCanvasTourSceneController';
 
 export type CaptureMode = 'full' | 'camera' | 'elements';
 
@@ -72,7 +68,7 @@ export interface UseTourCaptureReturn {
 		sceneId: string,
 		currentSnapshot: CanvasSceneSnapshot,
 		camera: CameraTarget,
-		previousScene?: RegisteredTourSceneSnapshot | null
+		previousScene?: RegisteredTourSceneSnapshot | null,
 	) => CaptureResult;
 	/** Persist captured snapshot to storage */
 	persistCapture: (snapshot: RegisteredTourSceneSnapshot) => RegisteredTourSceneLibrary;
@@ -92,7 +88,7 @@ export interface UseTourCaptureReturn {
 	buildCanvasSnapshot: (
 		scene: RegisteredTourSceneSnapshot,
 		imageFileData: BinaryFileData | null,
-		buildAppState: (camera: CameraTarget) => Partial<unknown>
+		buildAppState: (camera: CameraTarget) => Partial<unknown>,
 	) => CanvasSceneSnapshot;
 }
 
@@ -107,13 +103,12 @@ export function useTourCapture({
 		(sceneId: string): RegisteredTourSceneSnapshot | null => {
 			return sceneLibrary?.scenes[sceneId] ?? null;
 		},
-		[sceneLibrary]
+		[sceneLibrary],
 	);
 
 	const getDefaultScene = useCallback(
 		(sceneId: string): RegisteredTourSceneSnapshot => {
-			const chapter =
-				canvasTourChapters.find((c) => c.id === sceneId) ?? canvasTourChapters[0];
+			const chapter = canvasTourChapters.find((c) => c.id === sceneId) ?? canvasTourChapters[0];
 			return {
 				sceneId,
 				elements: typedDefaultElements,
@@ -122,7 +117,7 @@ export function useTourCapture({
 				capturedAt: new Date(0).toISOString(),
 			};
 		},
-		[defaultElements]
+		[typedDefaultElements],
 	);
 
 	const captureScene = useCallback(
@@ -130,7 +125,7 @@ export function useTourCapture({
 			sceneId: string,
 			currentSnapshot: CanvasSceneSnapshot,
 			camera: CameraTarget,
-			previousScene?: RegisteredTourSceneSnapshot | null
+			previousScene?: RegisteredTourSceneSnapshot | null,
 		): CaptureResult => {
 			try {
 				const baseScene = previousScene ?? getDefaultScene(sceneId);
@@ -141,10 +136,7 @@ export function useTourCapture({
 						captureMode === 'camera'
 							? baseScene.elements
 							: (currentSnapshot.elements as ExcalidrawElement[]),
-					camera:
-						captureMode === 'elements'
-							? baseScene.camera
-							: camera,
+					camera: captureMode === 'elements' ? baseScene.camera : camera,
 					overlay: baseScene.overlay,
 					capturedAt: new Date().toISOString(),
 				};
@@ -157,7 +149,7 @@ export function useTourCapture({
 				};
 			}
 		},
-		[captureMode, getDefaultScene]
+		[captureMode, getDefaultScene],
 	);
 
 	const persistCapture = useCallback(
@@ -172,7 +164,7 @@ export function useTourCapture({
 			persistRegisteredTourScenes(nextLibrary);
 			return nextLibrary;
 		},
-		[sceneLibrary]
+		[sceneLibrary],
 	);
 
 	const restoreScene = useCallback(
@@ -186,7 +178,7 @@ export function useTourCapture({
 			}
 			return { success: true, snapshot: registered };
 		},
-		[getRegisteredScene]
+		[getRegisteredScene],
 	);
 
 	const clearScene = useCallback(
@@ -207,7 +199,7 @@ export function useTourCapture({
 			persistRegisteredTourScenes(nextLibrary);
 			return nextLibrary;
 		},
-		[sceneLibrary]
+		[sceneLibrary],
 	);
 
 	const compareScenes = useCallback(
@@ -244,7 +236,7 @@ export function useTourCapture({
 				differences,
 			};
 		},
-		[]
+		[],
 	);
 
 	const hasChangesFromDefault = useCallback(
@@ -256,7 +248,7 @@ export function useTourCapture({
 			const comparison = compareScenes(registered, defaultScene);
 			return !comparison.isEqual;
 		},
-		[getRegisteredScene, getDefaultScene, compareScenes]
+		[getRegisteredScene, getDefaultScene, compareScenes],
 	);
 
 	const loadFromStorage = useCallback((): RegisteredTourSceneLibrary | null => {
@@ -271,7 +263,7 @@ export function useTourCapture({
 		(
 			scene: RegisteredTourSceneSnapshot,
 			imageFileData: BinaryFileData | null,
-			buildAppState: (camera: CameraTarget) => Partial<unknown>
+			buildAppState: (camera: CameraTarget) => Partial<unknown>,
 		): CanvasSceneSnapshot => {
 			const files = imageFileData ? { [imageFileData.id]: imageFileData } : {};
 			return {
@@ -280,7 +272,7 @@ export function useTourCapture({
 				files,
 			};
 		},
-		[]
+		[],
 	);
 
 	return useMemo(
@@ -309,6 +301,6 @@ export function useTourCapture({
 			loadFromStorage,
 			clearAllScenes,
 			buildCanvasSnapshot,
-		]
+		],
 	);
 }

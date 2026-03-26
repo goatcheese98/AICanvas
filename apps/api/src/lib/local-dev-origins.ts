@@ -34,7 +34,7 @@ export function getCorsAllowedOrigins(
 
 export function getAuthorizedParties(
 	configuredPartiesValue: string | undefined,
-	environment: string | undefined,
+	_environment: string | undefined,
 ) {
 	const configuredParties = parseOriginList(configuredPartiesValue);
 

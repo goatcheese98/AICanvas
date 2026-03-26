@@ -7,7 +7,7 @@
  * - No scene data, no navigation logic
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { canvasTourChapters } from '../canvas-tour-content';
 
 type ChapterId = string;
@@ -80,24 +80,24 @@ export function useTourChapterState({
 	canUnlockChapter,
 }: UseTourChapterStateArgs = {}): UseTourChapterStateReturn {
 	const [completedChapters, setCompletedChapters] = useState<Set<ChapterId>>(
-		() => new Set(initialCompleted)
+		() => new Set(initialCompleted),
 	);
 	const [chapterProgress, setChapterProgress] = useState<Map<ChapterId, ChapterProgress>>(
-		() => new Map()
+		() => new Map(),
 	);
 
 	const totalChapters = canvasTourChapters.length;
 	const completedCount = completedChapters.size;
 	const completionRate = useMemo(
 		() => (totalChapters > 0 ? completedCount / totalChapters : 0),
-		[completedCount, totalChapters]
+		[completedCount, totalChapters],
 	);
 
 	const isCompleted = useCallback(
 		(chapterId: ChapterId): boolean => {
 			return completedChapters.has(chapterId);
 		},
-		[completedChapters]
+		[completedChapters],
 	);
 
 	const isAvailable = useCallback(
@@ -124,7 +124,7 @@ export function useTourChapterState({
 
 			return true;
 		},
-		[completedChapters, sequentialUnlock, canUnlockChapter]
+		[completedChapters, sequentialUnlock, canUnlockChapter],
 	);
 
 	const markComplete = useCallback(
@@ -151,7 +151,7 @@ export function useTourChapterState({
 
 			return true;
 		},
-		[isAvailable]
+		[isAvailable],
 	);
 
 	const markIncomplete = useCallback((chapterId: ChapterId): boolean => {
@@ -216,7 +216,7 @@ export function useTourChapterState({
 				lockedReason,
 			};
 		},
-		[isAvailable, isCompleted, sequentialUnlock]
+		[isAvailable, isCompleted, sequentialUnlock],
 	);
 
 	const getAvailableChapters = useCallback((): ChapterId[] => {
@@ -269,6 +269,6 @@ export function useTourChapterState({
 			completionRate,
 			totalChapters,
 			completedCount,
-		]
+		],
 	);
 }

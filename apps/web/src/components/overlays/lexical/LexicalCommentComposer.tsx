@@ -80,7 +80,6 @@ export function LexicalCommentComposer({
 					</blockquote>
 				) : null}
 				<textarea
-					autoFocus
 					value={commentDraft}
 					onChange={(event) => onChangeDraft(event.target.value)}
 					onKeyDown={(event) => {

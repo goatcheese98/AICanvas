@@ -1,6 +1,6 @@
+import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import { DiagramArtifactCard } from '../AIChatDiagramArtifactCard';
 import type { AssistantInsertionState, DiagramInsertInput } from '../ai-chat-types';
-import type { AssistantArtifact } from '@ai-canvas/shared/types';
 
 interface DiagramArtifactPreviewProps {
 	artifact: AssistantArtifact;

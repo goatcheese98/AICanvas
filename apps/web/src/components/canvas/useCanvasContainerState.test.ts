@@ -76,6 +76,7 @@ vi.mock('./canvas-persistence-utils', () => ({
 		appState: appState ?? {},
 		files: files ?? null,
 	})),
+	readCanvasVersion: vi.fn().mockReturnValue(null),
 	shouldWaitForCanvasHydration: vi.fn().mockReturnValue(false),
 }));
 

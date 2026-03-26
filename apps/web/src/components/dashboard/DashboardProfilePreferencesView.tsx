@@ -1,14 +1,12 @@
-import type { PersonalPreferences } from './dashboard-profile-utils';
 import { PanelHeader } from './DashboardProfilePanelHeader';
 import { ToggleRow } from './DashboardProfileToggleRow';
+import type { PersonalPreferences } from './dashboard-profile-utils';
 
 interface PreferencesViewProps {
 	preferences: PersonalPreferences;
 	onBack: () => void;
 	onClose: () => void;
-	onUpdatePreferences: (
-		updater: (current: PersonalPreferences) => PersonalPreferences,
-	) => void;
+	onUpdatePreferences: (updater: (current: PersonalPreferences) => PersonalPreferences) => void;
 }
 
 export function PreferencesView({

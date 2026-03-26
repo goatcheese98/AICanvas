@@ -3,9 +3,16 @@ import {
 	serializeStoredAssistantAssetContent,
 } from '@ai-canvas/shared/schemas';
 import type { AssistantTask } from '@ai-canvas/shared/types';
-import { loadAssistantAssetFromR2, saveAssistantAssetToR2 } from '../../storage/assistant-asset-storage';
+import {
+	loadAssistantAssetFromR2,
+	saveAssistantAssetToR2,
+} from '../../storage/assistant-asset-storage';
 import { vectorizeImageAsset } from '../media-adapters';
-import { createAssistantArtifactRecord, listAssistantArtifactsRecord, listAssistantTasksRecord } from '../store';
+import {
+	createAssistantArtifactRecord,
+	listAssistantArtifactsRecord,
+	listAssistantTasksRecord,
+} from '../store';
 import { resolveSourceArtifactForTask } from '../task-execution';
 import type { TaskHandlerContext, TaskHandlerResult } from './index';
 

@@ -1,7 +1,7 @@
 import type { SvgPoint } from '../../svg-path-utils';
 import { simplifyPoints } from '../../svg-path-utils';
-import type { OptimizeInput, OptimizeOutput, TracedPath, TraceLayer } from '../types';
 import { SIMPLIFICATION } from '../config';
+import type { OptimizeInput, OptimizeOutput, TraceLayer, TracedPath } from '../types';
 
 // ─── Path Utilities ─────────────────────────────────────────────────────────────
 
@@ -24,10 +24,7 @@ function computeSignedArea(points: SvgPoint[]): number {
 // ─── Monochrome Path Optimization ───────────────────────────────────────────────
 
 function simplifyLoop(points: SvgPoint[], scaleX: number, scaleY: number): SvgPoint[] {
-	const tolerance = Math.max(
-		SIMPLIFICATION.BASE_TOLERANCE,
-		Math.min(scaleX, scaleY) * 0.85,
-	);
+	const tolerance = Math.max(SIMPLIFICATION.BASE_TOLERANCE, Math.min(scaleX, scaleY) * 0.85);
 	const scaled = points.map((p) => ({ x: p.x * scaleX, y: p.y * scaleY }));
 	const simplified = simplifyPoints(scaled, tolerance);
 	return simplified.length >= 3 ? simplified : scaled;

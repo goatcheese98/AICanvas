@@ -4,12 +4,11 @@ import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
 
-import { buildPersistedCanvasData } from './canvas-persistence-utils';
+import { buildPersistedCanvasData, readCanvasVersion } from './canvas-persistence-utils';
 import { useCanvasInitialization } from './useCanvasInitialization';
 import { useCanvasPersistence } from './useCanvasPersistence';
 import { useCanvasTools } from './useCanvasTools';
@@ -81,6 +80,11 @@ export function useCanvasContainerState({
 		refetchOnMount: 'always',
 	});
 
+	const remoteCanvasVersion = readCanvasVersion(canvasQueryData);
+	if (remoteCanvasVersion !== null && !persistence.hasVersionConflictRef.current) {
+		persistence.canvasVersionRef.current = remoteCanvasVersion;
+	}
+
 	// Initialization
 	const { isInitialized, isInitializedRef } = useCanvasInitialization({
 		canvasId,
@@ -107,29 +111,32 @@ export function useCanvasContainerState({
 			const latestData = persistence.latestSceneRef.current;
 			if (isInitializedRef.current && latestData) {
 				coordinator?.forceSave(latestData, canvasId);
-				void persistence.forceServerSave(latestData);
+				if (persistence.hasPendingServerSaveRef.current) {
+					void persistence.forceServerSave(latestData);
+				}
 			}
 			persistence.cleanup();
 		};
 	});
 
 	// Save handler
-	const handleSaveNeeded = useCallback(
-		(sceneElements: readonly ExcalidrawElement[], sceneAppState: AppState, sceneFiles: BinaryFiles) => {
-			if (!isInitializedRef.current) return;
+	const handleSaveNeeded = (
+		sceneElements: readonly ExcalidrawElement[],
+		sceneAppState: AppState,
+		sceneFiles: BinaryFiles,
+	) => {
+		if (!isInitializedRef.current) return;
 
-			const data = buildPersistedCanvasData(
-				sceneElements as unknown as Record<string, unknown>[],
-				sceneAppState as unknown as Record<string, unknown>,
-				sceneFiles as unknown as Record<string, unknown>,
-			);
+		const data = buildPersistedCanvasData(
+			sceneElements as unknown as Record<string, unknown>[],
+			sceneAppState as unknown as Record<string, unknown>,
+			sceneFiles as unknown as Record<string, unknown>,
+		);
 
-			persistence.latestSceneRef.current = data;
-			persistence.coordinatorRef.current?.scheduleSave(data, canvasId);
-			persistence.scheduleServerSave(data);
-		},
-		[canvasId, persistence],
-	);
+		persistence.latestSceneRef.current = data;
+		persistence.coordinatorRef.current?.scheduleSave(data, canvasId);
+		persistence.scheduleServerSave(data);
+	};
 
 	return {
 		collaboration,

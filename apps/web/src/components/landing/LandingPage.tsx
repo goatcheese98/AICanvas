@@ -182,26 +182,26 @@ export function LandingPage() {
 						</div>
 
 						<nav className="landing-window-nav" aria-label="Landing">
-							<a
+							<button
+								type="button"
 								className="landing-link landing-window-nav-link"
-								href="#capture"
 								onClick={(event) => {
 									event.preventDefault();
 									scrollToChapter('capture');
 								}}
 							>
 								Canvas story
-							</a>
-							<a
+							</button>
+							<button
+								type="button"
 								className="landing-link landing-window-nav-link"
-								href="#waitlist"
 								onClick={(event) => {
 									event.preventDefault();
 									scrollToChapter('waitlist');
 								}}
 							>
 								Waitlist
-							</a>
+							</button>
 							<a
 								className="landing-link landing-window-nav-link landing-window-nav-cta"
 								href={landingContent.scene.secondaryHref}

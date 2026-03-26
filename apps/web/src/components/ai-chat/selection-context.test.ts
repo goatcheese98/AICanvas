@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildSelectionIndicator,
 	getSelectedElementIdsFromMap,
-	shouldConfirmSelectionForPrompt,
+	resolveAssistantContextMode,
 } from './selection-context';
 
 describe('selection context helpers', () => {
@@ -50,31 +50,35 @@ describe('selection context helpers', () => {
 		expect(indicator).toEqual({
 			count: 2,
 			label: '2 selected',
-			detail: '1 markdown note, 1 more item.',
+			detail:
+				'1 markdown note, 1 more item. The assistant will use this automatically when it helps.',
 		});
 	});
 
-	it('prompts for confirmation when the prompt refers to the selection', () => {
+	it('resolves the canvas context automatically from the prompt and current selection', () => {
 		expect(
-			shouldConfirmSelectionForPrompt({
-				contextMode: 'none',
+			resolveAssistantContextMode({
 				prompt: 'Turn this into kanban tasks',
 				selectionCount: 1,
 			}),
-		).toBe(true);
+		).toBe('selected');
 		expect(
-			shouldConfirmSelectionForPrompt({
-				contextMode: 'selected',
-				prompt: 'Turn this into kanban tasks',
+			resolveAssistantContextMode({
+				prompt: 'Use the whole canvas to write a summary',
 				selectionCount: 1,
 			}),
-		).toBe(false);
+		).toBe('all');
 		expect(
-			shouldConfirmSelectionForPrompt({
-				contextMode: 'none',
+			resolveAssistantContextMode({
 				prompt: 'Diagram the auth flow',
 				selectionCount: 1,
 			}),
-		).toBe(false);
+		).toBe('selected');
+		expect(
+			resolveAssistantContextMode({
+				prompt: 'Diagram the auth flow',
+				selectionCount: 0,
+			}),
+		).toBe('none');
 	});
 });

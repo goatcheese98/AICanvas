@@ -10,13 +10,13 @@ import type {
 	AssistantRunRequest,
 	AssistantRunStatus,
 } from '@ai-canvas/shared/types';
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../../db/client';
 import { assistantRunEvents, assistantRuns, assistantThreads } from '../../db/schema';
+import { updateAssistantThreadRecord } from './thread-repository';
 import { summarizeAssistantThreadTitle } from './transforms';
 import { toAssistantRun, toAssistantRunEvent } from './transforms';
-import { updateAssistantThreadRecord } from './thread-repository';
 
 export async function createAssistantRunRecord(
 	db: Database,

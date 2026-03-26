@@ -1,12 +1,6 @@
 import type { SvgPoint } from '../../svg-path-utils';
-import type {
-	TraceInput,
-	TraceOutput,
-	TracedPath,
-	TraceLayer,
-	RgbaColor,
-} from '../types';
-import { MORPHOLOGY, SKELETON, CONVEX_HULL, CONTOUR } from '../config';
+import { CONTOUR, CONVEX_HULL, MORPHOLOGY, SKELETON } from '../config';
+import type { RgbaColor, TraceInput, TraceLayer, TraceOutput, TracedPath } from '../types';
 
 // ─── Color Utilities ────────────────────────────────────────────────────────────
 
@@ -278,7 +272,10 @@ function traceMaskContours(mask: Uint8Array, width: number, height: number): Svg
 			curr = next;
 		}
 
-		if (loop.length >= CONTOUR.MIN_LOOP_LENGTH && pointKey(loop[0]) === pointKey(loop[loop.length - 1])) {
+		if (
+			loop.length >= CONTOUR.MIN_LOOP_LENGTH &&
+			pointKey(loop[0]) === pointKey(loop[loop.length - 1])
+		) {
 			loops.push(loop);
 		}
 	}

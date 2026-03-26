@@ -16,18 +16,12 @@ export function CaptureScopeToggle({
 	return (
 		<div className="canvas-tour-layout-section">
 			<p className="canvas-tour-layout-section-title">Capture scope</p>
-			<div
-				className="canvas-tour-layout-mode-toggle"
-				role="tablist"
-				aria-label="Capture scope"
-			>
+			<div className="canvas-tour-layout-mode-toggle" role="tablist" aria-label="Capture scope">
 				{CAPTURE_MODES.map(({ mode, label }) => (
 					<button
 						type="button"
 						key={mode}
-						className={
-							registryCaptureMode === mode ? 'canvas-tour-toggle-active' : ''
-						}
+						className={registryCaptureMode === mode ? 'canvas-tour-toggle-active' : ''}
 						onClick={() => setRegistryCaptureMode(mode)}
 					>
 						{label}

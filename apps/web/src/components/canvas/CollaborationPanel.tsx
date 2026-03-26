@@ -22,6 +22,8 @@ interface CollaborationPanelProps {
 }
 
 export function CollaborationPanel({ ...collaboration }: CollaborationPanelProps) {
+	const displayNameInputId = 'collaboration-display-name';
+	const shareLinkInputId = 'collaboration-share-link';
 	const collaboratorList = Array.from(collaboration.collaborators.values()).filter((collaborator) =>
 		Boolean(collaborator.username),
 	);
@@ -54,10 +56,14 @@ export function CollaborationPanel({ ...collaboration }: CollaborationPanelProps
 			</div>
 
 			<div>
-				<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+				<label
+					htmlFor={displayNameInputId}
+					className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500"
+				>
 					Display Name
 				</label>
 				<input
+					id={displayNameInputId}
 					value={collaboration.username}
 					onChange={(event) => collaboration.setUsername(event.target.value)}
 					className="w-full rounded-[8px] border border-stone-300 px-3 py-2 text-sm text-stone-900 outline-none"
@@ -67,10 +73,14 @@ export function CollaborationPanel({ ...collaboration }: CollaborationPanelProps
 
 			{collaboration.roomLink ? (
 				<div>
-					<label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+					<label
+						htmlFor={shareLinkInputId}
+						className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-500"
+					>
 						Share Link
 					</label>
 					<textarea
+						id={shareLinkInputId}
 						readOnly
 						value={collaboration.roomLink}
 						className="min-h-24 w-full resize-none rounded-[8px] border border-stone-300 bg-stone-50 px-3 py-2 text-xs text-stone-700 outline-none"

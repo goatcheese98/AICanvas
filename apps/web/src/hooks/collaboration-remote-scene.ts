@@ -1,6 +1,6 @@
 import { reconcileElements } from '@excalidraw/excalidraw';
 import type { MutableRefObject } from 'react';
-import type { CollaborationApi, CollabFile, RemoteElement } from './collaboration-session';
+import type { CollabFile, CollaborationApi, RemoteElement } from './collaboration-session';
 
 export function applyRemoteSceneUpdate(
 	targetApi: CollaborationApi,

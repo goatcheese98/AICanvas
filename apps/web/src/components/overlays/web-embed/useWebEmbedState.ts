@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from '@/hooks/useSyncExternalStore';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
+	type WebEmbedViewMode,
 	clampPipPosition,
 	getDefaultPipPosition,
 	getPipDimensions,
-	type WebEmbedViewMode,
 } from './web-embed-view';
 
 // ===== Viewport dimensions with useSyncExternalStore =====
@@ -63,7 +63,11 @@ interface UseWebEmbedStateResult {
 	setUrlInput: (url: string) => void;
 	setIsLoading: (loading: boolean) => void;
 	setViewMode: (mode: WebEmbedViewMode | ((prev: WebEmbedViewMode) => WebEmbedViewMode)) => void;
-	setPipPosition: (position: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
+	setPipPosition: (
+		position:
+			| { x: number; y: number }
+			| ((prev: { x: number; y: number }) => { x: number; y: number }),
+	) => void;
 	handleStartEditing: () => void;
 	handleStopEditing: () => void;
 	handleToggleEdit: () => void;
@@ -106,6 +110,7 @@ export function useWebEmbedState({
 	const [viewMode, setViewMode] = useState<WebEmbedViewMode>('inline');
 	const [isLoading, setIsLoading] = useState(false);
 	const [pipPosition, setPipPosition] = useState(() => getDefaultPipPosition(viewport));
+	const lastSyncedElementUrlRef = useRef(element.customData.url);
 
 	// Refs for parent callbacks and tracking
 	const onActivityChangeRef = useRef(onActivityChange);
@@ -115,6 +120,15 @@ export function useWebEmbedState({
 	// Keep callback ref in sync
 	// This runs during render - pattern used across codebase for callback refs
 	onActivityChangeRef.current = onActivityChange;
+
+	if (lastSyncedElementUrlRef.current !== element.customData.url) {
+		lastSyncedElementUrlRef.current = element.customData.url;
+		if (urlInput !== element.customData.url) {
+			setUrlInput(element.customData.url);
+		}
+		setIsEditing(!element.customData.url);
+		setIsLoading(false);
+	}
 
 	// Derived state
 	const isActivelyActive = isEditing || viewMode !== 'inline';

@@ -120,7 +120,7 @@ export function MarkdownTableEditor({ markdown, onChange }: MarkdownTableEditorP
 		lastCommittedMarkdownRef.current = normalizedIncoming;
 	}
 
-	const serializedRows = useMemo(() => serializeMarkdownTable(rows), [rows]);
+	const _serializedRows = useMemo(() => serializeMarkdownTable(rows), [rows]);
 
 	const columnCount = useMemo(() => rows[0]?.cells.length ?? 0, [rows]);
 
