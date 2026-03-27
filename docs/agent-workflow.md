@@ -14,6 +14,20 @@ Purpose: keep development fast while making merges into `main` disciplined and s
 - Codex reviews before merge.
 - Only reviewed work goes to `main`.
 
+## Default Operating Mode
+
+Use a two-lane workflow by default:
+
+- Lane 1: Codex review / integration lane
+- Lane 2: Kimi build lane
+
+In practice this means:
+
+- one main worktree for `main`, review, and merge preparation
+- one side worktree for Kimi's active feature or phase branch
+
+Do not add more lanes unless the current setup becomes a real bottleneck.
+
 ## Terms
 
 - `main`: the official safe version of the project
@@ -88,6 +102,20 @@ Examples:
 
 A branch may contain many commits. That is normal.
 
+### 2A. Use two worktrees max by default
+
+The default setup is:
+
+- Main worktree: Codex lane
+- Side worktree: Kimi lane
+
+Use them like this:
+
+- Main worktree holds `main`, current review branches, and merge/integration work
+- Side worktree holds the active forward-development branch
+
+This supports parallel progress without creating too much coordination overhead.
+
 ### 3. Make multiple meaningful commits
 
 Good commit examples:
@@ -161,6 +189,31 @@ Rules:
 - should not be merged directly
 
 Use this only when needed.
+
+## Worktree Policy
+
+Default:
+
+- 1 main worktree
+- 1 side worktree
+
+Roles:
+
+- Main worktree = review lane = Codex lane
+- Side worktree = build lane = Kimi lane
+
+Why:
+
+- Kimi can keep building while Codex reviews or integrates the current phase
+- `main` stays safer
+- the workflow stays easy to understand
+
+If Phase 1 is being built while Phase 0 is under review, keep:
+
+- Phase 0 review/integration in the main worktree
+- Phase 1 WIP in the side worktree
+
+Once the reviewed phase is finalized, update the side-worktree branch so it sits on top of the approved result before opening the next PR.
 
 ## PR Rules
 
@@ -284,13 +337,15 @@ Recommended use:
 Use this by default:
 
 - 1 larger goal
-- 1 working branch
+- 1 working branch in the side worktree
 - multiple meaningful commits
 - 1 PR when the work becomes reviewable
 - Codex review before merge
+- at most 2 worktrees total: main/review and side/build
 
 Avoid:
 
 - too many tiny PRs
 - too many tiny issues
+- too many worktrees
 - merging mixed unfinished work directly into `main`

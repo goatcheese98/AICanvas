@@ -305,6 +305,7 @@ Colocated with code (`.test.ts` next to source):
 
 - Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
 - Codex is the reviewer, integrator, and merge-readiness gate.
+- Default to a two-lane workflow: main worktree for Codex review/integration, one side worktree for Kimi build work.
 - Prefer one working branch with multiple meaningful commits.
 - Open a PR only at a real reviewable checkpoint, not for every tiny step.
 - Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.

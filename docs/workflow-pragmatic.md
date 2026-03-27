@@ -9,23 +9,29 @@ A simplified worktree setup for solo developers with AI assistance. One command 
 /Users/rohanjasani/Desktop/Projects/AICanvas   <-- main worktree, main branch
 ```
 
-**Occasional side worktrees (1-2 at a time, small scope):**
+**One side worktree (used as the build lane):**
 ```
 /Users/rohanjasani/Desktop/Projects/AICanvas-fix-auth-bug
-/Users/rohanjasani/Desktop/Projects/AICanvas-try-experiment
 ```
 
 ## Core Principle
 
-> **Main worktree = main branch = your primary workspace**
-> 
-> **Side worktrees = feature branches = quick tasks only**
+> **Main worktree = review and merge lane**
+>
+> **One side worktree = build lane**
 
 ---
 
 ## Daily Workflow (Main Worktree)
 
-This is where you do most of your work.
+This is the Codex lane.
+
+Use it for:
+
+- `main`
+- review branches
+- merge preparation
+- final integration work
 
 ```sh
 cd /Users/rohanjasani/Desktop/Projects/AICanvas
@@ -34,11 +40,7 @@ cd /Users/rohanjasani/Desktop/Projects/AICanvas
 git checkout main
 git pull
 
-# Create a feature branch
-git checkout -b task/my-feature
-
-# Work with AI, commit, push, PR
-# When done: merge on GitHub, delete branch
+# Review, fix, merge, and sync approved work
 ```
 
 ### Start all services (one command)
@@ -65,7 +67,7 @@ All logs appear in one terminal with labels like `[web]`, `[api]`, `[partykit]`.
 
 ---
 
-## Creating a Side Worktree
+## Creating the Side Worktree
 
 Use the automated script:
 
@@ -94,10 +96,34 @@ bun run dev
 
 ### Side worktree rules
 
-- **Small scope:** 1-3 commits max
-- **Quick turnaround:** Same day or next day
-- **Merge fast:** Don't let side worktrees linger
+- **One active side worktree:** Use one build lane at a time by default
+- **Main purpose:** forward development for the next reviewable checkpoint
+- **Meaningful commits:** save progress in clear checkpoints
+- **Merge fast:** Don't let the side worktree drift too far from reviewed work
 - **Delete after:** Remove worktree + delete branch after merge
+
+## Two-Lane Model
+
+Use this by default:
+
+- Main worktree = Codex lane
+- Side worktree = Kimi lane
+
+This means:
+
+- Kimi can keep building in the side worktree
+- Codex can review and integrate in the main worktree
+- `main` stays cleaner
+
+If Phase 1 is being built while Phase 0 is still under review:
+
+- keep Phase 0 review in the main worktree
+- keep Phase 1 WIP in the side worktree
+
+When the reviewed phase is finalized:
+
+- sync the side-worktree branch to the approved result
+- then open the next PR
 
 ---
 
@@ -121,9 +147,9 @@ bun run dev
 - **No context switching:** `bun run dev` starts everything
 
 ### For Solo Development
-- **Simple:** One command per worktree
+- **Simple:** two lanes, not a maze of branches and worktrees
 - **Isolated:** Each worktree has its own ports, no conflicts
-- **Fast:** Create → Code → Commit → PR → Delete
+- **Fast:** build in one lane while review happens in the other
 
 ---
 
@@ -133,7 +159,7 @@ bun run dev
 # List worktrees
 git worktree list
 
-# Create side worktree for quick task
+# Create side worktree for the build lane
 bun run worktree:new -- <task-name>
 
 # Start all services in any worktree
@@ -150,10 +176,10 @@ git branch -d task/<task-name>
 
 | | Main Worktree | Side Worktree |
 |--|---------------|---------------|
-| **Branch** | `main` or long-lived feature | short-lived `task/` or `fix/` |
-| **Duration** | Ongoing | Hours to 1-2 days |
-| **Scope** | Primary development | Quick fixes/experiments |
-| **Count** | Always 1 | 0-2 at a time |
+| **Branch** | `main` or current review/integration branch | active feature or phase branch |
+| **Duration** | Ongoing | active build lane |
+| **Scope** | review, fix, integrate, merge | forward development |
+| **Count** | Always 1 | Usually 1 |
 | **Start command** | `bun run dev` | `bun run dev` |
 
-**Keep it simple. Main worktree for real work. Side worktrees for quick detours. One command starts everything.**
+**Keep it simple. One review lane and one build lane. One command starts everything.**

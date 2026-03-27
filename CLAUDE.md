@@ -288,7 +288,7 @@ This starts via Turbo:
 ### Key Principles
 
 - **Main worktree** (`AICanvas`): Your primary workspace on `main` branch
-- **Side worktrees** (`AICanvas-*`): 0-2 at a time, short-lived tasks, quick merges
+- **One side worktree** (`AICanvas-*`): the active Kimi build lane by default
 - **One command:** `bun run dev` starts everything (Web + API + PartyKit)
 - **One log stream:** All logs labeled `[web]`, `[api]`, `[partykit]` for easy debugging
 
@@ -327,6 +327,7 @@ The `bun run worktree:new` script auto-assigns ports and configures env files.
 
 - Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
 - Codex is the reviewer, integrator, and merge-readiness gate.
+- Default to a two-lane workflow: main worktree for Codex review/integration, one side worktree for Kimi build work.
 - Prefer one working branch with multiple meaningful commits.
 - Open a PR only at a real reviewable checkpoint, not for every tiny step.
 - Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.
