@@ -323,6 +323,16 @@ The `bun run worktree:new` script auto-assigns ports and configures env files.
 | Assistant architecture (future) | `docs/assistant-v2-architecture.md` |
 | Tech stack decisions | `ARCHITECTURE.md` |
 
+## Agent Collaboration
+
+- Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
+- Codex is the reviewer, integrator, and merge-readiness gate.
+- Prefer one working branch with multiple meaningful commits.
+- Open a PR only at a real reviewable checkpoint, not for every tiny step.
+- Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.
+- Keep temporary breakage explicit and honest.
+- See `docs/agent-workflow.md` for the full workflow.
+
 ## Documentation Index
 
 - `AGENTS.md` — this file (project orientation, patterns, rules for Codex and other agent tooling)
@@ -331,6 +341,7 @@ The `bun run worktree:new` script auto-assigns ports and configures env files.
 - `apps/api/CLAUDE.md` — API patterns (routes, middleware, database, auth)
 - `packages/shared/CLAUDE.md` — shared package rules (schemas, types, constants)
 - `ARCHITECTURE.md` — tech stack decisions and rationale
+- `docs/agent-workflow.md` — Kimi/Codex branch, PR, and review workflow
 - `docs/overlay-authoring-pattern.md` — overlay composition specification
 - `docs/assistant-v2-architecture.md` — next-generation assistant architecture
 - `docs/workflow-pragmatic.md` — simplified worktree workflow for solo + AI development

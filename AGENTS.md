@@ -301,6 +301,16 @@ Colocated with code (`.test.ts` next to source):
 5. **Duplicate shared types** — Belong in `packages/shared/`
 6. **Large incoherent files** — Split when size harms cohesion, readability, or local reasoning
 
+## Agent Collaboration
+
+- Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
+- Codex is the reviewer, integrator, and merge-readiness gate.
+- Prefer one working branch with multiple meaningful commits.
+- Open a PR only at a real reviewable checkpoint, not for every tiny step.
+- Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.
+- Keep temporary breakage explicit and honest.
+- See `docs/agent-workflow.md` for the full workflow.
+
 ## Key Files
 
 | Area | Location |
@@ -314,6 +324,7 @@ Colocated with code (`.test.ts` next to source):
 
 ## Docs
 
+- `docs/agent-workflow.md` — Kimi/Codex branch, PR, and review workflow
 - `docs/overlay-authoring-pattern.md` — Overlay spec
 - `ARCHITECTURE.md` — Tech decisions
 - `CLAUDE.md` — Mirror of this file
