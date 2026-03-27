@@ -60,6 +60,16 @@ bun run db:generate    # Generate migrations
 bun run db:migrate     # Run migrations
 ```
 
+## Workflow Guardrail
+
+Docs describe the target architecture, but issue creation and review decisions must be based on the verified current state of `main`.
+
+Before creating issues, reviewing a phase, or calling work incomplete, first verify whether the behavior is:
+
+- still missing
+- already on `main`
+- partially present and only needs a smaller follow-up
+
 ## Anti-Slop Manifesto
 
 This repository does not reward volume, cleverness, or abstraction for its own sake.

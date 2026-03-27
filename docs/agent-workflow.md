@@ -76,6 +76,18 @@ Codex is the final quality gate before `main`.
 
 ## Preferred Workflow
 
+### 0. Verify before creating issues
+
+Before creating a GitHub issue from a phase doc or architecture doc, Codex must verify the current state on `main`.
+
+Check:
+
+- whether the work is still missing
+- whether it already exists on `main`
+- whether the real remaining work is only a smaller follow-up
+
+Do not create issues from docs alone.
+
 ### 1. Start with one larger goal
 
 Use one larger goal per work stream. This can be:
@@ -150,6 +162,10 @@ Examples of good PR checkpoints:
 - shell scaffold is usable
 - docked AI is working
 - collaboration footer is working
+
+Kimi may open a draft PR at a real checkpoint.
+
+Codex still decides whether that checkpoint is actually ready for merge review.
 
 ### 5. Codex reviews the PR
 
@@ -331,6 +347,23 @@ Recommended use:
 - PR: review checkpoint
 - Review comments: back-and-forth discussion
 - Merge: approved integration into `main`
+
+Recommended labels:
+
+- `phase-1`, `phase-2`, etc.
+- `builder:kimi`
+- `reviewer:codex`
+- `needs-codex-review`
+- `wip`
+- `duplicate`
+- `already-on-main`
+
+Lightweight comment convention:
+
+- prefix builder updates with `[Kimi]`
+- prefix review and merge-readiness updates with `[Codex]`
+
+This does not change the GitHub author, but it keeps issue and PR history readable while both agents use the same account.
 
 ## Practical Default
 
