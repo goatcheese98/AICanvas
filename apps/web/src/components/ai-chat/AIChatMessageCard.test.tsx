@@ -319,7 +319,11 @@ describe('AIChatMessageCard', () => {
 		);
 
 		const scopedQueries = within(container);
-		const time = scopedQueries.getByText('03:10 AM');
+		const expectedTime = new Date(message.createdAt).toLocaleTimeString([], {
+			hour: '2-digit',
+			minute: '2-digit',
+		});
+		const time = scopedQueries.getByText(expectedTime);
 		const accessory = scopedQueries.getByText('Assistant activity trigger');
 
 		expect(time.compareDocumentPosition(accessory)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
