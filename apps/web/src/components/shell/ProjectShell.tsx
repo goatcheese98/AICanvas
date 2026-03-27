@@ -5,8 +5,8 @@ import { LeftSidebar } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
 import type { ProjectResource } from './types';
-import { useShellState } from './useShellState';
 import { useShellKeyboardShortcuts } from './useShellKeyboardShortcuts';
+import { useShellState } from './useShellState';
 
 interface ProjectShellProps {
 	projectId: string;
@@ -28,7 +28,7 @@ interface ProjectShellProps {
 }
 
 export function ProjectShell({
-	projectId,
+	projectId: _projectId,
 	projectName,
 	canvasId,
 	children,
@@ -57,7 +57,7 @@ export function ProjectShell({
 				isActive: true,
 			},
 		],
-		[canvasId]
+		[canvasId],
 	);
 
 	// Convert collaborators map to array
@@ -83,8 +83,8 @@ export function ProjectShell({
 	};
 
 	const handleShareClick = () => {
-		// Open collaboration panel or share dialog
-		shellState.openRightPanel('ai'); // Temporary - should open share dialog
+		// Open share/collaboration panel
+		shellState.openRightPanel('share');
 	};
 
 	const handleOpenAI = () => {
@@ -95,14 +95,17 @@ export function ProjectShell({
 		shellState.toggleRightPanel('details');
 	};
 
-	const handleRightPanelModeChange = (mode: Exclude<'none' | 'ai' | 'details', 'none'>) => {
+	const handleRightPanelModeChange = (
+		mode: Exclude<'none' | 'ai' | 'details' | 'share', 'none'>,
+	) => {
 		shellState.openRightPanel(mode);
 	};
 
 	const isAIOpen = shellState.rightPanelMode === 'ai';
 	const isDetailsOpen = shellState.rightPanelMode === 'details';
+	const isShareOpen = shellState.rightPanelMode === 'share';
 
-	const handleOpenRightPanel = (mode: Exclude<'none' | 'ai' | 'details', 'none'>) => {
+	const handleOpenRightPanel = (mode: Exclude<'none' | 'ai' | 'details' | 'share', 'none'>) => {
 		shellState.openRightPanel(mode);
 	};
 
@@ -127,6 +130,7 @@ export function ProjectShell({
 						isCollaborating: collaboration.isCollaborating,
 						collaborators: collaboratorsList,
 						onShareClick: handleShareClick,
+						isShareOpen,
 					}}
 				/>
 			}
@@ -138,6 +142,26 @@ export function ProjectShell({
 						onChangeMode={handleRightPanelModeChange}
 					>
 						<AIChatPanelContent canvasId={canvasId} />
+					</RightPanel>
+				),
+				share: (
+					<RightPanel
+						mode={shellState.rightPanelMode}
+						onClose={shellState.closeRightPanel}
+						onChangeMode={handleRightPanelModeChange}
+					>
+						<div className="p-4">
+							<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+								<p className="font-medium">Share & Collaboration</p>
+								<p className="mt-1 text-amber-700">This feature is being rebuilt for V2.</p>
+							</div>
+							{collaboration.roomLink && (
+								<div className="mt-4">
+									<p className="text-xs font-medium text-stone-500">Current Session</p>
+									<p className="mt-1 break-all text-xs text-stone-600">{collaboration.roomLink}</p>
+								</div>
+							)}
+						</div>
 					</RightPanel>
 				),
 				details: (

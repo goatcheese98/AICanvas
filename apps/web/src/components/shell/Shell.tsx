@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { cn } from './utils';
 import type { RightPanelMode, ShellState } from './useShellState';
+import { cn } from './utils';
 
 interface ShellProps {
 	children: ReactNode;
@@ -36,7 +36,7 @@ export function Shell({
 			{/* Main Content Area */}
 			<main className="relative flex-1 overflow-hidden transition-all duration-200 ease-in-out">
 				{children}
-				
+
 				{/* Right Edge Triggers */}
 				{showEdgeTriggers && onOpenRightPanel && (
 					<RightEdgeTriggers onOpenRightPanel={onOpenRightPanel} />
@@ -68,7 +68,7 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 			<div className="group relative h-full w-full">
 				{/* Visual indicator line (always visible, subtle) */}
 				<div className="absolute right-0 top-0 h-full w-[2px] bg-gradient-to-b from-transparent via-stone-200 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-				
+
 				{/* Buttons container - appears on hover */}
 				<div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0">
 					{/* AI Button */}
@@ -83,7 +83,7 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 					>
 						<BotIcon />
 					</button>
-					
+
 					{/* Details Button */}
 					<button
 						type="button"

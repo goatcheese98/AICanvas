@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
-import { cn } from './utils';
 import type { RightPanelMode } from './useShellState';
+import { cn } from './utils';
 
 interface RightPanelProps {
 	mode: RightPanelMode;
@@ -15,6 +15,7 @@ const PANEL_CONFIG: Record<
 > = {
 	ai: { label: 'AI Assistant', icon: BotIcon },
 	details: { label: 'Details', icon: InfoIcon },
+	share: { label: 'Share', icon: ShareIcon },
 };
 
 export function RightPanel({ mode, onClose, onChangeMode, children }: RightPanelProps) {
@@ -40,11 +41,17 @@ export function RightPanel({ mode, onClose, onChangeMode, children }: RightPanel
 							type="button"
 							className={cn(
 								'flex h-7 w-7 items-center justify-center rounded-lg text-stone-500',
-								mode === panelMode && 'bg-stone-100 text-[#4d55cc]'
+								mode === panelMode && 'bg-stone-100 text-[#4d55cc]',
 							)}
 							onClick={() => onChangeMode(panelMode)}
 						>
-							{panelMode === 'ai' ? <BotIcon /> : <InfoIcon />}
+							{panelMode === 'ai' ? (
+								<BotIcon />
+							) : panelMode === 'share' ? (
+								<ShareIcon />
+							) : (
+								<InfoIcon />
+							)}
 						</button>
 					))}
 					<button
@@ -122,6 +129,26 @@ function XIcon() {
 			<title>Close</title>
 			<path d="M18 6 6 18" />
 			<path d="m6 6 12 12" />
+		</svg>
+	);
+}
+
+function ShareIcon() {
+	return (
+		<svg
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<title>Share</title>
+			<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+			<polyline points="16 6 12 2 8 6" />
+			<line x1="12" x2="12" y1="2" y2="15" />
 		</svg>
 	);
 }
