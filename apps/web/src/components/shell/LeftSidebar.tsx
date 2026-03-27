@@ -20,6 +20,7 @@ interface LeftSidebarProps {
 		isCollaborating: boolean;
 		collaborators: { id: string; name: string; avatarUrl?: string }[];
 		onShareClick: () => void;
+		isShareOpen?: boolean;
 	};
 }
 
@@ -43,6 +44,7 @@ export function LeftSidebar({
 	isDetailsOpen,
 	collaboration,
 }: LeftSidebarProps) {
+	const { isShareOpen } = collaboration;
 	const { user } = useUser();
 
 	const initials = useMemo(() => {
@@ -192,7 +194,10 @@ export function LeftSidebar({
 					{/* Share Button */}
 					<button
 						type="button"
-						className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100"
+						className={cn(
+							'flex h-8 w-8 items-center justify-center rounded-lg',
+							isShareOpen ? 'bg-[#eef0ff] text-[#4d55cc]' : 'text-stone-500 hover:bg-stone-100',
+						)}
 						onClick={collaboration.onShareClick}
 						title="Share"
 					>
