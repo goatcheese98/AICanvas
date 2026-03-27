@@ -188,16 +188,22 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
-			<KanbanBoard
-				element={element}
-				mode={mode}
-				isSelected={isSelected}
-				isActive={isActive}
-				onChange={(_elementId, data) => onChange(data)}
-				onActivityChange={onActivityChange}
-			/>
-		),
+		render: ({ element, isSelected, isActive: _isActive, mode, onChange, onActivityChange }) => {
+			// In V2 Phase 2: Kanban boards on canvas render in preview mode only.
+			// The full board editor is accessed via the focused board view (/canvas/$id/board/$boardId).
+			// Only 'shell' mode (focused view) gets the full editor.
+			const effectiveMode = mode === 'shell' ? 'shell' : 'preview';
+			return (
+				<KanbanBoard
+					element={element}
+					mode={effectiveMode}
+					isSelected={isSelected}
+					isActive={false}
+					onChange={(_elementId, data) => onChange(data)}
+					onActivityChange={onActivityChange}
+				/>
+			);
+		},
 	},
 	'web-embed': {
 		defaultSize: { width: 960, height: 720 },
@@ -234,7 +240,6 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 			/>
 		),
 	},
-
 };
 
 export function isOverlayType(value: unknown): value is OverlayType {

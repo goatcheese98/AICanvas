@@ -9,7 +9,6 @@ import {
 	normalizeMarkdownOverlay,
 } from './overlay-markdown';
 import { newLexOverlaySchema, normalizeNewLexOverlay } from './overlay-newlex';
-import { normalizePrototypeOverlay, prototypeOverlaySchema } from './overlay-prototype';
 import { normalizeWebEmbedOverlay, webEmbedOverlaySchema } from './overlay-webembed';
 
 // Re-export from overlay-prototype

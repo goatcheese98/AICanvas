@@ -24,6 +24,7 @@ interface ProjectShellProps {
 		startSession: () => Promise<void>;
 		stopSession: () => void;
 	};
+	resources: ProjectResource[];
 	onNavigateToResource: (resource: ProjectResource) => void;
 }
 
@@ -33,6 +34,7 @@ export function ProjectShell({
 	canvasId,
 	children,
 	collaboration,
+	resources,
 	onNavigateToResource,
 }: ProjectShellProps) {
 	const shellState = useShellState();
@@ -46,19 +48,11 @@ export function ProjectShell({
 		toggleSidebar: shellState.toggleSidebar,
 	});
 
-	// Convert current canvas to resources list
-	// In v2, this would include boards, prototypes, etc.
-	const resources: ProjectResource[] = useMemo(
-		() => [
-			{
-				id: canvasId,
-				type: 'canvas',
-				name: 'Overview',
-				isActive: true,
-			},
-		],
-		[canvasId],
-	);
+	// Determine active resource ID from resources list
+	const activeResourceId = useMemo(() => {
+		const activeResource = resources.find((r) => r.isActive);
+		return activeResource?.id ?? canvasId;
+	}, [resources, canvasId]);
 
 	// Convert collaborators map to array
 	const collaboratorsList = useMemo(() => {
@@ -119,7 +113,7 @@ export function ProjectShell({
 					onToggleExpand={shellState.toggleSidebar}
 					projectName={projectName}
 					resources={resources}
-					activeResourceId={canvasId}
+					activeResourceId={activeResourceId}
 					onResourceClick={handleResourceClick}
 					onNewClick={handleNewClick}
 					onOpenAI={handleOpenAI}

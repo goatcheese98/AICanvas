@@ -17,7 +17,8 @@ function CanvasPage() {
 		select: (state) => state.location.pathname,
 	});
 
-	if (pathname.includes('/prototype/')) {
+	// Let child routes (prototype and board) render directly
+	if (pathname.includes('/prototype/') || pathname.includes('/board/')) {
 		return <Outlet />;
 	}
 
