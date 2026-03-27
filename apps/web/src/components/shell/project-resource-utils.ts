@@ -29,7 +29,7 @@ export function buildProjectResources({
 
 	for (const element of normalizeSceneElements(elements)) {
 		const type = (element.customData as { type?: unknown } | undefined)?.type;
-		if (type !== 'kanban') {
+		if (element.isDeleted || type !== 'kanban') {
 			continue;
 		}
 

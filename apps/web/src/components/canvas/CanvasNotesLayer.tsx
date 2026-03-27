@@ -106,7 +106,7 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 			),
 		[appState, isEditing, isSelected, normalizedElement, stackIndex],
 	);
-	const interactionEnabled = type === 'kanban' ? true : isSelected;
+	const interactionEnabled = isSelected;
 	const handleChange = useCallback(
 		(payload: OverlayUpdatePayloadMap[typeof type]) => {
 			updateOverlayElement(normalizedElement.id, type, payload);

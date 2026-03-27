@@ -15,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { getOpenBoardElements } from './board-studio-utils';
 
 interface CanvasQueryData {
 	canvas?: {
@@ -44,12 +45,6 @@ interface BoardStudioWorkspaceProps {
 }
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
-function isKanbanElement(
-	element: ExcalidrawElement,
-): element is ExcalidrawElement & { customData: KanbanOverlayCustomData } {
-	return (element.customData as { type?: unknown } | undefined)?.type === 'kanban';
-}
 
 function BoardStudioWorkspace({
 	canvasId,
@@ -86,10 +81,7 @@ function BoardStudioWorkspace({
 		};
 	});
 
-	const boardElements = useMemo(
-		() => sceneElements.filter(isKanbanElement),
-		[sceneElements],
-	);
+	const boardElements = useMemo(() => getOpenBoardElements(sceneElements), [sceneElements]);
 	const matchedBoardElement = useMemo(
 		() => boardElements.find((element) => element.id === boardElement.id) ?? null,
 		[boardElements, boardElement.id],
@@ -323,10 +315,7 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 			),
 		[canvasData?.data?.elements],
 	);
-	const boardElements = useMemo(
-		() => normalizedElements.filter(isKanbanElement),
-		[normalizedElements],
-	);
+	const boardElements = useMemo(() => getOpenBoardElements(normalizedElements), [normalizedElements]);
 	const matchedBoardElement = useMemo(
 		() => boardElements.find((element) => element.id === boardId) ?? null,
 		[boardElements, boardId],

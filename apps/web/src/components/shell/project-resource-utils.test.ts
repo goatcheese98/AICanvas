@@ -38,6 +38,13 @@ function createElement(
 	} as unknown as ExcalidrawElement;
 }
 
+function createDeletedElement(id: string, title: string): ExcalidrawElement {
+	return {
+		...createElement(id, title),
+		isDeleted: true,
+	} as unknown as ExcalidrawElement;
+}
+
 describe('buildProjectResources', () => {
 	it('includes the canvas and kanban board resources', () => {
 		const resources = buildProjectResources({
@@ -57,6 +64,16 @@ describe('buildProjectResources', () => {
 			canvasId: 'canvas-1',
 			canvasName: 'Launch Canvas',
 			elements: [createElement('note-1', 'Note', 'markdown')],
+		});
+
+		expect(resources).toEqual([{ id: 'canvas-1', type: 'canvas', name: 'Launch Canvas' }]);
+	});
+
+	it('ignores deleted kanban elements', () => {
+		const resources = buildProjectResources({
+			canvasId: 'canvas-1',
+			canvasName: 'Launch Canvas',
+			elements: [createDeletedElement('board-deleted', 'Deleted Board')],
 		});
 
 		expect(resources).toEqual([{ id: 'canvas-1', type: 'canvas', name: 'Launch Canvas' }]);

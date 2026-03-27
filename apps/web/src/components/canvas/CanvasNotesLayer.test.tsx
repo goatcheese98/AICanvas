@@ -112,4 +112,37 @@ describe('CanvasNotesLayer', () => {
 		);
 		expect(movedContainer).toBeTruthy();
 	});
+
+	it('does not capture pointer events for an unselected kanban board preview', () => {
+		const boardElement = {
+			id: 'board-preview',
+			type: 'rectangle',
+			x: 80,
+			y: 100,
+			width: 360,
+			height: 240,
+			angle: 0,
+			isDeleted: false,
+			customData: {
+				type: 'kanban',
+				title: 'Preview Board',
+			},
+		} as unknown as ExcalidrawElement;
+
+		useAppStore.setState({
+			elements: [boardElement],
+			appState: {
+				scrollX: 0,
+				scrollY: 0,
+				zoom: { value: 1 as never },
+				selectedElementIds: {},
+			},
+		});
+
+		const { container } = render(<CanvasNotesLayer />);
+		const boardOverlay = container.querySelector('[data-overlay-id="board-preview"]') as HTMLElement;
+
+		expect(boardOverlay).toBeTruthy();
+		expect(boardOverlay.style.pointerEvents).toBe('none');
+	});
 });
