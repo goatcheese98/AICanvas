@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { KanbanBoardContainer } from './KanbanBoardContainer';
 import type { KanbanBoardProps } from './kanban-board-types';
 import { getLabelTone } from './kanban-card-helpers';
+import { getBoardStudioPath } from '@/components/board/board-studio-utils';
 import {
 	KANBAN_ACCENT_BORDER,
 	KANBAN_ACCENT_SURFACE,
@@ -39,6 +40,12 @@ function KanbanPreviewBoard({
 	isSelected,
 }: Pick<KanbanBoardProps, 'element' | 'isSelected'>) {
 	const board = useMemo(() => normalizeKanbanBoard(element.customData), [element.customData]);
+	const canvasId = useMemo(() => {
+		const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+		const match = pathname.match(/^\/canvas\/([^/]+)/);
+		return match?.[1] ?? '';
+	}, []);
+	const boardPath = canvasId ? getBoardStudioPath(canvasId, element.id) : null;
 	const activeTheme = getKanbanBackgroundTheme(board.bgTheme);
 	const activeFont = getKanbanFontOption(board.fontId);
 	const fontSize = clampKanbanFontSize(board.fontSize);
@@ -85,9 +92,26 @@ function KanbanPreviewBoard({
 						>
 							{board.title}
 						</div>
+						<div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+							Canvas reference
+						</div>
 					</div>
-					<div className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-						{cardCount} cards
+					<div className="flex items-center gap-2">
+						<div className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+							{cardCount} cards
+						</div>
+						{boardPath ? (
+							<button
+								type="button"
+								onClick={() => {
+									window.history.pushState(null, '', boardPath);
+									window.dispatchEvent(new PopStateEvent('popstate'));
+								}}
+								className="rounded-full border border-stone-300 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700 transition-colors hover:bg-stone-50"
+							>
+								Open board
+							</button>
+						) : null}
 					</div>
 				</div>
 
