@@ -1,16 +1,14 @@
-import { readCanvasVersion } from '@/components/canvas/canvas-persistence-utils';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
-import { captureBrowserException } from '@/lib/observability';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate } from '@tanstack/react-router';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
 	canvasId: string;
@@ -19,122 +17,18 @@ interface PrototypeStudioPageProps {
 
 interface PrototypeStudioSessionProps {
 	canvasId: string;
-	prototypeElement: ExcalidrawElement & { customData: PrototypeOverlayCustomData };
 	normalizedPrototype: PrototypeOverlayCustomData;
-	savedSignature: string;
-	elements: ExcalidrawElement[];
-	canvasData: {
-		appState?: Record<string, unknown> | null;
-		files?: Record<string, unknown> | null;
-	};
-	canvasVersion: number | null;
-	getToken: ReturnType<typeof useAuth>['getToken'];
-	queryClient: ReturnType<typeof useQueryClient>;
 }
 
 function PrototypeStudioSession({
 	canvasId,
-	prototypeElement,
 	normalizedPrototype,
-	savedSignature,
-	elements,
-	canvasData,
-	canvasVersion,
-	getToken,
-	queryClient,
 }: PrototypeStudioSessionProps) {
 	const [draft, setDraft] = useState(normalizedPrototype);
-	const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error' | 'conflict'>(
-		'idle',
-	);
-	const canvasVersionRef = useRef<number | null>(canvasVersion);
-	const hasVersionConflictRef = useRef(false);
-	const draftSignature = useMemo(() => serializePrototypeState(draft), [draft]);
-	const isDirty = draftSignature !== savedSignature;
-
-	if (canvasVersion !== null && !hasVersionConflictRef.current) {
-		canvasVersionRef.current = canvasVersion;
-	}
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
 		setDraft(nextDraft);
-		setSaveState('idle');
 	}, []);
-
-	const saveDraft = useCallback(async () => {
-		if (!isDirty) return;
-
-		if (hasVersionConflictRef.current || typeof canvasVersionRef.current !== 'number') {
-			setSaveState('conflict');
-			return;
-		}
-
-		setSaveState('saving');
-
-		try {
-			// TODO: Phase 1 - Update prototype without using overlay system
-			// For now, this is a no-op since prototype overlays are removed
-			const nextElements = elements;
-
-			const headers = await getRequiredAuthHeaders(getToken);
-			const response = await api.api.canvas[':id'].$put(
-				{
-					param: { id: canvasId },
-					json: {
-						elements: nextElements as Record<string, unknown>[],
-						appState: (canvasData.appState ?? {}) as Record<string, unknown>,
-						files: (canvasData.files ?? {}) as Record<string, unknown>,
-						expectedVersion: canvasVersionRef.current,
-					},
-				},
-				{ headers },
-			);
-
-			if (response.status === 409) {
-				hasVersionConflictRef.current = true;
-				setSaveState('conflict');
-				return;
-			}
-
-			if (!response.ok) {
-				throw new Error(await response.text());
-			}
-
-			const result = (await response.json()) as { success?: boolean; version?: number };
-			if (!result.success || typeof result.version !== 'number') {
-				throw new Error('Canvas save returned an invalid response.');
-			}
-
-			canvasVersionRef.current = result.version;
-			hasVersionConflictRef.current = false;
-
-			await queryClient.invalidateQueries({ queryKey: ['canvas', canvasId] });
-			setSaveState('saved');
-		} catch (error) {
-			console.error('Failed to save prototype draft', error);
-			captureBrowserException(error, {
-				tags: {
-					area: 'prototype.studio',
-					action: 'save_draft',
-				},
-				extra: {
-					canvasId,
-					prototypeId: prototypeElement.id,
-				},
-			});
-			setSaveState('error');
-		}
-	}, [
-		canvasData.appState,
-		canvasData.files,
-		canvasId,
-		draft,
-		elements,
-		getToken,
-		isDirty,
-		prototypeElement.id,
-		queryClient,
-	]);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
@@ -144,31 +38,21 @@ function PrototypeStudioSession({
 						Prototype Studio
 					</div>
 					<div className="mt-1 text-sm text-stone-600">
-						Edit files outside the canvas. The canvas now renders the same live prototype runtime
-						preview.
+						Prototype Studio is temporarily read-only during Phase 0. Existing files stay visible
+						here for reference, but edits will not be saved yet.
 					</div>
 				</div>
 				<div className="flex items-center gap-3">
-					<div className="text-xs text-stone-500">
-						{saveState === 'saving'
-							? 'Saving...'
-							: saveState === 'saved'
-								? 'Saved'
-								: saveState === 'conflict'
-									? 'Refresh to sync'
-									: saveState === 'error'
-										? 'Save failed'
-										: isDirty
-											? 'Unsaved changes'
-											: 'Up to date'}
+					<div className="text-xs font-medium text-amber-600">
+						Prototype editing temporarily unavailable (Phase 0 migration)
 					</div>
 					<button
 						type="button"
-						onClick={() => void saveDraft()}
-						disabled={!isDirty || saveState === 'saving'}
-						className="rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white disabled:cursor-not-allowed disabled:opacity-40"
+						disabled
+						className="cursor-not-allowed rounded-full bg-stone-400 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
+						title="Prototype editing is temporarily unavailable during Phase 0 migration"
 					>
-						Save
+						Save Disabled
 					</button>
 					<Link
 						to="/canvas/$id"
@@ -189,7 +73,6 @@ function PrototypeStudioSession({
 
 export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPageProps) {
 	const { getToken } = useAuth();
-	const queryClient = useQueryClient();
 
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -303,16 +186,7 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		<PrototypeStudioSession
 			key={`${prototypeElement.id}:${savedSignature}`}
 			canvasId={canvasId}
-			prototypeElement={
-				prototypeElement as ExcalidrawElement & { customData: PrototypeOverlayCustomData }
-			}
 			normalizedPrototype={normalizedPrototype}
-			savedSignature={savedSignature}
-			elements={elements}
-			canvasData={canvasQuery.data.data}
-			canvasVersion={readCanvasVersion(canvasQuery.data)}
-			getToken={getToken}
-			queryClient={queryClient}
 		/>
 	);
 }

@@ -60,12 +60,8 @@ export function ArtifactCard(props: ArtifactCardProps) {
 		return <DiagramArtifactPreview {...props} />;
 	}
 
-	// Patch artifacts (markdown-patch, kanban-patch, prototype-patch)
-	if (
-		artifact.type === 'markdown-patch' ||
-		artifact.type === 'kanban-patch' ||
-		artifact.type === 'prototype-patch'
-	) {
+	// Patch artifacts (markdown-patch, kanban-patch)
+	if (artifact.type === 'markdown-patch' || artifact.type === 'kanban-patch') {
 		return (
 			<PatchArtifactCard
 				artifact={props.artifact}

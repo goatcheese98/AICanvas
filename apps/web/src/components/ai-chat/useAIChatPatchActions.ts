@@ -8,7 +8,6 @@ import type { AssistantPatchApplyOptions, AssistantPatchApplyState } from './ai-
 import {
 	parseKanbanPatchArtifact,
 	parseMarkdownPatchArtifact,
-	parsePrototypePatchArtifact,
 } from './assistant-artifacts';
 
 export function useAIChatPatchActions({
@@ -112,41 +111,6 @@ export function useAIChatPatchActions({
 							status: 'applied',
 							targetId: kanbanPatch.targetId,
 							targetType: 'kanban',
-							previousCustomData: clonePatchCustomData(previousCustomData),
-						},
-					}));
-					return true;
-				}
-
-				const prototypePatch = parsePrototypePatchArtifact(artifact);
-				if (prototypePatch) {
-					const previousCustomData =
-						mode === 'reapply'
-							? assistantPatchStates[artifactKey]?.previousCustomData
-							: updateOverlayElementById({
-									excalidrawApi,
-									setElements,
-									targetId: prototypePatch.targetId,
-									targetType: 'prototype',
-									payload: prototypePatch.next as unknown as Record<string, unknown>,
-								});
-
-					if (mode === 'reapply') {
-						updateOverlayElementById({
-							excalidrawApi,
-							setElements,
-							targetId: prototypePatch.targetId,
-							targetType: 'prototype',
-							payload: prototypePatch.next as unknown as Record<string, unknown>,
-						});
-					}
-
-					setAssistantPatchStates((current) => ({
-						...current,
-						[artifactKey]: {
-							status: 'applied',
-							targetId: prototypePatch.targetId,
-							targetType: 'prototype',
 							previousCustomData: clonePatchCustomData(previousCustomData),
 						},
 					}));
