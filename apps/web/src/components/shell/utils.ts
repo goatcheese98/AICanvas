@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react';
 
-export type ClassValue = string | number | boolean | undefined | null | Record<string, boolean> | ClassValue[];
+export type ClassValue =
+	| string
+	| number
+	| boolean
+	| undefined
+	| null
+	| Record<string, boolean>
+	| ClassValue[];
 
 /**
  * Simple utility for conditionally joining class names.

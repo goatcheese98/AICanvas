@@ -1,8 +1,8 @@
 import { useUser } from '@clerk/clerk-react';
 import type { ReactElement } from 'react';
 import { useMemo } from 'react';
-import { cn } from './utils';
 import type { ProjectResource, ResourceType } from './types';
+import { cn } from './utils';
 
 interface LeftSidebarProps {
 	isExpanded: boolean;
@@ -61,9 +61,7 @@ export function LeftSidebar({
 				{isExpanded ? (
 					<>
 						<div className="flex min-w-0 flex-1 flex-col">
-							<span className="truncate text-sm font-semibold text-stone-900">
-								{projectName}
-							</span>
+							<span className="truncate text-sm font-semibold text-stone-900">{projectName}</span>
 							<span className="text-xs text-stone-500">Overview</span>
 						</div>
 						<button
@@ -92,7 +90,7 @@ export function LeftSidebar({
 					onClick={onNewClick}
 					className={cn(
 						'flex items-center justify-center rounded-lg bg-[#4d55cc] px-3 py-2 text-white hover:bg-[#3d45bc] transition-colors',
-						isExpanded ? 'w-full gap-2' : 'h-10 w-10 p-0'
+						isExpanded ? 'w-full gap-2' : 'h-10 w-10 p-0',
 					)}
 				>
 					<PlusIcon className="h-4 w-4" />
@@ -114,10 +112,8 @@ export function LeftSidebar({
 							onClick={onOpenAI}
 							className={cn(
 								'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors',
-								isAIOpen
-									? 'bg-[#eef0ff] text-[#4d55cc]'
-									: 'text-stone-700 hover:bg-stone-100',
-								!isExpanded && 'justify-center px-1'
+								isAIOpen ? 'bg-[#eef0ff] text-[#4d55cc]' : 'text-stone-700 hover:bg-stone-100',
+								!isExpanded && 'justify-center px-1',
 							)}
 							title="AI Assistant"
 						>
@@ -131,10 +127,8 @@ export function LeftSidebar({
 							onClick={onOpenDetails}
 							className={cn(
 								'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors',
-								isDetailsOpen
-									? 'bg-[#eef0ff] text-[#4d55cc]'
-									: 'text-stone-700 hover:bg-stone-100',
-								!isExpanded && 'justify-center px-1'
+								isDetailsOpen ? 'bg-[#eef0ff] text-[#4d55cc]' : 'text-stone-700 hover:bg-stone-100',
+								!isExpanded && 'justify-center px-1',
 							)}
 							title="Details"
 						>
@@ -189,7 +183,7 @@ export function LeftSidebar({
 										</div>
 									)}
 								</div>
-								))}
+							))}
 						</div>
 					)}
 
@@ -210,16 +204,12 @@ export function LeftSidebar({
 						type="button"
 						className={cn(
 							'flex h-8 w-8 items-center justify-center overflow-hidden rounded-full',
-							isExpanded && 'ml-1'
+							isExpanded && 'ml-1',
 						)}
 						title="Account"
 					>
 						{user?.imageUrl ? (
-							<img
-								src={user.imageUrl}
-								alt="Profile"
-								className="h-full w-full object-cover"
-							/>
+							<img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
 						) : (
 							<div className="flex h-full w-full items-center justify-center bg-stone-900 text-xs font-semibold text-white">
 								{initials}
@@ -248,10 +238,8 @@ function ResourceItem({ resource, isActive, isExpanded, onClick }: ResourceItemP
 			onClick={onClick}
 			className={cn(
 				'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors',
-				isActive
-					? 'bg-[#eef0ff] text-[#4d55cc]'
-					: 'text-stone-700 hover:bg-stone-100',
-				!isExpanded && 'justify-center px-1'
+				isActive ? 'bg-[#eef0ff] text-[#4d55cc]' : 'text-stone-700 hover:bg-stone-100',
+				!isExpanded && 'justify-center px-1',
 			)}
 		>
 			<Icon />

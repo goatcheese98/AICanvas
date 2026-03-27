@@ -5,8 +5,8 @@ import { LeftSidebar } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
 import type { ProjectResource } from './types';
-import { useShellState } from './useShellState';
 import { useShellKeyboardShortcuts } from './useShellKeyboardShortcuts';
+import { useShellState } from './useShellState';
 
 interface ProjectShellProps {
 	projectId: string;
@@ -28,7 +28,7 @@ interface ProjectShellProps {
 }
 
 export function ProjectShell({
-	projectId,
+	projectId: _projectId,
 	projectName,
 	canvasId,
 	children,
@@ -57,7 +57,7 @@ export function ProjectShell({
 				isActive: true,
 			},
 		],
-		[canvasId]
+		[canvasId],
 	);
 
 	// Convert collaborators map to array

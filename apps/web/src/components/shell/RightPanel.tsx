@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
-import { cn } from './utils';
 import type { RightPanelMode } from './useShellState';
+import { cn } from './utils';
 
 interface RightPanelProps {
 	mode: RightPanelMode;
@@ -40,7 +40,7 @@ export function RightPanel({ mode, onClose, onChangeMode, children }: RightPanel
 							type="button"
 							className={cn(
 								'flex h-7 w-7 items-center justify-center rounded-lg text-stone-500',
-								mode === panelMode && 'bg-stone-100 text-[#4d55cc]'
+								mode === panelMode && 'bg-stone-100 text-[#4d55cc]',
 							)}
 							onClick={() => onChangeMode(panelMode)}
 						>
