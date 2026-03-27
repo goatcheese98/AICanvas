@@ -188,10 +188,10 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
+		render: ({ element, isSelected, isActive, onChange, onActivityChange }) => (
 			<KanbanBoard
 				element={element}
-				mode={mode}
+				mode="preview"
 				isSelected={isSelected}
 				isActive={isActive}
 				onChange={(_elementId, data) => onChange(data)}

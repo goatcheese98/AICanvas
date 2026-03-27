@@ -1,7 +1,10 @@
 import { ProjectShell } from '@/components/shell';
+import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import { useAppStore } from '@/stores/store';
 import '@excalidraw/excalidraw/index.css';
 import { useNavigate } from '@tanstack/react-router';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useMemo } from 'react';
 import { ExpandedOverlayLayer } from '../overlays/ExpandedOverlayLayer';
 import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
 import { CanvasCore } from './CanvasCore';
@@ -25,21 +28,56 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 	const navigate = useNavigate();
 
-	const { collaboration, handleSaveNeeded, normalizeSceneChange } = useCanvasContainerState({
-		canvasId,
-	});
+	const { collaboration, handleSaveNeeded, normalizeSceneChange, canvasQueryData } =
+		useCanvasContainerState({
+			canvasId,
+		});
 
-	const handleNavigateToResource = () => {
-		// For now, resources just navigate to themselves
-		// In v2 with multiple resources, this would navigate to board/prototype views
-		console.log('Navigate to resource');
+	const canvasData = useMemo(() => {
+		const data = canvasQueryData as
+			| {
+					canvas?: { title?: unknown };
+					data?: { elements?: readonly ExcalidrawElement[] };
+			  }
+			| undefined;
+
+		return {
+			title: typeof data?.canvas?.title === 'string' ? data.canvas.title : 'Untitled Project',
+			elements: data?.data?.elements ?? [],
+		};
+	}, [canvasQueryData]);
+
+	const resources = useMemo(
+		() =>
+			buildProjectResources({
+				canvasId,
+				canvasName: canvasData.title,
+				elements: canvasData.elements,
+			}),
+		[canvasData.elements, canvasData.title, canvasId],
+	);
+
+	const handleNavigateToResource = (resource: (typeof resources)[number]) => {
+		if (resource.type === 'canvas') {
+			void navigate({ to: '/canvas/$id', params: { id: canvasId } });
+			return;
+		}
+
+		if (resource.type === 'board') {
+			void navigate({
+				to: '/canvas/$id/board/$boardId',
+				params: { id: canvasId, boardId: resource.id },
+			});
+		}
 	};
 
 	return (
 		<ProjectShell
 			projectId="default"
-			projectName="Untitled Project"
+			projectName={canvasData.title}
 			canvasId={canvasId}
+			resources={resources}
+			activeResourceId={canvasId}
 			collaboration={collaboration}
 			onNavigateToResource={handleNavigateToResource}
 		>
