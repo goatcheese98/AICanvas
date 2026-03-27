@@ -13,7 +13,6 @@ import type {
 	AssistantMessage,
 	AssistantRunCreated,
 	AssistantThread,
-	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import { useCallback, useState } from 'react';
 import { getAIChatCommandMenuState, resolveAIChatRequest } from './ai-chat-command-helpers';
@@ -45,7 +44,6 @@ export function useAIChatRunController({
 	latestPendingPatchArtifacts,
 	assistantPatchStates,
 	applyAssistantPatch,
-	getPrototypeContextForRequest,
 	appendLocalAssistantMessage,
 }: {
 	canvasId: string;
@@ -69,9 +67,6 @@ export function useAIChatRunController({
 		mode?: 'apply' | 'reapply',
 		options?: { markdownContentOverride?: string },
 	) => boolean;
-	getPrototypeContextForRequest: (
-		effectiveContextMode: AssistantContextMode,
-	) => PrototypeOverlayCustomData | undefined;
 	appendLocalAssistantMessage: (content: string) => void;
 }) {
 	const [runProgress, setRunProgressState] = useState<AssistantRunProgress | null>(null);
@@ -188,7 +183,6 @@ export function useAIChatRunController({
 			createdAt: new Date().toISOString(),
 		};
 		const history = buildConversationHistory(messages);
-		const prototypeContext = getPrototypeContextForRequest(effectiveContextMode);
 		if (!options?.promptOverride) {
 			setInput('');
 		}
@@ -211,7 +205,6 @@ export function useAIChatRunController({
 						modeHint: effectiveModeHint,
 						history,
 						selectedElementIds: requestSelectedIds,
-						prototypeContext,
 					},
 				},
 				{ headers },

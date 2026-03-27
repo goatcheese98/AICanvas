@@ -64,7 +64,6 @@ export const overlayCustomDataSchema = z.discriminatedUnion('type', [
 	newLexOverlaySchema,
 	kanbanOverlaySchema,
 	webEmbedOverlaySchema,
-	prototypeOverlaySchema,
 ]);
 
 // Dispatcher function for normalizing overlay custom data
@@ -76,7 +75,6 @@ export function normalizeOverlayCustomData(
 	if (type === 'newlex') return normalizeNewLexOverlay(input);
 	if (type === 'kanban') return normalizeKanbanOverlay(input);
 	if (type === 'web-embed') return normalizeWebEmbedOverlay(input);
-	if (type === 'prototype') return normalizePrototypeOverlay(input);
 	return normalizeMarkdownOverlay();
 }
 
@@ -95,7 +93,6 @@ export const overlaySchemas = {
 	newLex: newLexOverlaySchema,
 	kanban: kanbanOverlaySchema,
 	webEmbed: webEmbedOverlaySchema,
-	prototype: prototypeOverlaySchema,
 	customData: overlayCustomDataSchema,
 } as const;
 

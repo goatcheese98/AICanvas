@@ -102,31 +102,11 @@ describe('element-factories', () => {
 		});
 	});
 
-	it('creates prototype defaults', () => {
-		const data = createOverlayCustomData({
-			type: 'prototype',
-			x: 0,
-			y: 0,
-		});
-
-		expect(data).toEqual({
-			type: 'prototype',
-			title: 'Prototype',
-			template: 'react',
-			files: {},
-			activeFile: undefined,
-			showEditor: true,
-			showPreview: true,
-			dependencies: {},
-		});
-	});
-
 	it('returns expected overlay defaults', () => {
 		expect(getOverlayDefaults('markdown')).toEqual({ width: 400, height: 450 });
 		expect(getOverlayDefaults('newlex')).toEqual({ width: 500, height: 400 });
 		expect(getOverlayDefaults('kanban')).toEqual({ width: 1050, height: 900 });
 		expect(getOverlayDefaults('web-embed')).toEqual({ width: 960, height: 720 });
-		expect(getOverlayDefaults('prototype')).toEqual({ width: 720, height: 520 });
 	});
 
 	it('builds an insertion scene that appends and selects the new overlay', () => {

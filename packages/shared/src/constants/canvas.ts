@@ -5,7 +5,6 @@ export const OVERLAY_TYPES: readonly OverlayType[] = [
 	'newlex',
 	'kanban',
 	'web-embed',
-	'prototype',
 ] as const;
 
 export const COLLAB_COLORS = [

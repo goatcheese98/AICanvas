@@ -74,9 +74,6 @@ export function AIChatMessageList({
 					onInsertMarkdown={(nextMessage) =>
 						void canvasActions.insertMarkdownOnCanvas(nextMessage.content)
 					}
-					onInsertPrototype={(nextMessage) =>
-						void canvasActions.insertPrototypeOnCanvas(nextMessage.content)
-					}
 					onInsertSvg={(nextMessage) => {
 						const svgMarkup = nextMessage.content.match(/```svg\s*([\s\S]*?)```/i)?.[1]?.trim();
 						if (!svgMarkup) {

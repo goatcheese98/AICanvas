@@ -3,7 +3,6 @@ import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizeNewLexOverlay,
-	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
 import type {
@@ -11,13 +10,11 @@ import type {
 	MarkdownOverlayCustomData,
 	NewLexOverlayCustomData,
 	OverlayType,
-	PrototypeOverlayCustomData,
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import { KanbanBoard } from '../overlays/kanban';
 import { LexicalNote } from '../overlays/lexical';
 import { MarkdownNote } from '../overlays/markdown';
-import { PrototypeNote } from '../overlays/prototype';
 import { WebEmbed } from '../overlays/web-embed';
 import { DEFAULT_MARKDOWN_CONTENT, createDefaultKanbanColumns } from './overlay-defaults';
 import { bumpElementVersion } from './overlay-definition-types';
@@ -237,65 +234,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 			/>
 		),
 	},
-	prototype: {
-		defaultSize: { width: 720, height: 520 },
-		normalizeCustomData: normalizePrototypeOverlay,
-		createCustomData: (options) =>
-			normalizePrototypeOverlay({
-				title:
-					typeof options.customData?.title === 'string' ? options.customData.title : 'Prototype',
-				template: options.customData?.template === 'vanilla' ? 'vanilla' : 'react',
-				files:
-					typeof options.customData?.files === 'object'
-						? (options.customData.files as PrototypeOverlayCustomData['files'])
-						: undefined,
-				dependencies:
-					typeof options.customData?.dependencies === 'object'
-						? (options.customData.dependencies as Record<string, string>)
-						: undefined,
-				preview:
-					typeof options.customData?.preview === 'object'
-						? (options.customData.preview as PrototypeOverlayCustomData['preview'])
-						: undefined,
-				activeFile:
-					typeof options.customData?.activeFile === 'string'
-						? options.customData.activeFile
-						: undefined,
-				showEditor:
-					typeof options.customData?.showEditor === 'boolean'
-						? options.customData.showEditor
-						: undefined,
-				showPreview:
-					typeof options.customData?.showPreview === 'boolean'
-						? options.customData.showPreview
-						: undefined,
-			}),
-		applyUpdate: (element, payload) => {
-			const current = normalizePrototypeOverlay(element.customData);
-			const nextCustomData = normalizePrototypeOverlay({
-				...current,
-				...payload,
-			});
-			if (!hasSerializedChange(current, nextCustomData)) {
-				return element;
-			}
 
-			return bumpElementVersion({
-				...element,
-				customData: nextCustomData,
-			});
-		},
-		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
-			<PrototypeNote
-				element={element}
-				isSelected={isSelected}
-				isActive={isActive}
-				mode={mode}
-				onChange={(_elementId, updates) => onChange(updates)}
-				onActivityChange={onActivityChange}
-			/>
-		),
-	},
 };
 
 export function isOverlayType(value: unknown): value is OverlayType {

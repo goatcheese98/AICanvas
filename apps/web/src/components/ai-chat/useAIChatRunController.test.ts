@@ -57,7 +57,6 @@ function createController(input: string, selectedElementIds: Record<string, bool
 			latestPendingPatchArtifacts: [],
 			assistantPatchStates: {},
 			applyAssistantPatch: vi.fn(),
-			getPrototypeContextForRequest: vi.fn(),
 			appendLocalAssistantMessage: vi.fn(),
 		}),
 	);
@@ -183,7 +182,6 @@ describe('useAIChatRunController', () => {
 				latestPendingPatchArtifacts: [],
 				assistantPatchStates: {},
 				applyAssistantPatch: vi.fn(),
-				getPrototypeContextForRequest: vi.fn(),
 				appendLocalAssistantMessage: vi.fn(),
 			}),
 		);

@@ -7,7 +7,6 @@ import { CodeSnippet, CopyButton } from './AIChatArtifactPrimitives';
 import { PANEL_BUTTON, PANEL_BUTTON_IDLE } from './ai-chat-constants';
 import {
 	buildArtifactKey,
-	canApplyMessageAsPrototype,
 	canInsertMessageAsMarkdown,
 	canInsertMessageAsSvg,
 } from './ai-chat-helpers';
@@ -28,7 +27,6 @@ export function MessageCard({
 	insertionStates,
 	onUndoInsertedArtifact,
 	onInsertMarkdown,
-	onInsertPrototype,
 	onInsertSvg,
 	onInsertRenderedDiagram,
 	patchStates,
@@ -47,7 +45,6 @@ export function MessageCard({
 	insertionStates?: Record<string, AssistantInsertionState>;
 	onUndoInsertedArtifact?: (artifactKey: string) => void;
 	onInsertMarkdown?: (message: AssistantMessage) => void;
-	onInsertPrototype?: (message: AssistantMessage) => void;
 	onInsertSvg?: (message: AssistantMessage) => void;
 	onInsertRenderedDiagram?: (artifactKey: string, input: DiagramInsertInput) => void;
 	patchStates?: Record<string, AssistantPatchApplyState>;
@@ -74,15 +71,6 @@ export function MessageCard({
 		((canInsertMessageAsSvg(message) && onInsertSvg) ||
 			(canInsertMessageAsMarkdown(message) && onInsertMarkdown)) ? (
 			<div className="flex flex-wrap gap-2">
-				{canApplyMessageAsPrototype(message) && onInsertPrototype ? (
-					<button
-						type="button"
-						onClick={() => onInsertPrototype(message)}
-						className={`${PANEL_BUTTON} ${PANEL_BUTTON_IDLE}`}
-					>
-						Apply Prototype
-					</button>
-				) : null}
 				{canInsertMessageAsSvg(message) && onInsertSvg ? (
 					<button
 						type="button"

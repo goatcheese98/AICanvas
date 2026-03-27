@@ -4,7 +4,6 @@ import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
 } from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -61,15 +60,6 @@ export function updateOverlayElementById({
 				settings: markdown.settings,
 				editorMode: markdown.editorMode,
 			}) as typeof candidate;
-		}
-
-		if (targetType === 'prototype') {
-			const prototype = normalizePrototypeOverlay(payload);
-			return applyOverlayUpdateByType(
-				'prototype',
-				candidate as never,
-				prototype,
-			) as typeof candidate;
 		}
 
 		const board = normalizeKanbanOverlay(payload);

@@ -106,7 +106,6 @@ export function createOverlayElementDraft(
 	customData?: Record<string, unknown>,
 ): OverlayElementDraft {
 	const { width, height } = getOverlayDefaults(type);
-	const isPrototype = type === 'prototype';
 	const isRichText = type === 'newlex';
 	const isTextNote = type === 'markdown' || type === 'newlex';
 
@@ -120,12 +119,8 @@ export function createOverlayElementDraft(
 		type: 'rectangle',
 		...createCenteredRect(sceneCenter, width, height),
 		angle: 0,
-		backgroundColor: isPrototype ? '#fcfcfb' : isTextNote ? DEFAULT_NOTE_BACKGROUND : '#ffffff',
-		strokeColor: isPrototype
-			? DEFAULT_NOTE_STROKE
-			: isRichText
-				? DEFAULT_RICH_TEXT_STROKE
-				: DEFAULT_NOTE_STROKE,
+		backgroundColor: isTextNote ? DEFAULT_NOTE_BACKGROUND : '#ffffff',
+		strokeColor: isRichText ? DEFAULT_RICH_TEXT_STROKE : DEFAULT_NOTE_STROKE,
 		strokeWidth: 1,
 		strokeStyle: 'solid',
 		roughness: 0,

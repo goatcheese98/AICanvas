@@ -1,9 +1,9 @@
 import { Outlet, createFileRoute, useRouterState } from '@tanstack/react-router';
 import { Suspense, lazy } from 'react';
 
-const CanvasContainer = lazy(() =>
-	import('@/components/canvas/CanvasContainer').then((module) => ({
-		default: module.CanvasContainer,
+const CanvasContainerV2 = lazy(() =>
+	import('@/components/canvas/CanvasContainerV2').then((module) => ({
+		default: module.CanvasContainerV2,
 	})),
 );
 
@@ -24,12 +24,12 @@ function CanvasPage() {
 	return (
 		<Suspense
 			fallback={
-				<div className="flex h-full items-center justify-center bg-[var(--color-canvas-bg)]">
+				<div className="flex h-screen w-screen items-center justify-center bg-stone-50">
 					<div className="h-8 w-8 animate-spin rounded-full border-2 border-current border-t-transparent" />
 				</div>
 			}
 		>
-			<CanvasContainer canvasId={id} />
+			<CanvasContainerV2 canvasId={id} />
 		</Suspense>
 	);
 }

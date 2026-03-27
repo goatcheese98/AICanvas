@@ -1,4 +1,5 @@
 export { AIChatPanel } from './AIChatPanel';
+export { AIChatPanelContent } from './AIChatPanelContent';
 export { AIChatEmptyState } from './AIChatEmptyState';
 export { AIChatMessageList } from './AIChatMessageList';
 export { useAssistantCapabilities } from './useAssistantCapabilities';

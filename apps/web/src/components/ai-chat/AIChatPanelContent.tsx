@@ -16,15 +16,13 @@ import { useAIChatThreads } from './useAIChatThreads';
 import { useAutoResizeTextarea } from './useAutoResizeTextarea';
 
 /**
- * AIChatPanel - Main container component for AI chat functionality.
+ * AIChatPanelContent - AI chat for docked right panel.
  *
- * Architecture:
- * - Container/Hook/Child pattern (see AGENTS.md)
- * - This component orchestrates child components and hooks
- * - State is delegated to specialized hooks
- * - No direct useEffect - all side effects managed in hooks
+ * Same functionality as AIChatPanel but without floating panel styling
+ * (no rounded corners, no shadow, no border) for use inside the shell's
+ * right panel.
  */
-export function AIChatPanel({ canvasId }: AIChatPanelProps) {
+export function AIChatPanelContent({ canvasId }: AIChatPanelProps) {
 	const { getToken, isSignedIn } = useAuth();
 
 	// App store selectors
@@ -195,7 +193,7 @@ export function AIChatPanel({ canvasId }: AIChatPanelProps) {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 overflow-hidden rounded-[12px] border border-stone-200 bg-stone-50 shadow-xl">
+		<div className="flex h-full min-h-0 overflow-hidden bg-stone-50">
 			<AIChatSidebar
 				isHistoryCollapsed={isHistoryCollapsed}
 				threads={threads}

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import type { StoredAssistantAssetContent } from '../types/assistant';
 import { overlaySchemas } from './overlay';
+import { prototypeOverlaySchema } from './overlay-prototype';
 
 const generationModeSchema = z.enum([
 	'chat',
@@ -240,7 +241,7 @@ export const sendMessageSchema = z.object({
 	contextMode: z.enum(['all', 'selected', 'none']).default('none'),
 	generationMode: generationModeSchema.default('chat'),
 	history: z.array(assistantMessageSchema).max(24).optional(),
-	prototypeContext: overlaySchemas.prototype.optional(),
+	prototypeContext: prototypeOverlaySchema.optional(),
 });
 
 export const createRunSchema = z.object({
@@ -251,7 +252,7 @@ export const createRunSchema = z.object({
 	modeHint: generationModeSchema.optional(),
 	history: z.array(assistantMessageSchema).max(24).optional(),
 	selectedElementIds: z.array(z.string().min(1).max(200)).max(500).optional(),
-	prototypeContext: overlaySchemas.prototype.optional(),
+	prototypeContext: prototypeOverlaySchema.optional(),
 	contextSnapshot: assistantContextSnapshotSchema.optional(),
 });
 

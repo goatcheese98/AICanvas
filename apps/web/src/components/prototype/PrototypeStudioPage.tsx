@@ -1,5 +1,4 @@
 import { readCanvasVersion } from '@/components/canvas/canvas-persistence-utils';
-import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
@@ -73,23 +72,9 @@ function PrototypeStudioSession({
 		setSaveState('saving');
 
 		try {
-			const nextElements = elements.map((element) => {
-				if (element.id !== prototypeElement.id) return element;
-				return applyOverlayUpdateByType(
-					'prototype',
-					element as ExcalidrawElement & { customData: PrototypeOverlayCustomData },
-					{
-						title: draft.title,
-						template: draft.template,
-						files: draft.files,
-						dependencies: draft.dependencies,
-						preview: draft.preview,
-						activeFile: draft.activeFile,
-						showEditor: draft.showEditor,
-						showPreview: draft.showPreview,
-					},
-				) as unknown as ExcalidrawElement;
-			});
+			// TODO: Phase 1 - Update prototype without using overlay system
+			// For now, this is a no-op since prototype overlays are removed
+			const nextElements = elements;
 
 			const headers = await getRequiredAuthHeaders(getToken);
 			const response = await api.api.canvas[':id'].$put(

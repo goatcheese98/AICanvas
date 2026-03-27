@@ -1,21 +1,17 @@
 import { svgToDataUrl } from '@/lib/assistant/diagram-renderer';
-import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type {
 	AssistantArtifact,
 	AssistantContextMode,
-	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { type Dispatch, type SetStateAction, useCallback } from 'react';
-import { getSelectedPrototypeElement } from './ai-chat-canvas';
 import { removeInsertedArtifactFromScene } from './ai-chat-canvas-mutations';
 import {
 	insertKanbanArtifactOnCanvas,
 	insertMarkdownOnCanvas as insertMarkdownOnCanvasInternal,
 	insertRenderedDiagramOnCanvas as insertRenderedDiagramOnCanvasInternal,
 } from './ai-chat-overlay-insertion';
-import { insertPrototypeArtifactOnCanvas } from './ai-chat-prototype-insertion';
 import {
 	insertStoredAssetOnCanvas as insertStoredAssetOnCanvasInternal,
 	vectorizeRasterAssetOnCanvas as vectorizeRasterAssetOnCanvasInternal,
@@ -226,23 +222,6 @@ export function useAIChatInsertionActions({
 				case 'image':
 				case 'image-vector':
 					return await insertStoredAssetOnCanvas(artifact);
-				case 'prototype-files':
-					try {
-						return await insertPrototypeArtifactOnCanvas({
-							artifact,
-							excalidrawApi,
-							elements,
-							selectedElementIds,
-							setElements,
-						});
-					} catch (error) {
-						setChatError(
-							error instanceof Error
-								? error.message
-								: 'Prototype artifact is invalid or incomplete.',
-						);
-						return null;
-					}
 				default:
 					setChatError('This artifact type is not insertable yet.');
 					return null;
@@ -259,35 +238,6 @@ export function useAIChatInsertionActions({
 		],
 	);
 
-	const insertPrototypeOnCanvas = useCallback(
-		async (messageContent: string) => {
-			void messageContent;
-			setChatError(
-				'Prototype insertion from raw assistant text is no longer supported. Insert a prototype-files artifact instead.',
-			);
-		},
-		[setChatError],
-	);
-
-	const getPrototypeContextForRequest = useCallback(
-		(effectiveContextMode: AssistantContextMode): PrototypeOverlayCustomData | undefined => {
-			if (effectiveContextMode !== 'selected') {
-				return undefined;
-			}
-
-			const selectedPrototype = getSelectedPrototypeElement(
-				elements as unknown as Record<string, unknown>[],
-				selectedElementIds,
-			);
-			if (!selectedPrototype) {
-				return undefined;
-			}
-
-			return normalizePrototypeOverlay(selectedPrototype.customData as Record<string, unknown>);
-		},
-		[elements, selectedElementIds],
-	);
-
 	return {
 		removeInsertedArtifact,
 		insertMarkdownOnCanvas,
@@ -297,7 +247,5 @@ export function useAIChatInsertionActions({
 		insertStoredAssetOnCanvas,
 		rememberInsertionState,
 		insertArtifactOnCanvas,
-		insertPrototypeOnCanvas,
-		getPrototypeContextForRequest,
 	};
 }

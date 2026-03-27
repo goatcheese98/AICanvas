@@ -45,7 +45,6 @@ export interface AIChatMessageListProps {
 		insertSvgMarkupOnCanvas: (svgMarkup: string) => Promise<AssistantInsertionState | null>;
 		removeInsertedArtifact: (artifactKey: string) => void;
 		insertMarkdownOnCanvas: (content: string) => Promise<AssistantInsertionState | null>;
-		insertPrototypeOnCanvas: (content: string) => Promise<void>;
 		updateMarkdownPatchAcceptedHunks: (artifactKey: string, acceptedHunkIds: string[]) => void;
 		applyAssistantPatch: (
 			artifactKey: string,
