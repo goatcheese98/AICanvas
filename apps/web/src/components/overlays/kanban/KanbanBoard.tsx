@@ -37,7 +37,8 @@ const PREVIEW_PRIORITY_META = {
 function KanbanPreviewBoard({
 	element,
 	isSelected,
-}: Pick<KanbanBoardProps, 'element' | 'isSelected'>) {
+	onOpenBoard,
+}: Pick<KanbanBoardProps, 'element' | 'isSelected' | 'onOpenBoard'>) {
 	const board = useMemo(() => normalizeKanbanBoard(element.customData), [element.customData]);
 	const activeTheme = getKanbanBackgroundTheme(board.bgTheme);
 	const activeFont = getKanbanFontOption(board.fontId);
@@ -86,8 +87,19 @@ function KanbanPreviewBoard({
 							{board.title}
 						</div>
 					</div>
-					<div className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
-						{cardCount} cards
+					<div className="flex items-center gap-3">
+						<div className="rounded-full border border-stone-200 bg-white/80 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+							{cardCount} cards
+						</div>
+						{onOpenBoard && (
+							<button
+								type="button"
+								onClick={onOpenBoard}
+								className="rounded-full bg-[#4d55cc] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white hover:bg-[#3d45bc]"
+							>
+								Open Board
+							</button>
+						)}
 					</div>
 				</div>
 
@@ -256,7 +268,13 @@ function KanbanPreviewBoard({
 
 export function KanbanBoard(props: KanbanBoardProps) {
 	if (props.mode === 'preview') {
-		return <KanbanPreviewBoard element={props.element} isSelected={props.isSelected} />;
+		return (
+			<KanbanPreviewBoard
+				element={props.element}
+				isSelected={props.isSelected}
+				onOpenBoard={props.onOpenBoard}
+			/>
+		);
 	}
 
 	return (

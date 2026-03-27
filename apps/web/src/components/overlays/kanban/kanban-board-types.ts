@@ -12,6 +12,8 @@ export interface KanbanBoardProps {
 	isActive: boolean;
 	onChange: (elementId: string, data: KanbanOverlayCustomData) => void;
 	onActivityChange?: (isActive: boolean) => void;
+	/** Called when user requests to open the board in focused view (preview mode only) */
+	onOpenBoard?: () => void;
 }
 
 export interface KanbanBoardMutationOptions {

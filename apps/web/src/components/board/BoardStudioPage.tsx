@@ -1,4 +1,6 @@
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
+import { ProjectShell } from '@/components/shell';
+import type { ProjectResource } from '@/components/shell/types';
 import { KanbanBoard } from '@/components/overlays/kanban';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
@@ -6,102 +8,24 @@ import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Navigate } from '@tanstack/react-router';
-import { useCallback, useMemo, useState } from 'react';
+import { Navigate, useNavigate } from '@tanstack/react-router';
+import { useMemo } from 'react';
+import { useCollaboration } from '@/hooks/useCollaboration';
+import { useAppStore } from '@/stores/store';
 
 interface BoardStudioPageProps {
 	canvasId: string;
 	boardId: string;
 }
 
-interface BoardStudioSessionProps {
-	canvasId: string;
-	boardElementId: string;
-	normalizedBoard: KanbanOverlayCustomData;
-}
-
-function BoardStudioSession({
-	canvasId,
-	boardElementId,
-	normalizedBoard,
-}: BoardStudioSessionProps) {
-	const [draft, setDraft] = useState(normalizedBoard);
-
-	const handleDraftChange = useCallback((_elementId: string, data: KanbanOverlayCustomData) => {
-		// In Phase 2, board editing is temporarily read-only during the transition
-		// The full write path will be restored in a later phase
-		setDraft(data);
-	}, []);
-
-	// Create a shell element for the KanbanBoard component
-	const shellElement = useMemo(
-		() => ({
-			id: boardElementId,
-			type: 'rectangle' as const,
-			x: 0,
-			y: 0,
-			width: 1200,
-			height: 800,
-			backgroundColor: '#f8f6f0',
-			fillStyle: 'solid' as const,
-			opacity: 100,
-			roughness: 1,
-			roundness: { type: 1 as const, value: 8 },
-			customData: draft,
-		}),
-		[boardElementId, draft],
-	);
-
-	return (
-		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
-			<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
-				<div>
-					<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
-						Board Studio
-					</div>
-					<div className="mt-1 text-sm text-stone-600">
-						Board Studio is temporarily read-only during Phase 2 transition.
-					</div>
-				</div>
-				<div className="flex items-center gap-3">
-					<div className="text-xs font-medium text-amber-600">
-						Board editing temporarily unavailable (Phase 2 migration)
-					</div>
-					<button
-						type="button"
-						disabled
-						className="cursor-not-allowed rounded-full bg-stone-400 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
-						title="Board editing is temporarily unavailable during Phase 2 transition"
-					>
-						Save Disabled
-					</button>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
-						className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-					>
-						Back to Canvas
-					</Link>
-				</div>
-			</div>
-
-			<div className="min-h-0 flex-1 p-6">
-				<div className="h-full overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-					<KanbanBoard
-						element={shellElement as never}
-						mode="shell"
-						isSelected={true}
-						isActive={true}
-						onChange={handleDraftChange}
-					/>
-				</div>
-			</div>
-		</div>
-	);
-}
-
 export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 	const { getToken } = useAuth();
+	const navigate = useNavigate();
+	const addToast = useAppStore((s) => s.addToast);
+
+	const collaboration = useCollaboration({
+		onError: (message: string) => addToast({ message, type: 'error' }),
+	});
 
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -120,6 +44,40 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 			),
 		[canvasQuery.data?.data?.elements],
 	);
+
+	// Extract board and prototype resources from canvas elements
+	const resources: ProjectResource[] = useMemo(() => {
+		const canvasResource: ProjectResource = {
+			id: canvasId,
+			type: 'canvas',
+			name: 'Overview',
+			isActive: false,
+		};
+
+		const overlayResources: ProjectResource[] = [];
+
+		for (const el of elements) {
+			if (el.isDeleted) continue;
+			const customData = el.customData as { type?: string; title?: string } | undefined;
+			if (customData?.type === 'kanban') {
+				overlayResources.push({
+					id: el.id,
+					type: 'board',
+					name: customData?.title || 'Untitled Board',
+					isActive: el.id === boardId,
+				});
+			} else if (customData?.type === 'prototype') {
+				overlayResources.push({
+					id: el.id,
+					type: 'prototype',
+					name: customData?.title || 'Untitled Prototype',
+					isActive: false,
+				});
+			}
+		}
+
+		return [canvasResource, ...overlayResources];
+	}, [elements, canvasId, boardId]);
 
 	const kanbanElements = useMemo(
 		() =>
@@ -149,10 +107,29 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 		[boardElement],
 	);
 
-	const savedSignature = useMemo(
-		() => (normalizedBoard ? JSON.stringify(normalizedBoard) : ''),
-		[normalizedBoard],
-	);
+	const handleNavigateToResource = (resource: ProjectResource) => {
+		if (resource.type === 'canvas') {
+			void navigate({
+				to: '/canvas/$id',
+				params: { id: canvasId },
+			});
+			return;
+		}
+		if (resource.type === 'board') {
+			void navigate({
+				to: '/canvas/$id/board/$boardId' as never,
+				params: { id: canvasId, boardId: resource.id } as never,
+			});
+			return;
+		}
+		if (resource.type === 'prototype') {
+			void navigate({
+				to: '/canvas/$id/prototype/$prototypeId',
+				params: { id: canvasId, prototypeId: resource.id },
+			});
+			return;
+		}
+	};
 
 	if (canvasQuery.isLoading) {
 		return (
@@ -170,13 +147,18 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 					<p className="mt-2 text-sm text-stone-600">
 						The canvas data could not be loaded for this board view.
 					</p>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
+					<button
+						type="button"
+						onClick={() =>
+							void navigate({
+								to: '/canvas/$id',
+								params: { id: canvasId },
+							})
+						}
 						className="mt-4 inline-flex rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
 					>
 						Back to Canvas
-					</Link>
+					</button>
 				</div>
 			</div>
 		);
@@ -207,24 +189,76 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 							? 'This canvas does not currently have any kanban boards.'
 							: 'The requested board could not be found. Try reopening it from the canvas.'}
 					</p>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
+					<button
+						type="button"
+						onClick={() =>
+							void navigate({
+								to: '/canvas/$id',
+								params: { id: canvasId },
+							})
+						}
 						className="mt-4 inline-flex rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
 					>
 						Back to Canvas
-					</Link>
+					</button>
 				</div>
 			</div>
 		);
 	}
 
+	// Create a shell element for the KanbanBoard component
+	const shellElement = useMemo(
+		() => ({
+			id: boardElement.id,
+			type: 'rectangle' as const,
+			x: 0,
+			y: 0,
+			width: 1200,
+			height: 800,
+			backgroundColor: '#f8f6f0',
+			fillStyle: 'solid' as const,
+			opacity: 100,
+			roughness: 1,
+			roundness: { type: 1 as const, value: 8 },
+			customData: normalizedBoard,
+		}),
+		[boardElement.id, normalizedBoard],
+	);
+
 	return (
-		<BoardStudioSession
-			key={`${boardElement.id}:${savedSignature}`}
+		<ProjectShell
+			projectId="default"
+			projectName={normalizedBoard.title}
 			canvasId={canvasId}
-			boardElementId={boardElement.id}
-			normalizedBoard={normalizedBoard}
-		/>
+			collaboration={collaboration}
+			resources={resources}
+			onNavigateToResource={handleNavigateToResource}
+		>
+			<div className="relative h-full w-full overflow-hidden bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
+				<div className="flex h-full flex-col items-center justify-center p-6">
+					<div className="w-full max-w-6xl">
+						<div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+							<p className="font-medium">Board Studio</p>
+							<p className="mt-1 text-amber-700">
+								Board editing is temporarily unavailable during Phase 2 transition.
+								The board is shown in read-only preview mode.
+							</p>
+						</div>
+						<div className="h-[calc(100vh-12rem)] overflow-hidden rounded-[24px] border border-stone-200 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+							{/* Use preview mode for truly read-only behavior */}
+							<KanbanBoard
+								element={shellElement as never}
+								mode="preview"
+								isSelected={false}
+								isActive={false}
+								onChange={() => {
+									/* no-op - read only */
+								}}
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+		</ProjectShell>
 	);
 }

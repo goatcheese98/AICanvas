@@ -74,6 +74,8 @@ export interface OverlayRenderProps<K extends OverlayType> {
 	isActive: boolean;
 	onChange: (payload: OverlayUpdatePayloadMap[K]) => void;
 	onActivityChange?: (isActive: boolean) => void;
+	/** Called when user requests to open the board in focused view (kanban only) */
+	onOpenBoard?: () => void;
 }
 
 export interface OverlayDefinition<K extends OverlayType> {
