@@ -2,7 +2,6 @@ import { useAppStore } from '@/stores/store';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
 import { type CSSProperties, memo, useCallback, useMemo, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import {
 	type OverlayUpdatePayloadMap,
 	type TypedOverlayCanvasElement,
@@ -60,7 +59,7 @@ interface OverlayContentProps {
 	mode: 'preview' | 'shell' | 'live';
 	onChange: (payload: OverlayUpdatePayloadMap[OverlayType]) => void;
 	onActivityChange: (isActive: boolean) => void;
-	onOpenBoard?: () => void;
+	canvasId: string;
 }
 
 const OverlayContent = memo(function OverlayContent({
@@ -70,7 +69,7 @@ const OverlayContent = memo(function OverlayContent({
 	mode,
 	onChange,
 	onActivityChange,
-	onOpenBoard,
+	canvasId,
 }: OverlayContentProps) {
 	const definition = getOverlayDefinition(element.customData.type);
 	return definition.render({
@@ -80,7 +79,7 @@ const OverlayContent = memo(function OverlayContent({
 		mode,
 		onChange: onChange as never,
 		onActivityChange,
-		onOpenBoard,
+		canvasId,
 	});
 });
 
@@ -99,7 +98,6 @@ interface OverlayItemProps {
 function OverlayItem({ element, stackIndex, appState, canvasId, updateOverlayElement }: OverlayItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const isEditingRef = useRef(false);
-	const navigate = useNavigate();
 	const type = element.customData.type;
 	const normalizedElement = normalizeOverlayElement(type, element);
 	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
@@ -124,14 +122,6 @@ function OverlayItem({ element, stackIndex, appState, canvasId, updateOverlayEle
 		isEditingRef.current = nextIsActive;
 		setIsEditing(nextIsActive);
 	}, []);
-	const handleOpenBoard = useCallback(() => {
-		if (type === 'kanban') {
-			void navigate({
-				to: '/canvas/$id/board/$boardId' as never,
-				params: { id: canvasId, boardId: normalizedElement.id } as never,
-			});
-		}
-	}, [type, canvasId, normalizedElement.id, navigate]);
 
 	return (
 		<div
@@ -152,7 +142,7 @@ function OverlayItem({ element, stackIndex, appState, canvasId, updateOverlayEle
 					mode={isSelected ? 'live' : 'preview'}
 					onChange={handleChange as never}
 					onActivityChange={handleActivityChange}
-					onOpenBoard={type === 'kanban' ? handleOpenBoard : undefined}
+					canvasId={canvasId}
 				/>
 			</div>
 		</div>
@@ -168,10 +158,12 @@ export function CanvasNotesLayer() {
 		(s) => s.appState.selectedElementIds ?? EMPTY_SELECTED_ELEMENT_IDS,
 	);
 
-	// Get canvas ID from URL
-	const pathname = window.location.pathname;
-	const canvasIdMatch = pathname.match(/\/canvas\/([^/]+)/);
-	const canvasId = canvasIdMatch?.[1] ?? '';
+	// Get canvas ID from URL - use useMemo to avoid re-computation
+	const canvasId = useMemo(() => {
+		const pathname = window.location.pathname;
+		const match = pathname.match(/\/canvas\/([^/]+)/);
+		return match?.[1] ?? '';
+	}, []);
 
 	const overlayElements = useMemo(() => collectOverlayElements(elements), [elements]);
 	const normalizedAppState = useMemo(

@@ -12,6 +12,7 @@ import type {
 	OverlayType,
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
+import { useNavigate } from '@tanstack/react-router';
 import { KanbanBoard } from '../overlays/kanban';
 import { LexicalNote } from '../overlays/lexical';
 import { MarkdownNote } from '../overlays/markdown';
@@ -188,11 +189,21 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, isActive: _isActive, mode, onChange, onActivityChange, onOpenBoard }) => {
+		render: ({ element, isSelected, isActive: _isActive, mode, onChange, onActivityChange, canvasId }) => {
 			// In V2 Phase 2: Kanban boards on canvas render in preview mode only.
 			// The full board editor is accessed via the focused board view (/canvas/$id/board/$boardId).
 			// Only 'shell' mode (focused view) gets the full editor.
 			const effectiveMode = mode === 'shell' ? 'shell' : 'preview';
+			// Navigation handler for opening focused board view
+			const navigate = useNavigate();
+			const handleOpenBoard = canvasId
+				? () => {
+						void navigate({
+							to: '/canvas/$id/board/$boardId' as never,
+							params: { id: canvasId, boardId: element.id } as never,
+						});
+				  }
+				: undefined;
 			return (
 				<KanbanBoard
 					element={element}
@@ -201,7 +212,7 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 					isActive={false}
 					onChange={(_elementId, data) => onChange(data)}
 					onActivityChange={onActivityChange}
-					onOpenBoard={onOpenBoard}
+					onOpenBoard={handleOpenBoard}
 				/>
 			);
 		},
