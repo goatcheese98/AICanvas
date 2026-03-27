@@ -21,7 +21,7 @@ describe('AIChatComposer', () => {
 			/>,
 		);
 
-		expect(screen.getByRole('listbox', { name: 'Chat commands' })).toBeTruthy();
+		expect(screen.getByRole('list', { name: 'Chat commands' })).toBeTruthy();
 		expect(screen.getByText('/select')).toBeTruthy();
 		expect(screen.getByText('/svg')).toBeTruthy();
 	});

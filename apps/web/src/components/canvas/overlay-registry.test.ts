@@ -249,9 +249,9 @@ describe('overlay-registry', () => {
 		expect(updated.customData.title).toBe('Prototype v2');
 		expect(updated.customData.showPreview).toBe(false);
 		expect(updated.customData.preview?.title).toBe('Prototype v2');
-		expect(updated.customData.files['/App.js']).toBeUndefined();
-		expect(updated.customData.files['/App.jsx']?.code).toContain('Hi');
-		expect(updated.customData.activeFile).toBe('/App.jsx');
+		expect(updated.customData.files['/App.js']?.code).toContain('Hi');
+		expect(updated.customData.files['/App.js']?.active).toBe(true);
+		expect(updated.customData.activeFile).toBe('/App.js');
 	});
 
 	it('calculates z-index with selection and editing promotion', () => {

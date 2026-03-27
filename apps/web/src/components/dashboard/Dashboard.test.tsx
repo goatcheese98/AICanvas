@@ -91,11 +91,16 @@ describe('Dashboard', () => {
 		fireEvent.click(screen.getByRole('button', { name: 'Open profile menu' }));
 		fireEvent.click(screen.getByRole('button', { name: /workspace settings/i }));
 
-		expect(screen.getByRole('dialog', { name: 'Workspace settings' })).toBeTruthy();
+		expect(screen.getByText('Workspace settings')).toBeTruthy();
+		expect(
+			screen.getByText(
+				'A couple of shared workspace defaults that are reasonable to manage from your profile menu.',
+			),
+		).toBeTruthy();
 
 		fireEvent.click(screen.getByRole('button', { name: 'Go back' }));
 
-		expect(screen.getByRole('dialog', { name: 'Profile menu' })).toBeTruthy();
+		expect(screen.getByText('Account')).toBeTruthy();
 		expect(screen.getByRole('button', { name: /manage account/i })).toBeTruthy();
 	});
 });

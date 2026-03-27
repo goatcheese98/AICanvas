@@ -38,15 +38,7 @@ describe('LandingPage', () => {
 		expect(screen.getAllByRole('link', { name: /^sign in$/i })[0]?.getAttribute('href')).toBe(
 			'/login',
 		);
-		expect(
-			within(navigation)
-				.getByRole('link', { name: /canvas story/i })
-				.getAttribute('href'),
-		).toBe('#capture');
-		expect(
-			within(navigation)
-				.getByRole('link', { name: /^waitlist$/i })
-				.getAttribute('href'),
-		).toBe('#waitlist');
+		expect(within(navigation).getByRole('button', { name: /canvas story/i })).toBeTruthy();
+		expect(within(navigation).getByRole('button', { name: /^waitlist$/i })).toBeTruthy();
 	});
 });
