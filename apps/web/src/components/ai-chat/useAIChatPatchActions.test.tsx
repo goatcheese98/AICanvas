@@ -115,5 +115,4 @@ describe('useAIChatPatchActions', () => {
 		});
 		expect(setChatError).not.toHaveBeenCalled();
 	});
-
 });

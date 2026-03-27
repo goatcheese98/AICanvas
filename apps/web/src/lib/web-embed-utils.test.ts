@@ -26,9 +26,9 @@ describe('web-embed-utils', () => {
 	it('marks known sites as embeddable', () => {
 		expect(isKnownEmbeddable('https://www.youtube.com/watch?v=abc123')).toBe(true);
 		expect(isKnownEmbeddable('https://www.figma.com/file/abc123/example')).toBe(true);
-		expect(isKnownEmbeddable('https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M')).toBe(
-			true,
-		);
+		expect(
+			isKnownEmbeddable('https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M'),
+		).toBe(true);
 		expect(isKnownEmbeddable('https://www.google.com')).toBe(false);
 	});
 

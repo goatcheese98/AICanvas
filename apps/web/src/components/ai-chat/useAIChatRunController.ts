@@ -9,7 +9,6 @@ import {
 import { captureBrowserException } from '@/lib/observability';
 import type {
 	AssistantArtifact,
-	AssistantContextMode,
 	AssistantMessage,
 	AssistantRunCreated,
 	AssistantThread,

@@ -1,8 +1,5 @@
 import { svgToDataUrl } from '@/lib/assistant/diagram-renderer';
-import type {
-	AssistantArtifact,
-	AssistantContextMode,
-} from '@ai-canvas/shared/types';
+import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { type Dispatch, type SetStateAction, useCallback } from 'react';

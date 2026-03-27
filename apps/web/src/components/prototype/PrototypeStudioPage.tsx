@@ -20,10 +20,7 @@ interface PrototypeStudioSessionProps {
 	normalizedPrototype: PrototypeOverlayCustomData;
 }
 
-function PrototypeStudioSession({
-	canvasId,
-	normalizedPrototype,
-}: PrototypeStudioSessionProps) {
+function PrototypeStudioSession({ canvasId, normalizedPrototype }: PrototypeStudioSessionProps) {
 	const [draft, setDraft] = useState(normalizedPrototype);
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {

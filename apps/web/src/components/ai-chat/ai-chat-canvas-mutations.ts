@@ -1,10 +1,7 @@
 import { getViewportSceneCenter } from '@/components/canvas/element-factories';
 import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
-import {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-} from '@ai-canvas/shared/schemas';
+import { normalizeKanbanOverlay, normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
