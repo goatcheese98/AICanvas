@@ -1,5 +1,8 @@
 import type { TypedOverlayCanvasElement } from '@/components/canvas/overlay-definition-types';
+import { collectOverlayElements } from '@/components/canvas/overlay-registry';
+import { useAppStore } from '@/stores/store';
 import type { OverlayType } from '@ai-canvas/shared/types';
+import { useMemo } from 'react';
 import { getOverlayTypeLabel } from './resource-type-utils';
 
 interface DetailsPanelContentProps {
@@ -22,7 +25,28 @@ export function DetailsPanelContent({
 	onOpenFocusedView,
 	onDeleteElement,
 }: DetailsPanelContentProps) {
-	if (!element) {
+	const elements = useAppStore((s) => s.elements);
+	const selectedElementIds = useAppStore((s) => s.appState.selectedElementIds ?? {});
+
+	const resolvedElement = useMemo(() => {
+		if (element !== undefined) {
+			return element;
+		}
+
+		const selectedIds = Object.keys(selectedElementIds);
+		if (selectedIds.length !== 1) {
+			return null;
+		}
+
+		const selectedElement = elements.find((candidate) => candidate.id === selectedIds[0]);
+		if (!selectedElement) {
+			return null;
+		}
+
+		return collectOverlayElements([selectedElement])[0] ?? null;
+	}, [element, elements, selectedElementIds]);
+
+	if (!resolvedElement) {
 		return (
 			<div className="p-4 text-sm text-stone-500">
 				<p>Select an item to view details</p>
@@ -30,9 +54,9 @@ export function DetailsPanelContent({
 		);
 	}
 
-	const type = element.customData.type as OverlayType;
-	const title = extractTitle(element);
-	const metadata = extractMetadata(element);
+	const type = resolvedElement.customData.type as OverlayType;
+	const title = extractTitle(resolvedElement);
+	const metadata = extractMetadata(resolvedElement);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -74,13 +98,13 @@ export function DetailsPanelContent({
 						<div className="flex justify-between text-sm">
 							<span className="text-stone-500">Size</span>
 							<span className="text-stone-700">
-								{Math.round(element.width)} × {Math.round(element.height)}
+								{Math.round(resolvedElement.width)} × {Math.round(resolvedElement.height)}
 							</span>
 						</div>
 						<div className="flex justify-between text-sm">
 							<span className="text-stone-500">Position</span>
 							<span className="text-stone-700">
-								{Math.round(element.x)}, {Math.round(element.y)}
+								{Math.round(resolvedElement.x)}, {Math.round(resolvedElement.y)}
 							</span>
 						</div>
 					</div>
@@ -92,7 +116,7 @@ export function DetailsPanelContent({
 				<div className="flex flex-col gap-2">
 					<button
 						type="button"
-						onClick={() => onOpenFocusedView?.(element.id)}
+						onClick={() => onOpenFocusedView?.(resolvedElement.id)}
 						className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#4d55cc] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#3d45b0]"
 					>
 						<ExpandIcon />
@@ -108,7 +132,7 @@ export function DetailsPanelContent({
 						</button>
 						<button
 							type="button"
-							onClick={() => onDeleteElement?.(element.id)}
+							onClick={() => onDeleteElement?.(resolvedElement.id)}
 							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 py-2 text-sm font-medium text-rose-600 transition-colors hover:bg-rose-50"
 						>
 							<TrashIcon />

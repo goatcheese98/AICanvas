@@ -2,8 +2,8 @@ import { ProjectShell } from '@/components/shell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import { useAppStore } from '@/stores/store';
 import '@excalidraw/excalidraw/index.css';
-import { useNavigate } from '@tanstack/react-router';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { ExpandedOverlayLayer } from '../overlays/ExpandedOverlayLayer';
 import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
@@ -26,7 +26,6 @@ interface CanvasContainerV2Props {
  */
 export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
-	const elements = useAppStore((s) => s.elements);
 	const navigate = useNavigate();
 
 	const { collaboration, handleSaveNeeded, normalizeSceneChange, canvasQueryData } =

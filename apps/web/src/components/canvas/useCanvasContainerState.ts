@@ -7,6 +7,7 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { buildPersistedCanvasData, readCanvasVersion } from './canvas-persistence-utils';
 import { useCanvasInitialization } from './useCanvasInitialization';
@@ -58,6 +59,7 @@ export function useCanvasContainerState({
 	// Persistence and tools
 	const persistence = useCanvasPersistence({ canvasId });
 	const tools = useCanvasTools();
+	const { coordinatorRef, latestSceneRef, scheduleServerSave } = persistence;
 
 	// Collaboration
 	const collaboration = useCollaboration({
@@ -120,23 +122,26 @@ export function useCanvasContainerState({
 	});
 
 	// Save handler
-	const handleSaveNeeded = (
-		sceneElements: readonly ExcalidrawElement[],
-		sceneAppState: AppState,
-		sceneFiles: BinaryFiles,
-	) => {
-		if (!isInitializedRef.current) return;
+	const handleSaveNeeded = useCallback(
+		(
+			sceneElements: readonly ExcalidrawElement[],
+			sceneAppState: AppState,
+			sceneFiles: BinaryFiles,
+		) => {
+			if (!isInitializedRef.current) return;
 
-		const data = buildPersistedCanvasData(
-			sceneElements as unknown as Record<string, unknown>[],
-			sceneAppState as unknown as Record<string, unknown>,
-			sceneFiles as unknown as Record<string, unknown>,
-		);
+			const data = buildPersistedCanvasData(
+				sceneElements as unknown as Record<string, unknown>[],
+				sceneAppState as unknown as Record<string, unknown>,
+				sceneFiles as unknown as Record<string, unknown>,
+			);
 
-		persistence.latestSceneRef.current = data;
-		persistence.coordinatorRef.current?.scheduleSave(data, canvasId);
-		persistence.scheduleServerSave(data);
-	};
+			latestSceneRef.current = data;
+			coordinatorRef.current?.scheduleSave(data, canvasId);
+			scheduleServerSave(data);
+		},
+		[canvasId, coordinatorRef, latestSceneRef, scheduleServerSave],
+	);
 
 	return {
 		collaboration,

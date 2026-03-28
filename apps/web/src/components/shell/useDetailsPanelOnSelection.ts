@@ -24,9 +24,10 @@ interface UseDetailsPanelOnSelectionResult {
  * Heavy resources get the Details panel on single-click.
  * Light resources (markdown, web-embed) do not.
  *
- * Note: This hook intentionally does NOT track selection changes when
- * the user already has the Details panel open - it only opens it
- * automatically on initial selection.
+ * Note: This hook intentionally skips the shell's first mount so it
+ * doesn't resize the layout while Excalidraw is still initializing.
+ * After mount, it only reacts to actual selection changes and will not
+ * retrigger while the Details panel is already open.
  */
 export function useDetailsPanelOnSelection({
 	onOpenDetails,
@@ -34,6 +35,7 @@ export function useDetailsPanelOnSelection({
 }: UseDetailsPanelOnSelectionOptions): UseDetailsPanelOnSelectionResult {
 	const elements = useAppStore((s) => s.elements);
 	const selectedElementIds = useAppStore((s) => s.appState.selectedElementIds ?? {});
+	const hasMountedRef = useRef(false);
 
 	// Track previous selection to avoid re-triggering when clicking same element
 	const previousSelectionRef = useRef<string | null>(null);
@@ -55,23 +57,30 @@ export function useDetailsPanelOnSelection({
 		return isHeavyOverlayType(customData?.type);
 	}, [selectedElement]);
 
-	// Open details panel when a heavy resource is selected
-	useEffect(() => {
-		const selectedId = selectedElement?.id ?? null;
-		const previousId = previousSelectionRef.current;
+	const selectedElementId = selectedElement?.id ?? null;
 
-		// Only trigger if:
-		// 1. We have a selected element
-		// 2. It's a heavy resource
-		// 3. The selection changed (new element selected)
-		// 4. The details panel is not already open
-		if (selectedId && isHeavyResource && selectedId !== previousId && !isDetailsPanelOpen) {
-			onOpenDetails();
+	// Open details only after the shell has mounted. Doing this during the first
+	// render cycle can create a layout/update loop while Excalidraw is still
+	// initializing.
+	useEffect(() => {
+		if (!hasMountedRef.current) {
+			hasMountedRef.current = true;
+			previousSelectionRef.current = selectedElementId;
+			return;
 		}
 
-		// Update the ref after checking
-		previousSelectionRef.current = selectedId;
-	}, [selectedElement, isHeavyResource, onOpenDetails, isDetailsPanelOpen]);
+		const previousId = previousSelectionRef.current;
+		previousSelectionRef.current = selectedElementId;
+
+		if (
+			selectedElementId &&
+			isHeavyResource &&
+			selectedElementId !== previousId &&
+			!isDetailsPanelOpen
+		) {
+			onOpenDetails();
+		}
+	}, [selectedElementId, isHeavyResource, onOpenDetails, isDetailsPanelOpen]);
 
 	return {
 		selectedElement,

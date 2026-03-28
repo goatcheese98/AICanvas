@@ -1,6 +1,6 @@
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useDetailsPanelOnSelection } from './useDetailsPanelOnSelection';
 
@@ -27,7 +27,7 @@ describe('useDetailsPanelOnSelection', () => {
 		expect(onOpenDetails).not.toHaveBeenCalled();
 	});
 
-	it('opens details when a kanban board is selected', () => {
+	it('does not open details on initial mount with a preselected heavy resource', () => {
 		const onOpenDetails = vi.fn();
 		const kanbanElement = {
 			id: 'kanban-1',
@@ -49,31 +49,61 @@ describe('useDetailsPanelOnSelection', () => {
 			}),
 		);
 
-		expect(onOpenDetails).toHaveBeenCalled();
+		expect(onOpenDetails).not.toHaveBeenCalled();
 	});
 
-	it('opens details when a newlex document is selected', () => {
+	it('opens details when a kanban board becomes selected after mount', () => {
 		const onOpenDetails = vi.fn();
-		const newlexElement = {
-			id: 'newlex-1',
+		const kanbanElement = {
+			id: 'kanban-1',
 			type: 'rectangle',
-			customData: { type: 'newlex', title: 'Test Doc' },
+			customData: { type: 'kanban', title: 'Test Board' },
 		} as unknown as ExcalidrawElement;
 
-		useAppStore.setState({
-			elements: [newlexElement],
-			appState: {
-				selectedElementIds: { 'newlex-1': true },
-			},
-		});
-
-		renderHook(() =>
+		const { rerender } = renderHook(() =>
 			useDetailsPanelOnSelection({
 				onOpenDetails,
 				isDetailsPanelOpen: false,
 			}),
 		);
 
+		act(() => {
+			useAppStore.setState({
+				elements: [kanbanElement],
+				appState: {
+					selectedElementIds: { 'kanban-1': true },
+				},
+			});
+		});
+
+		rerender();
+		expect(onOpenDetails).toHaveBeenCalled();
+	});
+
+	it('opens details when a newlex document becomes selected after mount', () => {
+		const onOpenDetails = vi.fn();
+		const newlexElement = {
+			id: 'newlex-1',
+			type: 'rectangle',
+			customData: { type: 'newlex', title: 'Test Doc' },
+		} as unknown as ExcalidrawElement;
+		const { rerender } = renderHook(() =>
+			useDetailsPanelOnSelection({
+				onOpenDetails,
+				isDetailsPanelOpen: false,
+			}),
+		);
+
+		act(() => {
+			useAppStore.setState({
+				elements: [newlexElement],
+				appState: {
+					selectedElementIds: { 'newlex-1': true },
+				},
+			});
+		});
+
+		rerender();
 		expect(onOpenDetails).toHaveBeenCalled();
 	});
 

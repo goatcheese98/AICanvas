@@ -1,6 +1,4 @@
 import { AIChatPanelContent } from '@/components/ai-chat/AIChatPanelContent';
-import type { TypedOverlayCanvasElement } from '@/components/canvas/overlay-definition-types';
-import { collectOverlayElements } from '@/components/canvas/overlay-registry';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
 import { useAppStore } from '@/stores/store';
 import { useNavigate } from '@tanstack/react-router';
@@ -50,7 +48,6 @@ export function ProjectShell({
 }: ProjectShellProps) {
 	const shellState = useShellState();
 	const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
-	const elements = useAppStore((s) => s.elements);
 	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const addToast = useAppStore((s) => s.addToast);
 	const navigate = useNavigate();
@@ -72,23 +69,14 @@ export function ProjectShell({
 		},
 	});
 
-	// Get selected element details for the details panel
-	const selectedElementIds = useAppStore((s) => s.appState.selectedElementIds ?? {});
-	const selectedElement = useMemo(() => {
-		const selectedIds = Object.keys(selectedElementIds);
-		if (selectedIds.length !== 1) return null;
-		const selectedId = selectedIds[0];
-		const element = elements.find((el) => el.id === selectedId);
-		if (!element) return null;
-		// Convert to typed overlay element if it's an overlay
-		const overlayElements = collectOverlayElements([element]);
-		return overlayElements[0] ?? null;
-	}, [elements, selectedElementIds]);
-
 	// Open details panel when heavy resource is selected
 	const isDetailsPanelOpen = shellState.rightPanelMode === 'details';
+	const handleAutoOpenDetails = useCallback(() => {
+		shellState.openRightPanel('details');
+	}, [shellState.openRightPanel]);
+
 	useDetailsPanelOnSelection({
-		onOpenDetails: () => shellState.openRightPanel('details'),
+		onOpenDetails: handleAutoOpenDetails,
 		isDetailsPanelOpen,
 	});
 
@@ -193,14 +181,6 @@ export function ProjectShell({
 		[canvasId, createResource, navigate, openExpandedOverlay, addToast],
 	);
 
-	const handleOpenAI = () => {
-		shellState.toggleRightPanel('ai');
-	};
-
-	const handleOpenDetails = () => {
-		shellState.toggleRightPanel('details');
-	};
-
 	const handleRightPanelModeChange = (
 		mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>,
 	) => {
@@ -275,7 +255,6 @@ export function ProjectShell({
 						onChangeMode={handleRightPanelModeChange}
 					>
 						<DetailsPanelContent
-							element={selectedElement as TypedOverlayCanvasElement | null}
 							onOpenFocusedView={handleOpenFocusedView}
 							onDeleteElement={handleDeleteElement}
 						/>
