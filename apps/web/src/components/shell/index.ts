@@ -1,7 +1,10 @@
+export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 export { LeftSidebar } from './LeftSidebar';
 export { ProjectShell } from './ProjectShell';
 export { RightPanel } from './RightPanel';
 export { Shell } from './Shell';
+export { Tooltip } from './Tooltip';
 export { useShellState } from './useShellState';
 export type { RightPanelMode, ShellState } from './useShellState';
 export type { Project, ProjectResource, ResourceType } from './types';
+export type { NewResourceOption } from './LeftSidebar';

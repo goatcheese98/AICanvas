@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { formatShortcut } from '@/lib/keyboard-shortcuts';
+import { Tooltip } from './Tooltip';
 import type { RightPanelMode, ShellState } from './useShellState';
 import { cn } from './utils';
 
@@ -56,6 +58,15 @@ export function Shell({
 	);
 }
 
+// Configuration for edge trigger buttons with shortcuts
+const EDGE_TRIGGER_CONFIG: Record<
+	Exclude<RightPanelMode, 'none'>,
+	{ label: string; shortcutKey: string; icon: () => React.ReactElement }
+> = {
+	ai: { label: 'AI Assistant', shortcutKey: 'mod+b', icon: BotIcon },
+	details: { label: 'Details', shortcutKey: 'mod+i', icon: InfoIcon },
+};
+
 // Separate component for edge triggers
 interface RightEdgeTriggersProps {
 	onOpenRightPanel: (mode: Exclude<RightPanelMode, 'none'>) => void;
@@ -71,83 +82,87 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 
 				{/* Buttons container - appears on hover */}
 				<div className="absolute right-3 top-1/2 flex -translate-y-1/2 flex-col gap-2 opacity-0 transition-all duration-200 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0">
-					{/* AI Button */}
-					<button
-						type="button"
-						onClick={(e) => {
-							e.stopPropagation();
-							onOpenRightPanel('ai');
-						}}
-						className="flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 shadow-sm transition-all hover:scale-105 hover:border-[#4d55cc] hover:text-[#4d55cc]"
-						title="AI Assistant (⌘B)"
-					>
-						<BotIcon />
-					</button>
-					<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
-						⌘B
+					{(Object.keys(EDGE_TRIGGER_CONFIG) as Exclude<RightPanelMode, 'none'>[]).map(
+						(panelMode) => {
+							const config = EDGE_TRIGGER_CONFIG[panelMode];
+							const formattedShortcut = formatShortcut(config.shortcutKey);
+
+							return (
+								<div key={panelMode} className="flex flex-col items-center gap-1">
+									<Tooltip
+										content={
+											<span className="flex items-center gap-1.5">
+												{config.label}
+												<span className="text-stone-400">{formattedShortcut}</span>
+											</span>
+										}
+										position="left"
+									>
+											<button
+												type="button"
+												onClick={(e) => {
+													e.stopPropagation();
+													onOpenRightPanel(panelMode);
+												}}
+												className="flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 shadow-sm transition-all hover:scale-105 hover:border-[#4d55cc] hover:text-[#4d55cc]"
+												aria-label={`Open ${config.label} panel (${formattedShortcut})`}
+											>
+												<config.icon />
+											</button>
+										</Tooltip>
+										<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
+											{formattedShortcut}
+										</div>
+									</div>
+								);
+								},
+								)}
+							</div>
+						</div>
 					</div>
+				);
+			}
 
-					{/* Details Button */}
-					<button
-						type="button"
-						onClick={(e) => {
-							e.stopPropagation();
-							onOpenRightPanel('details');
-						}}
-						className="flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 shadow-sm transition-all hover:scale-105 hover:border-[#4d55cc] hover:text-[#4d55cc]"
-						title="Details (⌘I)"
+			// Inline SVG Icons
+			function BotIcon() {
+				return (
+					<svg
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
 					>
-						<InfoIcon />
-					</button>
-					<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
-						⌘I
-					</div>
-				</div>
-			</div>
-		</div>
-	);
-}
+						<title>AI</title>
+						<path d="M12 8V4H8" />
+						<rect width="16" height="12" x="4" y="8" rx="2" />
+						<path d="M2 14h2" />
+						<path d="M20 14h2" />
+						<path d="M15 13v2" />
+						<path d="M9 13v2" />
+					</svg>
+				);
+			}
 
-// Inline SVG Icons
-function BotIcon() {
-	return (
-		<svg
-			width="18"
-			height="18"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-		>
-			<title>AI</title>
-			<path d="M12 8V4H8" />
-			<rect width="16" height="12" x="4" y="8" rx="2" />
-			<path d="M2 14h2" />
-			<path d="M20 14h2" />
-			<path d="M15 13v2" />
-			<path d="M9 13v2" />
-		</svg>
-	);
-}
-
-function InfoIcon() {
-	return (
-		<svg
-			width="18"
-			height="18"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="2"
-			strokeLinecap="round"
-			strokeLinejoin="round"
-		>
-			<title>Details</title>
-			<circle cx="12" cy="12" r="10" />
-			<path d="M12 16v-4" />
-			<path d="M12 8h.01" />
-		</svg>
-	);
-}
+			function InfoIcon() {
+				return (
+					<svg
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<title>Details</title>
+						<circle cx="12" cy="12" r="10" />
+						<path d="M12 16v-4" />
+						<path d="M12 8h.01" />
+					</svg>
+				);
+			}

@@ -1,4 +1,4 @@
-export type OverlayType = 'markdown' | 'newlex' | 'kanban' | 'web-embed';
+export type OverlayType = 'markdown' | 'newlex' | 'kanban' | 'web-embed' | 'prototype';
 
 export type MarkdownEditorMode = 'raw' | 'hybrid';
 export type PrototypeTemplate = 'react' | 'vanilla';
@@ -160,7 +160,8 @@ export type OverlayCustomData =
 	| MarkdownOverlayCustomData
 	| NewLexOverlayCustomData
 	| KanbanOverlayCustomData
-	| WebEmbedOverlayCustomData;
+	| WebEmbedOverlayCustomData
+	| PrototypeOverlayCustomData;
 
 export interface OverlayElement {
 	id: string;

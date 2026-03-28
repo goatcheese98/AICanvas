@@ -1,6 +1,7 @@
 import { useUser } from '@clerk/clerk-react';
 import type { ReactElement } from 'react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NewResourceMenu, type NewResourceOption } from './NewResourceMenu';
 import type { ProjectResource, ResourceType } from './types';
 import { cn } from './utils';
 
@@ -11,11 +12,12 @@ interface LeftSidebarProps {
 	resources: ProjectResource[];
 	activeResourceId?: string;
 	onResourceClick: (resource: ProjectResource) => void;
-	onNewClick: () => void;
+	onNewResource: (option: NewResourceOption) => void;
 	onNavigateToSettings?: () => void;
+	onOpenShortcutsHelp?: () => void;
 	collaboration: {
 		isCollaborating: boolean;
-		collaborators: { id: string; name: string; avatarUrl?: string }[];
+		collaborators: { id: string; name: string; avatarUrl?: string; isOnline?: boolean }[];
 		roomLink: string | null;
 		username: string;
 		setUsername: (name: string) => void;
@@ -27,6 +29,7 @@ interface LeftSidebarProps {
 const RESOURCE_ICONS: Record<ResourceType, () => ReactElement> = {
 	canvas: LayoutIcon,
 	board: LayoutIcon,
+	document: LayoutIcon,
 	prototype: LayoutIcon,
 };
 
@@ -37,12 +40,18 @@ export function LeftSidebar({
 	resources,
 	activeResourceId,
 	onResourceClick,
-	onNewClick,
+	onNewResource,
 	onNavigateToSettings,
+	onOpenShortcutsHelp,
 	collaboration,
 }: LeftSidebarProps) {
 	const { user } = useUser();
 	const [isFooterPopoverOpen, setIsFooterPopoverOpen] = useState(false);
+	const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+	const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
+	const popoverRef = useRef<HTMLDivElement>(null);
+	const triggerRef = useRef<HTMLButtonElement>(null);
+	const newButtonRef = useRef<HTMLButtonElement>(null);
 
 	const initials = useMemo(() => {
 		const name = user?.fullName || user?.firstName || user?.username || 'U';
@@ -55,10 +64,79 @@ export function LeftSidebar({
 
 	const displayName = user?.fullName || user?.firstName || user?.username || 'User';
 
-	const handleSettingsClick = () => {
-		setIsFooterPopoverOpen(false);
-		onNavigateToSettings?.();
-	};
+	const handleClosePopover = useCallback(() => {
+		setIsAnimatingOut(true);
+		// Wait for animation to complete before removing from DOM
+		setTimeout(() => {
+			setIsFooterPopoverOpen(false);
+			setIsAnimatingOut(false);
+		}, 150);
+	}, []);
+
+	const handleOpenPopover = useCallback(() => {
+		setIsAnimatingOut(false);
+		setIsFooterPopoverOpen(true);
+	}, []);
+
+	const handleTogglePopover = useCallback(() => {
+		if (isFooterPopoverOpen) {
+			handleClosePopover();
+		} else {
+			handleOpenPopover();
+		}
+	}, [isFooterPopoverOpen, handleClosePopover, handleOpenPopover]);
+
+	const handleSettingsClick = useCallback(() => {
+		handleClosePopover();
+		// Delay navigation slightly to allow animation to complete
+		setTimeout(() => {
+			onNavigateToSettings?.();
+		}, 150);
+	}, [handleClosePopover, onNavigateToSettings]);
+
+	// Close on escape key
+	useEffect(() => {
+		if (!isFooterPopoverOpen) return;
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === 'Escape') {
+				handleClosePopover();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [isFooterPopoverOpen, handleClosePopover]);
+
+	// Focus trap within popover
+	useEffect(() => {
+		if (!isFooterPopoverOpen || !popoverRef.current) return;
+
+		const popover = popoverRef.current;
+		const focusableElements = popover.querySelectorAll<HTMLElement>(
+			'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+		);
+		const firstElement = focusableElements[0];
+		const lastElement = focusableElements[focusableElements.length - 1];
+
+		// Focus first element when opened
+		firstElement?.focus();
+
+		const handleTabKey = (e: KeyboardEvent) => {
+			if (e.key !== 'Tab') return;
+
+			if (e.shiftKey && document.activeElement === firstElement) {
+				e.preventDefault();
+				lastElement?.focus();
+			} else if (!e.shiftKey && document.activeElement === lastElement) {
+				e.preventDefault();
+				firstElement?.focus();
+			}
+		};
+
+		document.addEventListener('keydown', handleTabKey);
+		return () => document.removeEventListener('keydown', handleTabKey);
+	}, [isFooterPopoverOpen]);
 
 	return (
 		<div className="flex h-full flex-col">
@@ -71,8 +149,9 @@ export function LeftSidebar({
 						</div>
 						<button
 							type="button"
-							className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100"
+							className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100"
 							onClick={onToggleExpand}
+							aria-label="Collapse sidebar"
 						>
 							<PanelLeftIcon />
 						</button>
@@ -80,8 +159,9 @@ export function LeftSidebar({
 				) : (
 					<button
 						type="button"
-						className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 hover:bg-stone-100"
+						className="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100"
 						onClick={onToggleExpand}
+						aria-label="Expand sidebar"
 					>
 						<PanelLeftIcon />
 					</button>
@@ -92,9 +172,9 @@ export function LeftSidebar({
 			<div className="p-3">
 				<button
 					type="button"
-					onClick={onNewClick}
+					onClick={() => onNewResource({ type: 'quick-note' })}
 					className={cn(
-						'flex items-center justify-center rounded-lg bg-[#4d55cc] px-3 py-2 text-white hover:bg-[#3d45bc] transition-colors',
+						'flex items-center justify-center rounded-lg bg-[#4d55cc] px-3 py-2 text-white transition-colors hover:bg-[#3d45bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-2',
 						isExpanded ? 'w-full gap-2' : 'h-10 w-10 p-0',
 					)}
 				>
@@ -126,31 +206,39 @@ export function LeftSidebar({
 			{/* Footer - Account/Presence/Share Popover */}
 			<div className="relative border-t border-stone-100 p-3">
 				<button
+					ref={triggerRef}
 					type="button"
-					onClick={() => setIsFooterPopoverOpen(!isFooterPopoverOpen)}
+					onClick={handleTogglePopover}
+					aria-expanded={isFooterPopoverOpen}
+					aria-haspopup="dialog"
 					className={cn(
-						'flex w-full items-center gap-2 rounded-lg p-2 transition-colors hover:bg-stone-100',
+						'flex w-full items-center gap-2 rounded-lg p-2 transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-2',
 						!isExpanded && 'justify-center',
+						isFooterPopoverOpen && 'bg-stone-100',
 					)}
 				>
 					{/* User Avatar */}
 					<div className="relative">
-						<div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full">
+						<div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full ring-2 ring-stone-100">
 							{user?.imageUrl ? (
-								<img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
+								<img src={user.imageUrl} alt="" className="h-full w-full object-cover" />
 							) : (
 								<div className="flex h-full w-full items-center justify-center bg-stone-900 text-xs font-semibold text-white">
 									{initials}
 								</div>
 							)}
 						</div>
-						{/* Presence indicator dot */}
+						{/* Presence indicator dot with pulse animation when collaborating */}
 						<div
 							className={cn(
-								'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white',
+								'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white transition-colors',
 								collaboration.isCollaborating ? 'bg-green-500' : 'bg-stone-300',
 							)}
-						/>
+						>
+							{collaboration.isCollaborating && (
+								<span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75" />
+							)}
+						</div>
 					</div>
 
 					{/* Collaborator Avatars (stacked) */}
@@ -159,13 +247,13 @@ export function LeftSidebar({
 							{collaboration.collaborators.slice(0, 2).map((collab) => (
 								<div
 									key={collab.id}
-									className="h-6 w-6 rounded-full bg-stone-200 ring-2 ring-white"
+									className="relative h-6 w-6 rounded-full bg-stone-200 ring-2 ring-white"
 									title={collab.name}
 								>
 									{collab.avatarUrl ? (
 										<img
 											src={collab.avatarUrl}
-											alt={collab.name}
+											alt=""
 											className="h-full w-full rounded-full object-cover"
 										/>
 									) : (
@@ -173,8 +261,12 @@ export function LeftSidebar({
 											{collab.name[0]?.toUpperCase()}
 										</div>
 									)}
+									{/* Online indicator for collaborators */}
+									{collab.isOnline !== false && (
+										<span className="absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-green-500 ring-1 ring-white" />
+									)}
 								</div>
-								))}
+							))}
 							{collaboration.collaborators.length > 2 && (
 								<div className="flex h-6 w-6 items-center justify-center rounded-full bg-stone-100 text-[10px] font-medium text-stone-500 ring-2 ring-white">
 									+{collaboration.collaborators.length - 2}
@@ -187,61 +279,99 @@ export function LeftSidebar({
 
 					{/* Share icon indicator (subtle) */}
 					{isExpanded && (
-						<div className="text-stone-400">
+						<div
+							className={cn(
+								'transition-colors',
+								collaboration.isCollaborating ? 'text-green-500' : 'text-stone-400',
+							)}
+						>
 							<ShareIcon className="h-4 w-4" />
 						</div>
 					)}
 				</button>
 
 				{/* Footer Popover */}
-				{isFooterPopoverOpen && (
+				{(isFooterPopoverOpen || isAnimatingOut) && (
 					<>
 						{/* Backdrop to close popover */}
 						<button
 							type="button"
-							className="fixed inset-0 z-40"
-							onClick={() => setIsFooterPopoverOpen(false)}
+							className={cn(
+								'fixed inset-0 z-40 bg-transparent transition-opacity duration-150',
+								isAnimatingOut ? 'opacity-0' : 'opacity-100',
+							)}
+							onClick={handleClosePopover}
 							aria-label="Close menu"
+							tabIndex={-1}
 						/>
 						<div
+							ref={popoverRef}
+							role="dialog"
+							aria-label="Account and collaboration menu"
 							className={cn(
-								'absolute bottom-full z-50 mb-2 w-64 rounded-xl border border-stone-200 bg-white p-3 shadow-lg',
+								'absolute bottom-full z-50 mb-2 w-72 rounded-xl border border-stone-200 bg-white p-3 shadow-lg',
+								'origin-bottom-left transition-all duration-150 ease-out',
+								isAnimatingOut
+									? 'opacity-0 scale-95 translate-y-1'
+									: 'opacity-100 scale-100 translate-y-0',
+								// Position: left-aligned in expanded, right-aligned (off-sidebar) when collapsed
 								isExpanded ? 'left-0' : 'left-14',
+								// Mobile: ensure it doesn't go off-screen
+								'sm:w-72 w-[calc(100vw-5rem)] max-w-xs',
 							)}
 						>
 							{/* Account Section */}
 							<div className="flex items-center gap-3 border-b border-stone-100 pb-3">
-								<div className="h-10 w-10 overflow-hidden rounded-full">
+								<div className="relative h-10 w-10 overflow-hidden rounded-full ring-2 ring-stone-100">
 									{user?.imageUrl ? (
-										<img src={user.imageUrl} alt="Profile" className="h-full w-full object-cover" />
+										<img src={user.imageUrl} alt="" className="h-full w-full object-cover" />
 									) : (
 										<div className="flex h-full w-full items-center justify-center bg-stone-900 text-sm font-semibold text-white">
 											{initials}
 										</div>
 									)}
+									{/* Presence indicator */}
+									<div
+										className={cn(
+											'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white',
+											collaboration.isCollaborating ? 'bg-green-500' : 'bg-stone-300',
+										)}
+									>
+										{collaboration.isCollaborating && (
+											<span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75" />
+										)}
+									</div>
 								</div>
 								<div className="flex-1 min-w-0">
 									<p className="truncate text-sm font-medium text-stone-900">{displayName}</p>
-									<p className="truncate text-xs text-stone-500">
-										{collaboration.isCollaborating ? 'Live session active' : 'Working solo'}
-									</p>
+									<div className="flex items-center gap-1.5">
+										<span
+											className={cn(
+												'h-1.5 w-1.5 rounded-full',
+												collaboration.isCollaborating ? 'bg-green-500' : 'bg-stone-300',
+											)}
+										/>
+										<p className="truncate text-xs text-stone-500">
+											{collaboration.isCollaborating ? 'Live session active' : 'Working solo'}
+										</p>
+									</div>
 								</div>
 							</div>
 
 							{/* Collaborators Section */}
-							{collaboration.collaborators.length > 0 && (
-								<div className="border-b border-stone-100 py-3">
-									<p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-										Collaborators
-									</p>
+							<div className="border-b border-stone-100 py-3">
+								<p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+									Collaborators
+								</p>
+								{collaboration.collaborators.length > 0 ? (
 									<div className="space-y-2">
 										{collaboration.collaborators.map((collab) => (
 											<div key={collab.id} className="flex items-center gap-2">
-												<div className="h-6 w-6 rounded-full bg-stone-200">
+												<div className="relative h-6 w-6 rounded-full bg-stone-200">
 													{collab.avatarUrl ? (
 														<img
 															src={collab.avatarUrl}
-															alt={collab.name}
+															alt=""
 															className="h-full w-full rounded-full object-cover"
 														/>
 													) : (
@@ -249,13 +379,29 @@ export function LeftSidebar({
 															{collab.name[0]?.toUpperCase()}
 														</div>
 													)}
+													<span
+														className={cn(
+															'absolute -bottom-0.5 -right-0.5 h-1.5 w-1.5 rounded-full ring-1 ring-white',
+															collab.isOnline !== false ? 'bg-green-500' : 'bg-stone-300',
+														)}
+													/>
 												</div>
 												<span className="text-sm text-stone-700">{collab.name}</span>
 											</div>
 										))}
 									</div>
-								</div>
-							)}
+								) : (
+									<div className="flex flex-col items-center gap-2 py-3 text-center">
+										<div className="flex h-10 w-10 items-center justify-center rounded-full bg-stone-50">
+											<UsersIcon className="h-5 w-5 text-stone-300" />
+										</div>
+										<p className="text-xs text-stone-400">No collaborators yet</p>
+										<p className="text-[11px] text-stone-300">
+											Start a live session to invite others
+										</p>
+									</div>
+								)}
+							</div>
 
 							{/* Share/Invite Section */}
 							<div className="border-b border-stone-100 py-3">
@@ -273,7 +419,7 @@ export function LeftSidebar({
 												onClick={() => {
 													void navigator.clipboard.writeText(collaboration.roomLink ?? '');
 												}}
-												className="shrink-0 text-[11px] font-medium text-[#4d55cc] hover:text-[#3d45bc]"
+												className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-[#4d55cc] transition-colors hover:bg-stone-100 hover:text-[#3d45bc]"
 											>
 												Copy
 											</button>
@@ -283,7 +429,7 @@ export function LeftSidebar({
 											onClick={() => {
 												void collaboration.stopSession();
 											}}
-											className="w-full rounded-lg bg-stone-100 px-3 py-2 text-xs font-medium text-stone-700 hover:bg-stone-200"
+											className="w-full rounded-lg bg-stone-100 px-3 py-2 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400"
 										>
 											End Session
 										</button>
@@ -295,21 +441,25 @@ export function LeftSidebar({
 											onClick={() => {
 												void collaboration.startSession();
 											}}
-											className="w-full rounded-lg bg-[#4d55cc] px-3 py-2 text-xs font-medium text-white hover:bg-[#3d45bc]"
+											className="w-full rounded-lg bg-[#4d55cc] px-3 py-2.5 text-xs font-medium text-white transition-colors hover:bg-[#3d45bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-2"
 										>
 											Start Live Session
 										</button>
 									</div>
 								)}
-								<div className="mt-2">
-									<label className="block text-[11px] font-medium text-stone-500 mb-1">
+								<div className="mt-3">
+									<label
+										htmlFor="display-name"
+										className="block text-[11px] font-medium text-stone-500 mb-1"
+									>
 										Display Name
 									</label>
 									<input
+										id="display-name"
 										type="text"
 										value={collaboration.username}
 										onChange={(e) => collaboration.setUsername(e.target.value)}
-										className="w-full rounded-lg border border-stone-200 px-2 py-1.5 text-xs text-stone-700 focus:border-[#4d55cc] focus:outline-none"
+										className="w-full rounded-lg border border-stone-200 px-2.5 py-2 text-xs text-stone-700 transition-colors focus:border-[#4d55cc] focus:outline-none focus:ring-1 focus:ring-[#4d55cc]"
 										placeholder="Your name"
 									/>
 								</div>
@@ -319,7 +469,7 @@ export function LeftSidebar({
 							<div className="pt-2 space-y-1">
 								<button
 									type="button"
-									className="w-full rounded-lg px-3 py-2 text-left text-sm text-stone-700 hover:bg-stone-100"
+									className="w-full rounded-lg px-3 py-2.5 text-left text-sm text-stone-700 transition-colors hover:bg-stone-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-2"
 									onClick={handleSettingsClick}
 								>
 									Settings
@@ -348,7 +498,7 @@ function ResourceItem({ resource, isActive, isExpanded, onClick }: ResourceItemP
 			type="button"
 			onClick={onClick}
 			className={cn(
-				'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors',
+				'flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-1',
 				isActive ? 'bg-[#eef0ff] text-[#4d55cc]' : 'text-stone-700 hover:bg-stone-100',
 				!isExpanded && 'justify-center px-1',
 			)}
@@ -375,13 +525,18 @@ function PanelLeftIcon() {
 			strokeWidth="2"
 			strokeLinecap="round"
 			strokeLinejoin="round"
+			aria-hidden="true"
 		>
-			<title>Toggle sidebar</title>
 			<rect width="18" height="18" x="3" y="3" rx="2" />
 			<path d="M9 3v18" />
 		</svg>
 	);
 }
+
+/**
+ * Export the NewResourceOption type for use in other components
+ */
+export type { NewResourceOption };
 
 function PlusIcon({ className }: { className?: string }) {
 	return (
@@ -395,8 +550,8 @@ function PlusIcon({ className }: { className?: string }) {
 			strokeWidth="2"
 			strokeLinecap="round"
 			strokeLinejoin="round"
+			aria-hidden="true"
 		>
-			<title>Add</title>
 			<path d="M5 12h14" />
 			<path d="M12 5v14" />
 		</svg>
@@ -414,8 +569,8 @@ function LayoutIcon() {
 			strokeWidth="2"
 			strokeLinecap="round"
 			strokeLinejoin="round"
+			aria-hidden="true"
 		>
-			<title>Resource</title>
 			<rect width="18" height="18" x="3" y="3" rx="2" />
 			<path d="M3 9h18" />
 			<path d="M9 21V9" />
@@ -435,11 +590,33 @@ function ShareIcon({ className }: { className?: string }) {
 			strokeWidth="2"
 			strokeLinecap="round"
 			strokeLinejoin="round"
+			aria-hidden="true"
 		>
-			<title>Share</title>
 			<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
 			<polyline points="16 6 12 2 8 6" />
 			<line x1="12" x2="12" y1="2" y2="15" />
+		</svg>
+	);
+}
+
+function UsersIcon({ className }: { className?: string }) {
+	return (
+		<svg
+			className={className}
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			aria-hidden="true"
+		>
+			<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+			<circle cx="9" cy="7" r="4" />
+			<path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+			<path d="M16 3.13a4 4 0 0 1 0 7.75" />
 		</svg>
 	);
 }

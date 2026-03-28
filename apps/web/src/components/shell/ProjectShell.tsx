@@ -1,10 +1,17 @@
 import { AIChatPanelContent } from '@/components/ai-chat/AIChatPanelContent';
+import type { TypedOverlayCanvasElement } from '@/components/canvas/overlay-definition-types';
+import { collectOverlayElements } from '@/components/canvas/overlay-registry';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
-import { useMemo } from 'react';
-import { LeftSidebar } from './LeftSidebar';
+import { useAppStore } from '@/stores/store';
+import { useNavigate } from '@tanstack/react-router';
+import { useCallback, useMemo, useState } from 'react';
+import { DetailsPanelContent } from './DetailsPanelContent';
+import { LeftSidebar, type NewResourceOption } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
 import type { ProjectResource } from './types';
+import { useDetailsPanelOnSelection } from './useDetailsPanelOnSelection';
+import { useNewResourceCreation } from './useNewResourceCreation';
 import { useShellKeyboardShortcuts } from './useShellKeyboardShortcuts';
 import { useShellState } from './useShellState';
 
@@ -42,6 +49,48 @@ export function ProjectShell({
 	onNavigateToSettings,
 }: ProjectShellProps) {
 	const shellState = useShellState();
+	const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
+	const elements = useAppStore((s) => s.elements);
+	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
+	const addToast = useAppStore((s) => s.addToast);
+	const navigate = useNavigate();
+
+	// New resource creation hook
+	const { createResource } = useNewResourceCreation({
+		canvasId,
+		onSuccess: (_resource, type) => {
+			addToast({
+				message: `${type === 'canvas' ? 'Canvas' : type === 'board' ? 'Board' : type === 'document' ? 'Document' : 'Prototype'} created`,
+				type: 'success',
+			});
+		},
+		onError: (error) => {
+			addToast({
+				message: error.message,
+				type: 'error',
+			});
+		},
+	});
+
+	// Get selected element details for the details panel
+	const selectedElementIds = useAppStore((s) => s.appState.selectedElementIds ?? {});
+	const selectedElement = useMemo(() => {
+		const selectedIds = Object.keys(selectedElementIds);
+		if (selectedIds.length !== 1) return null;
+		const selectedId = selectedIds[0];
+		const element = elements.find((el) => el.id === selectedId);
+		if (!element) return null;
+		// Convert to typed overlay element if it's an overlay
+		const overlayElements = collectOverlayElements([element]);
+		return overlayElements[0] ?? null;
+	}, [elements, selectedElementIds]);
+
+	// Open details panel when heavy resource is selected
+	const isDetailsPanelOpen = shellState.rightPanelMode === 'details';
+	useDetailsPanelOnSelection({
+		onOpenDetails: () => shellState.openRightPanel('details'),
+		isDetailsPanelOpen,
+	});
 
 	// Keyboard shortcuts
 	useShellKeyboardShortcuts({
@@ -50,6 +99,8 @@ export function ProjectShell({
 		closeRightPanel: shellState.closeRightPanel,
 		toggleRightPanel: shellState.toggleRightPanel,
 		toggleSidebar: shellState.toggleSidebar,
+		onOpenShortcutsHelp: () => setIsShortcutsHelpOpen(true),
+		isShortcutsHelpOpen,
 	});
 
 	// Convert collaborators map to array
@@ -68,11 +119,79 @@ export function ProjectShell({
 		onNavigateToResource(resource);
 	};
 
-	const handleNewClick = () => {
-		// TODO: Open new resource menu
-		// For now, just log
-		console.log('New resource clicked');
-	};
+	const handleNewResource = useCallback(
+		async (option: NewResourceOption) => {
+			const { type } = option;
+
+			// Canvas-native resources (lightweight - insert directly)
+			if (type === 'quick-note') {
+				const result = await createResource({ type: 'quick-note' });
+				if (result.success && result.elementId) {
+					addToast({
+						message: 'Quick note added to canvas',
+						type: 'success',
+					});
+				}
+				return;
+			}
+
+			if (type === 'web-embed') {
+				const result = await createResource({ type: 'web-embed' });
+				if (result.success && result.elementId) {
+					addToast({
+						message: 'Web embed added to canvas',
+						type: 'success',
+					});
+				}
+				return;
+			}
+
+			// Heavy resources - create, add to canvas, open focused view
+			if (type === 'canvas') {
+				// Navigate to dashboard for canvas creation
+				void navigate({ to: '/dashboard' });
+				return;
+			}
+
+			if (type === 'board') {
+				const result = await createResource({ type: 'board' });
+				if (result.success && result.elementId) {
+					// Open board in focused view
+					void navigate({
+						to: '/canvas/$id/board/$boardId',
+						params: { id: canvasId, boardId: result.elementId },
+					});
+				}
+				return;
+			}
+
+			if (type === 'document') {
+				const result = await createResource({ type: 'document' });
+				if (result.success && result.elementId) {
+					// Open document in expanded overlay view
+					openExpandedOverlay(result.elementId);
+					addToast({
+						message: 'Document created and opened',
+						type: 'success',
+					});
+				}
+				return;
+			}
+
+			if (type === 'prototype') {
+				const result = await createResource({ type: 'prototype' });
+				if (result.success && result.elementId) {
+					// Open prototype in focused view
+					void navigate({
+						to: '/canvas/$id/prototype/$prototypeId',
+						params: { id: canvasId, prototypeId: result.elementId },
+					});
+				}
+				return;
+			}
+		},
+		[canvasId, createResource, navigate, openExpandedOverlay, addToast],
+	);
 
 	const handleOpenAI = () => {
 		shellState.toggleRightPanel('ai');
@@ -88,9 +207,31 @@ export function ProjectShell({
 		shellState.openRightPanel(mode);
 	};
 
-	const handleOpenRightPanel = (mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>) => {
+	const handleOpenRightPanel = (
+		mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>,
+	) => {
 		shellState.openRightPanel(mode);
 	};
+
+	const handleOpenFocusedView = useCallback(
+		(elementId: string) => {
+			openExpandedOverlay(elementId);
+		},
+		[openExpandedOverlay],
+	);
+
+	const handleDeleteElement = useCallback((elementId: string) => {
+		const { excalidrawApi, setElements } = useAppStore.getState();
+		if (!excalidrawApi) return;
+
+		const currentElements = excalidrawApi.getSceneElements();
+		const nextElements = currentElements.map((el) =>
+			el.id === elementId ? { ...el, isDeleted: true } : el,
+		);
+
+		excalidrawApi.updateScene({ elements: nextElements });
+		setElements(nextElements);
+	}, []);
 
 	return (
 		<Shell
@@ -104,7 +245,7 @@ export function ProjectShell({
 					resources={resources}
 					activeResourceId={activeResourceId ?? canvasId}
 					onResourceClick={handleResourceClick}
-					onNewClick={handleNewClick}
+					onNewResource={handleNewResource}
 					onNavigateToSettings={onNavigateToSettings}
 					collaboration={{
 						isCollaborating: collaboration.isCollaborating,
@@ -133,9 +274,11 @@ export function ProjectShell({
 						onClose={shellState.closeRightPanel}
 						onChangeMode={handleRightPanelModeChange}
 					>
-						<div className="p-4 text-sm text-stone-500">
-							<p>Select an item to view details</p>
-						</div>
+						<DetailsPanelContent
+							element={selectedElement as TypedOverlayCanvasElement | null}
+							onOpenFocusedView={handleOpenFocusedView}
+							onDeleteElement={handleDeleteElement}
+						/>
 					</RightPanel>
 				),
 			}}

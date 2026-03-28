@@ -1,5 +1,5 @@
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ProjectResource } from './types';
 
 function getProjectResourceName(element: ExcalidrawElement, fallback: string) {
@@ -29,15 +29,29 @@ export function buildProjectResources({
 
 	for (const element of normalizeSceneElements(elements)) {
 		const type = (element.customData as { type?: unknown } | undefined)?.type;
-		if (element.isDeleted || type !== 'kanban') {
+		if (element.isDeleted) {
 			continue;
 		}
 
-		resources.push({
-			id: element.id,
-			type: 'board',
-			name: getProjectResourceName(element, 'Untitled Board'),
-		});
+		if (type === 'kanban') {
+			resources.push({
+				id: element.id,
+				type: 'board',
+				name: getProjectResourceName(element, 'Untitled Board'),
+			});
+		} else if (type === 'newlex') {
+			resources.push({
+				id: element.id,
+				type: 'document',
+				name: getProjectResourceName(element, 'Untitled Document'),
+			});
+		} else if (type === 'prototype') {
+			resources.push({
+				id: element.id,
+				type: 'prototype',
+				name: getProjectResourceName(element, 'Untitled Prototype'),
+			});
+		}
 	}
 
 	return resources;

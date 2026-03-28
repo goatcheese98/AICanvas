@@ -394,70 +394,69 @@ Every focused view must provide:
 
 ## 11. Notes Strategy
 
-This is one of the most important product decisions.
+This is a deliberate product decision to support both formats.
 
-We are not silently carrying two equal note systems into v2.
+### 11.1 The Hybrid Approach
 
-This is an explicit decision gate.
+We support two note formats:
 
-### 11.0 Decision Gate
+- **Quick Note** (Markdown) — canvas-native, lightweight, always visible
+- **Document** (Lexical) — rich text, focused view, full editing experience
 
-Before the document migration phase starts, we must choose one of these paths:
+This is `Path B: Markdown + Document`.
 
-- `Path A: Markdown-only` for v2
-- `Path B: Markdown + Document` for v2
+### 11.2 Quick Note (Markdown)
 
-Default recommendation:
-
-- `Path A: Markdown-only`
-
-Reason:
-
-- smallest surface area
-- one note format for users
-- one note format for AI
-- fastest deletion path
-
-If we choose `Path B`, it must be a deliberate product decision, not an inherited compromise from the current codebase.
-
-### 11.1 Markdown
-
-Markdown is the canvas-native quick note.
+Markdown notes are canvas-native.
 
 Role:
 
-- capture
-- annotate
-- think spatially
-- write short AI-friendly notes on canvas
+- quick capture
+- annotations
+- spatial thinking
+- lightweight context on the canvas
+- always visible alongside other canvas elements
 
-### 11.2 Lexical
+### 11.3 Document (Lexical)
 
-Lexical is optional in v2.
-
-If we choose `Path B`, Lexical becomes the full document editor.
+Documents are rich text resources edited in focused views.
 
 Role:
 
 - longer structured writing
-- comments
+- comments and collaboration
 - review workflows
-- future richer document capabilities
+- rich formatting capabilities
+- heavy editor with full feature set
 
-### 11.3 Product Language
+### 11.4 Product Language
 
-If we choose `Path B`, we should not present both as generic "notes."
+Use distinct, user-facing terminology:
 
-Use distinct labels:
+| User Term | Format | Location | Use Case |
+|-----------|--------|----------|----------|
+| **Quick Note** | Markdown | On canvas | Quick thoughts, context, annotations |
+| **Document** | Lexical | Focused view | Deep writing, structured content, collaboration |
 
-- `Quick Note` -> Markdown
-- `Document` -> Lexical
+### 11.5 When to Use Each
 
-### 11.4 Bridge
+Use **Quick Note** when:
+- Jotting down quick thoughts
+- Adding context to canvas items
+- Annotating diagrams
+- Working spatially
+
+Use **Document** when:
+- Writing longer content
+- Needing rich formatting
+- Collaborating with comments
+- Focusing on writing without canvas distractions
+
+### 11.6 Bridge
 
 `Promote Quick Note to Document` is not part of the baseline v2 plan.
 
-If we keep Lexical at all, we should add the bridge only after users prove they need it.
+Add only after users prove they need it.
 
 ## 12. AI Architecture
 

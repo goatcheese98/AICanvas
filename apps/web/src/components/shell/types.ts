@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type ResourceType = 'canvas' | 'board' | 'prototype';
+export type ResourceType = 'canvas' | 'board' | 'document' | 'prototype';
 
 export interface ProjectResource {
 	id: string;

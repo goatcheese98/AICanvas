@@ -1,6 +1,8 @@
 // Lexical Note exports
 export { LexicalNote } from './LexicalNote';
 export { LexicalNoteContainer } from './LexicalNoteContainer';
+export { LexicalNotePreviewCard } from './LexicalNotePreviewCard';
+export { LexicalPreviewCard } from './LexicalPreviewCard';
 
 // Lexical Toolbar exports
 export { LexicalToolbar } from './LexicalToolbar';
