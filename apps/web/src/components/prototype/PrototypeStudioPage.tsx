@@ -1,13 +1,19 @@
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
+import { ProjectShell } from '@/components/shell';
+import {
+	buildCanvasProjectResources,
+	getActiveProjectResourceName,
+} from '@/components/shell/project-resources';
+import type { ProjectResource } from '@/components/shell/types';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Navigate } from '@tanstack/react-router';
+import { Link, Navigate, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
@@ -16,14 +22,22 @@ interface PrototypeStudioPageProps {
 }
 
 interface PrototypeStudioSessionProps {
-	canvasId: string;
 	normalizedPrototype: PrototypeOverlayCustomData;
 }
 
-function PrototypeStudioSession({
-	canvasId,
-	normalizedPrototype,
-}: PrototypeStudioSessionProps) {
+const EMPTY_COLLABORATION = {
+	isCollaborating: false,
+	collaborators: new Map<string, { username?: string }>(),
+	roomLink: null,
+	sessionError: null,
+	sessionStatus: 'idle' as const,
+	username: 'Anonymous',
+	setUsername: () => {},
+	startSession: async () => {},
+	stopSession: () => {},
+};
+
+function PrototypeStudioSession({ normalizedPrototype }: PrototypeStudioSessionProps) {
 	const [draft, setDraft] = useState(normalizedPrototype);
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
@@ -54,13 +68,6 @@ function PrototypeStudioSession({
 					>
 						Save Disabled
 					</button>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
-						className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-					>
-						Back to Canvas
-					</Link>
 				</div>
 			</div>
 
@@ -73,6 +80,7 @@ function PrototypeStudioSession({
 
 export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPageProps) {
 	const { getToken } = useAuth();
+	const navigate = useNavigate();
 
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -113,6 +121,15 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 				? normalizePrototypeOverlay(prototypeElement.customData as PrototypeOverlayCustomData)
 				: null,
 		[prototypeElement],
+	);
+	const resources = useMemo(
+		() =>
+			buildCanvasProjectResources({
+				canvasId,
+				canvasTitle: canvasQuery.data?.canvas?.title,
+				elements,
+			}),
+		[canvasId, canvasQuery.data?.canvas?.title, elements],
 	);
 	const savedSignature = useMemo(
 		() => (normalizedPrototype ? serializePrototypeState(normalizedPrototype) : ''),
@@ -160,33 +177,80 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		);
 	}
 
+	const handleNavigateToResource = (resource: ProjectResource) => {
+		if (resource.type === 'prototype') {
+			void navigate({
+				to: '/canvas/$id/prototype/$prototypeId',
+				params: {
+					id: canvasId,
+					prototypeId: resource.id,
+				},
+			});
+			return;
+		}
+
+		void navigate({
+			to: '/canvas/$id',
+			params: { id: canvasId },
+		});
+	};
+
+	const handleNavigateToSettings = () => {
+		void navigate({ to: '/dashboard' });
+	};
+	const projectName = canvasQuery.data?.canvas?.title ?? 'Untitled Project';
+	const activeResourceId = prototypeElement?.id ?? prototypeId;
+	const currentViewLabel = getActiveProjectResourceName(resources, activeResourceId, 'Prototype');
+
 	if (!prototypeElement || !normalizedPrototype || !canvasQuery.data?.data) {
 		return (
-			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
-				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
-					<div className="text-lg font-semibold text-stone-900">Prototype not found</div>
-					<p className="mt-2 text-sm text-stone-600">
-						{prototypeElements.length === 0
-							? 'This canvas does not currently have any prototype cards.'
-							: 'The requested prototype could not be found. Try reopening it from the canvas.'}
-					</p>
-					<Link
-						to="/canvas/$id"
-						params={{ id: canvasId }}
-						className="mt-4 inline-flex rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
-					>
-						Back to Canvas
-					</Link>
+			<ProjectShell
+				projectId="default"
+				projectName={projectName}
+				canvasId={canvasId}
+				currentViewLabel={currentViewLabel}
+				resources={resources}
+				activeResourceId={activeResourceId}
+				collaboration={EMPTY_COLLABORATION}
+				onNavigateToResource={handleNavigateToResource}
+				onNavigateToSettings={handleNavigateToSettings}
+			>
+				<div className="flex h-full items-center justify-center bg-stone-50 p-6">
+					<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
+						<div className="text-lg font-semibold text-stone-900">Prototype not found</div>
+						<p className="mt-2 text-sm text-stone-600">
+							{prototypeElements.length === 0
+								? 'This canvas does not currently have any prototype cards.'
+								: 'The requested prototype could not be found. Try reopening it from the canvas.'}
+						</p>
+						<Link
+							to="/canvas/$id"
+							params={{ id: canvasId }}
+							className="mt-4 inline-flex rounded-full bg-stone-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
+						>
+							Back to Canvas
+						</Link>
+					</div>
 				</div>
-			</div>
+			</ProjectShell>
 		);
 	}
 
 	return (
-		<PrototypeStudioSession
-			key={`${prototypeElement.id}:${savedSignature}`}
+		<ProjectShell
+			projectId="default"
+			projectName={projectName}
 			canvasId={canvasId}
-			normalizedPrototype={normalizedPrototype}
-		/>
+			currentViewLabel={currentViewLabel}
+			resources={resources}
+			activeResourceId={prototypeElement.id}
+			collaboration={EMPTY_COLLABORATION}
+			onNavigateToResource={handleNavigateToResource}
+		>
+			<PrototypeStudioSession
+				key={`${prototypeElement.id}:${savedSignature}`}
+				normalizedPrototype={normalizedPrototype}
+			/>
+		</ProjectShell>
 	);
 }

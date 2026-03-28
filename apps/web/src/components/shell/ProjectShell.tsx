@@ -1,6 +1,5 @@
 import { AIChatPanelContent } from '@/components/ai-chat/AIChatPanelContent';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
-import { useMemo } from 'react';
 import { LeftSidebar } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
@@ -12,6 +11,9 @@ interface ProjectShellProps {
 	projectId: string;
 	projectName: string;
 	canvasId: string;
+	currentViewLabel: string;
+	resources: ProjectResource[];
+	activeResourceId: string;
 	children: React.ReactNode;
 	collaboration: {
 		isCollaborating: boolean;
@@ -25,15 +27,20 @@ interface ProjectShellProps {
 		stopSession: () => void;
 	};
 	onNavigateToResource: (resource: ProjectResource) => void;
+	onNavigateToSettings?: () => void;
 }
 
 export function ProjectShell({
 	projectId: _projectId,
 	projectName,
 	canvasId,
+	currentViewLabel,
+	resources,
+	activeResourceId,
 	children,
 	collaboration,
 	onNavigateToResource,
+	onNavigateToSettings,
 }: ProjectShellProps) {
 	const shellState = useShellState();
 
@@ -46,31 +53,13 @@ export function ProjectShell({
 		toggleSidebar: shellState.toggleSidebar,
 	});
 
-	// Convert current canvas to resources list
-	// In v2, this would include boards, prototypes, etc.
-	const resources: ProjectResource[] = useMemo(
-		() => [
-			{
-				id: canvasId,
-				type: 'canvas',
-				name: 'Overview',
-				isActive: true,
-			},
-		],
-		[canvasId],
-	);
-
-	// Convert collaborators map to array
-	const collaboratorsList = useMemo(() => {
-		const list: { id: string; name: string; avatarUrl?: string }[] = [];
-		collaboration.collaborators.forEach((value, key) => {
-			list.push({
-				id: key,
-				name: value.username || 'Anonymous',
-			});
+	const collaboratorsList: { id: string; name: string; avatarUrl?: string }[] = [];
+	collaboration.collaborators.forEach((value, key) => {
+		collaboratorsList.push({
+			id: key,
+			name: value.username || 'Anonymous',
 		});
-		return list;
-	}, [collaboration.collaborators]);
+	});
 
 	const handleResourceClick = (resource: ProjectResource) => {
 		onNavigateToResource(resource);
@@ -82,11 +71,6 @@ export function ProjectShell({
 		console.log('New resource clicked');
 	};
 
-	const handleShareClick = () => {
-		// Open share/collaboration panel
-		shellState.openRightPanel('share');
-	};
-
 	const handleOpenAI = () => {
 		shellState.toggleRightPanel('ai');
 	};
@@ -96,16 +80,15 @@ export function ProjectShell({
 	};
 
 	const handleRightPanelModeChange = (
-		mode: Exclude<'none' | 'ai' | 'details' | 'share', 'none'>,
+		mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>,
 	) => {
 		shellState.openRightPanel(mode);
 	};
 
 	const isAIOpen = shellState.rightPanelMode === 'ai';
 	const isDetailsOpen = shellState.rightPanelMode === 'details';
-	const isShareOpen = shellState.rightPanelMode === 'share';
 
-	const handleOpenRightPanel = (mode: Exclude<'none' | 'ai' | 'details' | 'share', 'none'>) => {
+	const handleOpenRightPanel = (mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>) => {
 		shellState.openRightPanel(mode);
 	};
 
@@ -118,19 +101,20 @@ export function ProjectShell({
 					isExpanded={shellState.isSidebarExpanded}
 					onToggleExpand={shellState.toggleSidebar}
 					projectName={projectName}
+					currentViewLabel={currentViewLabel}
 					resources={resources}
-					activeResourceId={canvasId}
+					activeResourceId={activeResourceId}
 					onResourceClick={handleResourceClick}
 					onNewClick={handleNewClick}
-					onOpenAI={handleOpenAI}
-					onOpenDetails={handleOpenDetails}
-					isAIOpen={isAIOpen}
-					isDetailsOpen={isDetailsOpen}
+					onNavigateToSettings={onNavigateToSettings}
 					collaboration={{
 						isCollaborating: collaboration.isCollaborating,
 						collaborators: collaboratorsList,
-						onShareClick: handleShareClick,
-						isShareOpen,
+						roomLink: collaboration.roomLink,
+						username: collaboration.username,
+						setUsername: collaboration.setUsername,
+						startSession: collaboration.startSession,
+						stopSession: collaboration.stopSession,
 					}}
 				/>
 			}
@@ -142,26 +126,6 @@ export function ProjectShell({
 						onChangeMode={handleRightPanelModeChange}
 					>
 						<AIChatPanelContent canvasId={canvasId} />
-					</RightPanel>
-				),
-				share: (
-					<RightPanel
-						mode={shellState.rightPanelMode}
-						onClose={shellState.closeRightPanel}
-						onChangeMode={handleRightPanelModeChange}
-					>
-						<div className="p-4">
-							<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-								<p className="font-medium">Share & Collaboration</p>
-								<p className="mt-1 text-amber-700">This feature is being rebuilt for V2.</p>
-							</div>
-							{collaboration.roomLink && (
-								<div className="mt-4">
-									<p className="text-xs font-medium text-stone-500">Current Session</p>
-									<p className="mt-1 break-all text-xs text-stone-600">{collaboration.roomLink}</p>
-								</div>
-							)}
-						</div>
 					</RightPanel>
 				),
 				details: (

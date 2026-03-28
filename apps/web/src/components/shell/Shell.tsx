@@ -83,6 +83,9 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 					>
 						<BotIcon />
 					</button>
+					<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
+						⌘B
+					</div>
 
 					{/* Details Button */}
 					<button
@@ -96,6 +99,9 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 					>
 						<InfoIcon />
 					</button>
+					<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
+						⌘I
+					</div>
 				</div>
 			</div>
 		</div>

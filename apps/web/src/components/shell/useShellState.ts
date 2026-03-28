@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export type RightPanelMode = 'none' | 'ai' | 'details' | 'share';
+export type RightPanelMode = 'none' | 'ai' | 'details';
 
 export interface ShellState {
 	// Left sidebar
