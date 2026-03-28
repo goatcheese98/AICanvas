@@ -156,11 +156,9 @@ export function ProjectShell({
 			if (type === 'document') {
 				const result = await createResource({ type: 'document' });
 				if (result.success && result.elementId) {
-					// Open document in expanded overlay view
-					openExpandedOverlay(result.elementId);
-					addToast({
-						message: 'Document created and opened',
-						type: 'success',
+					void navigate({
+						to: '/canvas/$id/document/$documentId',
+						params: { id: canvasId, documentId: result.elementId },
 					});
 				}
 				return;
@@ -178,7 +176,7 @@ export function ProjectShell({
 				return;
 			}
 		},
-		[canvasId, createResource, navigate, openExpandedOverlay, addToast],
+		[canvasId, createResource, navigate, addToast],
 	);
 
 	const handleRightPanelModeChange = (
@@ -195,9 +193,39 @@ export function ProjectShell({
 
 	const handleOpenFocusedView = useCallback(
 		(elementId: string) => {
-			openExpandedOverlay(elementId);
+			const resource = resources.find((candidate) => candidate.id === elementId);
+			if (!resource) {
+				openExpandedOverlay(elementId);
+				return;
+			}
+
+			if (resource.type === 'board') {
+				void navigate({
+					to: '/canvas/$id/board/$boardId',
+					params: { id: canvasId, boardId: resource.id },
+				});
+				return;
+			}
+
+			if (resource.type === 'prototype') {
+				void navigate({
+					to: '/canvas/$id/prototype/$prototypeId',
+					params: { id: canvasId, prototypeId: resource.id },
+				});
+				return;
+			}
+
+			if (resource.type === 'document') {
+				void navigate({
+					to: '/canvas/$id/document/$documentId',
+					params: { id: canvasId, documentId: resource.id },
+				});
+				return;
+			}
+
+			void navigate({ to: '/canvas/$id', params: { id: canvasId } });
 		},
-		[openExpandedOverlay],
+		[canvasId, navigate, openExpandedOverlay, resources],
 	);
 
 	const handleDeleteElement = useCallback((elementId: string) => {

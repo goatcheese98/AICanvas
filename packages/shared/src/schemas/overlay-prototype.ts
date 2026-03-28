@@ -1,5 +1,19 @@
 import * as z from 'zod';
 
+const resourceSnapshotSchema = z.object({
+	resourceType: z.enum(['board', 'document', 'prototype']),
+	resourceId: z.string().min(1),
+	title: z.string().trim().min(1).max(120),
+	snapshotVersion: z.coerce.number().int().min(1),
+	display: z
+		.object({
+			subtitle: z.string().trim().min(1).max(120).optional(),
+			summary: z.string().trim().min(1).max(240).optional(),
+			badge: z.string().trim().min(1).max(32).optional(),
+		})
+		.default({}),
+});
+
 export const prototypeTemplateSchema = z.enum(['react', 'vanilla']);
 
 export const prototypeOverlayFileSchema = z.object({
@@ -39,6 +53,7 @@ export const prototypeOverlaySchema = z.object({
 	activeFile: z.string().trim().min(1).optional(),
 	showEditor: z.boolean().optional(),
 	showPreview: z.boolean().optional(),
+	resourceSnapshot: resourceSnapshotSchema.optional(),
 });
 
 function resolveActiveFile(

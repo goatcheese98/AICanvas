@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { getOverlayTypeLabel } from './resource-type-utils';
 
 interface DetailsPanelContentProps {
-	element: TypedOverlayCanvasElement | null;
+	element?: TypedOverlayCanvasElement | null;
 	onOpenFocusedView?: (elementId: string) => void;
 	onDeleteElement?: (elementId: string) => void;
 }
@@ -181,7 +181,11 @@ function extractMetadata(element: TypedOverlayCanvasElement): MetadataItem[] {
 
 	switch (customData.type) {
 		case 'kanban': {
-			const kanbanData = customData as { columns?: { cards?: unknown[] }[]; lastUpdated?: number };
+			const kanbanData = customData as {
+				columns?: { cards?: unknown[] }[];
+				lastUpdated?: number;
+				resourceSnapshot?: { display?: { badge?: string } };
+			};
 			const columnCount = kanbanData.columns?.length ?? 0;
 			const cardCount =
 				kanbanData.columns?.reduce(
@@ -198,14 +202,30 @@ function extractMetadata(element: TypedOverlayCanvasElement): MetadataItem[] {
 					value: formatDate(kanbanData.lastUpdated),
 				});
 			}
+			if (kanbanData.resourceSnapshot?.display?.badge) {
+				metadata.push({
+					label: 'Snapshot',
+					value: kanbanData.resourceSnapshot.display.badge,
+				});
+			}
 			break;
 		}
 		case 'newlex': {
-			const newlexData = customData as { comments?: unknown[]; version?: number };
+			const newlexData = customData as {
+				comments?: unknown[];
+				version?: number;
+				resourceSnapshot?: { display?: { badge?: string } };
+			};
 			const commentCount = Array.isArray(newlexData.comments) ? newlexData.comments.length : 0;
 			metadata.push({ label: 'Comments', value: String(commentCount) });
 			if (newlexData.version && newlexData.version > 1) {
 				metadata.push({ label: 'Version', value: String(newlexData.version) });
+			}
+			if (newlexData.resourceSnapshot?.display?.badge) {
+				metadata.push({
+					label: 'Snapshot',
+					value: newlexData.resourceSnapshot.display.badge,
+				});
 			}
 			break;
 		}
@@ -240,6 +260,7 @@ function extractMetadata(element: TypedOverlayCanvasElement): MetadataItem[] {
 				template?: string;
 				files?: Record<string, unknown>;
 				dependencies?: Record<string, string>;
+				resourceSnapshot?: { display?: { badge?: string } };
 			};
 			if (prototypeData.template) {
 				metadata.push({
@@ -256,6 +277,12 @@ function extractMetadata(element: TypedOverlayCanvasElement): MetadataItem[] {
 				if (depCount > 0) {
 					metadata.push({ label: 'Dependencies', value: String(depCount) });
 				}
+			}
+			if (prototypeData.resourceSnapshot?.display?.badge) {
+				metadata.push({
+					label: 'Snapshot',
+					value: prototypeData.resourceSnapshot.display.badge,
+				});
 			}
 			break;
 		}

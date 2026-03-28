@@ -51,6 +51,33 @@ describe('LexicalPreviewCard', () => {
 		expect(screen.getAllByText('Test Note')[0]).not.toBeNull();
 	});
 
+	it('prefers resource snapshot metadata when present', () => {
+		render(
+			<LexicalPreviewCard
+				element={createElement({
+					title: 'Legacy note title',
+					resourceSnapshot: {
+						resourceType: 'document',
+						resourceId: 'document-1',
+						title: 'Snapshot note title',
+						snapshotVersion: 1,
+						display: {
+							badge: 'New',
+							subtitle: 'Document',
+							summary: 'Empty note',
+						},
+					},
+				})}
+				isSelected={false}
+			/>,
+		);
+
+		expect(screen.getAllByText('Snapshot note title')[0]).not.toBeNull();
+		expect(screen.getAllByText('New')[0]).not.toBeNull();
+		expect(screen.getAllByText('Empty note')[0]).not.toBeNull();
+		expect(screen.queryByText('Legacy note title')).toBeNull();
+	});
+
 	it('shows "Untitled note" when title is not provided', () => {
 		render(<LexicalPreviewCard element={createElement({ title: undefined })} isSelected={false} />);
 
@@ -138,10 +165,10 @@ describe('LexicalPreviewCard', () => {
 		expect(screen.getAllByText('2 comments')[0]).not.toBeNull();
 	});
 
-	it('shows "Double-click to edit" hint', () => {
+	it('shows "Double-click to open" hint', () => {
 		render(<LexicalPreviewCard element={createElement()} isSelected={false} />);
 
-		expect(screen.getAllByText('Double-click to edit')[0]).not.toBeNull();
+		expect(screen.getAllByText('Double-click to open')[0]).not.toBeNull();
 	});
 
 	it('truncates long content', () => {
@@ -219,13 +246,10 @@ describe('LexicalPreviewCard', () => {
 
 	it('handles null comments array', () => {
 		render(
-			<LexicalPreviewCard
-				element={createElement({ comments: undefined })}
-				isSelected={false}
-			/>,
+			<LexicalPreviewCard element={createElement({ comments: undefined })} isSelected={false} />,
 		);
 
 		// Should render without comment count
-		expect(screen.getAllByText('Double-click to edit')[0]).not.toBeNull();
+		expect(screen.getAllByText('Double-click to open')[0]).not.toBeNull();
 	});
 });

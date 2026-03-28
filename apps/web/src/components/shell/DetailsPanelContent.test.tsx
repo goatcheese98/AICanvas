@@ -64,6 +64,33 @@ describe('DetailsPanelContent', () => {
 		expect(container.textContent).toContain('1'); // Card count
 	});
 
+	it('renders snapshot metadata for kanban resources', () => {
+		const element = createMockElement('kanban', {
+			title: 'My Kanban Board',
+			columns: [],
+			resourceSnapshot: {
+				resourceType: 'board',
+				resourceId: 'board-1',
+				title: 'My Kanban Board',
+				snapshotVersion: 1,
+				display: {
+					badge: 'New',
+				},
+			},
+		});
+
+		const { container } = render(
+			<DetailsPanelContent
+				element={element}
+				onOpenFocusedView={onOpenFocusedView}
+				onDeleteElement={onDeleteElement}
+			/>,
+		);
+
+		expect(container.textContent).toContain('Snapshot');
+		expect(container.textContent).toContain('New');
+	});
+
 	it('renders newlex document details', () => {
 		const element = createMockElement('newlex', {
 			title: 'My Document',

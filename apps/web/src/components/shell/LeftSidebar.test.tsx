@@ -70,6 +70,30 @@ describe('LeftSidebar', () => {
 			const { container } = render(<LeftSidebar {...defaultProps} isExpanded={false} />);
 			expect(container.querySelector('[aria-label="Expand sidebar"]')).toBeDefined();
 		});
+
+		it('opens the new resource menu when New is clicked', () => {
+			const { container } = render(<LeftSidebar {...defaultProps} />);
+			const newButton = container.querySelector('[aria-label="Open new resource menu"]');
+			if (newButton) fireEvent.click(newButton);
+
+			expect(
+				document.querySelector('[role="menu"][aria-label="Create new resource"]'),
+			).toBeDefined();
+			expect(document.body.textContent).toContain('New Board');
+		});
+
+		it('routes new resource menu selections through onNewResource', () => {
+			const { container } = render(<LeftSidebar {...defaultProps} />);
+			const newButton = container.querySelector('[aria-label="Open new resource menu"]');
+			if (newButton) fireEvent.click(newButton);
+
+			const boardButton = Array.from(document.querySelectorAll('button')).find((btn) =>
+				btn.textContent?.includes('New Board'),
+			);
+			if (boardButton) fireEvent.click(boardButton);
+
+			expect(defaultProps.onNewResource).toHaveBeenCalledWith({ type: 'board' });
+		});
 	});
 
 	describe('footer popover', () => {

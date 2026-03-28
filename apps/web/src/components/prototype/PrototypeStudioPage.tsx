@@ -4,13 +4,13 @@ import { serializePrototypeState } from '@/components/overlays/prototype/prototy
 import { ProjectShell } from '@/components/shell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
-import { api, getRequiredAuthHeaders } from '@/lib/api';
+import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
-import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
+import type { HeavyResourceRecord, PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Navigate, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 
 interface PrototypeStudioPageProps {
@@ -89,6 +89,19 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		},
 	});
 
+	const prototypeQuery = useQuery({
+		queryKey: ['heavy-resource', canvasId, 'prototype', prototypeId],
+		queryFn: async () => {
+			const headers = await getRequiredAuthHeaders(getToken);
+			const res = await fetch(
+				toApiUrl(`/api/canvas/${canvasId}/resources/prototype/${prototypeId}`),
+				{ headers },
+			);
+			if (!res.ok) throw new Error(await res.text());
+			return (await res.json()) as HeavyResourceRecord;
+		},
+	});
+
 	const elements = useMemo(
 		() =>
 			normalizeSceneElements(
@@ -96,28 +109,13 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			),
 		[canvasQuery.data?.data?.elements],
 	);
-	const prototypeElements = useMemo(
-		() =>
-			elements.filter(
-				(element) => (element.customData as { type?: unknown } | undefined)?.type === 'prototype',
-			),
-		[elements],
-	);
-	const matchedPrototypeElement = useMemo(
-		() => prototypeElements.find((element) => element.id === prototypeId) ?? null,
-		[prototypeElements, prototypeId],
-	);
-	const fallbackPrototypeElement = useMemo(
-		() => (matchedPrototypeElement ? null : (prototypeElements[0] ?? null)),
-		[matchedPrototypeElement, prototypeElements],
-	);
-	const prototypeElement = matchedPrototypeElement ?? fallbackPrototypeElement;
+	const prototypeResource = prototypeQuery.data ?? null;
 	const normalizedPrototype = useMemo(
 		() =>
-			prototypeElement
-				? normalizePrototypeOverlay(prototypeElement.customData as PrototypeOverlayCustomData)
+			prototypeResource
+				? normalizePrototypeOverlay(prototypeResource.data as PrototypeOverlayCustomData)
 				: null,
-		[prototypeElement],
+		[prototypeResource],
 	);
 	const resources = useMemo(
 		() =>
@@ -133,7 +131,7 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		[normalizedPrototype],
 	);
 
-	if (canvasQuery.isLoading) {
+	if (canvasQuery.isLoading || prototypeQuery.isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50">
 				<div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900" />
@@ -141,13 +139,15 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		);
 	}
 
-	if (canvasQuery.isError) {
+	if (canvasQuery.isError || prototypeQuery.isError) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
-					<div className="text-lg font-semibold text-stone-900">Failed to load prototype</div>
+					<div className="text-lg font-semibold text-stone-900">Prototype not found</div>
 					<p className="mt-2 text-sm text-stone-600">
-						The canvas data could not be loaded for this studio view.
+						{prototypeQuery.isError
+							? 'The requested prototype could not be loaded from its resource record.'
+							: 'The canvas data could not be loaded for this studio view.'}
 					</p>
 					<Link
 						to="/canvas/$id"
@@ -161,20 +161,18 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		);
 	}
 
-	if (!matchedPrototypeElement && fallbackPrototypeElement) {
-		return (
-			<Navigate
-				to="/canvas/$id/prototype/$prototypeId"
-				params={{
-					id: canvasId,
-					prototypeId: fallbackPrototypeElement.id,
-				}}
-				replace
-			/>
-		);
-	}
-
 	const handleNavigateToResource = (resource: ProjectResource) => {
+		if (resource.type === 'board') {
+			void navigate({
+				to: '/canvas/$id/board/$boardId',
+				params: {
+					id: canvasId,
+					boardId: resource.id,
+				},
+			});
+			return;
+		}
+
 		if (resource.type === 'prototype') {
 			void navigate({
 				to: '/canvas/$id/prototype/$prototypeId',
@@ -182,6 +180,14 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 					id: canvasId,
 					prototypeId: resource.id,
 				},
+			});
+			return;
+		}
+
+		if (resource.type === 'document') {
+			void navigate({
+				to: '/canvas/$id/document/$documentId',
+				params: { id: canvasId, documentId: resource.id },
 			});
 			return;
 		}
@@ -196,9 +202,9 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 		void navigate({ to: '/dashboard' });
 	};
 	const projectName = canvasQuery.data?.canvas?.title ?? 'Untitled Project';
-	const activeResourceId = prototypeElement?.id ?? prototypeId;
+	const activeResourceId = prototypeResource?.id ?? prototypeId;
 
-	if (!prototypeElement || !normalizedPrototype || !canvasQuery.data?.data) {
+	if (!prototypeResource || !normalizedPrototype || !canvasQuery.data?.data) {
 		return (
 			<ProjectShell
 				projectId="default"
@@ -214,9 +220,7 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 					<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
 						<div className="text-lg font-semibold text-stone-900">Prototype not found</div>
 						<p className="mt-2 text-sm text-stone-600">
-							{prototypeElements.length === 0
-								? 'This canvas does not currently have any prototype cards.'
-								: 'The requested prototype could not be found. Try reopening it from the canvas.'}
+							The requested prototype could not be found. Try reopening it from the canvas.
 						</p>
 						<Link
 							to="/canvas/$id"
@@ -237,13 +241,13 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			projectName={projectName}
 			canvasId={canvasId}
 			resources={resources}
-			activeResourceId={prototypeElement.id}
+			activeResourceId={prototypeResource.id}
 			collaboration={EMPTY_COLLABORATION}
 			onNavigateToResource={handleNavigateToResource}
 			onNavigateToSettings={handleNavigateToSettings}
 		>
 			<PrototypeStudioSession
-				key={`${prototypeElement.id}:${savedSignature}`}
+				key={`${prototypeResource.id}:${savedSignature}`}
 				normalizedPrototype={normalizedPrototype}
 			/>
 		</ProjectShell>

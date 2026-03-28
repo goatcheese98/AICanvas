@@ -20,6 +20,9 @@ const {
 	deleteCanvasDataFromR2Mock,
 	deleteThumbnailFromR2Mock,
 	getCanvasR2KeyMock,
+	getHeavyResourceRecordMock,
+	saveHeavyResourceRecordMock,
+	deleteHeavyResourceRecordMock,
 } = vi.hoisted(() => {
 	const findFirstMock = vi.fn();
 	const insertReturningMock = vi.fn();
@@ -56,6 +59,9 @@ const {
 	const getCanvasR2KeyMock = vi.fn(
 		(userId: string, canvasId: string) => `canvases/${userId}/${canvasId}/canvas.json`,
 	);
+	const getHeavyResourceRecordMock = vi.fn();
+	const saveHeavyResourceRecordMock = vi.fn();
+	const deleteHeavyResourceRecordMock = vi.fn();
 
 	return {
 		findFirstMock,
@@ -77,6 +83,9 @@ const {
 		deleteCanvasDataFromR2Mock,
 		deleteThumbnailFromR2Mock,
 		getCanvasR2KeyMock,
+		getHeavyResourceRecordMock,
+		saveHeavyResourceRecordMock,
+		deleteHeavyResourceRecordMock,
 	};
 });
 
@@ -114,6 +123,12 @@ vi.mock('../lib/storage/canvas-storage', () => ({
 	saveThumbnailToR2: saveThumbnailToR2Mock,
 }));
 
+vi.mock('../lib/storage/heavy-resource-storage', () => ({
+	deleteHeavyResourceRecord: deleteHeavyResourceRecordMock,
+	getHeavyResourceRecord: getHeavyResourceRecordMock,
+	saveHeavyResourceRecord: saveHeavyResourceRecordMock,
+}));
+
 import { canvasRoutes } from './canvas';
 
 function createJsonRequest(url: string, method: 'POST' | 'PUT', body: Record<string, unknown>) {
@@ -149,6 +164,9 @@ describe('canvasRoutes', () => {
 		deleteCanvasDataFromR2Mock.mockReset();
 		deleteThumbnailFromR2Mock.mockReset();
 		getCanvasR2KeyMock.mockClear();
+		getHeavyResourceRecordMock.mockReset();
+		saveHeavyResourceRecordMock.mockReset();
+		deleteHeavyResourceRecordMock.mockReset();
 	});
 
 	it('removes the inserted canvas row when initial blob creation fails', async () => {
@@ -232,5 +250,93 @@ describe('canvasRoutes', () => {
 			currentVersion: 7,
 		});
 		expect(saveCanvasToR2Mock).not.toHaveBeenCalled();
+	});
+
+	it('loads a heavy resource through the record helper', async () => {
+		getHeavyResourceRecordMock.mockResolvedValue({
+			id: 'board-1',
+			canvasId: 'canvas-1',
+			resourceType: 'board',
+			title: 'Launch Board',
+			createdAt: '2026-03-27T12:00:00.000Z',
+			updatedAt: '2026-03-27T12:30:00.000Z',
+			data: {
+				type: 'kanban',
+				title: 'Launch Board',
+				columns: [],
+			},
+		});
+
+		const response = await canvasRoutes.fetch(
+			new Request('http://localhost/canvas-1/resources/board/board-1'),
+			{ DB: {} as D1Database, R2: {} as R2Bucket } as never,
+			{} as ExecutionContext,
+		);
+
+		expect(response.status).toBe(200);
+		expect(getHeavyResourceRecordMock).toHaveBeenCalledWith(
+			expect.any(Object),
+			'user-1',
+			'canvas-1',
+			'board',
+			'board-1',
+		);
+		await expect(response.json()).resolves.toMatchObject({
+			id: 'board-1',
+			resourceType: 'board',
+			title: 'Launch Board',
+		});
+	});
+
+	it('saves a heavy resource through the record helper', async () => {
+		saveHeavyResourceRecordMock.mockResolvedValue({
+			id: 'prototype-1',
+			canvasId: 'canvas-1',
+			resourceType: 'prototype',
+			title: 'Prototype',
+			createdAt: '2026-03-27T12:00:00.000Z',
+			updatedAt: '2026-03-27T12:30:00.000Z',
+			data: {
+				type: 'prototype',
+				title: 'Prototype',
+				template: 'react',
+				files: {},
+				dependencies: {},
+			},
+		});
+
+		const response = await canvasRoutes.fetch(
+			createJsonRequest('http://localhost/canvas-1/resources/prototype/prototype-1', 'PUT', {
+				title: 'Prototype',
+				data: {
+					type: 'prototype',
+					title: 'Prototype',
+					template: 'react',
+					files: {},
+					dependencies: {},
+				},
+			}),
+			{ DB: {} as D1Database, R2: {} as R2Bucket } as never,
+			{} as ExecutionContext,
+		);
+
+		expect(response.status).toBe(200);
+		expect(saveHeavyResourceRecordMock).toHaveBeenCalledWith(
+			expect.any(Object),
+			'user-1',
+			{
+				canvasId: 'canvas-1',
+				resourceType: 'prototype',
+				resourceId: 'prototype-1',
+				title: 'Prototype',
+				data: {
+					type: 'prototype',
+					title: 'Prototype',
+					template: 'react',
+					files: {},
+					dependencies: {},
+				},
+			},
+		);
 	});
 });

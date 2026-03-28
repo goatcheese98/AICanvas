@@ -3,7 +3,14 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { ProjectResource } from './types';
 
 function getProjectResourceName(element: ExcalidrawElement, fallback: string) {
-	const customData = element.customData as { title?: unknown; type?: unknown } | undefined;
+	const customData = element.customData as
+		| { title?: unknown; type?: unknown; resourceSnapshot?: { title?: unknown } }
+		| undefined;
+	const snapshotTitle = customData?.resourceSnapshot?.title;
+	if (typeof snapshotTitle === 'string' && snapshotTitle.trim().length > 0) {
+		return snapshotTitle;
+	}
+
 	if (typeof customData?.title === 'string' && customData.title.trim().length > 0) {
 		return customData.title;
 	}

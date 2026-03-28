@@ -1,7 +1,16 @@
 import { useAppStore } from '@/stores/store';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
-import { type CSSProperties, memo, useCallback, useMemo, useRef, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import {
+	type CSSProperties,
+	type MouseEvent,
+	memo,
+	useCallback,
+	useMemo,
+	useRef,
+	useState,
+} from 'react';
 import {
 	type OverlayUpdatePayloadMap,
 	type TypedOverlayCanvasElement,
@@ -81,6 +90,7 @@ const OverlayContent = memo(function OverlayContent({
 });
 
 interface OverlayItemProps {
+	canvasId: string;
 	element: TypedOverlayCanvasElement;
 	stackIndex: number;
 	appState: ReturnType<typeof getNormalizedAppState>;
@@ -91,9 +101,16 @@ interface OverlayItemProps {
 	) => void;
 }
 
-function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: OverlayItemProps) {
+function OverlayItem({
+	canvasId,
+	element,
+	stackIndex,
+	appState,
+	updateOverlayElement,
+}: OverlayItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const isEditingRef = useRef(false);
+	const navigate = useNavigate();
 	const type = element.customData.type;
 	const normalizedElement = normalizeOverlayElement(type, element);
 	const isSelected = appState.selectedElementIds[normalizedElement.id] === true;
@@ -118,6 +135,43 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 		isEditingRef.current = nextIsActive;
 		setIsEditing(nextIsActive);
 	}, []);
+	const handleDoubleClick = useCallback(
+		(event: MouseEvent<HTMLDivElement>) => {
+			if (!isSelected) return;
+
+			if (type === 'kanban') {
+				event.preventDefault();
+				event.stopPropagation();
+				void navigate({
+					to: '/canvas/$id/board/$boardId',
+					params: { id: canvasId, boardId: normalizedElement.id },
+				});
+				return;
+			}
+
+			if (type === 'newlex') {
+				event.preventDefault();
+				event.stopPropagation();
+				void navigate({
+					to: '/canvas/$id/document/$documentId',
+					params: { id: canvasId, documentId: normalizedElement.id },
+				});
+				return;
+			}
+
+			if (type === 'prototype') {
+				event.preventDefault();
+				event.stopPropagation();
+				void navigate({
+					to: '/canvas/$id/prototype/$prototypeId',
+					params: { id: canvasId, prototypeId: normalizedElement.id },
+				});
+			}
+		},
+		[canvasId, isSelected, navigate, normalizedElement.id, type],
+	);
+	const mode =
+		type === 'markdown' || type === 'web-embed' ? (isSelected ? 'live' : 'preview') : 'preview';
 
 	return (
 		<div
@@ -125,6 +179,7 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 			data-testid={`overlay-item-${normalizedElement.id}`}
 			data-overlay-id={normalizedElement.id}
 			data-overlay-type={type}
+			onDoubleClick={handleDoubleClick}
 			style={{
 				...containerStyle,
 				pointerEvents: interactionEnabled ? 'auto' : 'none',
@@ -135,7 +190,7 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 					element={normalizedElement}
 					isSelected={isSelected}
 					isActive={isEditing}
-					mode={type === 'kanban' ? 'preview' : isSelected ? 'live' : 'preview'}
+					mode={mode}
 					onChange={handleChange as never}
 					onActivityChange={handleActivityChange}
 				/>
@@ -144,7 +199,11 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 	);
 }
 
-export function CanvasNotesLayer() {
+interface CanvasNotesLayerProps {
+	canvasId: string;
+}
+
+export function CanvasNotesLayer({ canvasId }: CanvasNotesLayerProps) {
 	const elements = useAppStore((s) => s.elements);
 	const scrollX = useAppStore((s) => s.appState.scrollX ?? 0);
 	const scrollY = useAppStore((s) => s.appState.scrollY ?? 0);
@@ -189,6 +248,7 @@ export function CanvasNotesLayer() {
 			{overlayElements.map((element, stackIndex) => (
 				<OverlayItem
 					key={element.id}
+					canvasId={canvasId}
 					element={element}
 					stackIndex={stackIndex}
 					appState={normalizedAppState}

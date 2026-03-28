@@ -5,6 +5,7 @@ import { and, desc, eq, like } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { nanoid } from 'nanoid';
+import { z, ZodError } from 'zod';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
 import { logApiEvent } from '../lib/observability';
@@ -19,6 +20,11 @@ import {
 	saveCanvasToR2,
 	saveThumbnailToR2,
 } from '../lib/storage/canvas-storage';
+import {
+	deleteHeavyResourceRecord,
+	getHeavyResourceRecord,
+	saveHeavyResourceRecord,
+} from '../lib/storage/heavy-resource-storage';
 import { requireAuth } from '../middleware/auth';
 import type { AppEnv } from '../types';
 
@@ -69,6 +75,17 @@ const enforceCanvasPayloadLimit: MiddlewareHandler<AppEnv> = async (c, next) => 
 
 	await next();
 };
+
+const heavyResourceParamsSchema = z.object({
+	id: z.string().min(1),
+	resourceType: canvasSchemas.heavyResourceType,
+	resourceId: z.string().min(1),
+});
+
+const heavyResourceUpsertSchema = z.object({
+	title: z.string().trim().min(1).max(120),
+	data: z.unknown(),
+});
 
 export const canvasRoutes = new Hono<AppEnv>()
 	.use(requireAuth)
@@ -271,6 +288,67 @@ export const canvasRoutes = new Hono<AppEnv>()
 		const data = await loadCanvasFromR2(c.env.R2, user.id, id);
 		return c.json({ canvas: withVersionedThumbnailUrl(canvas), data });
 	})
+
+	.get('/:id/resources/:resourceType/:resourceId', zValidator('param', heavyResourceParamsSchema), async (c) => {
+		const { id, resourceType, resourceId } = c.req.valid('param');
+		const user = c.get('user');
+		const db = createDb(c.env.DB);
+
+		const resource = await getHeavyResourceRecord(db, user.id, id, resourceType, resourceId);
+		if (!resource) return c.json({ error: 'Not found' }, 404);
+
+		return c.json(resource);
+	})
+
+	.put(
+		'/:id/resources/:resourceType/:resourceId',
+		zValidator('param', heavyResourceParamsSchema),
+		zValidator('json', heavyResourceUpsertSchema),
+		async (c) => {
+			const { id, resourceType, resourceId } = c.req.valid('param');
+			const body = c.req.valid('json');
+			const user = c.get('user');
+			const db = createDb(c.env.DB);
+
+			try {
+				const resource = await saveHeavyResourceRecord(db, user.id, {
+					canvasId: id,
+					resourceType,
+					resourceId,
+					title: body.title,
+					data: body.data,
+				});
+
+				return c.json(resource);
+			} catch (error) {
+				if (error instanceof ZodError) {
+					return c.json(
+						{
+							error: error.issues[0]?.message ?? 'Invalid heavy resource payload.',
+						},
+						400,
+					);
+				}
+
+				throw error;
+			}
+		},
+	)
+
+	.delete(
+		'/:id/resources/:resourceType/:resourceId',
+		zValidator('param', heavyResourceParamsSchema),
+		async (c) => {
+			const { id, resourceType, resourceId } = c.req.valid('param');
+			const user = c.get('user');
+			const db = createDb(c.env.DB);
+
+			const deleted = await deleteHeavyResourceRecord(db, user.id, id, resourceType, resourceId);
+			if (!deleted) return c.json({ error: 'Not found' }, 404);
+
+			return c.json({ success: true });
+		},
+	)
 
 	.patch('/:id/meta', zValidator('json', canvasSchemas.update), async (c) => {
 		const id = c.req.param('id');

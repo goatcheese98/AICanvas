@@ -105,6 +105,7 @@ export interface NewLexOverlayCustomData {
 	comments?: NewLexCommentThread[];
 	commentsPanelOpen?: boolean;
 	version?: number;
+	resourceSnapshot?: import('./canvas').CanvasResourceSnapshot;
 }
 
 export interface KanbanOverlayCustomData {
@@ -115,6 +116,7 @@ export interface KanbanOverlayCustomData {
 	fontId?: string;
 	fontSize?: number;
 	lastUpdated?: number;
+	resourceSnapshot?: import('./canvas').CanvasResourceSnapshot;
 }
 
 export interface WebEmbedOverlayCustomData {
@@ -154,6 +156,7 @@ export interface PrototypeOverlayCustomData {
 	activeFile?: string;
 	showEditor?: boolean;
 	showPreview?: boolean;
+	resourceSnapshot?: import('./canvas').CanvasResourceSnapshot;
 }
 
 export type OverlayCustomData =

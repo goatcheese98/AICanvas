@@ -66,6 +66,33 @@ describe('KanbanPreviewCard', () => {
 		expect(screen.getByText('Test Board')).not.toBeNull();
 	});
 
+	it('prefers resource snapshot metadata when present', () => {
+		render(
+			<KanbanPreviewCard
+				element={createElement({
+					title: 'Legacy board title',
+					resourceSnapshot: {
+						resourceType: 'board',
+						resourceId: 'board-1',
+						title: 'Snapshot board title',
+						snapshotVersion: 1,
+						display: {
+							badge: 'New',
+							subtitle: 'Board',
+							summary: '3 columns',
+						},
+					},
+				})}
+				isSelected={false}
+			/>,
+		);
+
+		expect(screen.getAllByText('Snapshot board title').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('New').length).toBeGreaterThan(0);
+		expect(screen.getAllByText('3 columns').length).toBeGreaterThan(0);
+		expect(screen.queryByText('Legacy board title')).toBeNull();
+	});
+
 	it('shows "Untitled board" when title is not provided', () => {
 		render(<KanbanPreviewCard element={createElement({ title: '' })} isSelected={false} />);
 
@@ -163,10 +190,10 @@ describe('KanbanPreviewCard', () => {
 		expect(columnCountElements.length).toBeGreaterThan(0);
 	});
 
-	it('shows "Double-click to edit" hint', () => {
+	it('shows "Double-click to open" hint', () => {
 		render(<KanbanPreviewCard element={createElement()} isSelected={false} />);
 
-		const hintElements = screen.getAllByText('Double-click to edit');
+		const hintElements = screen.getAllByText('Double-click to open');
 		expect(hintElements.length).toBeGreaterThan(0);
 	});
 

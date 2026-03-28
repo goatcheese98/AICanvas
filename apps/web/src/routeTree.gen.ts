@@ -21,6 +21,7 @@ import { Route as AuthSignupSsoCallbackRouteImport } from './routes/_auth/signup
 import { Route as AuthLoginSsoCallbackRouteImport } from './routes/_auth/login.sso-callback'
 import { Route as AppCanvasIdRouteImport } from './routes/_app/canvas.$id'
 import { Route as AppCanvasIdPrototypePrototypeIdRouteImport } from './routes/_app/canvas.$id.prototype.$prototypeId'
+import { Route as AppCanvasIdDocumentDocumentIdRouteImport } from './routes/_app/canvas.$id.document.$documentId'
 import { Route as AppCanvasIdBoardBoardIdRouteImport } from './routes/_app/canvas.$id.board.$boardId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -83,6 +84,12 @@ const AppCanvasIdPrototypePrototypeIdRoute =
     path: '/prototype/$prototypeId',
     getParentRoute: () => AppCanvasIdRoute,
   } as any)
+const AppCanvasIdDocumentDocumentIdRoute =
+  AppCanvasIdDocumentDocumentIdRouteImport.update({
+    id: '/document/$documentId',
+    path: '/document/$documentId',
+    getParentRoute: () => AppCanvasIdRoute,
+  } as any)
 const AppCanvasIdBoardBoardIdRoute = AppCanvasIdBoardBoardIdRouteImport.update({
   id: '/board/$boardId',
   path: '/board/$boardId',
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
+  '/canvas/$id/document/$documentId': typeof AppCanvasIdDocumentDocumentIdRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesByTo {
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
+  '/canvas/$id/document/$documentId': typeof AppCanvasIdDocumentDocumentIdRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesById {
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_auth/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/_auth/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
   '/_app/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
+  '/_app/canvas/$id/document/$documentId': typeof AppCanvasIdDocumentDocumentIdRoute
   '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRouteTypes {
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/login/sso-callback'
     | '/signup/sso-callback'
     | '/canvas/$id/board/$boardId'
+    | '/canvas/$id/document/$documentId'
     | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/login/sso-callback'
     | '/signup/sso-callback'
     | '/canvas/$id/board/$boardId'
+    | '/canvas/$id/document/$documentId'
     | '/canvas/$id/prototype/$prototypeId'
   id:
     | '__root__'
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/_auth/login/sso-callback'
     | '/_auth/signup/sso-callback'
     | '/_app/canvas/$id/board/$boardId'
+    | '/_app/canvas/$id/document/$documentId'
     | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
 }
@@ -269,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCanvasIdPrototypePrototypeIdRouteImport
       parentRoute: typeof AppCanvasIdRoute
     }
+    '/_app/canvas/$id/document/$documentId': {
+      id: '/_app/canvas/$id/document/$documentId'
+      path: '/document/$documentId'
+      fullPath: '/canvas/$id/document/$documentId'
+      preLoaderRoute: typeof AppCanvasIdDocumentDocumentIdRouteImport
+      parentRoute: typeof AppCanvasIdRoute
+    }
     '/_app/canvas/$id/board/$boardId': {
       id: '/_app/canvas/$id/board/$boardId'
       path: '/board/$boardId'
@@ -281,11 +301,13 @@ declare module '@tanstack/react-router' {
 
 interface AppCanvasIdRouteChildren {
   AppCanvasIdBoardBoardIdRoute: typeof AppCanvasIdBoardBoardIdRoute
+  AppCanvasIdDocumentDocumentIdRoute: typeof AppCanvasIdDocumentDocumentIdRoute
   AppCanvasIdPrototypePrototypeIdRoute: typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 
 const AppCanvasIdRouteChildren: AppCanvasIdRouteChildren = {
   AppCanvasIdBoardBoardIdRoute: AppCanvasIdBoardBoardIdRoute,
+  AppCanvasIdDocumentDocumentIdRoute: AppCanvasIdDocumentDocumentIdRoute,
   AppCanvasIdPrototypePrototypeIdRoute: AppCanvasIdPrototypePrototypeIdRoute,
 }
 

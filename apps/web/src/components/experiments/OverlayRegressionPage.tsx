@@ -199,12 +199,14 @@ export function OverlayRegressionPage() {
 		kanban: null,
 		newlex: null,
 		'web-embed': null,
+		prototype: null,
 	});
 	const insertionCountRef = useRef<Record<OverlayType, number>>({
 		markdown: 0,
 		kanban: 0,
 		newlex: 0,
 		'web-embed': 0,
+		prototype: 0,
 	});
 
 	const seedScene = useMemo(() => buildSeedScene(), []);
@@ -228,12 +230,14 @@ export function OverlayRegressionPage() {
 			kanban: 0,
 			newlex: 0,
 			'web-embed': 0,
+			prototype: 0,
 		};
 		setLastInsertedIds({
 			markdown: null,
 			kanban: null,
 			newlex: null,
 			'web-embed': null,
+			prototype: null,
 		});
 		setZoomLabel('100%');
 	}, [seedScene]);
@@ -295,12 +299,14 @@ export function OverlayRegressionPage() {
 			kanban: 0,
 			newlex: 0,
 			'web-embed': 0,
+			prototype: 0,
 		};
 		setLastInsertedIds({
 			markdown: null,
 			kanban: null,
 			newlex: null,
 			'web-embed': null,
+			prototype: null,
 		});
 		setZoomLabel('100%');
 	};
@@ -453,7 +459,7 @@ export function OverlayRegressionPage() {
 
 			<CanvasCore canvasId="overlay-regression" initialData={initialData} />
 			<OverlayReferenceLayer />
-			{excalidrawApi ? <CanvasNotesLayer /> : null}
+			{excalidrawApi ? <CanvasNotesLayer canvasId="overlay-regression" /> : null}
 		</div>
 	);
 }

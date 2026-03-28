@@ -1,5 +1,19 @@
 import * as z from 'zod';
 
+const resourceSnapshotSchema = z.object({
+	resourceType: z.enum(['board', 'document', 'prototype']),
+	resourceId: z.string().min(1),
+	title: z.string().trim().min(1).max(120),
+	snapshotVersion: z.coerce.number().int().min(1),
+	display: z
+		.object({
+			subtitle: z.string().trim().min(1).max(120).optional(),
+			summary: z.string().trim().min(1).max(240).optional(),
+			badge: z.string().trim().min(1).max(32).optional(),
+		})
+		.default({}),
+});
+
 export const kanbanChecklistItemSchema = z.object({
 	id: z.string().optional(),
 	text: z.string().default(''),
@@ -54,6 +68,7 @@ export const kanbanOverlaySchema = z.object({
 		.transform((value) => Math.min(18, Math.max(12, value)))
 		.optional(),
 	lastUpdated: z.coerce.number().optional(),
+	resourceSnapshot: resourceSnapshotSchema.optional(),
 });
 
 const KANBAN_PRIORITY_VALUES = ['low', 'medium', 'high'] as const;

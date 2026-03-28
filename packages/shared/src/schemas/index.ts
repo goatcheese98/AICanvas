@@ -1,5 +1,8 @@
 export {
 	canvasSchemas,
+	canvasHeavyResourceReferenceSchema,
+	canvasResourceSnapshotDisplaySchema,
+	canvasResourceSnapshotSchema,
 	normalizeCanvasTitle,
 	getCanvasTitleKey,
 	type CreateCanvas,

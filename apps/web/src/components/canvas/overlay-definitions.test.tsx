@@ -1,5 +1,9 @@
-import type { MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
+import type {
+	MarkdownOverlayCustomData,
+	PrototypeOverlayCustomData,
+} from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
 	type TypedOverlayCanvasElement,
@@ -44,6 +48,61 @@ function createMarkdownOverlay(
 			...overrides,
 		},
 	} as ExcalidrawElement as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
+}
+
+function createPrototypeOverlay(
+	overrides?: Partial<PrototypeOverlayCustomData>,
+): TypedOverlayCanvasElement<PrototypeOverlayCustomData> {
+	return {
+		id: 'prototype-overlay',
+		type: 'rectangle',
+		x: 100,
+		y: 120,
+		width: 520,
+		height: 320,
+		angle: 0,
+		strokeColor: '#111827',
+		backgroundColor: '#ffffff',
+		fillStyle: 'solid',
+		strokeWidth: 1,
+		strokeStyle: 'solid',
+		roughness: 0,
+		opacity: 100,
+		groupIds: [],
+		frameId: null,
+		roundness: null,
+		boundElements: null,
+		updated: 1,
+		link: null,
+		locked: false,
+		version: 1,
+		versionNonce: 1,
+		isDeleted: false,
+		seed: 1,
+		index: 'a0' as never,
+		customData: {
+			type: 'prototype',
+			title: 'Checkout Flow',
+			template: 'react',
+			activeFile: 'App.tsx',
+			files: {
+				'App.tsx': {
+					code: 'export default function App() { return null; }',
+					active: true,
+				},
+			},
+			dependencies: {
+				react: '^19.0.0',
+			},
+			preview: {
+				title: 'Checkout Flow',
+				description: 'Mobile checkout concept',
+				badges: ['Mobile', 'Payments'],
+				metrics: [{ label: 'Screens', value: '4' }],
+			},
+			...overrides,
+		},
+	} as ExcalidrawElement as TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
 }
 
 describe('normalizeOverlayElement', () => {
@@ -113,5 +172,58 @@ describe('normalizeOverlayElement', () => {
 		});
 
 		expect(updated).toBe(element);
+	});
+
+	it('renders the prototype preview card from the overlay definition', () => {
+		const element = createPrototypeOverlay();
+
+		render(
+			getOverlayDefinition('prototype').render({
+				element,
+				isSelected: false,
+				isActive: false,
+				mode: 'preview',
+				onChange: () => {},
+				onActivityChange: () => {},
+			}),
+		);
+
+		expect(screen.getByText('Checkout Flow')).toBeTruthy();
+		expect(screen.getByText('Mobile checkout concept')).toBeTruthy();
+		expect(screen.getByText('react')).toBeTruthy();
+		expect(screen.getByText('Double-click to open')).toBeTruthy();
+	});
+
+	it('prefers resource snapshot metadata for prototype preview cards', () => {
+		const element = createPrototypeOverlay({
+			title: 'Legacy prototype title',
+			resourceSnapshot: {
+				resourceType: 'prototype',
+				resourceId: 'prototype-1',
+				title: 'Snapshot prototype title',
+				snapshotVersion: 1,
+				display: {
+					badge: 'New',
+					subtitle: 'Prototype',
+					summary: '1 file',
+				},
+			},
+		});
+
+		render(
+			getOverlayDefinition('prototype').render({
+				element,
+				isSelected: false,
+				isActive: false,
+				mode: 'preview',
+				onChange: () => {},
+				onActivityChange: () => {},
+			}),
+		);
+
+		expect(screen.getByText('Snapshot prototype title')).toBeTruthy();
+		expect(screen.getByText('New')).toBeTruthy();
+		expect(screen.getByText('1 file')).toBeTruthy();
+		expect(screen.queryByText('Legacy prototype title')).toBeNull();
 	});
 });

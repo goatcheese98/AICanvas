@@ -3,6 +3,7 @@ import {
 	normalizeKanbanOverlay,
 	normalizeMarkdownOverlay,
 	normalizeNewLexOverlay,
+	normalizePrototypeOverlay,
 	normalizeWebEmbedOverlay,
 } from '@ai-canvas/shared/schemas';
 import type {
@@ -10,6 +11,7 @@ import type {
 	MarkdownOverlayCustomData,
 	NewLexOverlayCustomData,
 	OverlayType,
+	PrototypeOverlayCustomData,
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import { KanbanBoard } from '../overlays/kanban';
@@ -234,8 +236,147 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 			/>
 		),
 	},
+	prototype: {
+		defaultSize: { width: 520, height: 320 },
+		normalizeCustomData: normalizePrototypeOverlay,
+		createCustomData: (options) =>
+			normalizePrototypeOverlay({
+				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
+				template: options.customData?.template === 'vanilla' ? 'vanilla' : undefined,
+				files:
+					typeof options.customData?.files === 'object'
+						? (options.customData.files as PrototypeOverlayCustomData['files'])
+						: undefined,
+				dependencies:
+					typeof options.customData?.dependencies === 'object'
+						? (options.customData.dependencies as Record<string, string>)
+						: undefined,
+				preview:
+					typeof options.customData?.preview === 'object'
+						? (options.customData.preview as PrototypeOverlayCustomData['preview'])
+						: undefined,
+				activeFile:
+					typeof options.customData?.activeFile === 'string'
+						? options.customData.activeFile
+						: undefined,
+				showEditor:
+					typeof options.customData?.showEditor === 'boolean'
+						? options.customData.showEditor
+						: undefined,
+				showPreview:
+					typeof options.customData?.showPreview === 'boolean'
+						? options.customData.showPreview
+						: undefined,
+			}),
+		applyUpdate: (element, payload) => {
+			const current = normalizePrototypeOverlay(element.customData);
+			const nextCustomData = normalizePrototypeOverlay({
+				...current,
+				...payload,
+			});
+			if (!hasSerializedChange(current, nextCustomData)) {
+				return element as TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
+			}
 
+			return bumpElementVersion({
+				...element,
+				customData: nextCustomData,
+			}) as TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
+		},
+		render: ({ element, isSelected }) => (
+			<PrototypeCard element={element} isSelected={isSelected} />
+		),
+	},
 };
+
+function PrototypeCard({
+	element,
+	isSelected,
+}: {
+	element: TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
+	isSelected: boolean;
+}) {
+	const prototype = normalizePrototypeOverlay(element.customData);
+	const snapshot = prototype.resourceSnapshot;
+	const preview = prototype.preview;
+	const title = snapshot?.title ?? preview?.title ?? prototype.title;
+	const eyebrow = snapshot?.display?.badge ?? preview?.eyebrow ?? 'Prototype';
+	const description =
+		snapshot?.display?.summary ?? snapshot?.display?.subtitle ?? preview?.description ?? 'Interactive concept preview';
+	const visibleFileCount = Object.values(prototype.files).filter((file) => !file.hidden).length;
+
+	return (
+		<div
+			className={`flex h-full w-full flex-col overflow-hidden rounded-[22px] border bg-white shadow-[0_12px_30px_rgba(15,23,42,0.08)] ${
+				isSelected ? 'border-[#4d55cc]' : 'border-stone-200'
+			}`}
+		>
+			<div
+				className="px-5 py-4 text-white"
+				style={{
+					background: preview?.background ?? 'linear-gradient(135deg, #eff6ff, #eef2ff)',
+				}}
+			>
+				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
+					{eyebrow}
+				</div>
+				<div className="mt-2 text-lg font-semibold text-white">
+					{title}
+				</div>
+				<div className="mt-1 text-sm text-white/85">
+					{description}
+				</div>
+			</div>
+			<div className="flex flex-1 flex-col gap-3 px-5 py-4">
+				<div className="flex items-center justify-between text-xs text-stone-500">
+					<span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium uppercase tracking-[0.12em]">
+						{prototype.template}
+					</span>
+					<span>{visibleFileCount} files</span>
+				</div>
+				{preview?.badges && preview.badges.length > 0 ? (
+					<div className="flex flex-wrap gap-2">
+						{preview.badges.map((badge) => (
+							<span
+								key={badge}
+								className="rounded-full border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600"
+							>
+								{badge}
+							</span>
+						))}
+					</div>
+				) : null}
+				<div className="mt-auto flex flex-wrap gap-2">
+					{preview?.metrics && preview.metrics.length > 0 ? (
+						preview.metrics.map((metric) => (
+							<div
+								key={`${metric.label}-${metric.value}`}
+								className="rounded-2xl bg-stone-50 px-3 py-2"
+							>
+								<div className="text-[10px] uppercase tracking-[0.14em] text-stone-400">
+									{metric.label}
+								</div>
+								<div className="text-sm font-semibold text-stone-700">{metric.value}</div>
+							</div>
+						))
+					) : (
+						<div className="rounded-2xl bg-stone-50 px-3 py-2">
+							<div className="text-[10px] uppercase tracking-[0.14em] text-stone-400">
+								Active file
+							</div>
+							<div className="text-sm font-semibold text-stone-700">
+								{prototype.activeFile ?? 'None'}
+							</div>
+						</div>
+					)}
+				</div>
+				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+					Double-click to open
+				</div>
+			</div>
+		</div>
+	);
+}
 
 export function isOverlayType(value: unknown): value is OverlayType {
 	return typeof value === 'string' && (OVERLAY_TYPES as readonly string[]).includes(value);

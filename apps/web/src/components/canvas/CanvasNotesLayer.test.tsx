@@ -1,11 +1,18 @@
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { render } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
+
+const navigateMock = vi.fn();
+
+vi.mock('@tanstack/react-router', () => ({
+	useNavigate: () => navigateMock,
+}));
 
 describe('CanvasNotesLayer', () => {
 	beforeEach(() => {
+		navigateMock.mockClear();
 		useAppStore.setState({
 			elements: [],
 			appState: {
@@ -43,7 +50,7 @@ describe('CanvasNotesLayer', () => {
 			},
 		});
 
-		const { container, rerender } = render(<CanvasNotesLayer />);
+		const { container, rerender } = render(<CanvasNotesLayer canvasId="canvas-1" />);
 		const initialContainer = container.querySelector(
 			'[style*="left: 100px;"][style*="top: 120px;"]',
 		);
@@ -56,7 +63,7 @@ describe('CanvasNotesLayer', () => {
 			elements: [overlayElement],
 		});
 
-		rerender(<CanvasNotesLayer />);
+		rerender(<CanvasNotesLayer canvasId="canvas-1" />);
 
 		const movedContainer = container.querySelector('[style*="left: 340px;"][style*="top: 260px;"]');
 		expect(movedContainer).toBeTruthy();
@@ -88,7 +95,7 @@ describe('CanvasNotesLayer', () => {
 			},
 		});
 
-		const { container, rerender } = render(<CanvasNotesLayer />);
+		const { container, rerender } = render(<CanvasNotesLayer canvasId="canvas-1" />);
 		const initialContainer = container.querySelector(
 			'[style*="left: 220px;"][style*="top: 150px;"]',
 		);
@@ -105,7 +112,7 @@ describe('CanvasNotesLayer', () => {
 			},
 		});
 
-		rerender(<CanvasNotesLayer />);
+		rerender(<CanvasNotesLayer canvasId="canvas-1" />);
 
 		const movedContainer = container.querySelector(
 			'[style*="left: 355px;"][style*="top: 337.5px;"][style*="transform: scale(1.5) rotate(0rad);"]',
@@ -139,10 +146,103 @@ describe('CanvasNotesLayer', () => {
 			},
 		});
 
-		const { container } = render(<CanvasNotesLayer />);
-		const boardOverlay = container.querySelector('[data-overlay-id="board-preview"]') as HTMLElement;
+		const { container } = render(<CanvasNotesLayer canvasId="canvas-1" />);
+		const boardOverlay = container.querySelector(
+			'[data-overlay-id="board-preview"]',
+		) as HTMLElement;
 
 		expect(boardOverlay).toBeTruthy();
 		expect(boardOverlay.style.pointerEvents).toBe('none');
+	});
+
+	it('keeps selected documents in preview mode on canvas', () => {
+		const documentElement = {
+			id: 'document-preview',
+			type: 'rectangle',
+			x: 120,
+			y: 160,
+			width: 420,
+			height: 280,
+			angle: 0,
+			isDeleted: false,
+			customData: {
+				type: 'newlex',
+				title: 'Preview Document',
+				lexicalState: JSON.stringify({
+					root: {
+						children: [
+							{
+								type: 'paragraph',
+								version: 1,
+								children: [{ text: 'Document preview content.' }],
+							},
+						],
+						type: 'root',
+						version: 1,
+					},
+				}),
+				comments: [],
+				commentsPanelOpen: false,
+				version: 1,
+			},
+		} as unknown as ExcalidrawElement;
+
+		useAppStore.setState({
+			elements: [documentElement],
+			appState: {
+				scrollX: 0,
+				scrollY: 0,
+				zoom: { value: 1 as never },
+				selectedElementIds: { 'document-preview': true },
+			},
+		});
+
+		render(<CanvasNotesLayer canvasId="canvas-1" />);
+
+		expect(screen.getAllByText('Rich text')[0]).toBeTruthy();
+		expect(screen.getAllByText('Document preview content.')[0]).toBeTruthy();
+	});
+
+	it('navigates to the focused document route when a selected document card is double-clicked', () => {
+		const documentElement = {
+			id: 'document-open',
+			type: 'rectangle',
+			x: 120,
+			y: 160,
+			width: 420,
+			height: 280,
+			angle: 0,
+			isDeleted: false,
+			customData: {
+				type: 'newlex',
+				title: 'Open Document',
+				lexicalState: '{"root":{"children":[],"type":"root","version":1}}',
+				comments: [],
+				commentsPanelOpen: false,
+				version: 1,
+			},
+		} as unknown as ExcalidrawElement;
+
+		useAppStore.setState({
+			elements: [documentElement],
+			appState: {
+				scrollX: 0,
+				scrollY: 0,
+				zoom: { value: 1 as never },
+				selectedElementIds: { 'document-open': true },
+			},
+		});
+
+		const { container } = render(<CanvasNotesLayer canvasId="canvas-1" />);
+		const documentOverlay = container.querySelector(
+			'[data-overlay-id="document-open"]',
+		) as HTMLElement;
+
+		fireEvent.doubleClick(documentOverlay);
+
+		expect(navigateMock).toHaveBeenCalledWith({
+			to: '/canvas/$id/document/$documentId',
+			params: { id: 'canvas-1', documentId: 'document-open' },
+		});
 	});
 });

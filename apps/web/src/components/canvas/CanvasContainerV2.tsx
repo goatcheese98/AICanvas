@@ -68,6 +68,22 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 				to: '/canvas/$id/board/$boardId',
 				params: { id: canvasId, boardId: resource.id },
 			});
+			return;
+		}
+
+		if (resource.type === 'prototype') {
+			void navigate({
+				to: '/canvas/$id/prototype/$prototypeId',
+				params: { id: canvasId, prototypeId: resource.id },
+			});
+			return;
+		}
+
+		if (resource.type === 'document') {
+			void navigate({
+				to: '/canvas/$id/document/$documentId',
+				params: { id: canvasId, documentId: resource.id },
+			});
 		}
 	};
 
@@ -94,7 +110,7 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 					normalizeSceneChange={normalizeSceneChange}
 					onPointerUpdate={collaboration.handlePointerUpdate}
 				/>
-				{excalidrawApi && <CanvasNotesLayer />}
+				{excalidrawApi && <CanvasNotesLayer canvasId={canvasId} />}
 				{excalidrawApi && <AIVectorSelectionOverlay />}
 				{excalidrawApi && <ExpandedOverlayLayer />}
 			</div>

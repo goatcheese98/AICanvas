@@ -209,7 +209,7 @@ export function CanvasTourPage() {
 							}}
 						/>
 					</div>
-					<CanvasNotesLayer />
+					<CanvasNotesLayer canvasId="canvas-tour" />
 					{isGuideMode ? <div className="canvas-tour-interaction-mask" aria-hidden="true" /> : null}
 
 					{isGuideMode ||

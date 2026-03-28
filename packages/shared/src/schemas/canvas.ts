@@ -1,6 +1,12 @@
 import * as z from 'zod';
 import { CANVAS_DEFAULTS } from '../constants/canvas';
-import { isOverlayCustomData, normalizeOverlayCustomData } from './overlay';
+import {
+	kanbanOverlaySchema,
+	newLexOverlaySchema,
+	prototypeOverlaySchema,
+	isOverlayCustomData,
+	normalizeOverlayCustomData,
+} from './overlay';
 
 export function normalizeCanvasTitle(title: string): string {
 	return title.trim().replace(/\s+/g, ' ');
@@ -86,6 +92,59 @@ const canvasDataShape = {
 	files: z.record(z.string(), z.unknown()).nullable(),
 } as const;
 
+export const heavyResourceTypeSchema = z.enum(['board', 'document', 'prototype']);
+
+export const canvasHeavyResourceReferenceSchema = z.object({
+	resourceType: heavyResourceTypeSchema,
+	resourceId: z.string().min(1),
+	title: z.string().trim().min(1).max(120),
+});
+
+export const canvasResourceSnapshotDisplaySchema = z
+	.object({
+		subtitle: z.string().trim().min(1).max(120).optional(),
+		summary: z.string().trim().min(1).max(240).optional(),
+		badge: z.string().trim().min(1).max(32).optional(),
+	})
+	.default({});
+
+export const canvasResourceSnapshotSchema = canvasHeavyResourceReferenceSchema.extend({
+	snapshotVersion: z.coerce.number().int().min(1),
+	display: canvasResourceSnapshotDisplaySchema,
+});
+
+const heavyResourceRecordBaseShape = {
+	id: z.string().min(1),
+	canvasId: z.string().min(1),
+	title: z.string().trim().min(1).max(120),
+	createdAt: z.string().min(1),
+	updatedAt: z.string().min(1),
+} as const;
+
+export const boardResourceRecordSchema = z.object({
+	...heavyResourceRecordBaseShape,
+	resourceType: z.literal('board'),
+	data: kanbanOverlaySchema,
+});
+
+export const documentResourceRecordSchema = z.object({
+	...heavyResourceRecordBaseShape,
+	resourceType: z.literal('document'),
+	data: newLexOverlaySchema,
+});
+
+export const prototypeResourceRecordSchema = z.object({
+	...heavyResourceRecordBaseShape,
+	resourceType: z.literal('prototype'),
+	data: prototypeOverlaySchema,
+});
+
+export const heavyResourceRecordSchema = z.discriminatedUnion('resourceType', [
+	boardResourceRecordSchema,
+	documentResourceRecordSchema,
+	prototypeResourceRecordSchema,
+]);
+
 // Canvas blob data remains mostly opaque, but known overlay payloads are normalized.
 export const canvasDataSchema = z.object(canvasDataShape).superRefine(validateCanvasDataSize);
 
@@ -103,6 +162,14 @@ export const canvasSchemas = {
 	list: canvasListSchema,
 	data: canvasDataSchema,
 	save: saveCanvasSchema,
+	heavyResourceType: heavyResourceTypeSchema,
+	canvasHeavyResourceReference: canvasHeavyResourceReferenceSchema,
+	canvasResourceSnapshotDisplay: canvasResourceSnapshotDisplaySchema,
+	canvasResourceSnapshot: canvasResourceSnapshotSchema,
+	boardResourceRecord: boardResourceRecordSchema,
+	documentResourceRecord: documentResourceRecordSchema,
+	prototypeResourceRecord: prototypeResourceRecordSchema,
+	heavyResourceRecord: heavyResourceRecordSchema,
 } as const;
 
 export type CreateCanvas = z.infer<typeof createCanvasSchema>;

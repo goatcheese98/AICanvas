@@ -1,7 +1,7 @@
 import { buildPersistedCanvasData } from '@/components/canvas/canvas-persistence-utils';
-import { bumpElementVersion } from '@/components/canvas/overlay-definition-types';
+import { applyOverlayUpdateToScene } from '@/components/canvas/overlay-registry';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
-import { KanbanBoardContainer } from '@/components/overlays/kanban/KanbanBoardContainer';
+import { LexicalNoteContainer } from '@/components/overlays/lexical';
 import { ProjectShell } from '@/components/shell/ProjectShell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
@@ -9,14 +9,14 @@ import { useCollaboration } from '@/hooks/useCollaboration';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
-import { normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
-import type { HeavyResourceRecord, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
+import { normalizeNewLexOverlay } from '@ai-canvas/shared/schemas';
+import type { HeavyResourceRecord, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { getOpenBoardElements } from './board-studio-utils';
+import { getOpenDocumentElements } from './document-studio-utils';
 
 interface CanvasQueryData {
 	canvas?: {
@@ -30,15 +30,15 @@ interface CanvasQueryData {
 	};
 }
 
-interface BoardStudioPageProps {
+interface DocumentStudioPageProps {
 	canvasId: string;
-	boardId: string;
+	documentId: string;
 }
 
-interface BoardStudioWorkspaceProps {
+interface DocumentStudioWorkspaceProps {
 	canvasId: string;
 	canvasTitle: string;
-	boardElement: ExcalidrawElement & { customData: KanbanOverlayCustomData };
+	documentElement: ExcalidrawElement & { customData: NewLexOverlayCustomData };
 	initialElements: readonly ExcalidrawElement[];
 	initialAppState: Record<string, unknown>;
 	initialFiles: Record<string, unknown> | null;
@@ -47,15 +47,15 @@ interface BoardStudioWorkspaceProps {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 
-function BoardStudioWorkspace({
+function DocumentStudioWorkspace({
 	canvasId,
 	canvasTitle,
-	boardElement,
+	documentElement,
 	initialElements,
 	initialAppState,
 	initialFiles,
 	initialVersion,
-}: BoardStudioWorkspaceProps) {
+}: DocumentStudioWorkspaceProps) {
 	const { getToken } = useAuth();
 	const navigate = useNavigate();
 	const addToast = useAppStore((s) => s.addToast);
@@ -82,16 +82,16 @@ function BoardStudioWorkspace({
 		};
 	});
 
-	const boardElements = useMemo(() => getOpenBoardElements(sceneElements), [sceneElements]);
-	const matchedBoardElement = useMemo(
-		() => boardElements.find((element) => element.id === boardElement.id) ?? null,
-		[boardElements, boardElement.id],
+	const documentElements = useMemo(() => getOpenDocumentElements(sceneElements), [sceneElements]);
+	const matchedDocumentElement = useMemo(
+		() => documentElements.find((element) => element.id === documentElement.id) ?? null,
+		[documentElements, documentElement.id],
 	);
-	const fallbackBoardElement = useMemo(
-		() => (matchedBoardElement ? null : (boardElements[0] ?? null)),
-		[matchedBoardElement, boardElements],
+	const fallbackDocumentElement = useMemo(
+		() => (matchedDocumentElement ? null : (documentElements[0] ?? null)),
+		[matchedDocumentElement, documentElements],
 	);
-	const activeBoardElement = matchedBoardElement ?? fallbackBoardElement;
+	const activeDocumentElement = matchedDocumentElement ?? fallbackDocumentElement;
 
 	const resources = useMemo(
 		() =>
@@ -178,7 +178,7 @@ function BoardStudioWorkspace({
 			queuedCanvasDataRef.current = null;
 			if (isMountedRef.current) {
 				setSaveState('error');
-				setSaveError(error instanceof Error ? error.message : 'Failed to save board.');
+				setSaveError(error instanceof Error ? error.message : 'Failed to save document.');
 			}
 		} finally {
 			saveInFlightRef.current = false;
@@ -200,18 +200,22 @@ function BoardStudioWorkspace({
 		[flushQueuedSave],
 	);
 
-	const handleBoardChange = useCallback(
-		(elementId: string, nextBoard: KanbanOverlayCustomData) => {
-			let nextElements: readonly ExcalidrawElement[] = sceneElementsRef.current;
-
-			nextElements = sceneElementsRef.current.map((candidate) =>
-				candidate.id === elementId
-					? bumpElementVersion({
-							...candidate,
-							customData: nextBoard,
-						})
-					: candidate,
+	const handleDocumentChange = useCallback(
+		(
+			elementId: string,
+			updates: {
+				title?: string;
+				lexicalState?: string;
+				comments?: NewLexOverlayCustomData['comments'];
+			},
+		) => {
+			const { didChange, nextElements } = applyOverlayUpdateToScene(
+				sceneElementsRef.current,
+				elementId,
+				'newlex',
+				updates,
 			);
+			if (!didChange) return;
 
 			sceneElementsRef.current = nextElements;
 			setSceneElements(nextElements);
@@ -229,15 +233,15 @@ function BoardStudioWorkspace({
 					? 'Save failed'
 					: 'Ready';
 
-	if (!activeBoardElement) {
+	if (!activeDocumentElement) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
-					<div className="text-lg font-semibold text-stone-900">Board not found</div>
+					<div className="text-lg font-semibold text-stone-900">Document not found</div>
 					<p className="mt-2 text-sm text-stone-600">
-						{boardElements.length === 0
-							? 'This canvas does not currently have any board cards.'
-							: 'The requested board could not be found. Try reopening it from the canvas.'}
+						{documentElements.length === 0
+							? 'This canvas does not currently have any document cards.'
+							: 'The requested document could not be found. Try reopening it from the canvas.'}
 					</p>
 					<Link
 						to="/canvas/$id"
@@ -257,7 +261,7 @@ function BoardStudioWorkspace({
 			projectName={canvasTitle}
 			canvasId={canvasId}
 			resources={resources}
-			activeResourceId={activeBoardElement.id}
+			activeResourceId={activeDocumentElement.id}
 			collaboration={collaboration}
 			onNavigateToResource={handleNavigateToResource}
 		>
@@ -265,10 +269,10 @@ function BoardStudioWorkspace({
 				<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
 					<div className="min-w-0">
 						<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
-							Board Studio
+							Document Studio
 						</div>
 						<div className="mt-1 max-w-2xl text-sm text-stone-600">
-							Board editing now happens here. The canvas keeps a read-only board reference.
+							Document editing now happens here. The canvas keeps a read-only document reference.
 						</div>
 					</div>
 					<div className="flex items-center gap-3">
@@ -290,12 +294,12 @@ function BoardStudioWorkspace({
 
 				<div className="min-h-0 flex-1 p-4">
 					<div className="h-full min-h-0 overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_24px_60px_-44px_rgba(15,23,42,0.28)]">
-						<KanbanBoardContainer
-							element={activeBoardElement}
+						<LexicalNoteContainer
+							element={activeDocumentElement}
 							mode="shell"
 							isSelected
 							isActive
-							onChange={handleBoardChange}
+							onChange={handleDocumentChange}
 							onActivityChange={undefined}
 						/>
 					</div>
@@ -305,7 +309,7 @@ function BoardStudioWorkspace({
 	);
 }
 
-export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
+export function DocumentStudioPage({ canvasId, documentId }: DocumentStudioPageProps) {
 	const { getToken } = useAuth();
 	const canvasQuery = useQuery({
 		queryKey: ['canvas', canvasId],
@@ -317,13 +321,14 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 		},
 		refetchOnMount: 'always',
 	});
-	const boardQuery = useQuery({
-		queryKey: ['heavy-resource', canvasId, 'board', boardId],
+	const documentQuery = useQuery({
+		queryKey: ['heavy-resource', canvasId, 'document', documentId],
 		queryFn: async () => {
 			const headers = await getRequiredAuthHeaders(getToken);
-			const res = await fetch(toApiUrl(`/api/canvas/${canvasId}/resources/board/${boardId}`), {
-				headers,
-			});
+			const res = await fetch(
+				toApiUrl(`/api/canvas/${canvasId}/resources/document/${documentId}`),
+				{ headers },
+			);
 			if (!res.ok) throw new Error(await res.text());
 			return (await res.json()) as HeavyResourceRecord;
 		},
@@ -344,37 +349,42 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 			),
 		[canvasData?.data?.elements],
 	);
-	const boardResource = boardQuery.data ?? null;
-	const normalizedBoard = useMemo(
+	const documentResource = documentQuery.data ?? null;
+	const normalizedDocument = useMemo(
 		() =>
-			boardResource ? normalizeKanbanOverlay(boardResource.data as KanbanOverlayCustomData) : null,
-		[boardResource],
+			documentResource
+				? normalizeNewLexOverlay(documentResource.data as NewLexOverlayCustomData)
+				: null,
+		[documentResource],
 	);
 	const mergedElements = useMemo(
 		() =>
-			normalizedBoard
+			normalizedDocument
 				? normalizedElements.map((element) =>
-						element.id === boardId
+						element.id === documentId
 							? {
 									...element,
-									customData: normalizedBoard,
+									customData: normalizedDocument,
 								}
 							: element,
 					)
 				: normalizedElements,
-		[boardId, normalizedBoard, normalizedElements],
+		[documentId, normalizedDocument, normalizedElements],
 	);
-	const boardElements = useMemo(() => getOpenBoardElements(mergedElements), [mergedElements]);
-	const matchedBoardElement = useMemo(
-		() => boardElements.find((element) => element.id === boardId) ?? null,
-		[boardElements, boardId],
+	const documentElements = useMemo(
+		() => getOpenDocumentElements(mergedElements),
+		[mergedElements],
 	);
-	const fallbackBoardElement = useMemo(
-		() => (matchedBoardElement ? null : (boardElements[0] ?? null)),
-		[boardElements, matchedBoardElement],
+	const matchedDocumentElement = useMemo(
+		() => documentElements.find((element) => element.id === documentId) ?? null,
+		[documentElements, documentId],
+	);
+	const fallbackDocumentElement = useMemo(
+		() => (matchedDocumentElement ? null : (documentElements[0] ?? null)),
+		[matchedDocumentElement, documentElements],
 	);
 
-	if (canvasQuery.isLoading || boardQuery.isLoading) {
+	if (canvasQuery.isLoading || documentQuery.isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50">
 				<div className="h-8 w-8 animate-spin rounded-full border-2 border-stone-300 border-t-stone-900" />
@@ -382,15 +392,15 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 		);
 	}
 
-	if (canvasQuery.isError || boardQuery.isError) {
+	if (canvasQuery.isError || documentQuery.isError) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
-					<div className="text-lg font-semibold text-stone-900">Failed to load board</div>
+					<div className="text-lg font-semibold text-stone-900">Failed to load document</div>
 					<p className="mt-2 text-sm text-stone-600">
-						{boardQuery.isError
-							? 'The requested board could not be loaded from its resource record.'
-							: 'The canvas data could not be loaded for this board view.'}
+						{documentQuery.isError
+							? 'The requested document could not be loaded from its resource record.'
+							: 'The canvas data could not be loaded for this document view.'}
 					</p>
 					<Link
 						to="/canvas/$id"
@@ -404,28 +414,28 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 		);
 	}
 
-	if (!matchedBoardElement && fallbackBoardElement) {
+	if (!matchedDocumentElement && fallbackDocumentElement) {
 		return (
 			<Navigate
-				to="/canvas/$id/board/$boardId"
+				to="/canvas/$id/document/$documentId"
 				params={{
 					id: canvasId,
-					boardId: fallbackBoardElement.id,
+					documentId: fallbackDocumentElement.id,
 				}}
 				replace
 			/>
 		);
 	}
 
-	if (!canvasData?.data || !matchedBoardElement) {
+	if (!matchedDocumentElement || !canvasData?.data) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
-					<div className="text-lg font-semibold text-stone-900">Board not found</div>
+					<div className="text-lg font-semibold text-stone-900">Document not found</div>
 					<p className="mt-2 text-sm text-stone-600">
-						{boardElements.length === 0
-							? 'This canvas does not currently have any board cards.'
-							: 'The requested board could not be found. Try reopening it from the canvas.'}
+						{documentElements.length === 0
+							? 'This canvas does not currently have any document cards.'
+							: 'The requested document could not be found. Try reopening it from the canvas.'}
 					</p>
 					<Link
 						to="/canvas/$id"
@@ -440,13 +450,12 @@ export function BoardStudioPage({ canvasId, boardId }: BoardStudioPageProps) {
 	}
 
 	return (
-		<BoardStudioWorkspace
-			key={matchedBoardElement.id}
+		<DocumentStudioWorkspace
 			canvasId={canvasId}
 			canvasTitle={canvasTitle}
-			boardElement={matchedBoardElement}
+			documentElement={matchedDocumentElement}
 			initialElements={mergedElements}
-			initialAppState={(canvasData.data.appState ?? {}) as Record<string, unknown>}
+			initialAppState={canvasData.data.appState ?? {}}
 			initialFiles={canvasData.data.files ?? null}
 			initialVersion={canvasVersion}
 		/>

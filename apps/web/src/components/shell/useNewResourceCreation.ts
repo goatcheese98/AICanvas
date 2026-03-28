@@ -2,7 +2,9 @@ import {
 	createOverlayElementDraft,
 	getViewportSceneCenter,
 } from '@/components/canvas/element-factories';
+import { getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
+import { useAuth } from '@clerk/clerk-react';
 import type { OverlayType } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useState } from 'react';
@@ -37,10 +39,7 @@ interface UseNewResourceCreationReturn {
 }
 
 // Map resource types to overlay types
-const RESOURCE_TO_OVERLAY_TYPE: Record<
-	Exclude<ResourceCreationType, 'canvas'>,
-	OverlayType | 'prototype'
-> = {
+const RESOURCE_TO_OVERLAY_TYPE: Record<Exclude<ResourceCreationType, 'canvas'>, OverlayType> = {
 	board: 'kanban',
 	document: 'newlex',
 	prototype: 'prototype',
@@ -49,10 +48,12 @@ const RESOURCE_TO_OVERLAY_TYPE: Record<
 };
 
 export function useNewResourceCreation({
+	canvasId,
 	onSuccess,
 	onError,
 }: UseNewResourceCreationOptions): UseNewResourceCreationReturn {
 	const [isCreating, setIsCreating] = useState(false);
+	const { getToken } = useAuth();
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 	const appState = useAppStore((s) => s.appState);
 	const setElements = useAppStore((s) => s.setElements);
@@ -86,11 +87,17 @@ export function useNewResourceCreation({
 
 				// Prepare custom data based on resource type
 				let customData: Record<string, unknown> | undefined;
+				let resourceTitle: string | null = null;
+				let resourceSubtitle: string | null = null;
+				let resourceSummary: string | null = null;
 
 				switch (type) {
 					case 'board':
+						resourceTitle = 'New Board';
+						resourceSubtitle = 'Board';
+						resourceSummary = '3 columns';
 						customData = {
-							title: 'New Board',
+							title: resourceTitle,
 							columns: [
 								{
 									id: crypto.randomUUID(),
@@ -111,8 +118,11 @@ export function useNewResourceCreation({
 						};
 						break;
 					case 'document':
+						resourceTitle = 'New Document';
+						resourceSubtitle = 'Document';
+						resourceSummary = 'Empty note';
 						customData = {
-							title: 'New Document',
+							title: resourceTitle,
 							lexicalState: '',
 							comments: [],
 							commentsPanelOpen: false,
@@ -120,8 +130,11 @@ export function useNewResourceCreation({
 						};
 						break;
 					case 'prototype':
+						resourceTitle = 'New Prototype';
+						resourceSubtitle = 'Prototype';
+						resourceSummary = '1 file';
 						customData = {
-							title: 'New Prototype',
+							title: resourceTitle,
 							template: 'react',
 							files: {
 								'App.tsx': {
@@ -145,51 +158,58 @@ export function useNewResourceCreation({
 						break;
 				}
 
-				// Handle prototype type separately (not in overlay types)
-				if (type === 'prototype') {
-					// For prototype, we create a custom element using the factory helper pattern
-					const draft = createOverlayElementDraft(
-						'kanban', // Use kanban as base for prototype card since prototype isn't in overlay-definitions
-						sceneCenter,
+				const draft = createOverlayElementDraft(overlayType, sceneCenter, customData);
+				const resourceSnapshot =
+					type === 'board' || type === 'document' || type === 'prototype'
+						? {
+								resourceType: type,
+								resourceId: draft.id,
+								title: resourceTitle ?? '',
+								snapshotVersion: 1,
+								display: {
+									subtitle: resourceSubtitle ?? undefined,
+									summary: resourceSummary ?? undefined,
+									badge: 'New',
+								},
+							}
+						: null;
+				const resourceCustomData =
+					resourceSnapshot
+						? ({
+								...draft.customData,
+								resourceSnapshot,
+							} as typeof draft.customData)
+						: draft.customData;
+				const draftWithSnapshot =
+					resourceSnapshot
+						? ({
+								...draft,
+								customData: resourceCustomData,
+							} as typeof draft)
+						: draft;
+				if (type === 'board' || type === 'document' || type === 'prototype') {
+					const headers = await getRequiredAuthHeaders(getToken);
+					const response = await fetch(
+						toApiUrl(`/api/canvas/${canvasId}/resources/${type}/${draft.id}`),
 						{
-							type: 'prototype',
-							...customData,
+							method: 'PUT',
+							headers: {
+								...headers,
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								title: resourceTitle ?? '',
+								data: draftWithSnapshot.customData,
+							}),
 						},
 					);
 
-					// Override the type in customData since we're using kanban as base
-					const newElement = {
-						...draft,
-						customData: {
-							type: 'prototype',
-							...customData,
-						},
-					} as unknown as ExcalidrawElement;
-
-					const nextElements = [...currentElements, newElement];
-
-					excalidrawApi.updateScene({
-						elements: nextElements,
-						appState: {
-							selectedElementIds: { [draft.id]: true },
-						},
-					});
-
-					setElements(nextElements);
-
-					onSuccess?.({ id: draft.id, type }, type);
-
-					return { success: true, elementId: draft.id };
+					if (!response.ok) {
+						throw new Error(await response.text());
+					}
 				}
 
-				// For standard overlay types, use the factory
-				const draft = createOverlayElementDraft(
-					overlayType as OverlayType,
-					sceneCenter,
-					customData,
-				);
-
-				const newElement = draft as unknown as ExcalidrawElement;
+				const newElement = draftWithSnapshot as unknown as ExcalidrawElement;
 				const nextElements = [...currentElements, newElement];
 
 				excalidrawApi.updateScene({
@@ -212,7 +232,7 @@ export function useNewResourceCreation({
 				setIsCreating(false);
 			}
 		},
-		[excalidrawApi, appState, setElements, onSuccess, onError],
+		[canvasId, excalidrawApi, appState, getToken, setElements, onSuccess, onError],
 	);
 
 	return { createResource, isCreating };

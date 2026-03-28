@@ -53,6 +53,31 @@ export const canvasVersions = sqliteTable('canvas_versions', {
 		.$defaultFn(() => new Date()),
 });
 
+export const heavyResources = sqliteTable(
+	'heavy_resources',
+	{
+		id: text('id').primaryKey(),
+		canvasId: text('canvas_id')
+			.notNull()
+			.references(() => canvases.id),
+		resourceType: text('resource_type', {
+			enum: ['board', 'document', 'prototype'],
+		}).notNull(),
+		title: text('title').notNull(),
+		dataJson: text('data_json').notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date()),
+		updatedAt: integer('updated_at', { mode: 'timestamp' })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(table) => [
+		index('heavy_resources_canvas_id_idx').on(table.canvasId),
+		index('heavy_resources_canvas_id_resource_type_idx').on(table.canvasId, table.resourceType),
+	],
+);
+
 export const canvasShares = sqliteTable('canvas_shares', {
 	id: text('id').primaryKey(),
 	canvasId: text('canvas_id')

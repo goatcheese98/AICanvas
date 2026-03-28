@@ -14,7 +14,6 @@ interface LeftSidebarProps {
 	onResourceClick: (resource: ProjectResource) => void;
 	onNewResource: (option: NewResourceOption) => void;
 	onNavigateToSettings?: () => void;
-	onOpenShortcutsHelp?: () => void;
 	collaboration: {
 		isCollaborating: boolean;
 		collaborators: { id: string; name: string; avatarUrl?: string; isOnline?: boolean }[];
@@ -42,7 +41,6 @@ export function LeftSidebar({
 	onResourceClick,
 	onNewResource,
 	onNavigateToSettings,
-	onOpenShortcutsHelp,
 	collaboration,
 }: LeftSidebarProps) {
 	const { user } = useUser();
@@ -93,6 +91,22 @@ export function LeftSidebar({
 			onNavigateToSettings?.();
 		}, 150);
 	}, [handleClosePopover, onNavigateToSettings]);
+
+	const handleCloseNewMenu = useCallback(() => {
+		setIsNewMenuOpen(false);
+	}, []);
+
+	const handleToggleNewMenu = useCallback(() => {
+		setIsNewMenuOpen((current) => !current);
+	}, []);
+
+	const handleSelectNewResource = useCallback(
+		(option: NewResourceOption) => {
+			setIsNewMenuOpen(false);
+			onNewResource(option);
+		},
+		[onNewResource],
+	);
 
 	// Close on escape key
 	useEffect(() => {
@@ -169,18 +183,28 @@ export function LeftSidebar({
 			</div>
 
 			{/* New Button */}
-			<div className="p-3">
+			<div className="relative p-3">
 				<button
+					ref={newButtonRef}
 					type="button"
-					onClick={() => onNewResource({ type: 'quick-note' })}
+					onClick={handleToggleNewMenu}
 					className={cn(
 						'flex items-center justify-center rounded-lg bg-[#4d55cc] px-3 py-2 text-white transition-colors hover:bg-[#3d45bc] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4d55cc] focus-visible:ring-offset-2',
 						isExpanded ? 'w-full gap-2' : 'h-10 w-10 p-0',
 					)}
+					aria-expanded={isNewMenuOpen}
+					aria-haspopup="menu"
+					aria-label="Open new resource menu"
 				>
 					<PlusIcon className="h-4 w-4" />
 					{isExpanded && <span className="text-sm font-medium">New</span>}
 				</button>
+				<NewResourceMenu
+					isOpen={isNewMenuOpen}
+					onClose={handleCloseNewMenu}
+					onSelect={handleSelectNewResource}
+					triggerRef={newButtonRef}
+				/>
 			</div>
 
 			{/* Resource List */}

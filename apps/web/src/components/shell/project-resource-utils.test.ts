@@ -78,4 +78,32 @@ describe('buildProjectResources', () => {
 
 		expect(resources).toEqual([{ id: 'canvas-1', type: 'canvas', name: 'Launch Canvas' }]);
 	});
+
+	it('prefers resource snapshot titles when available', () => {
+		const resources = buildProjectResources({
+			canvasId: 'canvas-1',
+			canvasName: 'Launch Canvas',
+			elements: [
+				{
+					...createElement('board-1', 'Fallback Title'),
+					customData: {
+						type: 'kanban',
+						title: 'Fallback Title',
+						resourceSnapshot: {
+							resourceType: 'board',
+							resourceId: 'board-1',
+							title: 'Snapshot Title',
+							snapshotVersion: 1,
+							display: {},
+						},
+					},
+				},
+			],
+		});
+
+		expect(resources).toEqual([
+			{ id: 'canvas-1', type: 'canvas', name: 'Launch Canvas' },
+			{ id: 'board-1', type: 'board', name: 'Snapshot Title' },
+		]);
+	});
 });

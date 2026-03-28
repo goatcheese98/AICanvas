@@ -2,7 +2,6 @@ import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useMemo } from 'react';
-import { getLabelTone } from './kanban-card-helpers';
 import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_SURFACE, KANBAN_ACCENT_TEXT } from './kanban-theme';
 
 interface KanbanPreviewCardProps {
@@ -47,26 +46,34 @@ function countOverdueCards(board: KanbanOverlayCustomData): number {
 
 export function KanbanPreviewCard({ element, isSelected }: KanbanPreviewCardProps) {
 	const board = element.customData;
+	const snapshot = board.resourceSnapshot;
+	const displayTitle = snapshot?.title ?? board.title;
+	const displayBadge = snapshot?.display?.badge;
+	const displaySummary = snapshot?.display?.summary;
 	const cardCount = useMemo(() => countTotalCards(board), [board]);
 	const overdueCount = useMemo(() => countOverdueCards(board), [board]);
 
 	return (
-		<OverlaySurface
-			element={element}
-			isSelected={isSelected}
-			className="flex h-full flex-col"
-		>
+		<OverlaySurface element={element} isSelected={isSelected} className="flex h-full flex-col">
 			<div className="flex h-full flex-col bg-white">
 				{/* Header */}
 				<div className="flex min-h-14 items-center justify-between gap-3 border-b border-stone-200/80 px-4 py-3">
 					<div className="min-w-0 flex-1">
-						{board.title ? (
-							<div className="truncate font-semibold text-stone-900">{board.title}</div>
+						{displayTitle ? (
+							<div className="truncate font-semibold text-stone-900">{displayTitle}</div>
 						) : (
 							<div className="truncate text-sm italic text-stone-400">Untitled board</div>
 						)}
+						{displaySummary ? (
+							<div className="truncate text-xs text-stone-500">{displaySummary}</div>
+						) : null}
 					</div>
 					<div className="flex items-center gap-2">
+						{displayBadge ? (
+							<div className="rounded-full border border-stone-200 bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
+								{displayBadge}
+							</div>
+						) : null}
 						<div className="rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500">
 							{cardCount} card{cardCount !== 1 ? 's' : ''}
 						</div>
@@ -149,7 +156,7 @@ export function KanbanPreviewCard({ element, isSelected }: KanbanPreviewCardProp
 						{overdueCount > 0 && <span>{overdueCount} overdue</span>}
 					</div>
 					<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-						Double-click to edit
+						Double-click to open
 					</div>
 				</div>
 			</div>
