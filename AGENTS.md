@@ -311,16 +311,95 @@ Colocated with code (`.test.ts` next to source):
 5. **Duplicate shared types** — Belong in `packages/shared/`
 6. **Large incoherent files** — Split when size harms cohesion, readability, or local reasoning
 
-## Agent Collaboration
+## Agent Workflow
 
-- Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
-- Codex is the reviewer, integrator, and merge-readiness gate.
-- Default to a two-lane workflow: main worktree for Codex review/integration, one side worktree for Kimi build work.
-- Prefer one working branch with multiple meaningful commits.
-- Open a PR only at a real reviewable checkpoint, not for every tiny step.
-- Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.
+Use one shared workflow across models. Keep it light by default. Escalate into orchestration only when the task size, difficulty, or ambiguity earns it.
+
+### Core Principles
+
+- One task brief per task.
+- One primary agent owns the result.
+- One agent, one task, one prompt by default.
+- Verification matters more than style.
+- Use orchestration selectively.
+- Prefer one implementation path, not duplicate full builds.
+- If output is bad, diagnose the cause and rerun instead of endlessly patching slop.
+- Focused agents are correct agents: keep scope narrow and explicit.
+- Keep outputs small, explicit, and honest.
+
+### Task Brief
+
+Every task starts with:
+
+- Goal
+- Constraints
+- Acceptance criteria
+- Verification
+- Non-goals
+- Execution mode
+
+### Modes
+
+1. `Solo`
+   Use when the task is small, local, and mostly obvious.
+   Pattern: one primary agent, one branch, no sub-agents unless a tiny side check helps.
+
+2. `Assisted`
+   Use when the task is medium-sized and one or two bounded subtasks can run in parallel.
+   Pattern: one primary agent plus optional sub-agents for exploration, targeted implementation, regression review, or test diagnosis.
+
+3. `Orchestrated`
+   Use when the task is large and splits into real independent slices.
+   Pattern: one primary agent as orchestrator, sub-agents with bounded ownership, one main implementation path.
+
+4. `Exploratory`
+   Use when the task is difficult, ambiguous, or worth experimenting on.
+   Pattern: the orchestrator assigns different approaches to sub-agents, compares them, then picks or synthesizes one path before implementation proceeds.
+
+### Delegation Rules
+
+- Delegate bounded tasks, clear questions, isolated implementation slices, and verification passes.
+- Do not delegate vague end-to-end goals by default.
+- Do not run duplicate full implementations unless you are explicitly running an experiment.
+- Use exploratory orchestration for hard or ambiguous tasks before committing to one implementation path.
+- Some sub-agents should be read-only or review-only when that better fits the task.
+
+### Sub-Agent Output
+
+When a sub-agent explores or compares an approach, it should return:
+
+- Approach
+- Why it works
+- Risks
+- Files affected
+- Verification plan
+- Recommendation
+
+### Delivery Standard
+
+Every completed task should report:
+
+- Completed
+- Verification
+- Remaining risks
+- Next step
+
+### Quality Gates
+
+Before work is handed off, merged, or treated as done:
+
+- run the relevant typecheck
+- run the relevant tests
+- run lint when it materially helps
+- name what remains unverified
+
+### Branches, Worktrees, and PRs
+
+- Default to one branch per task.
+- Use a worktree only when isolation meaningfully helps.
+- Open a PR only when it adds value: formal review, merge checkpoint, or substantial change history.
+- Skip PR ceremony for small or exploratory work when it does not help.
 - Keep temporary breakage explicit and honest.
-- See `docs/agent-workflow.md` for the full workflow.
 
 ## Key Files
 
@@ -335,7 +414,6 @@ Colocated with code (`.test.ts` next to source):
 
 ## Docs
 
-- `docs/agent-workflow.md` — Kimi/Codex branch, PR, and review workflow
 - `docs/overlay-authoring-pattern.md` — Overlay spec
 - `ARCHITECTURE.md` — Tech decisions
 - `CLAUDE.md` — Mirror of this file
