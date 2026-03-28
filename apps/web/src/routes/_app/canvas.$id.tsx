@@ -17,7 +17,7 @@ function CanvasPage() {
 		select: (state) => state.location.pathname,
 	});
 
-	if (pathname.includes('/prototype/')) {
+	if (pathname.includes('/prototype/') || pathname.includes('/board/')) {
 		return <Outlet />;
 	}
 

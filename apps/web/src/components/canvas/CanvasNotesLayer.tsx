@@ -135,7 +135,7 @@ function OverlayItem({ element, stackIndex, appState, updateOverlayElement }: Ov
 					element={normalizedElement}
 					isSelected={isSelected}
 					isActive={isEditing}
-					mode={isSelected ? 'live' : 'preview'}
+					mode={type === 'kanban' ? 'preview' : isSelected ? 'live' : 'preview'}
 					onChange={handleChange as never}
 					onActivityChange={handleActivityChange}
 				/>

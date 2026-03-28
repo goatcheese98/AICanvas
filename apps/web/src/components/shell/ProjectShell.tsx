@@ -1,5 +1,6 @@
 import { AIChatPanelContent } from '@/components/ai-chat/AIChatPanelContent';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
+import { useMemo } from 'react';
 import { LeftSidebar } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
@@ -11,9 +12,8 @@ interface ProjectShellProps {
 	projectId: string;
 	projectName: string;
 	canvasId: string;
-	currentViewLabel: string;
 	resources: ProjectResource[];
-	activeResourceId: string;
+	activeResourceId?: string;
 	children: React.ReactNode;
 	collaboration: {
 		isCollaborating: boolean;
@@ -34,7 +34,6 @@ export function ProjectShell({
 	projectId: _projectId,
 	projectName,
 	canvasId,
-	currentViewLabel,
 	resources,
 	activeResourceId,
 	children,
@@ -53,13 +52,17 @@ export function ProjectShell({
 		toggleSidebar: shellState.toggleSidebar,
 	});
 
-	const collaboratorsList: { id: string; name: string; avatarUrl?: string }[] = [];
-	collaboration.collaborators.forEach((value, key) => {
-		collaboratorsList.push({
-			id: key,
-			name: value.username || 'Anonymous',
+	// Convert collaborators map to array
+	const collaboratorsList = useMemo(() => {
+		const list: { id: string; name: string; avatarUrl?: string }[] = [];
+		collaboration.collaborators.forEach((value, key) => {
+			list.push({
+				id: key,
+				name: value.username || 'Anonymous',
+			});
 		});
-	});
+		return list;
+	}, [collaboration.collaborators]);
 
 	const handleResourceClick = (resource: ProjectResource) => {
 		onNavigateToResource(resource);
@@ -85,9 +88,6 @@ export function ProjectShell({
 		shellState.openRightPanel(mode);
 	};
 
-	const isAIOpen = shellState.rightPanelMode === 'ai';
-	const isDetailsOpen = shellState.rightPanelMode === 'details';
-
 	const handleOpenRightPanel = (mode: Exclude<ReturnType<typeof useShellState>['rightPanelMode'], 'none'>) => {
 		shellState.openRightPanel(mode);
 	};
@@ -101,9 +101,8 @@ export function ProjectShell({
 					isExpanded={shellState.isSidebarExpanded}
 					onToggleExpand={shellState.toggleSidebar}
 					projectName={projectName}
-					currentViewLabel={currentViewLabel}
 					resources={resources}
-					activeResourceId={activeResourceId}
+					activeResourceId={activeResourceId ?? canvasId}
 					onResourceClick={handleResourceClick}
 					onNewClick={handleNewClick}
 					onNavigateToSettings={onNavigateToSettings}

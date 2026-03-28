@@ -8,7 +8,6 @@ interface LeftSidebarProps {
 	isExpanded: boolean;
 	onToggleExpand: () => void;
 	projectName: string;
-	currentViewLabel: string;
 	resources: ProjectResource[];
 	activeResourceId?: string;
 	onResourceClick: (resource: ProjectResource) => void;
@@ -35,7 +34,6 @@ export function LeftSidebar({
 	isExpanded,
 	onToggleExpand,
 	projectName,
-	currentViewLabel,
 	resources,
 	activeResourceId,
 	onResourceClick,
@@ -70,7 +68,6 @@ export function LeftSidebar({
 					<>
 						<div className="flex min-w-0 flex-1 flex-col">
 							<span className="truncate text-sm font-semibold text-stone-900">{projectName}</span>
-							<span className="truncate text-xs text-stone-500">{currentViewLabel}</span>
 						</div>
 						<button
 							type="button"

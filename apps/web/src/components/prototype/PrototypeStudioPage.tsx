@@ -2,10 +2,7 @@ import { normalizeSceneElements } from '@/components/canvas/scene-element-normal
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
 import { ProjectShell } from '@/components/shell';
-import {
-	buildCanvasProjectResources,
-	getActiveProjectResourceName,
-} from '@/components/shell/project-resources';
+import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
@@ -124,9 +121,9 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	);
 	const resources = useMemo(
 		() =>
-			buildCanvasProjectResources({
+			buildProjectResources({
 				canvasId,
-				canvasTitle: canvasQuery.data?.canvas?.title,
+				canvasName: canvasQuery.data?.canvas?.title ?? 'Untitled Project',
 				elements,
 			}),
 		[canvasId, canvasQuery.data?.canvas?.title, elements],
@@ -200,7 +197,6 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	};
 	const projectName = canvasQuery.data?.canvas?.title ?? 'Untitled Project';
 	const activeResourceId = prototypeElement?.id ?? prototypeId;
-	const currentViewLabel = getActiveProjectResourceName(resources, activeResourceId, 'Prototype');
 
 	if (!prototypeElement || !normalizedPrototype || !canvasQuery.data?.data) {
 		return (
@@ -208,7 +204,6 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 				projectId="default"
 				projectName={projectName}
 				canvasId={canvasId}
-				currentViewLabel={currentViewLabel}
 				resources={resources}
 				activeResourceId={activeResourceId}
 				collaboration={EMPTY_COLLABORATION}
@@ -241,11 +236,11 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			projectId="default"
 			projectName={projectName}
 			canvasId={canvasId}
-			currentViewLabel={currentViewLabel}
 			resources={resources}
 			activeResourceId={prototypeElement.id}
 			collaboration={EMPTY_COLLABORATION}
 			onNavigateToResource={handleNavigateToResource}
+			onNavigateToSettings={handleNavigateToSettings}
 		>
 			<PrototypeStudioSession
 				key={`${prototypeElement.id}:${savedSignature}`}

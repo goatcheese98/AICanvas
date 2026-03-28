@@ -21,6 +21,7 @@ import { Route as AuthSignupSsoCallbackRouteImport } from './routes/_auth/signup
 import { Route as AuthLoginSsoCallbackRouteImport } from './routes/_auth/login.sso-callback'
 import { Route as AppCanvasIdRouteImport } from './routes/_app/canvas.$id'
 import { Route as AppCanvasIdPrototypePrototypeIdRouteImport } from './routes/_app/canvas.$id.prototype.$prototypeId'
+import { Route as AppCanvasIdBoardBoardIdRouteImport } from './routes/_app/canvas.$id.board.$boardId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
@@ -82,6 +83,11 @@ const AppCanvasIdPrototypePrototypeIdRoute =
     path: '/prototype/$prototypeId',
     getParentRoute: () => AppCanvasIdRoute,
   } as any)
+const AppCanvasIdBoardBoardIdRoute = AppCanvasIdBoardBoardIdRouteImport.update({
+  id: '/board/$boardId',
+  path: '/board/$boardId',
+  getParentRoute: () => AppCanvasIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
+  '/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesByTo {
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
+  '/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
   '/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRoutesById {
@@ -120,6 +128,7 @@ export interface FileRoutesById {
   '/_app/canvas/$id': typeof AppCanvasIdRouteWithChildren
   '/_auth/login/sso-callback': typeof AuthLoginSsoCallbackRoute
   '/_auth/signup/sso-callback': typeof AuthSignupSsoCallbackRoute
+  '/_app/canvas/$id/board/$boardId': typeof AppCanvasIdBoardBoardIdRoute
   '/_app/canvas/$id/prototype/$prototypeId': typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 export interface FileRouteTypes {
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/canvas/$id'
     | '/login/sso-callback'
     | '/signup/sso-callback'
+    | '/canvas/$id/board/$boardId'
     | '/canvas/$id/prototype/$prototypeId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/canvas/$id'
     | '/login/sso-callback'
     | '/signup/sso-callback'
+    | '/canvas/$id/board/$boardId'
     | '/canvas/$id/prototype/$prototypeId'
   id:
     | '__root__'
@@ -160,6 +171,7 @@ export interface FileRouteTypes {
     | '/_app/canvas/$id'
     | '/_auth/login/sso-callback'
     | '/_auth/signup/sso-callback'
+    | '/_app/canvas/$id/board/$boardId'
     | '/_app/canvas/$id/prototype/$prototypeId'
   fileRoutesById: FileRoutesById
 }
@@ -257,14 +269,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCanvasIdPrototypePrototypeIdRouteImport
       parentRoute: typeof AppCanvasIdRoute
     }
+    '/_app/canvas/$id/board/$boardId': {
+      id: '/_app/canvas/$id/board/$boardId'
+      path: '/board/$boardId'
+      fullPath: '/canvas/$id/board/$boardId'
+      preLoaderRoute: typeof AppCanvasIdBoardBoardIdRouteImport
+      parentRoute: typeof AppCanvasIdRoute
+    }
   }
 }
 
 interface AppCanvasIdRouteChildren {
+  AppCanvasIdBoardBoardIdRoute: typeof AppCanvasIdBoardBoardIdRoute
   AppCanvasIdPrototypePrototypeIdRoute: typeof AppCanvasIdPrototypePrototypeIdRoute
 }
 
 const AppCanvasIdRouteChildren: AppCanvasIdRouteChildren = {
+  AppCanvasIdBoardBoardIdRoute: AppCanvasIdBoardBoardIdRoute,
   AppCanvasIdPrototypePrototypeIdRoute: AppCanvasIdPrototypePrototypeIdRoute,
 }
 

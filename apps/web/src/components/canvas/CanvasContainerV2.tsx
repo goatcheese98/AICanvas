@@ -1,17 +1,14 @@
 import { ProjectShell } from '@/components/shell';
-import {
-	buildCanvasProjectResources,
-	getActiveProjectResourceName,
-} from '@/components/shell/project-resources';
+import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import { useAppStore } from '@/stores/store';
 import '@excalidraw/excalidraw/index.css';
 import { useNavigate } from '@tanstack/react-router';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useMemo } from 'react';
 import { ExpandedOverlayLayer } from '../overlays/ExpandedOverlayLayer';
 import { AIVectorSelectionOverlay } from './AIVectorSelectionOverlay';
 import { CanvasCore } from './CanvasCore';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
-import { normalizeSceneElements } from './scene-element-normalizer';
 import { useCanvasContainerState } from './useCanvasContainerState';
 
 interface CanvasContainerV2Props {
@@ -36,46 +33,43 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 		useCanvasContainerState({
 			canvasId,
 		});
-	const resolvedCanvasQueryData = canvasQueryData as
-		| {
-				canvas?: { title?: string | null };
-				data?: { elements?: unknown[] | null };
-		  }
-		| undefined;
-	const canvasTitle = resolvedCanvasQueryData?.canvas?.title ?? 'Untitled Project';
-	const persistedElements = resolvedCanvasQueryData?.data?.elements ?? [];
 
-	const resourceElements = useMemo(
-		() => (elements.length > 0 ? elements : normalizeSceneElements(persistedElements as never[])),
-		[elements, persistedElements],
-	);
+	const canvasData = useMemo(() => {
+		const data = canvasQueryData as
+			| {
+					canvas?: { title?: unknown };
+					data?: { elements?: readonly ExcalidrawElement[] };
+			  }
+			| undefined;
+
+		return {
+			title: typeof data?.canvas?.title === 'string' ? data.canvas.title : 'Untitled Project',
+			elements: data?.data?.elements ?? [],
+		};
+	}, [canvasQueryData]);
+
 	const resources = useMemo(
 		() =>
-			buildCanvasProjectResources({
+			buildProjectResources({
 				canvasId,
-				canvasTitle,
-				elements: resourceElements,
+				canvasName: canvasData.title,
+				elements: canvasData.elements,
 			}),
-		[canvasId, canvasTitle, resourceElements],
+		[canvasData.elements, canvasData.title, canvasId],
 	);
-	const currentViewLabel = getActiveProjectResourceName(resources, canvasId, 'Canvas');
 
 	const handleNavigateToResource = (resource: (typeof resources)[number]) => {
-		if (resource.type === 'prototype') {
-			void navigate({
-				to: '/canvas/$id/prototype/$prototypeId',
-				params: {
-					id: canvasId,
-					prototypeId: resource.id,
-				},
-			});
+		if (resource.type === 'canvas') {
+			void navigate({ to: '/canvas/$id', params: { id: canvasId } });
 			return;
 		}
 
-		void navigate({
-			to: '/canvas/$id',
-			params: { id: canvasId },
-		});
+		if (resource.type === 'board') {
+			void navigate({
+				to: '/canvas/$id/board/$boardId',
+				params: { id: canvasId, boardId: resource.id },
+			});
+		}
 	};
 
 	const handleNavigateToSettings = () => {
@@ -85,9 +79,8 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 	return (
 		<ProjectShell
 			projectId="default"
-			projectName={canvasTitle}
+			projectName={canvasData.title}
 			canvasId={canvasId}
-			currentViewLabel={currentViewLabel}
 			resources={resources}
 			activeResourceId={canvasId}
 			collaboration={collaboration}
