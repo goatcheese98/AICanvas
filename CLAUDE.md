@@ -49,6 +49,26 @@ Before creating issues, reviewing a phase, or calling work incomplete, first ver
 - already on `main`
 - partially present and only needs a smaller follow-up
 
+## Issue Tracking
+
+This repository uses **bd (beads)** for issue tracking and cross-window handoffs.
+
+- Run `bd prime` for the current workflow context.
+- Run `bd ready` to find unblocked work before starting a new task.
+- Use beads instead of ad hoc markdown for multi-step work, discovered follow-ups, and agent handoffs.
+- For checkpoint-style work, record the same fields in the active bead:
+  `Current phase`, `Verified current state`, `Decision`, `Verification`, `Remaining risks`, `Next step`.
+- When ending a meaningful checkpoint, update or close the bead and push the tracker state with `bd dolt push`.
+
+Quick reference:
+
+- `bd ready`
+- `bd show <id>`
+- `bd create "Title" --type task --priority 2`
+- `bd update <id> --notes "..."` or `bd update <id> --design "..."`
+- `bd close <id>`
+- `bd dolt push`
+
 ## Anti-Slop Manifesto
 
 This repository does not reward volume, cleverness, or abstraction for its own sake.
@@ -275,45 +295,24 @@ Tests are colocated with the code they verify (`.test.ts` / `.test.tsx` next to 
 - **Direct Excalidraw scene JSON from AI.** The assistant emits semantic mutations, not raw scene data.
 - **Large incoherent files.** Split when size harms cohesion, readability, or local reasoning. Extract UI regions first, then move state into hooks.
 
-## Worktree Workflow (Pragmatic)
+## Branch and Worktree Use
 
-For parallel development with AI assistance. See `docs/workflow-pragmatic.md` for full details.
+Use one branch per task by default.
 
-### Quick Start
+Worktrees are optional. Use them when isolation meaningfully helps, especially for larger or risky tasks. For small tasks, staying in one branch is usually simpler.
+
+If you create a new worktree:
 
 ```sh
-# Create a new worktree
 bun run worktree:new -- my-feature
-
-# In the new worktree, start all services
 cd ../AICanvas-my-feature
 bun run dev
 ```
 
 This starts via Turbo:
-- **Web** (React frontend) → http://localhost:5181
-- **API** (Hono backend) → http://localhost:8791
-- **PartyKit** (WebSocket collaboration) → http://localhost:1999
-
-### Key Principles
-
-- **Main worktree** (`AICanvas`): Your primary workspace on `main` branch
-- **One side worktree** (`AICanvas-*`): the active Kimi build lane by default
-- **One command:** `bun run dev` starts everything (Web + API + PartyKit)
-- **One log stream:** All logs labeled `[web]`, `[api]`, `[partykit]` for easy debugging
-
-### Why This Works for AI
-
-- Copy-paste one terminal output for full context
-- AI sees frontend, backend, and WebSocket interactions together
-- No context switching between terminals
-
-### Port Conventions
-
-| Worktree | Web | API | PartyKit |
-|----------|-----|-----|----------|
-| `AICanvas` (main) | 5173 | 8787 | 1999 |
-| `AICanvas-*` (side) | 5181, 5182... | 8791, 8792... | 1999 (shared) |
+- **Web** (React frontend)
+- **API** (Hono backend)
+- **PartyKit** (WebSocket collaboration)
 
 The `bun run worktree:new` script auto-assigns ports and configures env files.
 
@@ -333,16 +332,90 @@ The `bun run worktree:new` script auto-assigns ports and configures env files.
 | Assistant architecture (future) | `docs/assistant-v2-architecture.md` |
 | Tech stack decisions | `ARCHITECTURE.md` |
 
-## Agent Collaboration
+## Agent Workflow
 
-- Kimi is the primary implementation agent and may use sub-agents for bounded parallel work.
-- Codex is the reviewer, integrator, and merge-readiness gate.
-- Default to a two-lane workflow: main worktree for Codex review/integration, one side worktree for Kimi build work.
-- Prefer one working branch with multiple meaningful commits.
-- Open a PR only at a real reviewable checkpoint, not for every tiny step.
-- Do not merge implementation branches directly to `main` without Codex review unless explicitly instructed.
+Use one shared workflow across models. Keep it light by default. Escalate into orchestration only when the task size, difficulty, or ambiguity earns it.
+
+### Core Principles
+
+- One task brief per task.
+- One primary agent owns the result.
+- One agent, one task, one prompt by default.
+- Verification matters more than style.
+- Use orchestration selectively.
+- Prefer one implementation path, not duplicate full builds.
+- If output is bad, diagnose the cause and rerun instead of endlessly patching slop.
+- Focused agents are correct agents: keep scope narrow and explicit.
+- Keep outputs small, explicit, and honest.
+
+### Task Brief
+
+Every task starts with:
+
+- Goal
+- Constraints
+- Acceptance criteria
+- Verification
+- Non-goals
+- Execution mode
+
+### Modes
+
+1. `Solo`
+   Use when the task is small, local, and mostly obvious.
+
+2. `Assisted`
+   Use when the task is medium-sized and one or two bounded subtasks can run in parallel.
+
+3. `Orchestrated`
+   Use when the task is large and splits into real independent slices.
+
+4. `Exploratory`
+   Use when the task is difficult, ambiguous, or worth experimenting on.
+   In this mode, sub-agents can explore different approaches and the orchestrator picks or synthesizes the best path.
+
+### Delegation Rules
+
+- Delegate bounded tasks, clear questions, isolated implementation slices, and verification passes.
+- Do not delegate vague end-to-end goals by default.
+- Do not run duplicate full implementations unless you are explicitly running an experiment.
+- Use exploratory orchestration for hard or ambiguous tasks before committing to one implementation path.
+- Some sub-agents should be read-only or review-only when that better fits the task.
+
+### Sub-Agent Output
+
+When a sub-agent explores or compares an approach, it should return:
+
+- Approach
+- Why it works
+- Risks
+- Files affected
+- Verification plan
+- Recommendation
+
+### Delivery Standard
+
+Every completed task should report:
+
+- Completed
+- Verification
+- Remaining risks
+- Next step
+
+### Quality Gates
+
+Before work is handed off, merged, or treated as done:
+
+- run the relevant typecheck
+- run the relevant tests
+- run lint when it materially helps
+- name what remains unverified
+
+### PR Rule
+
+- Open a PR only when it adds value: formal review, merge checkpoint, or substantial change history.
+- Skip PR ceremony for small or exploratory work when it does not help.
 - Keep temporary breakage explicit and honest.
-- See `docs/agent-workflow.md` for the full workflow.
 
 ## Documentation Index
 
@@ -352,11 +425,8 @@ The `bun run worktree:new` script auto-assigns ports and configures env files.
 - `apps/api/CLAUDE.md` — API patterns (routes, middleware, database, auth)
 - `packages/shared/CLAUDE.md` — shared package rules (schemas, types, constants)
 - `ARCHITECTURE.md` — tech stack decisions and rationale
-- `docs/agent-workflow.md` — Kimi/Codex branch, PR, and review workflow
 - `docs/overlay-authoring-pattern.md` — overlay composition specification
 - `docs/assistant-v2-architecture.md` — next-generation assistant architecture
-- `docs/workflow-pragmatic.md` — simplified worktree workflow for solo + AI development
-- `docs/multi-agent-orchestration.md` — advanced multi-agent orchestration (legacy)
 - `docs/overlay-lod-architecture.md` — overlay level-of-detail and performance model
 - `docs/observability.md` — current logging, tracing, and Sentry setup
 - `docs/cloudflare-deployment-architecture.md` — current Cloudflare deployment shape and target evolution plan

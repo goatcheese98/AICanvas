@@ -1,81 +1,70 @@
-# Beads - AI-Native Issue Tracking
+# Beads Workflow For AI Canvas
 
-Welcome to Beads! This repository uses **Beads** for issue tracking - a modern, AI-native tool designed to live directly in your codebase alongside your code.
+This repository uses **bd (beads)** as the working memory system for multi-step work,
+cross-window handoffs, and cross-agent coordination.
 
-## What is Beads?
+## Repo Defaults
 
-Beads is issue tracking that lives in your repo, making it perfect for AI coding agents and developers who want their issues close to their code. No web UI required - everything works through the CLI and integrates seamlessly with git.
+- Issue prefix: `aic`
+- Storage: Dolt in `.beads/dolt`
+- Auto-commit: `on`
 
-**Learn more:** [github.com/steveyegge/beads](https://github.com/steveyegge/beads)
-
-## Quick Start
-
-### Essential Commands
+## Session Start
 
 ```bash
-# Create new issues
-bd create "Add user authentication"
-
-# View all issues
-bd list
-
-# View issue details
+bd prime
+bd ready
 bd show <issue-id>
+```
 
-# Update issue status
-bd update <issue-id> --claim
-bd update <issue-id> --status done
+Use `bd ready` to resume unblocked work instead of relying on chat history.
 
-# Sync with Dolt remote
+## When To Create Or Update Beads
+
+Use beads for:
+
+- work that spans multiple sessions
+- work that will be handed from one agent/window to another
+- discovered follow-up work
+- architecture checkpoints that need explicit verification and next steps
+
+Do not create beads for tiny one-shot edits that can be completed in a single pass without
+handoff value.
+
+## Checkpoint Template
+
+For checkpoint-driven work, keep the active bead updated with:
+
+- `Current phase`
+- `Verified current state`
+- `Decision`
+- `Verification`
+- `Remaining risks`
+- `Next step`
+
+This repository uses beads as the live handoff ledger instead of ad hoc markdown summaries.
+
+## Useful Commands
+
+```bash
+bd ready
+bd show <issue-id>
+bd create "Title" --type task --priority 2
+bd update <issue-id> --notes "checkpoint summary"
+bd update <issue-id> --design "implementation/design notes"
+bd close <issue-id>
 bd dolt push
 ```
 
-### Working with Issues
+## Suggested Handoff Loop
 
-Issues in Beads are:
-- **Git-native**: Stored in Dolt database with version control and branching
-- **AI-friendly**: CLI-first design works perfectly with AI coding agents
-- **Branch-aware**: Issues can follow your branch workflow
-- **Always in sync**: Auto-syncs with your commits
+1. Claim or inspect the active bead.
+2. Do the work.
+3. Update the bead with what was verified, what changed, remaining risks, and the next step.
+4. Close completed work or create/link the next bead.
+5. Run `bd dolt push` at a meaningful checkpoint so the tracker state is available to the next window.
 
-## Why Beads?
+## Notes
 
-✨ **AI-Native Design**
-- Built specifically for AI-assisted development workflows
-- CLI-first interface works seamlessly with AI coding agents
-- No context switching to web UIs
-
-🚀 **Developer Focused**
-- Issues live in your repo, right next to your code
-- Works offline, syncs when you push
-- Fast, lightweight, and stays out of your way
-
-🔧 **Git Integration**
-- Automatic sync with git commits
-- Branch-aware issue tracking
-- Dolt-native three-way merge resolution
-
-## Get Started with Beads
-
-Try Beads in your own projects:
-
-```bash
-# Install Beads
-curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
-
-# Initialize in your repo
-bd init
-
-# Create your first issue
-bd create "Try out Beads"
-```
-
-## Learn More
-
-- **Documentation**: [github.com/steveyegge/beads/docs](https://github.com/steveyegge/beads/tree/main/docs)
-- **Quick Start Guide**: Run `bd quickstart`
-- **Examples**: [github.com/steveyegge/beads/examples](https://github.com/steveyegge/beads/tree/main/examples)
-
----
-
-*Beads: Issue tracking that moves at the speed of thought* ⚡
+- `AGENTS.md` and `CLAUDE.md` remain the source of truth for repo workflow and coding rules.
+- Beads is the system of record for live execution memory and handoff continuity.

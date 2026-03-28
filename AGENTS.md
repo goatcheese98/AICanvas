@@ -70,6 +70,26 @@ Before creating issues, reviewing a phase, or calling work incomplete, first ver
 - already on `main`
 - partially present and only needs a smaller follow-up
 
+## Issue Tracking
+
+This repository uses **bd (beads)** for issue tracking and cross-window handoffs.
+
+- Run `bd prime` for the current workflow context.
+- Run `bd ready` to find unblocked work before starting a new task.
+- Use beads instead of ad hoc markdown for multi-step work, discovered follow-ups, and agent handoffs.
+- For checkpoint-style work, record the same fields in the active bead:
+  `Current phase`, `Verified current state`, `Decision`, `Verification`, `Remaining risks`, `Next step`.
+- When ending a meaningful checkpoint, update or close the bead and push the tracker state with `bd dolt push`.
+
+Quick reference:
+
+- `bd ready`
+- `bd show <id>`
+- `bd create "Title" --type task --priority 2`
+- `bd update <id> --notes "..."` or `bd update <id> --design "..."`
+- `bd close <id>`
+- `bd dolt push`
+
 ## Anti-Slop Manifesto
 
 This repository does not reward volume, cleverness, or abstraction for its own sake.
