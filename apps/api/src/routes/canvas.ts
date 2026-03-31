@@ -5,7 +5,7 @@ import { and, desc, eq, like } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { MiddlewareHandler } from 'hono';
 import { nanoid } from 'nanoid';
-import { z, ZodError } from 'zod';
+import { ZodError, z } from 'zod';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
 import { logApiEvent } from '../lib/observability';
@@ -289,16 +289,20 @@ export const canvasRoutes = new Hono<AppEnv>()
 		return c.json({ canvas: withVersionedThumbnailUrl(canvas), data });
 	})
 
-	.get('/:id/resources/:resourceType/:resourceId', zValidator('param', heavyResourceParamsSchema), async (c) => {
-		const { id, resourceType, resourceId } = c.req.valid('param');
-		const user = c.get('user');
-		const db = createDb(c.env.DB);
+	.get(
+		'/:id/resources/:resourceType/:resourceId',
+		zValidator('param', heavyResourceParamsSchema),
+		async (c) => {
+			const { id, resourceType, resourceId } = c.req.valid('param');
+			const user = c.get('user');
+			const db = createDb(c.env.DB);
 
-		const resource = await getHeavyResourceRecord(db, user.id, id, resourceType, resourceId);
-		if (!resource) return c.json({ error: 'Not found' }, 404);
+			const resource = await getHeavyResourceRecord(db, user.id, id, resourceType, resourceId);
+			if (!resource) return c.json({ error: 'Not found' }, 404);
 
-		return c.json(resource);
-	})
+			return c.json(resource);
+		},
+	)
 
 	.put(
 		'/:id/resources/:resourceType/:resourceId',

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
 	CONTEXT_DISPLAY_NAMES,
 	CONTEXT_DISPLAY_ORDER,
@@ -6,6 +5,7 @@ import {
 	groupShortcutsByContext,
 	parseShortcutKeys,
 } from '@/lib/keyboard-shortcuts';
+import { useEffect } from 'react';
 import { cn } from './utils';
 
 interface KeyboardShortcutsHelpProps {
@@ -69,8 +69,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
 							Keyboard Shortcuts
 						</h2>
 						<p className="mt-0.5 text-xs text-[var(--color-text-secondary)]">
-							Press{' '}
-							<kbd className="rounded bg-stone-100 px-1 py-0.5 font-mono text-[10px]">?</kbd>{' '}
+							Press <kbd className="rounded bg-stone-100 px-1 py-0.5 font-mono text-[10px]">?</kbd>{' '}
 							to open this help anytime
 						</p>
 					</div>
@@ -108,71 +107,71 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
 												<ShortcutKeys keys={parseShortcutKeys(shortcut.key)} />
 											</div>
 										))}
-										</div>
-									</section>
-								);
-								})}
-							</div>
-						</div>
-
-						{/* Footer */}
-						<div className="flex items-center justify-between border-t border-[var(--color-border)] bg-stone-50/50 px-6 py-3">
-							<span className="text-xs text-[var(--color-text-tertiary)]">
-								Tip: Shortcuts work from anywhere in the app
-							</span>
-							<button
-								type="button"
-								onClick={onClose}
-								className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-stone-100"
-							>
-								Got it
-							</button>
-						</div>
+									</div>
+								</section>
+							);
+						})}
 					</div>
 				</div>
-			);
-			}
 
-			/**
-			 * Render shortcut keys as styled kbd elements
-			 */
-			interface ShortcutKeysProps {
-				keys: string[];
-			}
-
-			function ShortcutKeys({ keys }: ShortcutKeysProps) {
-				return (
-					<kbd className="flex items-center gap-0.5 font-mono">
-						{keys.map((key, index) => (
-							<span
-								key={`${key}-${index}`}
-								className={cn(
-									'inline-flex min-w-[1.5rem] items-center justify-center rounded-md',
-									'border border-stone-200 bg-white px-1.5 py-0.5 text-xs font-medium',
-									'shadow-sm',
-								)}
-							>
-								{key}
-							</span>
-						))}
-					</kbd>
-				);
-			}
-
-			function XIcon() {
-				return (
-					<svg
-						width="16"
-						height="16"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
+				{/* Footer */}
+				<div className="flex items-center justify-between border-t border-[var(--color-border)] bg-stone-50/50 px-6 py-3">
+					<span className="text-xs text-[var(--color-text-tertiary)]">
+						Tip: Shortcuts work from anywhere in the app
+					</span>
+					<button
+						type="button"
+						onClick={onClose}
+						className="rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--color-text-secondary)] transition-colors hover:bg-stone-100"
 					>
-						<path d="M18 6 6 18" />
-						<path d="m6 6 12 12" />
-					</svg>
-				);
-			}
+						Got it
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+/**
+ * Render shortcut keys as styled kbd elements
+ */
+interface ShortcutKeysProps {
+	keys: string[];
+}
+
+function ShortcutKeys({ keys }: ShortcutKeysProps) {
+	return (
+		<kbd className="flex items-center gap-0.5 font-mono">
+			{keys.map((key, index) => (
+				<span
+					key={`${key}-${index}`}
+					className={cn(
+						'inline-flex min-w-[1.5rem] items-center justify-center rounded-md',
+						'border border-stone-200 bg-white px-1.5 py-0.5 text-xs font-medium',
+						'shadow-sm',
+					)}
+				>
+					{key}
+				</span>
+			))}
+		</kbd>
+	);
+}
+
+function XIcon() {
+	return (
+		<svg
+			width="16"
+			height="16"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<path d="M18 6 6 18" />
+			<path d="m6 6 12 12" />
+		</svg>
+	);
+}

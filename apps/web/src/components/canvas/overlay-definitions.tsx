@@ -265,7 +265,8 @@ function PrototypeCard({
 	const snapshot = prototype.resourceSnapshot;
 	const title = snapshot?.title ?? prototype.title;
 	const eyebrow = snapshot?.display?.badge ?? 'Prototype';
-	const description = snapshot?.display?.summary ?? snapshot?.display?.subtitle ?? 'Interactive concept preview';
+	const description =
+		snapshot?.display?.summary ?? snapshot?.display?.subtitle ?? 'Interactive concept preview';
 
 	return (
 		<div
@@ -282,21 +283,15 @@ function PrototypeCard({
 				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
 					{eyebrow}
 				</div>
-				<div className="mt-2 text-lg font-semibold text-white">
-					{title}
-				</div>
-				<div className="mt-1 text-sm text-white/85">
-					{description}
-				</div>
+				<div className="mt-2 text-lg font-semibold text-white">{title}</div>
+				<div className="mt-1 text-sm text-white/85">{description}</div>
 			</div>
 			<div className="flex flex-1 flex-col gap-3 px-5 py-4">
 				<div className="flex items-center justify-between text-xs text-stone-500">
 					<span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium uppercase tracking-[0.12em]">
 						{prototype.template}
 					</span>
-					<span>
-						{Object.keys(prototype.files).length} files
-					</span>
+					<span>{Object.keys(prototype.files).length} files</span>
 				</div>
 				<div className="mt-auto">
 					<div className="rounded-2xl bg-stone-50 px-3 py-2">

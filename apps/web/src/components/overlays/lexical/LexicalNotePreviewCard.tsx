@@ -43,9 +43,9 @@ function truncateText(text: string, maxLength: number): string {
 	const truncated = text.slice(0, maxLength);
 	const lastSpace = truncated.lastIndexOf(' ');
 	if (lastSpace > maxLength * 0.7) {
-		return truncated.slice(0, lastSpace) + '...';
+		return `${truncated.slice(0, lastSpace)}...`;
 	}
-	return truncated + '...';
+	return `${truncated}...`;
 }
 
 export function LexicalNotePreviewCard({ element, isSelected }: LexicalNotePreviewCardProps) {
@@ -84,9 +84,7 @@ export function LexicalNotePreviewCard({ element, isSelected }: LexicalNotePrevi
 				{/* Content preview */}
 				<div className="min-h-0 flex-1 px-4 py-4">
 					{contentSnippet ? (
-						<p className="line-clamp-6 text-sm leading-relaxed text-stone-600">
-							{contentSnippet}
-						</p>
+						<p className="line-clamp-6 text-sm leading-relaxed text-stone-600">{contentSnippet}</p>
 					) : (
 						<div className="flex h-full items-center justify-center">
 							<p className="text-sm italic text-stone-400">Empty note</p>

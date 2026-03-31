@@ -12,7 +12,7 @@ describe('Tooltip', () => {
 	it('renders children without tooltip initially', () => {
 		render(
 			<Tooltip content="Tooltip text">
-				<button>Hover me</button>
+				<button type="button">Hover me</button>
 			</Tooltip>,
 		);
 
@@ -24,28 +24,28 @@ describe('Tooltip', () => {
 	it('renders with different positions', () => {
 		const { rerender } = render(
 			<Tooltip content="Top tooltip" position="top">
-				<button>Button</button>
+				<button type="button">Button</button>
 			</Tooltip>,
 		);
 		expect(screen.getByText('Button')).toBeTruthy();
 
 		rerender(
 			<Tooltip content="Bottom tooltip" position="bottom">
-				<button>Button</button>
+				<button type="button">Button</button>
 			</Tooltip>,
 		);
 		expect(screen.getByText('Button')).toBeTruthy();
 
 		rerender(
 			<Tooltip content="Left tooltip" position="left">
-				<button>Button</button>
+				<button type="button">Button</button>
 			</Tooltip>,
 		);
 		expect(screen.getByText('Button')).toBeTruthy();
 
 		rerender(
 			<Tooltip content="Right tooltip" position="right">
-				<button>Button</button>
+				<button type="button">Button</button>
 			</Tooltip>,
 		);
 		expect(screen.getByText('Button')).toBeTruthy();
@@ -54,7 +54,7 @@ describe('Tooltip', () => {
 	it('renders complex content', () => {
 		render(
 			<Tooltip content={<span data-testid="complex">Complex content</span>}>
-				<button>Hover me</button>
+				<button type="button">Hover me</button>
 			</Tooltip>,
 		);
 
@@ -64,7 +64,7 @@ describe('Tooltip', () => {
 	it('applies custom className', () => {
 		const { container } = render(
 			<Tooltip content="Tooltip" className="custom-class">
-				<button>Button</button>
+				<button type="button">Button</button>
 			</Tooltip>,
 		);
 

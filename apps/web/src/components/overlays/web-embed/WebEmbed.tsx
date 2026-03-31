@@ -7,8 +7,8 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { OverlayExpandButton } from '../OverlayExpandButton';
-import { useWebEmbedState } from './useWebEmbedState';
 import { WebEmbedPreviewCard } from './WebEmbedPreviewCard';
+import { useWebEmbedState } from './useWebEmbedState';
 
 type WebEmbedElement = ExcalidrawElement & {
 	customData: WebEmbedOverlayCustomData;
@@ -180,7 +180,7 @@ export function WebEmbed(props: WebEmbedProps) {
 				)}
 			</div>
 
-				<div className="relative min-h-0 flex-1 bg-stone-950/5">
+			<div className="relative min-h-0 flex-1 bg-stone-950/5">
 				{shouldRenderPreviewCard ? (
 					<WebEmbedPreviewCard
 						url={enhanced.url}

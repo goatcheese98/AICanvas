@@ -4,8 +4,8 @@ import {
 } from '@/components/canvas/element-factories';
 import { getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
-import { useAuth } from '@clerk/clerk-react';
 import type { OverlayType } from '@ai-canvas/shared/types';
+import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useState } from 'react';
 
@@ -148,20 +148,18 @@ export function useNewResourceCreation({
 								},
 							}
 						: null;
-				const resourceCustomData =
-					resourceSnapshot
-						? ({
-								...draft.customData,
-								resourceSnapshot,
-							} as typeof draft.customData)
-						: draft.customData;
-				const draftWithSnapshot =
-					resourceSnapshot
-						? ({
-								...draft,
-								customData: resourceCustomData,
-							} as typeof draft)
-						: draft;
+				const resourceCustomData = resourceSnapshot
+					? ({
+							...draft.customData,
+							resourceSnapshot,
+						} as typeof draft.customData)
+					: draft.customData;
+				const draftWithSnapshot = resourceSnapshot
+					? ({
+							...draft,
+							customData: resourceCustomData,
+						} as typeof draft)
+					: draft;
 				if (type === 'board' || type === 'document' || type === 'prototype') {
 					const headers = await getRequiredAuthHeaders(getToken);
 					const response = await fetch(

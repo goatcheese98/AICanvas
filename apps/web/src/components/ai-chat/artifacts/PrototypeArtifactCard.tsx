@@ -1,10 +1,7 @@
 import type { ArtifactCardProps } from '../AIChatArtifactCard';
 import { CodeSnippet } from '../AIChatArtifactPrimitives';
 
-export function PrototypeArtifactCard({
-	artifact,
-	insertionState,
-}: ArtifactCardProps) {
+export function PrototypeArtifactCard({ artifact, insertionState }: ArtifactCardProps) {
 	return (
 		<div className="rounded-[10px] border border-sky-200 bg-sky-50 p-3">
 			<div className="mb-2 text-[9px] font-semibold uppercase tracking-[0.2em] text-sky-700">

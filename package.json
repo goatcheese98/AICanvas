@@ -16,7 +16,7 @@
 		"db:migrate": "turbo db:migrate --filter=@ai-canvas/api"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "1.9.4",
 		"turbo": "^2.8.17",
 		"typescript": "^5.9.3"
 	},

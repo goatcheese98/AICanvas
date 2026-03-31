@@ -1,11 +1,11 @@
 import * as z from 'zod';
 import { CANVAS_DEFAULTS } from '../constants/canvas';
 import {
+	isOverlayCustomData,
 	kanbanOverlaySchema,
 	newLexOverlaySchema,
-	prototypeOverlaySchema,
-	isOverlayCustomData,
 	normalizeOverlayCustomData,
+	prototypeOverlaySchema,
 } from './overlay';
 
 export function normalizeCanvasTitle(title: string): string {

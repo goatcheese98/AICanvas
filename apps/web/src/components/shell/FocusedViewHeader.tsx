@@ -15,11 +15,7 @@ interface FocusedViewHeaderProps {
  *
  * Used in: BoardStudioPage, DocumentStudioPage, PrototypeStudioPage
  */
-export function FocusedViewHeader({
-	projectName,
-	resourceName,
-	canvasId,
-}: FocusedViewHeaderProps) {
+export function FocusedViewHeader({ projectName, resourceName, canvasId }: FocusedViewHeaderProps) {
 	return (
 		<header className="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-3">
 			{/* Breadcrumb */}

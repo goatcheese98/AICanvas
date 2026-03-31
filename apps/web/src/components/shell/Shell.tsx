@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import { formatShortcut } from '@/lib/keyboard-shortcuts';
+import type { ReactNode } from 'react';
 import { Tooltip } from './Tooltip';
 import type { RightPanelMode, ShellState } from './useShellState';
 import { cn } from './utils';
@@ -98,71 +98,71 @@ function RightEdgeTriggers({ onOpenRightPanel }: RightEdgeTriggersProps) {
 										}
 										position="left"
 									>
-											<button
-												type="button"
-												onClick={(e) => {
-													e.stopPropagation();
-													onOpenRightPanel(panelMode);
-												}}
-												className="flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 shadow-sm transition-all hover:scale-105 hover:border-[#4d55cc] hover:text-[#4d55cc]"
-												aria-label={`Open ${config.label} panel (${formattedShortcut})`}
-											>
-												<config.icon />
-											</button>
-										</Tooltip>
-										<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
-											{formattedShortcut}
-										</div>
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												onOpenRightPanel(panelMode);
+											}}
+											className="flex h-10 w-10 items-center justify-center rounded-lg border border-stone-200 bg-white text-stone-600 shadow-sm transition-all hover:scale-105 hover:border-[#4d55cc] hover:text-[#4d55cc]"
+											aria-label={`Open ${config.label} panel (${formattedShortcut})`}
+										>
+											<config.icon />
+										</button>
+									</Tooltip>
+									<div className="text-center text-[9px] font-medium text-stone-400 opacity-0 transition-opacity group-hover:opacity-100">
+										{formattedShortcut}
 									</div>
-								);
-								},
-								)}
-							</div>
-						</div>
-					</div>
-				);
-			}
+								</div>
+							);
+						},
+					)}
+				</div>
+			</div>
+		</div>
+	);
+}
 
-			// Inline SVG Icons
-			function BotIcon() {
-				return (
-					<svg
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<title>AI</title>
-						<path d="M12 8V4H8" />
-						<rect width="16" height="12" x="4" y="8" rx="2" />
-						<path d="M2 14h2" />
-						<path d="M20 14h2" />
-						<path d="M15 13v2" />
-						<path d="M9 13v2" />
-					</svg>
-				);
-			}
+// Inline SVG Icons
+function BotIcon() {
+	return (
+		<svg
+			width="18"
+			height="18"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<title>AI</title>
+			<path d="M12 8V4H8" />
+			<rect width="16" height="12" x="4" y="8" rx="2" />
+			<path d="M2 14h2" />
+			<path d="M20 14h2" />
+			<path d="M15 13v2" />
+			<path d="M9 13v2" />
+		</svg>
+	);
+}
 
-			function InfoIcon() {
-				return (
-					<svg
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<title>Details</title>
-						<circle cx="12" cy="12" r="10" />
-						<path d="M12 16v-4" />
-						<path d="M12 8h.01" />
-					</svg>
-				);
-			}
+function InfoIcon() {
+	return (
+		<svg
+			width="18"
+			height="18"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="2"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+		>
+			<title>Details</title>
+			<circle cx="12" cy="12" r="10" />
+			<path d="M12 16v-4" />
+			<path d="M12 8h.01" />
+		</svg>
+	);
+}

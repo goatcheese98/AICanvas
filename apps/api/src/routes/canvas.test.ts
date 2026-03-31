@@ -321,22 +321,18 @@ describe('canvasRoutes', () => {
 		);
 
 		expect(response.status).toBe(200);
-		expect(saveHeavyResourceRecordMock).toHaveBeenCalledWith(
-			expect.any(Object),
-			'user-1',
-			{
-				canvasId: 'canvas-1',
-				resourceType: 'prototype',
-				resourceId: 'prototype-1',
+		expect(saveHeavyResourceRecordMock).toHaveBeenCalledWith(expect.any(Object), 'user-1', {
+			canvasId: 'canvas-1',
+			resourceType: 'prototype',
+			resourceId: 'prototype-1',
+			title: 'Prototype',
+			data: {
+				type: 'prototype',
 				title: 'Prototype',
-				data: {
-					type: 'prototype',
-					title: 'Prototype',
-					template: 'react',
-					files: {},
-					dependencies: {},
-				},
+				template: 'react',
+				files: {},
+				dependencies: {},
 			},
-		);
+		});
 	});
 });

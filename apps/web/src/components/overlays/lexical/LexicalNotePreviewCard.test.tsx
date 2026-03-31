@@ -52,7 +52,9 @@ describe('LexicalNotePreviewCard', () => {
 	});
 
 	it('shows "Untitled note" when title is not provided', () => {
-		render(<LexicalNotePreviewCard element={createElement({ title: undefined })} isSelected={false} />);
+		render(
+			<LexicalNotePreviewCard element={createElement({ title: undefined })} isSelected={false} />,
+		);
 
 		expect(screen.getAllByText('Untitled note')[0]).not.toBeNull();
 	});

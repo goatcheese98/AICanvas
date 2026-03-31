@@ -117,21 +117,17 @@ describe('heavy-resource-storage', () => {
 		canvasFindFirstMock.mockResolvedValue({ id: 'canvas-1' });
 		heavyFindFirstMock.mockResolvedValue(undefined);
 
-		const record = await saveHeavyResourceRecord(
-			createDbMock() as never,
-			'user-1',
-			{
-				canvasId: 'canvas-1',
-				resourceType: 'board',
-				resourceId: 'board-1',
+		const record = await saveHeavyResourceRecord(createDbMock() as never, 'user-1', {
+			canvasId: 'canvas-1',
+			resourceType: 'board',
+			resourceId: 'board-1',
+			title: 'Launch Board',
+			data: {
+				type: 'kanban',
 				title: 'Launch Board',
-				data: {
-					type: 'kanban',
-					title: 'Launch Board',
-					columns: [],
-				},
+				columns: [],
 			},
-		);
+		});
 
 		const insertValuesCall = insertValuesMock.mock.calls[0];
 		const insertValues = insertValuesCall?.[0] as
@@ -175,21 +171,17 @@ describe('heavy-resource-storage', () => {
 			updatedAt: new Date('2026-03-27T11:00:00.000Z'),
 		});
 
-		const record = await saveHeavyResourceRecord(
-			createDbMock() as never,
-			'user-1',
-			{
-				canvasId: 'canvas-1',
-				resourceType: 'document',
-				resourceId: 'document-1',
+		const record = await saveHeavyResourceRecord(createDbMock() as never, 'user-1', {
+			canvasId: 'canvas-1',
+			resourceType: 'document',
+			resourceId: 'document-1',
+			title: 'Updated Draft',
+			data: {
+				type: 'newlex',
 				title: 'Updated Draft',
-				data: {
-					type: 'newlex',
-					title: 'Updated Draft',
-					lexicalState: '{"root":{}}',
-				},
+				lexicalState: '{"root":{}}',
 			},
-		);
+		});
 
 		const updateValuesCall = updateSetMock.mock.calls[0];
 		const updateValues = updateValuesCall?.[0] as

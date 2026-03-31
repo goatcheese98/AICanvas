@@ -24,11 +24,17 @@ function normalizeHeavyResourceData(
 ): BoardResourceRecord['data'] | DocumentResourceRecord['data'] | PrototypeResourceRecord['data'] {
 	switch (resourceType) {
 		case 'board':
-			return normalizeKanbanOverlay(data as Parameters<typeof normalizeKanbanOverlay>[0]) as BoardResourceRecord['data'];
+			return normalizeKanbanOverlay(
+				data as Parameters<typeof normalizeKanbanOverlay>[0],
+			) as BoardResourceRecord['data'];
 		case 'document':
-			return normalizeNewLexOverlay(data as Parameters<typeof normalizeNewLexOverlay>[0]) as DocumentResourceRecord['data'];
+			return normalizeNewLexOverlay(
+				data as Parameters<typeof normalizeNewLexOverlay>[0],
+			) as DocumentResourceRecord['data'];
 		case 'prototype':
-			return normalizePrototypeOverlay(data as Parameters<typeof normalizePrototypeOverlay>[0]) as PrototypeResourceRecord['data'];
+			return normalizePrototypeOverlay(
+				data as Parameters<typeof normalizePrototypeOverlay>[0],
+			) as PrototypeResourceRecord['data'];
 	}
 }
 
@@ -85,7 +91,11 @@ function toHeavyResourceRecord(row: {
 	};
 }
 
-async function getOwnedCanvasId(db: Database, userId: string, canvasId: string): Promise<string | null> {
+async function getOwnedCanvasId(
+	db: Database,
+	userId: string,
+	canvasId: string,
+): Promise<string | null> {
 	const canvas = await db.query.canvases.findFirst({
 		where: and(eq(canvases.id, canvasId), eq(canvases.userId, userId)),
 		columns: { id: true },
@@ -226,13 +236,15 @@ export async function deleteHeavyResourceRecord(
 		return false;
 	}
 
-	await db.delete(heavyResources).where(
-		and(
-			eq(heavyResources.canvasId, ownedCanvasId),
-			eq(heavyResources.resourceType, resourceType),
-			eq(heavyResources.id, resourceId),
-		),
-	);
+	await db
+		.delete(heavyResources)
+		.where(
+			and(
+				eq(heavyResources.canvasId, ownedCanvasId),
+				eq(heavyResources.resourceType, resourceType),
+				eq(heavyResources.id, resourceId),
+			),
+		);
 
 	return true;
 }

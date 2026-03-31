@@ -149,8 +149,4 @@ export const CONTEXT_DISPLAY_NAMES: Record<ShortcutContext, string> = {
 /**
  * Order of contexts for display in the help dialog
  */
-export const CONTEXT_DISPLAY_ORDER: ShortcutContext[] = [
-	'navigation',
-	'panels',
-	'help',
-];
+export const CONTEXT_DISPLAY_ORDER: ShortcutContext[] = ['navigation', 'panels', 'help'];

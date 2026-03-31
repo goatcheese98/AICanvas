@@ -1,12 +1,12 @@
+import type { ResourceCreationType } from '@/components/shell/useNewResourceCreation';
 import {
-	getResourceShortcut,
 	RESOURCE_CATEGORIES,
 	RESOURCE_TYPE_METADATA,
 	type ResourceIconType,
 	type ResourceTypeMetadata,
+	getResourceShortcut,
 } from '@/lib/resource-creation';
-import type { ResourceCreationType } from '@/components/shell/useNewResourceCreation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 export type NewResourceOption = { type: ResourceCreationType };
 
@@ -26,12 +26,7 @@ interface MenuPosition {
  * Dropdown menu for creating new resources
  * Similar pattern to footer popover in LeftSidebar
  */
-export function NewResourceMenu({
-	isOpen,
-	onClose,
-	onSelect,
-	triggerRef,
-}: NewResourceMenuProps) {
+export function NewResourceMenu({ isOpen, onClose, onSelect, triggerRef }: NewResourceMenuProps) {
 	const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 	const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 });
 	const popoverRef = useRef<HTMLDivElement>(null);
@@ -117,9 +112,7 @@ export function NewResourceMenu({
 		const handleKeyDown = (e: KeyboardEvent) => {
 			if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Tab') return;
 
-			const currentIndex = Array.from(buttons).findIndex(
-				(btn) => btn === document.activeElement,
-			);
+			const currentIndex = Array.from(buttons).findIndex((btn) => btn === document.activeElement);
 
 			if (e.key === 'ArrowDown') {
 				e.preventDefault();
@@ -233,8 +226,9 @@ export function NewResourceMenu({
 				{/* Keyboard hint */}
 				<div className="border-t border-stone-100 px-2 pt-2 pb-1">
 					<p className="text-[10px] text-stone-400">
-						Press <kbd className="rounded bg-stone-100 px-1 py-0.5 font-mono text-stone-500">Alt</kbd>{' '}
-						+ letter to select
+						Press{' '}
+						<kbd className="rounded bg-stone-100 px-1 py-0.5 font-mono text-stone-500">Alt</kbd> +
+						letter to select
 					</p>
 				</div>
 			</div>

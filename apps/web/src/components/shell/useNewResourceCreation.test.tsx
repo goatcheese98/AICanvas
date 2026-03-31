@@ -97,21 +97,21 @@ describe('useNewResourceCreation', () => {
 		const sceneUpdate = updateScene.mock.calls[0]?.[0] as {
 			elements: Array<{
 				id: string;
-					customData?: {
-						type?: string;
+				customData?: {
+					type?: string;
+					title?: string;
+					resourceSnapshot?: {
+						resourceType?: string;
+						resourceId?: string;
 						title?: string;
-						resourceSnapshot?: {
-							resourceType?: string;
-							resourceId?: string;
-							title?: string;
-							snapshotVersion?: number;
-							display?: {
-								summary?: string;
-							};
+						snapshotVersion?: number;
+						display?: {
+							summary?: string;
 						};
 					};
-				}>;
-			};
+				};
+			}>;
+		};
 		const createdElement = sceneUpdate.elements.at(-1);
 
 		expect(createdElement?.customData?.type).toBe('prototype');

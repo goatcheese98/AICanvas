@@ -58,10 +58,12 @@ vi.mock('@/hooks/useCollaboration', () => ({
 }));
 
 vi.mock('@/stores/store', () => ({
-	useAppStore: (selector: (state: {
-		openExpandedOverlay: typeof openExpandedOverlayMock;
-		addToast: typeof addToastMock;
-	}) => unknown) =>
+	useAppStore: (
+		selector: (state: {
+			openExpandedOverlay: typeof openExpandedOverlayMock;
+			addToast: typeof addToastMock;
+		}) => unknown,
+	) =>
 		selector({
 			openExpandedOverlay: openExpandedOverlayMock,
 			addToast: addToastMock,

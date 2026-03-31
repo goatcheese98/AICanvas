@@ -45,8 +45,6 @@ interface BoardStudioWorkspaceProps {
 	initialVersion: number;
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error';
-
 function BoardStudioWorkspace({
 	canvasId,
 	canvasTitle,
@@ -64,8 +62,6 @@ function BoardStudioWorkspace({
 	});
 
 	const [sceneElements, setSceneElements] = useState<readonly ExcalidrawElement[]>(initialElements);
-	const [saveState, setSaveState] = useState<SaveState>('idle');
-	const [saveError, setSaveError] = useState<string | null>(null);
 	const sceneElementsRef = useRef(sceneElements);
 	const appStateRef = useRef<Record<string, unknown>>(initialAppState);
 	const filesRef = useRef<Record<string, unknown> | null>(initialFiles);
@@ -146,11 +142,6 @@ function BoardStudioWorkspace({
 				const nextCanvasData = queuedCanvasDataRef.current;
 				queuedCanvasDataRef.current = null;
 
-				if (isMountedRef.current) {
-					setSaveState('saving');
-					setSaveError(null);
-				}
-
 				const headers = await getRequiredAuthHeaders(getToken);
 				const response = await api.api.canvas[':id'].$put(
 					{
@@ -169,17 +160,9 @@ function BoardStudioWorkspace({
 
 				const result = (await response.json()) as { version: number };
 				versionRef.current = result.version;
-
-				if (isMountedRef.current) {
-					setSaveState('saved');
-				}
 			}
-		} catch (error) {
+		} catch {
 			queuedCanvasDataRef.current = null;
-			if (isMountedRef.current) {
-				setSaveState('error');
-				setSaveError(error instanceof Error ? error.message : 'Failed to save board.');
-			}
 		} finally {
 			saveInFlightRef.current = false;
 		}
@@ -219,15 +202,6 @@ function BoardStudioWorkspace({
 		},
 		[queueSave],
 	);
-
-	const saveCopy =
-		saveState === 'saving'
-			? 'Saving changes'
-			: saveState === 'saved'
-				? 'Saved'
-				: saveState === 'error'
-					? 'Save failed'
-					: 'Ready';
 
 	if (!activeBoardElement) {
 		return (

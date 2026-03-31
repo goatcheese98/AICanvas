@@ -5,7 +5,11 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
  * Heavy resource types that should trigger contextual details panel opening.
  * These resources have complex state and benefit from the details panel.
  */
-export const HEAVY_RESOURCE_TYPES: readonly OverlayType[] = ['kanban', 'newlex', 'prototype'] as const;
+export const HEAVY_RESOURCE_TYPES: readonly OverlayType[] = [
+	'kanban',
+	'newlex',
+	'prototype',
+] as const;
 
 /**
  * Type guard to check if a value is a valid heavy resource type.
@@ -44,9 +48,7 @@ export function isHeavyResource(element: ExcalidrawElement | null | undefined): 
  * @param element - The Excalidraw element
  * @returns The overlay type, or null if not a recognized resource
  */
-export function getResourceType(
-	element: ExcalidrawElement | null | undefined,
-): OverlayType | null {
+export function getResourceType(element: ExcalidrawElement | null | undefined): OverlayType | null {
 	if (!element) return null;
 
 	const customData = element.customData as { type?: unknown } | undefined;

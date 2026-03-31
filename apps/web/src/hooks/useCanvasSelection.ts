@@ -1,6 +1,6 @@
+import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAppStore } from '@/stores/store';
 
 export interface UseCanvasSelectionOptions {
 	/** Called when the selection changes */
@@ -115,7 +115,14 @@ export function useCanvasSelection(
 				onMultiSelect?.(selectedElements);
 			}
 		}
-	}, [selectedElementIds, selectedElements, onSelectionChange, onSingleSelect, onMultiSelect, onClearSelection]);
+	}, [
+		selectedElementIds,
+		selectedElements,
+		onSelectionChange,
+		onSingleSelect,
+		onMultiSelect,
+		onClearSelection,
+	]);
 
 	// Return stable reference
 	return useMemo(

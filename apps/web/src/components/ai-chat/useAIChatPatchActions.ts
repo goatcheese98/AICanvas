@@ -5,10 +5,7 @@ import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import { updateOverlayElementById } from './ai-chat-canvas-mutations';
 import { clonePatchCustomData } from './ai-chat-helpers';
 import type { AssistantPatchApplyOptions, AssistantPatchApplyState } from './ai-chat-types';
-import {
-	parseKanbanPatchArtifact,
-	parseMarkdownPatchArtifact,
-} from './assistant-artifacts';
+import { parseKanbanPatchArtifact, parseMarkdownPatchArtifact } from './assistant-artifacts';
 
 export function useAIChatPatchActions({
 	excalidrawApi,

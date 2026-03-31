@@ -4,7 +4,11 @@ import type { OverlayType } from '@ai-canvas/shared/types';
  * Heavy resource types that open Details panel on single-click.
  * These are complex resources with rich metadata and actions.
  */
-export const HEAVY_OVERLAY_TYPES: readonly OverlayType[] = ['kanban', 'newlex', 'prototype'] as const;
+export const HEAVY_OVERLAY_TYPES: readonly OverlayType[] = [
+	'kanban',
+	'newlex',
+	'prototype',
+] as const;
 
 /**
  * Lightweight resource types that do NOT open Details panel on selection.
