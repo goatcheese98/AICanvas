@@ -132,10 +132,24 @@ describe('overlay schemas', () => {
 		});
 	});
 
-	it('provides a starter kanban template when no columns are supplied', () => {
+	it('returns empty columns for reference-only cards when no columns are supplied', () => {
 		const normalized = normalizeKanbanOverlay({});
-		expect(normalized.columns).toHaveLength(3);
-		expect(normalized.columns.some((column) => column.cards.length > 0)).toBe(true);
+		// Reference-only cards (with resourceSnapshot) have empty columns
+		expect(normalized.columns).toHaveLength(0);
+	});
+
+	it('preserves provided columns when normalizing', () => {
+		const normalized = normalizeKanbanOverlay({
+			columns: [
+				{
+					id: 'col-1',
+					title: 'To Do',
+					cards: [{ id: 'card-1', title: 'Task 1' }],
+				},
+			],
+		});
+		expect(normalized.columns).toHaveLength(1);
+		expect(normalized.columns[0]?.cards).toHaveLength(1);
 	});
 
 	it('summarizes kanban overlays into AI-friendly board stats', () => {

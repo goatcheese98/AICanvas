@@ -160,7 +160,9 @@ export function normalizeKanbanOverlay(
 
 	return {
 		...parsed,
-		columns: parsed.columns.length > 0 ? parsed.columns : createStarterKanbanColumns(),
+		// Allow empty columns for reference-only cards (cards with resourceSnapshot
+		// may have no column data stored on the canvas)
+		columns: parsed.columns,
 	};
 }
 

@@ -40,7 +40,8 @@ describe('canvas schemas', () => {
 			type: 'kanban',
 			title: 'Board',
 		});
-		expect((result.elements[1]?.customData as { columns: unknown[] }).columns).toHaveLength(3);
+		// Empty columns preserved for reference-only cards
+		expect((result.elements[1]?.customData as { columns: unknown[] }).columns).toHaveLength(0);
 		expect(result.elements[2]?.customData).toBeUndefined();
 	});
 

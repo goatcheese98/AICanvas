@@ -2,7 +2,7 @@ import { buildPersistedCanvasData } from '@/components/canvas/canvas-persistence
 import { bumpElementVersion } from '@/components/canvas/overlay-definition-types';
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { KanbanBoardContainer } from '@/components/overlays/kanban/KanbanBoardContainer';
-import { ProjectShell } from '@/components/shell/ProjectShell';
+import { FocusedViewHeader, ProjectShell } from '@/components/shell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
 import { useCollaboration } from '@/hooks/useCollaboration';
@@ -262,31 +262,11 @@ function BoardStudioWorkspace({
 			onNavigateToResource={handleNavigateToResource}
 		>
 			<div className="flex h-full min-h-0 flex-col bg-[var(--color-canvas-bg)]">
-				<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
-					<div className="min-w-0">
-						<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
-							Board Studio
-						</div>
-						<div className="mt-1 max-w-2xl text-sm text-stone-600">
-							Board editing now happens here. The canvas keeps a read-only board reference.
-						</div>
-					</div>
-					<div className="flex items-center gap-3">
-						<div
-							className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-500"
-							title={saveState === 'error' && saveError ? saveError : saveCopy}
-						>
-							{saveState === 'error' && saveError ? 'Save error' : saveCopy}
-						</div>
-						<Link
-							to="/canvas/$id"
-							params={{ id: canvasId }}
-							className="rounded-full border border-stone-300 bg-white px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-700"
-						>
-							Back to Canvas
-						</Link>
-					</div>
-				</div>
+				<FocusedViewHeader
+					projectName={canvasTitle}
+					resourceName={activeBoardElement.customData.title ?? 'Untitled Board'}
+					canvasId={canvasId}
+				/>
 
 				<div className="min-h-0 flex-1 p-4">
 					<div className="h-full min-h-0 overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-[0_24px_60px_-44px_rgba(15,23,42,0.28)]">

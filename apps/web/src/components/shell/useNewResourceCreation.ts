@@ -96,53 +96,28 @@ export function useNewResourceCreation({
 						resourceTitle = 'New Board';
 						resourceSubtitle = 'Board';
 						resourceSummary = '3 columns';
+						// Reference-only: no columns payload, just snapshot metadata
 						customData = {
 							title: resourceTitle,
-							columns: [
-								{
-									id: crypto.randomUUID(),
-									title: 'To Do',
-									cards: [],
-								},
-								{
-									id: crypto.randomUUID(),
-									title: 'In Progress',
-									cards: [],
-								},
-								{
-									id: crypto.randomUUID(),
-									title: 'Done',
-									cards: [],
-								},
-							],
 						};
 						break;
 					case 'document':
 						resourceTitle = 'New Document';
 						resourceSubtitle = 'Document';
 						resourceSummary = 'Empty note';
+						// Reference-only: no lexicalState/comments payload
 						customData = {
 							title: resourceTitle,
-							lexicalState: '',
-							comments: [],
-							commentsPanelOpen: false,
-							version: 1,
 						};
 						break;
 					case 'prototype':
 						resourceTitle = 'New Prototype';
 						resourceSubtitle = 'Prototype';
 						resourceSummary = '1 file';
+						// Reference-only: no files/dependencies payload
 						customData = {
 							title: resourceTitle,
 							template: 'react',
-							files: {
-								'App.tsx': {
-									code: `export default function App() {\n  return (\n    <div style={{ padding: '2rem' }}>\n      <h1>Hello World</h1>\n      <p>Start building your prototype here</p>\n    </div>\n  );\n}`,
-									active: true,
-								},
-							},
-							dependencies: {},
 						};
 						break;
 					case 'quick-note':

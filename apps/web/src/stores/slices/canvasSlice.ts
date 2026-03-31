@@ -4,6 +4,13 @@ import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw
 import type { StateCreator } from 'zustand';
 import type { AppStore } from '../store';
 
+export interface CanvasNavigationState {
+	scrollX: number;
+	scrollY: number;
+	zoomValue: number;
+	selectedElementIds: Record<string, true>;
+}
+
 export interface CanvasSlice {
 	// Canvas state
 	excalidrawApi: ExcalidrawImperativeAPI | null;
@@ -16,12 +23,17 @@ export interface CanvasSlice {
 	lastSaved: Date | null;
 	hasUnsavedChanges: boolean;
 
+	// Navigation restoration state (for returning from focused views)
+	savedNavigationState: CanvasNavigationState | null;
+
 	// Actions
 	setExcalidrawApi: (api: ExcalidrawImperativeAPI | null) => void;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
 	setAppState: (appState: Partial<AppState>) => void;
 	setFiles: (files: BinaryFiles) => void;
 	setPersistenceState: (state: PersistenceState) => void;
+	saveNavigationState: (state: CanvasNavigationState) => void;
+	clearNavigationState: () => void;
 }
 
 const INITIAL_APP_STATE: Partial<AppState> = {
@@ -40,6 +52,8 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 	lastSaved: null,
 	hasUnsavedChanges: false,
 
+	savedNavigationState: null,
+
 	setExcalidrawApi: (api) =>
 		set((state) => (state.excalidrawApi === api ? state : { excalidrawApi: api })),
 	setElements: (elements) => set({ elements }),
@@ -47,4 +61,6 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 	setFiles: (files) => set({ files }),
 	setPersistenceState: ({ isSaving, lastSaved, hasUnsavedChanges }) =>
 		set({ isSaving, lastSaved, hasUnsavedChanges }),
+	saveNavigationState: (state) => set({ savedNavigationState: state }),
+	clearNavigationState: () => set({ savedNavigationState: null }),
 });

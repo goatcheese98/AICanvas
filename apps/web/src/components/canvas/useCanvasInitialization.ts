@@ -1,5 +1,6 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
 import type { CanvasStorageSnapshot } from '@/lib/persistence/CanvasPersistenceCoordinator';
+import { useAppStore } from '@/stores/store';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { useRef } from 'react';
 
@@ -116,6 +117,20 @@ export function useCanvasInitialization({
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => {
 				excalidrawApi.refresh();
+
+				// Restore navigation state if returning from focused view
+				const { savedNavigationState, clearNavigationState } = useAppStore.getState();
+				if (savedNavigationState) {
+					excalidrawApi.updateScene({
+						appState: {
+							scrollX: savedNavigationState.scrollX,
+							scrollY: savedNavigationState.scrollY,
+							zoom: { value: savedNavigationState.zoomValue as never },
+							selectedElementIds: savedNavigationState.selectedElementIds,
+						},
+					});
+					clearNavigationState();
+				}
 			});
 		});
 

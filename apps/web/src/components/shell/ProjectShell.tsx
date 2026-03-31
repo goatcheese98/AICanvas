@@ -199,6 +199,20 @@ export function ProjectShell({
 				return;
 			}
 
+			// Save current navigation state before leaving canvas
+			const { appState, saveNavigationState } = useAppStore.getState();
+			const selectedIds = appState.selectedElementIds ?? {};
+			const normalizedSelectedIds: Record<string, true> = {};
+			for (const [id, selected] of Object.entries(selectedIds)) {
+				if (selected) normalizedSelectedIds[id] = true;
+			}
+			saveNavigationState({
+				scrollX: appState.scrollX ?? 0,
+				scrollY: appState.scrollY ?? 0,
+				zoomValue: appState.zoom?.value ?? 1,
+				selectedElementIds: normalizedSelectedIds,
+			});
+
 			if (resource.type === 'board') {
 				void navigate({
 					to: '/canvas/$id/board/$boardId',

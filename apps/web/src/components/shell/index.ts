@@ -1,3 +1,4 @@
+export { FocusedViewHeader } from './FocusedViewHeader';
 export { KeyboardShortcutsHelp } from './KeyboardShortcutsHelp';
 export { LeftSidebar } from './LeftSidebar';
 export { ProjectShell } from './ProjectShell';

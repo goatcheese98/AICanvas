@@ -14,8 +14,6 @@ import { normalizeWebEmbedOverlay, webEmbedOverlaySchema } from './overlay-webem
 
 // Re-export from overlay-prototype
 export {
-	prototypeCardMetricSchema,
-	prototypeCardPreviewSchema,
 	prototypeOverlayFileSchema,
 	prototypeOverlaySchema,
 	normalizePrototypeOverlay,

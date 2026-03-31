@@ -18,7 +18,7 @@ import { KanbanBoard } from '../overlays/kanban';
 import { LexicalNote } from '../overlays/lexical';
 import { MarkdownNote } from '../overlays/markdown';
 import { WebEmbed } from '../overlays/web-embed';
-import { DEFAULT_MARKDOWN_CONTENT, createDefaultKanbanColumns } from './overlay-defaults';
+import { DEFAULT_MARKDOWN_CONTENT } from './overlay-defaults';
 import { bumpElementVersion } from './overlay-definition-types';
 import type {
 	OverlayCustomDataMap,
@@ -120,19 +120,10 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	newlex: {
 		defaultSize: { width: 500, height: 400 },
 		normalizeCustomData: normalizeNewLexOverlay,
+		// Reference-only: new cards only store title, full data lives in resource record
 		createCustomData: (options) =>
 			normalizeNewLexOverlay({
 				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
-				lexicalState:
-					typeof options.customData?.lexicalState === 'string'
-						? options.customData.lexicalState
-						: '',
-				comments: Array.isArray(options.customData?.comments) ? options.customData.comments : [],
-				commentsPanelOpen:
-					typeof options.customData?.commentsPanelOpen === 'boolean'
-						? options.customData.commentsPanelOpen
-						: false,
-				version: typeof options.customData?.version === 'number' ? options.customData.version : 1,
 			}),
 		applyUpdate: (element, payload) => {
 			const current = normalizeNewLexOverlay(element.customData);
@@ -170,13 +161,10 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 		defaultSize: { width: 1050, height: 900 },
 		normalizeCustomData: (input) =>
 			normalizeKanbanOverlay(input as Partial<KanbanOverlayCustomData>),
+		// Reference-only: new cards only store title, full data lives in resource record
 		createCustomData: (options) =>
 			normalizeKanbanOverlay({
-				title:
-					typeof options.customData?.title === 'string' ? options.customData.title : 'Kanban Board',
-				columns: Array.isArray(options.customData?.columns)
-					? (options.customData.columns as KanbanOverlayCustomData['columns'])
-					: createDefaultKanbanColumns(),
+				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
 			}),
 		applyUpdate: (element, payload) => {
 			const current = normalizeKanbanOverlay(element.customData);
@@ -239,34 +227,11 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 	prototype: {
 		defaultSize: { width: 520, height: 320 },
 		normalizeCustomData: normalizePrototypeOverlay,
+		// Reference-only: new cards only store title/template, full data lives in resource record
 		createCustomData: (options) =>
 			normalizePrototypeOverlay({
 				title: typeof options.customData?.title === 'string' ? options.customData.title : undefined,
 				template: options.customData?.template === 'vanilla' ? 'vanilla' : undefined,
-				files:
-					typeof options.customData?.files === 'object'
-						? (options.customData.files as PrototypeOverlayCustomData['files'])
-						: undefined,
-				dependencies:
-					typeof options.customData?.dependencies === 'object'
-						? (options.customData.dependencies as Record<string, string>)
-						: undefined,
-				preview:
-					typeof options.customData?.preview === 'object'
-						? (options.customData.preview as PrototypeOverlayCustomData['preview'])
-						: undefined,
-				activeFile:
-					typeof options.customData?.activeFile === 'string'
-						? options.customData.activeFile
-						: undefined,
-				showEditor:
-					typeof options.customData?.showEditor === 'boolean'
-						? options.customData.showEditor
-						: undefined,
-				showPreview:
-					typeof options.customData?.showPreview === 'boolean'
-						? options.customData.showPreview
-						: undefined,
 			}),
 		applyUpdate: (element, payload) => {
 			const current = normalizePrototypeOverlay(element.customData);
@@ -298,12 +263,9 @@ function PrototypeCard({
 }) {
 	const prototype = normalizePrototypeOverlay(element.customData);
 	const snapshot = prototype.resourceSnapshot;
-	const preview = prototype.preview;
-	const title = snapshot?.title ?? preview?.title ?? prototype.title;
-	const eyebrow = snapshot?.display?.badge ?? preview?.eyebrow ?? 'Prototype';
-	const description =
-		snapshot?.display?.summary ?? snapshot?.display?.subtitle ?? preview?.description ?? 'Interactive concept preview';
-	const visibleFileCount = Object.values(prototype.files).filter((file) => !file.hidden).length;
+	const title = snapshot?.title ?? prototype.title;
+	const eyebrow = snapshot?.display?.badge ?? 'Prototype';
+	const description = snapshot?.display?.summary ?? snapshot?.display?.subtitle ?? 'Interactive concept preview';
 
 	return (
 		<div
@@ -314,7 +276,7 @@ function PrototypeCard({
 			<div
 				className="px-5 py-4 text-white"
 				style={{
-					background: preview?.background ?? 'linear-gradient(135deg, #eff6ff, #eef2ff)',
+					background: 'linear-gradient(135deg, #eff6ff, #eef2ff)',
 				}}
 			>
 				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
@@ -332,43 +294,19 @@ function PrototypeCard({
 					<span className="rounded-full bg-stone-100 px-2.5 py-1 font-medium uppercase tracking-[0.12em]">
 						{prototype.template}
 					</span>
-					<span>{visibleFileCount} files</span>
+					<span>
+						{Object.keys(prototype.files).length} files
+					</span>
 				</div>
-				{preview?.badges && preview.badges.length > 0 ? (
-					<div className="flex flex-wrap gap-2">
-						{preview.badges.map((badge) => (
-							<span
-								key={badge}
-								className="rounded-full border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-stone-600"
-							>
-								{badge}
-							</span>
-						))}
-					</div>
-				) : null}
-				<div className="mt-auto flex flex-wrap gap-2">
-					{preview?.metrics && preview.metrics.length > 0 ? (
-						preview.metrics.map((metric) => (
-							<div
-								key={`${metric.label}-${metric.value}`}
-								className="rounded-2xl bg-stone-50 px-3 py-2"
-							>
-								<div className="text-[10px] uppercase tracking-[0.14em] text-stone-400">
-									{metric.label}
-								</div>
-								<div className="text-sm font-semibold text-stone-700">{metric.value}</div>
-							</div>
-						))
-					) : (
-						<div className="rounded-2xl bg-stone-50 px-3 py-2">
-							<div className="text-[10px] uppercase tracking-[0.14em] text-stone-400">
-								Active file
-							</div>
-							<div className="text-sm font-semibold text-stone-700">
-								{prototype.activeFile ?? 'None'}
-							</div>
+				<div className="mt-auto">
+					<div className="rounded-2xl bg-stone-50 px-3 py-2">
+						<div className="text-[10px] uppercase tracking-[0.14em] text-stone-400">
+							Active file
 						</div>
-					)}
+						<div className="text-sm font-semibold text-stone-700">
+							{prototype.activeFile ?? 'None'}
+						</div>
+					</div>
 				</div>
 				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
 					Double-click to open

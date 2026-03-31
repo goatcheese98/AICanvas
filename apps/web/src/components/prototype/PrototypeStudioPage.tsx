@@ -1,7 +1,7 @@
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
 import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
-import { ProjectShell } from '@/components/shell';
+import { FocusedViewHeader, ProjectShell } from '@/components/shell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
 import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
@@ -20,6 +20,8 @@ interface PrototypeStudioPageProps {
 
 interface PrototypeStudioSessionProps {
 	normalizedPrototype: PrototypeOverlayCustomData;
+	projectName: string;
+	canvasId: string;
 }
 
 const EMPTY_COLLABORATION = {
@@ -34,7 +36,11 @@ const EMPTY_COLLABORATION = {
 	stopSession: () => {},
 };
 
-function PrototypeStudioSession({ normalizedPrototype }: PrototypeStudioSessionProps) {
+function PrototypeStudioSession({
+	normalizedPrototype,
+	projectName,
+	canvasId,
+}: PrototypeStudioSessionProps) {
 	const [draft, setDraft] = useState(normalizedPrototype);
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
@@ -43,30 +49,11 @@ function PrototypeStudioSession({ normalizedPrototype }: PrototypeStudioSessionP
 
 	return (
 		<div className="flex h-full min-h-0 flex-col bg-[linear-gradient(135deg,#f8f6f0_0%,#ffffff_48%,#eef3ff_100%)]">
-			<div className="flex items-center justify-between gap-4 border-b border-stone-200 bg-white/90 px-6 py-4 backdrop-blur">
-				<div>
-					<div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-400">
-						Prototype Studio
-					</div>
-					<div className="mt-1 text-sm text-stone-600">
-						Prototype Studio is temporarily read-only during Phase 0. Existing files stay visible
-						here for reference, but edits will not be saved yet.
-					</div>
-				</div>
-				<div className="flex items-center gap-3">
-					<div className="text-xs font-medium text-amber-600">
-						Prototype editing temporarily unavailable (Phase 0 migration)
-					</div>
-					<button
-						type="button"
-						disabled
-						className="cursor-not-allowed rounded-full bg-stone-400 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white"
-						title="Prototype editing is temporarily unavailable during Phase 0 migration"
-					>
-						Save Disabled
-					</button>
-				</div>
-			</div>
+			<FocusedViewHeader
+				projectName={projectName}
+				resourceName={normalizedPrototype.title ?? 'Untitled Prototype'}
+				canvasId={canvasId}
+			/>
 
 			<div className="min-h-0 flex-1 p-6">
 				<PrototypeStudioEditor value={draft} onChange={handleDraftChange} />
@@ -249,6 +236,8 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 			<PrototypeStudioSession
 				key={`${prototypeResource.id}:${savedSignature}`}
 				normalizedPrototype={normalizedPrototype}
+				projectName={projectName}
+				canvasId={canvasId}
 			/>
 		</ProjectShell>
 	);

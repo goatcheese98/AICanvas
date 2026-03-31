@@ -55,12 +55,6 @@ export function applyPrototypeStudioCommand(
 			return normalizeStudioState({
 				...state,
 				title: command.title.slice(0, 32),
-				preview: state.preview
-					? {
-							...state.preview,
-							title: command.title.slice(0, 32),
-						}
-					: undefined,
 			});
 		case 'set_active_file': {
 			if (!state.files[command.path]) {

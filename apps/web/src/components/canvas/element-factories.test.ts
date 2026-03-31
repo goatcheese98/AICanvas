@@ -52,7 +52,7 @@ describe('element-factories', () => {
 		});
 	});
 
-	it('creates newlex defaults', () => {
+	it('creates newlex reference-only card with minimal data', () => {
 		const data = createOverlayCustomData({
 			type: 'newlex',
 			x: 0,
@@ -62,19 +62,12 @@ describe('element-factories', () => {
 		expect(data).toMatchObject({
 			type: 'newlex',
 			title: 'Rich Text',
-			lexicalState: '',
-			comments: [],
-			commentsPanelOpen: false,
-			version: 1,
 		});
+		// Reference-only: lexicalState/comments live in resource record, not on canvas card
+		expect((data as { lexicalState?: string }).lexicalState).toBe('');
 	});
 
-	it('creates kanban defaults with three columns', () => {
-		vi.spyOn(globalThis.crypto, 'randomUUID')
-			.mockReturnValueOnce('11111111-1111-1111-1111-111111111111')
-			.mockReturnValueOnce('22222222-2222-2222-2222-222222222222')
-			.mockReturnValueOnce('33333333-3333-3333-3333-333333333333');
-
+	it('creates kanban reference-only card with empty columns', () => {
 		const data = createOverlayCustomData({
 			type: 'kanban',
 			x: 0,
@@ -85,8 +78,8 @@ describe('element-factories', () => {
 			type: 'kanban',
 			title: 'Kanban Board',
 		});
-		expect(data.columns).toHaveLength(3);
-		expect(data.columns.map((column) => column.title)).toEqual(['To Do', 'In Progress', 'Done']);
+		// Reference-only cards have empty columns (full data lives in resource record)
+		expect(data.columns).toHaveLength(0);
 	});
 
 	it('creates web embed defaults', () => {

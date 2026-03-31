@@ -28,14 +28,16 @@ const PREVIEW_PRIORITY_META = {
 } as const;
 
 function countTotalCards(board: KanbanOverlayCustomData): number {
-	return board.columns.reduce((total, column) => total + column.cards.length, 0);
+	// Reference-only cards may have empty columns array
+	return (board.columns ?? []).reduce((total, column) => total + (column.cards?.length ?? 0), 0);
 }
 
 function countOverdueCards(board: KanbanOverlayCustomData): number {
-	return board.columns.reduce(
+	// Reference-only cards may have empty columns array
+	return (board.columns ?? []).reduce(
 		(total, column) =>
 			total +
-			column.cards.filter((card) => {
+			(column.cards ?? []).filter((card) => {
 				if (!card.dueDate) return false;
 				const parsed = new Date(`${card.dueDate}T23:59:59`);
 				return !Number.isNaN(parsed.getTime()) && parsed.getTime() < Date.now();

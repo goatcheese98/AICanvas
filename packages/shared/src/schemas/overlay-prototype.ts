@@ -23,33 +23,13 @@ export const prototypeOverlayFileSchema = z.object({
 	readOnly: z.boolean().optional(),
 });
 
-export const prototypeCardMetricSchema = z.object({
-	label: z.string().trim().min(1).max(24).default('Metric'),
-	value: z.string().trim().min(1).max(24).default('0'),
-});
-
-export const prototypeCardPreviewSchema = z.object({
-	eyebrow: z.string().trim().min(1).max(24).default('Prototype'),
-	title: z.string().trim().min(1).max(48).default('Prototype'),
-	description: z.string().trim().min(1).max(140).default('Interactive concept'),
-	accent: z.string().trim().min(1).max(32).default('#3b82f6'),
-	background: z
-		.string()
-		.trim()
-		.min(1)
-		.max(160)
-		.default('linear-gradient(135deg, #eff6ff, #eef2ff)'),
-	badges: z.array(z.string().trim().min(1).max(24)).max(5).default([]),
-	metrics: z.array(prototypeCardMetricSchema).max(4).default([]),
-});
-
 export const prototypeOverlaySchema = z.object({
 	type: z.literal('prototype'),
 	title: z.string().trim().min(1).max(32).default('Prototype'),
 	template: prototypeTemplateSchema.default('react'),
+	// Legacy: files stored on canvas cards (new cards use resourceSnapshot only)
 	files: z.record(z.string(), prototypeOverlayFileSchema).default({}),
 	dependencies: z.record(z.string(), z.string()).default({}),
-	preview: prototypeCardPreviewSchema.optional(),
 	activeFile: z.string().trim().min(1).optional(),
 	showEditor: z.boolean().optional(),
 	showPreview: z.boolean().optional(),

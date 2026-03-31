@@ -78,7 +78,7 @@ describe('LexicalNote', () => {
 		// Preview card shows title and content snippet
 		expect(screen.getAllByText('Test Note')[0]).not.toBeNull();
 		expect(screen.getAllByText('This is a test note content.')[0]).not.toBeNull();
-		expect(screen.getAllByText('Double-click to edit')[0]).not.toBeNull();
+		expect(screen.getAllByText('Double-click to open')[0]).not.toBeNull();
 	});
 
 	it('renders full editor when mode is live', () => {

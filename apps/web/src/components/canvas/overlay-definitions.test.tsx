@@ -3,13 +3,17 @@ import type {
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
 	type TypedOverlayCanvasElement,
 	getOverlayDefinition,
 	normalizeOverlayElement,
 } from './overlay-definitions';
+
+afterEach(() => {
+	cleanup();
+});
 
 function createMarkdownOverlay(
 	overrides?: Partial<MarkdownOverlayCustomData>,
@@ -189,7 +193,6 @@ describe('normalizeOverlayElement', () => {
 		);
 
 		expect(screen.getByText('Checkout Flow')).toBeTruthy();
-		expect(screen.getByText('Mobile checkout concept')).toBeTruthy();
 		expect(screen.getByText('react')).toBeTruthy();
 		expect(screen.getByText('Double-click to open')).toBeTruthy();
 	});
