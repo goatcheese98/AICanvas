@@ -9,14 +9,13 @@ import { useCollaboration } from '@/hooks/useCollaboration';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { api, getRequiredAuthHeaders, toApiUrl } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
-import { normalizeNewLexOverlay } from '@ai-canvas/shared/schemas';
 import type { HeavyResourceRecord, NewLexOverlayCustomData } from '@ai-canvas/shared/types';
 import { useAuth } from '@clerk/clerk-react';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useQuery } from '@tanstack/react-query';
-import { Link, Navigate, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { getOpenDocumentElements } from './document-studio-utils';
+import { getOpenDocumentElements, mergeDocumentStudioElements } from './document-studio-utils';
 
 interface CanvasQueryData {
 	canvas?: {
@@ -83,11 +82,7 @@ function DocumentStudioWorkspace({
 		() => documentElements.find((element) => element.id === documentElement.id) ?? null,
 		[documentElements, documentElement.id],
 	);
-	const fallbackDocumentElement = useMemo(
-		() => (matchedDocumentElement ? null : (documentElements[0] ?? null)),
-		[matchedDocumentElement, documentElements],
-	);
-	const activeDocumentElement = matchedDocumentElement ?? fallbackDocumentElement;
+	const activeDocumentElement = matchedDocumentElement;
 
 	const resources = useMemo(
 		() =>
@@ -304,35 +299,14 @@ export function DocumentStudioPage({ canvasId, documentId }: DocumentStudioPageP
 		[canvasData?.data?.elements],
 	);
 	const documentResource = documentQuery.data ?? null;
-	const normalizedDocument = useMemo(
-		() =>
-			documentResource
-				? normalizeNewLexOverlay(documentResource.data as NewLexOverlayCustomData)
-				: null,
-		[documentResource],
-	);
 	const mergedElements = useMemo(
-		() =>
-			normalizedDocument
-				? normalizedElements.map((element) =>
-						element.id === documentId
-							? {
-									...element,
-									customData: normalizedDocument,
-								}
-							: element,
-					)
-				: normalizedElements,
-		[documentId, normalizedDocument, normalizedElements],
+		() => mergeDocumentStudioElements(normalizedElements, documentId, documentResource),
+		[documentId, documentResource, normalizedElements],
 	);
 	const documentElements = useMemo(() => getOpenDocumentElements(mergedElements), [mergedElements]);
 	const matchedDocumentElement = useMemo(
 		() => documentElements.find((element) => element.id === documentId) ?? null,
 		[documentElements, documentId],
-	);
-	const fallbackDocumentElement = useMemo(
-		() => (matchedDocumentElement ? null : (documentElements[0] ?? null)),
-		[matchedDocumentElement, documentElements],
 	);
 
 	if (canvasQuery.isLoading || documentQuery.isLoading) {
@@ -365,20 +339,7 @@ export function DocumentStudioPage({ canvasId, documentId }: DocumentStudioPageP
 		);
 	}
 
-	if (!matchedDocumentElement && fallbackDocumentElement) {
-		return (
-			<Navigate
-				to="/canvas/$id/document/$documentId"
-				params={{
-					id: canvasId,
-					documentId: fallbackDocumentElement.id,
-				}}
-				replace
-			/>
-		);
-	}
-
-	if (!matchedDocumentElement || !canvasData?.data) {
+	if (!matchedDocumentElement) {
 		return (
 			<div className="flex h-full items-center justify-center bg-stone-50 p-6">
 				<div className="rounded-[24px] border border-stone-200 bg-white px-6 py-8 text-center shadow-sm">
@@ -406,8 +367,8 @@ export function DocumentStudioPage({ canvasId, documentId }: DocumentStudioPageP
 			canvasTitle={canvasTitle}
 			documentElement={matchedDocumentElement}
 			initialElements={mergedElements}
-			initialAppState={canvasData.data.appState ?? {}}
-			initialFiles={canvasData.data.files ?? null}
+			initialAppState={(canvasData?.data?.appState ?? {}) as Record<string, unknown>}
+			initialFiles={canvasData?.data?.files ?? null}
 			initialVersion={canvasVersion}
 		/>
 	);

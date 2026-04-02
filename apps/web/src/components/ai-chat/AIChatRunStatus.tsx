@@ -98,7 +98,7 @@ export function AIChatRunStatus({
 	}
 
 	return (
-		<div className="mr-auto w-full max-w-[92%] rounded-[14px] border border-stone-200 bg-white px-3.5 py-3 shadow-none">
+		<div className="w-full rounded-[14px] border border-stone-200 bg-white px-3.5 py-3 shadow-none">
 			<div className="flex items-center justify-between gap-3">
 				<div className="flex items-center gap-3">
 					<div className="text-[9px] font-semibold uppercase tracking-[0.18em] text-stone-500">

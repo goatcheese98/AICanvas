@@ -57,6 +57,9 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 				email: row.email,
 				name: row.name,
 				avatarUrl: row.avatarUrl ?? undefined,
+				preferences: row.preferences
+					? (JSON.parse(row.preferences) as AuthUser['preferences'])
+					: undefined,
 			};
 		} else {
 			// New user — fetch their profile from Clerk and sync to D1.

@@ -57,7 +57,7 @@ export function AIChatMessageList({
 	};
 
 	return (
-		<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
+		<div className="flex w-full flex-col gap-3.5 px-4 py-4">
 			{messages.map((message) => (
 				<MessageCard
 					key={message.id}

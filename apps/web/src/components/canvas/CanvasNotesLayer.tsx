@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
 import {
 	type OverlayUpdatePayloadMap,
 	type TypedOverlayCanvasElement,
@@ -68,6 +69,7 @@ interface OverlayContentProps {
 	mode: 'preview' | 'shell' | 'live';
 	onChange: (payload: OverlayUpdatePayloadMap[OverlayType]) => void;
 	onActivityChange: (isActive: boolean) => void;
+	onOpen?: () => void;
 }
 
 const OverlayContent = memo(function OverlayContent({
@@ -77,6 +79,7 @@ const OverlayContent = memo(function OverlayContent({
 	mode,
 	onChange,
 	onActivityChange,
+	onOpen,
 }: OverlayContentProps) {
 	const definition = getOverlayDefinition(element.customData.type);
 	return definition.render({
@@ -86,6 +89,7 @@ const OverlayContent = memo(function OverlayContent({
 		mode,
 		onChange: onChange as never,
 		onActivityChange,
+		onOpen,
 	});
 });
 
@@ -135,40 +139,38 @@ function OverlayItem({
 		isEditingRef.current = nextIsActive;
 		setIsEditing(nextIsActive);
 	}, []);
+	const handleOpenResource = useCallback(() => {
+		if (type === 'kanban') {
+			void navigate({
+				to: '/canvas/$id/board/$boardId',
+				params: { id: canvasId, boardId: normalizedElement.id },
+			});
+			return;
+		}
+
+		if (type === 'newlex') {
+			void navigate({
+				to: '/canvas/$id/document/$documentId',
+				params: { id: canvasId, documentId: normalizedElement.id },
+			});
+			return;
+		}
+
+		if (type === 'prototype') {
+			void navigate({
+				to: '/canvas/$id/prototype/$prototypeId',
+				params: { id: canvasId, prototypeId: normalizedElement.id },
+			});
+		}
+	}, [canvasId, navigate, normalizedElement.id, type]);
 	const handleDoubleClick = useCallback(
 		(event: MouseEvent<HTMLDivElement>) => {
 			if (!isSelected) return;
-
-			if (type === 'kanban') {
-				event.preventDefault();
-				event.stopPropagation();
-				void navigate({
-					to: '/canvas/$id/board/$boardId',
-					params: { id: canvasId, boardId: normalizedElement.id },
-				});
-				return;
-			}
-
-			if (type === 'newlex') {
-				event.preventDefault();
-				event.stopPropagation();
-				void navigate({
-					to: '/canvas/$id/document/$documentId',
-					params: { id: canvasId, documentId: normalizedElement.id },
-				});
-				return;
-			}
-
-			if (type === 'prototype') {
-				event.preventDefault();
-				event.stopPropagation();
-				void navigate({
-					to: '/canvas/$id/prototype/$prototypeId',
-					params: { id: canvasId, prototypeId: normalizedElement.id },
-				});
-			}
+			event.preventDefault();
+			event.stopPropagation();
+			handleOpenResource();
 		},
-		[canvasId, isSelected, navigate, normalizedElement.id, type],
+		[handleOpenResource, isSelected],
 	);
 	const mode =
 		type === 'markdown' || type === 'web-embed' ? (isSelected ? 'live' : 'preview') : 'preview';
@@ -193,6 +195,7 @@ function OverlayItem({
 					mode={mode}
 					onChange={handleChange as never}
 					onActivityChange={handleActivityChange}
+					onOpen={handleOpenResource}
 				/>
 			</div>
 		</div>
@@ -226,7 +229,7 @@ export function CanvasNotesLayer({ canvasId }: CanvasNotesLayerProps) {
 
 	const updateOverlayElement = useCallback(
 		<K extends OverlayType>(elementId: string, type: K, payload: OverlayUpdatePayloadMap[K]) => {
-			const { elements: currentElements, excalidrawApi, setElements } = useAppStore.getState();
+			const { elements: currentElements, excalidrawApi } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
 			const { didChange, nextElements } = applyOverlayUpdateToScene(
@@ -237,8 +240,11 @@ export function CanvasNotesLayer({ canvasId }: CanvasNotesLayerProps) {
 			);
 			if (!didChange) return;
 
-			excalidrawApi.updateScene({ elements: nextElements });
-			setElements(nextElements);
+			updateSceneAndSyncAppStore(
+				excalidrawApi,
+				{ elements: nextElements },
+				{ elements: nextElements },
+			);
 		},
 		[],
 	);

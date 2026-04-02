@@ -1,8 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { syncAppStoreFromExcalidrawMock } = vi.hoisted(() => ({
-	syncAppStoreFromExcalidrawMock: vi.fn(),
+const { updateSceneAndSyncAppStoreMock } = vi.hoisted(() => ({
+	updateSceneAndSyncAppStoreMock: vi.fn(),
 }));
 
 vi.mock('./canvas-container-utils', () => ({
@@ -13,7 +13,7 @@ vi.mock('./canvas-container-utils', () => ({
 }));
 
 vi.mock('./excalidraw-store-sync', () => ({
-	syncAppStoreFromExcalidraw: syncAppStoreFromExcalidrawMock,
+	updateSceneAndSyncAppStore: updateSceneAndSyncAppStoreMock,
 }));
 
 vi.mock('./scene-element-normalizer', () => ({
@@ -24,7 +24,7 @@ import { useCanvasInitialization } from './useCanvasInitialization';
 
 describe('useCanvasInitialization', () => {
 	beforeEach(() => {
-		syncAppStoreFromExcalidrawMock.mockReset();
+		updateSceneAndSyncAppStoreMock.mockReset();
 		vi.stubGlobal('requestAnimationFrame', ((callback: FrameRequestCallback) => {
 			callback(0);
 			return 1;
@@ -36,6 +36,13 @@ describe('useCanvasInitialization', () => {
 			updateScene: vi.fn(),
 			addFiles: vi.fn(),
 			refresh: vi.fn(),
+			getAppState: vi.fn(() => ({
+				selectedElementIds: {},
+				scrollX: 0,
+				scrollY: 0,
+				zoom: { value: 1 },
+			})),
+			getFiles: vi.fn(() => ({})),
 		} as const;
 		const onInitialized = vi.fn();
 
@@ -69,10 +76,18 @@ describe('useCanvasInitialization', () => {
 		);
 
 		await waitFor(() => {
-			expect(excalidrawApi.updateScene).toHaveBeenCalledWith({
-				elements: [{ id: 'remote' }],
-				appState: { viewBackgroundColor: '#ffffff' },
-			});
+			expect(updateSceneAndSyncAppStoreMock).toHaveBeenCalledWith(
+				excalidrawApi,
+				{
+					elements: [{ id: 'remote' }],
+					appState: { viewBackgroundColor: '#ffffff' },
+				},
+				{
+					elements: [{ id: 'remote' }],
+					appState: expect.objectContaining({ viewBackgroundColor: '#ffffff' }),
+					files: {},
+				},
+			);
 		});
 
 		expect(onInitialized).toHaveBeenCalledWith({
@@ -80,6 +95,6 @@ describe('useCanvasInitialization', () => {
 			appState: { viewBackgroundColor: '#ffffff' },
 			files: null,
 		});
-		expect(syncAppStoreFromExcalidrawMock).toHaveBeenCalledTimes(1);
+		expect(updateSceneAndSyncAppStoreMock).toHaveBeenCalledTimes(1);
 	});
 });

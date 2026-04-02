@@ -82,42 +82,7 @@ describe('DocumentStudioPage', () => {
 					},
 					data: {
 						id: 'canvas-1',
-						elements: [
-							{
-								id: 'document-1',
-								index: 'a0',
-								type: 'rectangle',
-								x: 0,
-								y: 0,
-								width: 320,
-								height: 240,
-								angle: 0,
-								backgroundColor: '#ffffff',
-								strokeColor: '#111111',
-								strokeWidth: 1,
-								strokeStyle: 'solid',
-								roughness: 0,
-								opacity: 100,
-								fillStyle: 'solid',
-								roundness: null,
-								groupIds: [],
-								frameId: null,
-								boundElements: null,
-								updated: 1,
-								link: null,
-								seed: 1,
-								version: 1,
-								versionNonce: 1,
-								isDeleted: false,
-								locked: false,
-								customData: {
-									type: 'newlex',
-									title: 'Canvas Note',
-									lexicalState: 'canvas-state',
-									comments: [],
-								},
-							},
-						],
+						elements: [],
 						appState: {},
 						files: {},
 					},
@@ -144,7 +109,7 @@ describe('DocumentStudioPage', () => {
 		globalThis.fetch = fetchMock as typeof fetch;
 	});
 
-	it('seeds the focused document from the heavy resource record', async () => {
+	it('seeds the focused document from the heavy resource record when the canvas card is missing', async () => {
 		const queryClient = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
 		});

@@ -1,5 +1,7 @@
 import type {
+	KanbanOverlayCustomData,
 	MarkdownOverlayCustomData,
+	NewLexOverlayCustomData,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -109,6 +111,91 @@ function createPrototypeOverlay(
 	} as ExcalidrawElement as TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
 }
 
+function createDocumentOverlay(
+	overrides?: Partial<NewLexOverlayCustomData>,
+): TypedOverlayCanvasElement<NewLexOverlayCustomData> {
+	return {
+		id: 'document-overlay',
+		type: 'rectangle',
+		x: 80,
+		y: 100,
+		width: 420,
+		height: 300,
+		angle: 0,
+		strokeColor: '#111827',
+		backgroundColor: '#ffffff',
+		fillStyle: 'solid',
+		strokeWidth: 1,
+		strokeStyle: 'solid',
+		roughness: 0,
+		opacity: 100,
+		groupIds: [],
+		frameId: null,
+		roundness: null,
+		boundElements: null,
+		updated: 1,
+		link: null,
+		locked: false,
+		version: 1,
+		versionNonce: 1,
+		isDeleted: false,
+		seed: 1,
+		index: 'a0' as never,
+		customData: {
+			type: 'newlex',
+			title: 'Project Notes',
+			lexicalState:
+				'{"root":{"children":[{"type":"paragraph","version":1,"children":[{"text":"Preview only text."}]}],"type":"root","version":1}}',
+			comments: [],
+			commentsPanelOpen: false,
+			version: 1,
+			...overrides,
+		},
+	} as ExcalidrawElement as TypedOverlayCanvasElement<NewLexOverlayCustomData>;
+}
+
+function createBoardOverlay(
+	overrides?: Partial<KanbanOverlayCustomData>,
+): TypedOverlayCanvasElement<KanbanOverlayCustomData> {
+	return {
+		id: 'board-overlay',
+		type: 'rectangle',
+		x: 60,
+		y: 90,
+		width: 520,
+		height: 320,
+		angle: 0,
+		strokeColor: '#111827',
+		backgroundColor: '#ffffff',
+		fillStyle: 'solid',
+		strokeWidth: 1,
+		strokeStyle: 'solid',
+		roughness: 0,
+		opacity: 100,
+		groupIds: [],
+		frameId: null,
+		roundness: null,
+		boundElements: null,
+		updated: 1,
+		link: null,
+		locked: false,
+		version: 1,
+		versionNonce: 1,
+		isDeleted: false,
+		seed: 1,
+		index: 'a0' as never,
+		customData: {
+			type: 'kanban',
+			title: 'Launch Board',
+			columns: [{ id: 'todo', title: 'Todo', cards: [] }],
+			bgTheme: 'parchment',
+			fontId: 'excalifont',
+			fontSize: 13,
+			...overrides,
+		},
+	} as ExcalidrawElement as TypedOverlayCanvasElement<KanbanOverlayCustomData>;
+}
+
 describe('normalizeOverlayElement', () => {
 	it('returns a fresh normalized object for each call so in-place element mutation cannot stale the overlay layer', () => {
 		const element = createMarkdownOverlay();
@@ -194,7 +281,7 @@ describe('normalizeOverlayElement', () => {
 
 		expect(screen.getByText('Checkout Flow')).toBeTruthy();
 		expect(screen.getByText('react')).toBeTruthy();
-		expect(screen.getByText('Double-click to open')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Open Prototype' })).toBeTruthy();
 	});
 
 	it('prefers resource snapshot metadata for prototype preview cards', () => {
@@ -228,5 +315,43 @@ describe('normalizeOverlayElement', () => {
 		expect(screen.getByText('New')).toBeTruthy();
 		expect(screen.getByText('1 file')).toBeTruthy();
 		expect(screen.queryByText('Legacy prototype title')).toBeNull();
+	});
+
+	it('renders document overlays as preview cards even in shell mode', () => {
+		const element = createDocumentOverlay();
+
+		render(
+			getOverlayDefinition('newlex').render({
+				element,
+				isSelected: true,
+				isActive: true,
+				mode: 'shell',
+				onChange: () => {},
+				onActivityChange: () => {},
+			}),
+		);
+
+		expect(screen.getByText('Project Notes')).toBeTruthy();
+		expect(screen.getByText('Preview only text.')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Open Document' })).toBeTruthy();
+	});
+
+	it('renders board overlays as preview cards even in shell mode', () => {
+		const element = createBoardOverlay();
+
+		render(
+			getOverlayDefinition('kanban').render({
+				element,
+				isSelected: true,
+				isActive: true,
+				mode: 'shell',
+				onChange: () => {},
+				onActivityChange: () => {},
+			}),
+		);
+
+		expect(screen.getByText('Launch Board')).toBeTruthy();
+		expect(screen.getByText('1 column')).toBeTruthy();
+		expect(screen.getByRole('button', { name: 'Open Board' })).toBeTruthy();
 	});
 });

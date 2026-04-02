@@ -38,7 +38,7 @@ export function AIChatComposer({
 
 	return (
 		<div className="border-t border-stone-200 bg-stone-50 px-4 py-3">
-			<div className="mx-auto w-full max-w-[1120px]">
+			<div className="w-full">
 				{chatError ? (
 					<div className="mb-3 rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">
 						{chatError}

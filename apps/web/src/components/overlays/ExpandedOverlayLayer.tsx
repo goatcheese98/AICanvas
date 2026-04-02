@@ -1,3 +1,4 @@
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import {
 	type OverlayUpdatePayloadMap,
 	type TypedOverlayCanvasElement,
@@ -13,6 +14,8 @@ import type { OverlayType } from '@ai-canvas/shared/types';
 import { useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useExpandedOverlayState } from './useExpandedOverlayState';
+
+const EXPANDABLE_OVERLAY_TYPES: OverlayType[] = ['markdown', 'web-embed'];
 
 function CloseIcon() {
 	return (
@@ -70,7 +73,7 @@ function ExpandedOverlayShell({
 
 	const handleChange = useCallback(
 		<K extends OverlayType>(type: K, payload: OverlayUpdatePayloadMap[K]) => {
-			const { elements, excalidrawApi, setElements } = useAppStore.getState();
+			const { elements, excalidrawApi } = useAppStore.getState();
 			if (!excalidrawApi) return;
 
 			const { didChange, nextElements } = applyOverlayUpdateToScene(
@@ -81,8 +84,11 @@ function ExpandedOverlayShell({
 			);
 			if (!didChange) return;
 
-			excalidrawApi.updateScene({ elements: nextElements });
-			setElements(nextElements);
+			updateSceneAndSyncAppStore(
+				excalidrawApi,
+				{ elements: nextElements },
+				{ elements: nextElements },
+			);
 		},
 		[elementId],
 	);
@@ -203,6 +209,10 @@ export function ExpandedOverlayLayer() {
 		overlayElements.find((candidate) => candidate.id === expandedOverlayId) ?? null;
 
 	if (!expandedElement) {
+		return <ExpandedOverlayMissingGuard onClose={closeExpandedOverlay} />;
+	}
+
+	if (!EXPANDABLE_OVERLAY_TYPES.includes(expandedElement.customData.type as OverlayType)) {
 		return <ExpandedOverlayMissingGuard onClose={closeExpandedOverlay} />;
 	}
 

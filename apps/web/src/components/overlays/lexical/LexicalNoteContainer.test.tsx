@@ -160,6 +160,8 @@ describe('LexicalNoteContainer', () => {
 		const excalidrawApi = {
 			getSceneElements: () => [createElement()],
 			updateScene,
+			getAppState: () => ({ selectedElementIds: {}, scrollX: 0, scrollY: 0, zoom: { value: 1 } }),
+			getFiles: () => ({}),
 		};
 
 		useAppStore.setState({ excalidrawApi: excalidrawApi as never });

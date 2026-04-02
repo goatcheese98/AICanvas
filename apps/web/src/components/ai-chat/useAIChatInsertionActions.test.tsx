@@ -1,4 +1,5 @@
 import { fetchAssistantArtifactAsset } from '@/lib/api';
+import { useAppStore } from '@/stores/store';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import { act, renderHook } from '@testing-library/react';
 import { useState } from 'react';
@@ -267,7 +268,7 @@ describe('useAIChatInsertionActions', () => {
 			type: 'selection',
 			locked: false,
 		});
-		expect(setFiles).toHaveBeenCalledWith({
+		expect(useAppStore.getState().files).toEqual({
 			fileA: { id: 'fileA', mimeType: 'image/png' },
 		});
 		expect(result.current.assistantInsertionStates['artifact-1']).toMatchObject({
@@ -351,8 +352,7 @@ describe('useAIChatInsertionActions', () => {
 			type: 'selection',
 			locked: false,
 		});
-		const storedFiles = setFiles.mock.calls[0]?.[0] as Record<string, { mimeType: string }>;
-		expect(Object.values(storedFiles)).toEqual(
+		expect(Object.values(useAppStore.getState().files)).toEqual(
 			expect.arrayContaining([expect.objectContaining({ mimeType: 'image/png' })]),
 		);
 		expect(setChatError).not.toHaveBeenCalled();

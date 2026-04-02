@@ -1,6 +1,9 @@
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import { PrototypeStudioEditor } from '@/components/overlays/prototype';
-import { serializePrototypeState } from '@/components/overlays/prototype/prototype-utils';
+import {
+	ensurePrototypeStarterFiles,
+	serializePrototypeState,
+} from '@/components/overlays/prototype/prototype-utils';
 import { FocusedViewHeader, ProjectShell } from '@/components/shell';
 import { buildProjectResources } from '@/components/shell/project-resource-utils';
 import type { ProjectResource } from '@/components/shell/types';
@@ -41,7 +44,11 @@ function PrototypeStudioSession({
 	projectName,
 	canvasId,
 }: PrototypeStudioSessionProps) {
-	const [draft, setDraft] = useState(normalizedPrototype);
+	const initialPrototype = useMemo(
+		() => ensurePrototypeStarterFiles(normalizedPrototype),
+		[normalizedPrototype],
+	);
+	const [draft, setDraft] = useState<PrototypeOverlayCustomData>(initialPrototype);
 
 	const handleDraftChange = useCallback((nextDraft: PrototypeOverlayCustomData) => {
 		setDraft(nextDraft);
@@ -104,15 +111,34 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 				: null,
 		[prototypeResource],
 	);
-	const resources = useMemo(
-		() =>
-			buildProjectResources({
-				canvasId,
-				canvasName: canvasQuery.data?.canvas?.title ?? 'Untitled Project',
-				elements,
-			}),
-		[canvasId, canvasQuery.data?.canvas?.title, elements],
-	);
+	const resources = useMemo(() => {
+		const nextResources = buildProjectResources({
+			canvasId,
+			canvasName: canvasQuery.data?.canvas?.title ?? 'Untitled Project',
+			elements,
+		});
+
+		if (
+			prototypeResource &&
+			!nextResources.some(
+				(resource) => resource.type === 'prototype' && resource.id === prototypeResource.id,
+			)
+		) {
+			nextResources.push({
+				id: prototypeResource.id,
+				type: 'prototype',
+				name: normalizedPrototype?.title ?? 'Untitled Prototype',
+			});
+		}
+
+		return nextResources;
+	}, [
+		canvasId,
+		canvasQuery.data?.canvas?.title,
+		elements,
+		normalizedPrototype?.title,
+		prototypeResource,
+	]);
 	const savedSignature = useMemo(
 		() => (normalizedPrototype ? serializePrototypeState(normalizedPrototype) : ''),
 		[normalizedPrototype],
@@ -191,7 +217,7 @@ export function PrototypeStudioPage({ canvasId, prototypeId }: PrototypeStudioPa
 	const projectName = canvasQuery.data?.canvas?.title ?? 'Untitled Project';
 	const activeResourceId = prototypeResource?.id ?? prototypeId;
 
-	if (!prototypeResource || !normalizedPrototype || !canvasQuery.data?.data) {
+	if (!prototypeResource || !normalizedPrototype) {
 		return (
 			<ProjectShell
 				projectId="default"

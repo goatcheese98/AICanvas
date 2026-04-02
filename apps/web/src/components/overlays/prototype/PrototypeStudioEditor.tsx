@@ -3,7 +3,12 @@ import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import { useMemo } from 'react';
 import { PrototypeCodeEditor } from './PrototypeCodeEditor';
 import { applyPrototypeStudioCommand, listPrototypeFiles } from './prototype-control';
+import {
+	normalizePrototypeStudioFilePath,
+	validatePrototypeStudioFilePath,
+} from './prototype-file-utils';
 import { usePrototypePreview } from './prototype-preview-runtime';
+import { getPrototypeStarterCode } from './prototype-utils';
 
 function getFileLabel(path: string) {
 	if (path.endsWith('.css')) return '#';
@@ -73,6 +78,35 @@ export function PrototypeStudioEditor({
 		onChange(nextValue);
 	};
 
+	const handleCreateFile = () => {
+		const existingPaths = listPrototypeFiles(draft, { includeHidden: true });
+		const suggestedPath =
+			draft.template === 'react' ? '/components/NewFile.jsx' : '/utilities/new-file.js';
+		const requestedPath = window.prompt('Create a new file for this prototype', suggestedPath);
+		if (requestedPath === null) {
+			return;
+		}
+
+		const path = normalizePrototypeStudioFilePath(requestedPath);
+		const validationError = validatePrototypeStudioFilePath({
+			value: path,
+			existingPaths,
+		});
+		if (validationError) {
+			window.alert(validationError);
+			return;
+		}
+
+		applyDraft(
+			applyPrototypeStudioCommand(draft, {
+				type: 'create_file',
+				path,
+				code: getPrototypeStarterCode(path, draft.template),
+				activate: true,
+			}),
+		);
+	};
+
 	return (
 		<div
 			className={
@@ -100,6 +134,13 @@ export function PrototypeStudioEditor({
 						{draft.template}
 					</div>
 					<PreviewStatusBadge status={preview.status} />
+					<button
+						type="button"
+						onClick={handleCreateFile}
+						className="rounded-full border border-stone-300 bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600"
+					>
+						New File
+					</button>
 					<button
 						type="button"
 						onClick={preview.refresh}

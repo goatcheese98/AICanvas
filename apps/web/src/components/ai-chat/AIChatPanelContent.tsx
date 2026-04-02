@@ -193,7 +193,7 @@ export function AIChatPanelContent({ canvasId }: AIChatPanelProps) {
 	};
 
 	return (
-		<div className="flex h-full min-h-0 overflow-hidden bg-stone-50">
+		<div className="flex h-full min-h-0 flex-col overflow-hidden bg-stone-50">
 			<AIChatSidebar
 				isHistoryCollapsed={isHistoryCollapsed}
 				threads={threads}
@@ -204,7 +204,7 @@ export function AIChatPanelContent({ canvasId }: AIChatPanelProps) {
 				onDeleteThread={(threadId) => void handleDeleteThread(threadId)}
 			/>
 
-			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-stone-50">
+			<div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-stone-50">
 				<AIChatHeader
 					messagesCount={messages.length}
 					selectionIndicator={selectionIndicator}
@@ -217,7 +217,7 @@ export function AIChatPanelContent({ canvasId }: AIChatPanelProps) {
 
 				<div className="min-h-0 flex-1 overflow-auto">
 					{messages.length === 0 ? (
-						<div className="mx-auto flex w-full max-w-[1120px] flex-col gap-3.5 px-4 py-4">
+						<div className="flex w-full flex-col gap-3.5 px-4 py-4">
 							<AIChatEmptyState onSuggestionClick={handleSuggestionClick} />
 						</div>
 					) : (

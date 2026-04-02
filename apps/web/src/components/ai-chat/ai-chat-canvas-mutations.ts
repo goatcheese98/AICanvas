@@ -1,10 +1,10 @@
 import { getViewportSceneCenter } from '@/components/canvas/element-factories';
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { applyOverlayUpdateByType } from '@/components/canvas/overlay-registry';
 import { normalizeKanbanOverlay, normalizeMarkdownOverlay } from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import { getSelectedSceneBounds, getViewportSceneBounds } from './ai-chat-canvas';
 import { clonePatchCustomData } from './ai-chat-helpers';
 import type { AssistantInsertionState } from './ai-chat-types';
@@ -67,8 +67,7 @@ export function updateOverlayElementById({
 		throw new Error('Selected canvas item is no longer available.');
 	}
 
-	excalidrawApi.updateScene({ elements: nextElements });
-	syncAppStoreFromExcalidraw(excalidrawApi);
+	updateSceneAndSyncAppStore(excalidrawApi, { elements: nextElements }, { elements: nextElements });
 	return previousCustomData;
 }
 
@@ -128,16 +127,30 @@ export function applyInsertedElements({
 	const currentElements = excalidrawApi.getSceneElements();
 	const insertedElementIds = insertedElements.map((element) => String(element.id));
 	const nextElements = [...currentElements, ...insertedElements];
-	excalidrawApi.updateScene({
-		elements: nextElements,
-		appState: {
-			isCropping: false,
-			croppingElementId: null,
-			selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
+	const nextAppState = {
+		...excalidrawApi.getAppState(),
+		isCropping: false,
+		croppingElementId: null,
+		selectedElementIds: Object.fromEntries(
+			insertedElementIds.map((id) => [id, true] as const),
+		) as Record<string, true>,
+	} as Partial<AppState>;
+	updateSceneAndSyncAppStore(
+		excalidrawApi,
+		{
+			elements: nextElements,
+			appState: {
+				isCropping: false,
+				croppingElementId: null,
+				selectedElementIds: nextAppState.selectedElementIds,
+			},
 		},
-	});
+		{
+			elements: nextElements,
+			appState: nextAppState,
+		},
+	);
 	restoreCanvasSelectionState(excalidrawApi);
-	syncAppStoreFromExcalidraw(excalidrawApi);
 	return {
 		status: 'inserted',
 		insertedElementIds,
@@ -147,12 +160,10 @@ export function applyInsertedElements({
 export function removeInsertedArtifactFromScene({
 	excalidrawApi,
 	setElements: _setElements,
-	setFiles,
 	insertionState,
 }: {
 	excalidrawApi: ExcalidrawImperativeAPI;
 	setElements: (elements: readonly ExcalidrawElement[]) => void;
-	setFiles: (files: BinaryFiles) => void;
 	insertionState: AssistantInsertionState;
 }) {
 	const nextElements = excalidrawApi
@@ -164,15 +175,27 @@ export function removeInsertedArtifactFromScene({
 		delete nextFiles[fileId];
 	}
 
-	excalidrawApi.updateScene({
-		elements: nextElements,
-		appState: {
-			isCropping: false,
-			croppingElementId: null,
-			selectedElementIds: {},
+	const nextAppState = {
+		...excalidrawApi.getAppState(),
+		isCropping: false,
+		croppingElementId: null,
+		selectedElementIds: {},
+	};
+	updateSceneAndSyncAppStore(
+		excalidrawApi,
+		{
+			elements: nextElements,
+			appState: {
+				isCropping: false,
+				croppingElementId: null,
+				selectedElementIds: {},
+			},
 		},
-	});
+		{
+			elements: nextElements,
+			appState: nextAppState,
+			files: nextFiles,
+		},
+	);
 	restoreCanvasSelectionState(excalidrawApi);
-	syncAppStoreFromExcalidraw(excalidrawApi);
-	setFiles(nextFiles);
 }

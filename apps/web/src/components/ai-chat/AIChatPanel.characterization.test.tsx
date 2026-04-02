@@ -102,6 +102,7 @@ describe('AIChatPanel characterization', () => {
 		expect(screen.getByRole('button', { name: 'New Chat' })).toBeTruthy();
 		expect(screen.queryByLabelText('Canvas context')).toBeNull();
 		expect(screen.queryByLabelText('Output style')).toBeNull();
+		expect(screen.getByText('No saved chats for this canvas yet.')).toBeTruthy();
 		expect(
 			screen.getByText(
 				(_, node) =>

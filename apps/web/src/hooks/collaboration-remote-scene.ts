@@ -1,3 +1,4 @@
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { reconcileElements } from '@excalidraw/excalidraw';
 import type { MutableRefObject } from 'react';
 import type { CollabFile, CollaborationApi, RemoteElement } from './collaboration-session';
@@ -33,7 +34,11 @@ export function applyRemoteSceneUpdate(
 	);
 
 	isApplyingRemoteRef.current = true;
-	targetApi.updateScene({ elements: reconciled });
+	updateSceneAndSyncAppStore(
+		targetApi as unknown as Parameters<typeof updateSceneAndSyncAppStore>[0],
+		{ elements: reconciled },
+		{ elements: reconciled },
+	);
 	queueMicrotask(() => {
 		isApplyingRemoteRef.current = false;
 	});

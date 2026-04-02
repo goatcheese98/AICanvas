@@ -1,3 +1,4 @@
+import type { GenerationMode } from '@ai-canvas/shared/types';
 import type { OverlayType } from '@ai-canvas/shared/types';
 
 /**
@@ -57,4 +58,18 @@ export function getOverlayTypeIconName(type: OverlayType): string {
 		prototype: 'CodeIcon',
 	};
 	return icons[type] ?? 'FileIcon';
+}
+
+/**
+ * Choose the AI generation mode that best matches the selected overlay type.
+ */
+export function getOverlayTypeAIGenerationMode(type: OverlayType): GenerationMode {
+	switch (type) {
+		case 'kanban':
+			return 'kanban';
+		case 'prototype':
+			return 'prototype';
+		default:
+			return 'chat';
+	}
 }

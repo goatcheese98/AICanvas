@@ -1,7 +1,7 @@
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CanvasNotesLayer } from './CanvasNotesLayer';
 
 const navigateMock = vi.fn();
@@ -22,6 +22,10 @@ describe('CanvasNotesLayer', () => {
 				selectedElementIds: {},
 			},
 		});
+	});
+
+	afterEach(() => {
+		cleanup();
 	});
 
 	it('recomputes overlay positioning when the same element object is mutated in place during drag', () => {
@@ -243,6 +247,46 @@ describe('CanvasNotesLayer', () => {
 		expect(navigateMock).toHaveBeenCalledWith({
 			to: '/canvas/$id/document/$documentId',
 			params: { id: 'canvas-1', documentId: 'document-open' },
+		});
+	});
+
+	it('navigates to the focused document route from the explicit open action', () => {
+		const documentElement = {
+			id: 'document-open-button',
+			type: 'rectangle',
+			x: 120,
+			y: 160,
+			width: 420,
+			height: 280,
+			angle: 0,
+			isDeleted: false,
+			customData: {
+				type: 'newlex',
+				title: 'Open Document',
+				lexicalState: '{"root":{"children":[],"type":"root","version":1}}',
+				comments: [],
+				commentsPanelOpen: false,
+				version: 1,
+			},
+		} as unknown as ExcalidrawElement;
+
+		useAppStore.setState({
+			elements: [documentElement],
+			appState: {
+				scrollX: 0,
+				scrollY: 0,
+				zoom: { value: 1 as never },
+				selectedElementIds: { 'document-open-button': true },
+			},
+		});
+
+		render(<CanvasNotesLayer canvasId="canvas-1" />);
+
+		fireEvent.click(screen.getByRole('button', { name: 'Open Document' }));
+
+		expect(navigateMock).toHaveBeenCalledWith({
+			to: '/canvas/$id/document/$documentId',
+			params: { id: 'canvas-1', documentId: 'document-open-button' },
 		});
 	});
 });

@@ -22,7 +22,7 @@ When the prompt is underspecified, make the best reasonable assumption, note it 
 
 ## Tracking
 
-Use `bd` for multi-step work, follow-ups, and handoffs. Run `bd ready` before starting net-new work. When ending a meaningful checkpoint, update or close the bead and run `bd dolt push`.
+Use `bd` for multi-step work, follow-ups, and handoffs. Read `.beads/README.md` for the repo-specific Beads workflow and Dolt recovery steps. Run `bd ready` before starting net-new work. When ending a meaningful checkpoint, update or close the bead and run `bd dolt push`.
 
 ## Completion Standard
 

@@ -2,11 +2,12 @@ import {
 	createOverlayElementDraft,
 	getOverlayDefaults,
 } from '@/components/canvas/element-factories';
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
+	AppState,
 	BinaryFileData,
 	BinaryFiles,
 	ExcalidrawImperativeAPI,
@@ -60,7 +61,7 @@ export async function insertRenderedDiagramOnCanvas({
 	excalidrawApi,
 	elements,
 	selectedElementIds,
-	setFiles,
+	setFiles: _setFiles,
 }: {
 	input: DiagramInsertInput;
 	excalidrawApi: ExcalidrawImperativeAPI;
@@ -103,20 +104,34 @@ export async function insertRenderedDiagramOnCanvas({
 	});
 
 	excalidrawApi.addFiles([imageFile]);
-	excalidrawApi.updateScene({
-		elements: [...currentElements, imageElement],
-		appState: {
-			isCropping: false,
-			croppingElementId: null,
-			selectedElementIds: { [imageElement.id]: true },
-		},
-	});
-	restoreCanvasSelectionState(excalidrawApi);
-	syncAppStoreFromExcalidraw(excalidrawApi);
-	setFiles({
+	const nextElements = [...currentElements, imageElement];
+	const nextFiles = {
 		...currentFiles,
 		[fileId]: imageFile,
-	});
+	};
+	const nextAppState = {
+		...excalidrawApi.getAppState(),
+		isCropping: false,
+		croppingElementId: null,
+		selectedElementIds: { [imageElement.id]: true } as Record<string, true>,
+	} as Partial<AppState>;
+	updateSceneAndSyncAppStore(
+		excalidrawApi,
+		{
+			elements: nextElements,
+			appState: {
+				isCropping: false,
+				croppingElementId: null,
+				selectedElementIds: { [imageElement.id]: true } as Record<string, true>,
+			},
+		},
+		{
+			elements: nextElements,
+			appState: nextAppState,
+			files: nextFiles,
+		},
+	);
+	restoreCanvasSelectionState(excalidrawApi);
 
 	return {
 		status: 'inserted',

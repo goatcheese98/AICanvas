@@ -1,4 +1,9 @@
 import { useMountEffect } from '@/hooks/useMountEffect';
+import {
+	areBinaryFilesEquivalent,
+	areExcalidrawAppStatesEquivalent,
+	areExcalidrawElementsEquivalent,
+} from '@/lib/excalidraw-scene-equality';
 import { useAppStore } from '@/stores/store';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -48,55 +53,6 @@ interface CanvasCoreProps {
 	}) => void;
 }
 
-function areElementPointSetsEqual(left: unknown, right: unknown) {
-	return (
-		Array.isArray(left) &&
-		Array.isArray(right) &&
-		left.length === right.length &&
-		left.every((entry, index) => {
-			if (
-				!Array.isArray(entry) ||
-				!Array.isArray(right[index]) ||
-				entry.length < 2 ||
-				right[index].length < 2
-			) {
-				return false;
-			}
-			return entry[0] === right[index][0] && entry[1] === right[index][1];
-		})
-	);
-}
-
-function areElementsEquivalent(
-	left: readonly ExcalidrawElement[],
-	right: readonly ExcalidrawElement[],
-) {
-	return (
-		left.length === right.length &&
-		left.every((element, index) => {
-			const other = right[index];
-			if (!other || element.id !== other.id || element.type !== other.type) {
-				return false;
-			}
-			if (
-				element.x !== other.x ||
-				element.y !== other.y ||
-				element.width !== other.width ||
-				element.height !== other.height ||
-				element.strokeWidth !== other.strokeWidth
-			) {
-				return false;
-			}
-			const leftPoints = (element as ExcalidrawElement & { points?: unknown }).points;
-			const rightPoints = (other as ExcalidrawElement & { points?: unknown }).points;
-			if (leftPoints || rightPoints) {
-				return areElementPointSetsEqual(leftPoints, rightPoints);
-			}
-			return true;
-		})
-	);
-}
-
 export function CanvasCore({
 	canvasId: _canvasId,
 	onSaveNeeded,
@@ -120,7 +76,10 @@ export function CanvasCore({
 		}
 
 		const appStateSnapshot = cloneExcalidrawAppState(api.getAppState());
-		setAppState(appStateSnapshot);
+		const currentAppState = useAppStore.getState().appState;
+		if (!areExcalidrawAppStatesEquivalent(currentAppState, appStateSnapshot)) {
+			setAppState(appStateSnapshot);
+		}
 	}, [setAppState]);
 
 	const handleApiReady = useCallback(
@@ -159,7 +118,7 @@ export function CanvasCore({
 				if (
 					normalizedElements &&
 					apiRef.current &&
-					!areElementsEquivalent(normalizedElements, elements)
+					!areExcalidrawElementsEquivalent(normalizedElements, elements)
 				) {
 					isApplyingNormalizedSceneRef.current = true;
 					apiRef.current.updateScene({
@@ -177,9 +136,30 @@ export function CanvasCore({
 			const filesSnapshot = cloneExcalidrawFiles(files);
 			previousElementsRef.current = elementSnapshot;
 
-			setElements(elementSnapshot);
-			setAppState(appStateSnapshot);
-			setFiles(filesSnapshot);
+			const currentState = useAppStore.getState();
+			const hasElementChange = !areExcalidrawElementsEquivalent(
+				currentState.elements,
+				elementSnapshot,
+			);
+			const hasAppStateChange = !areExcalidrawAppStatesEquivalent(
+				currentState.appState,
+				appStateSnapshot,
+			);
+			const hasFileChange = !areBinaryFilesEquivalent(currentState.files, filesSnapshot);
+
+			if (!hasElementChange && !hasAppStateChange && !hasFileChange) {
+				return;
+			}
+
+			if (hasElementChange) {
+				setElements(elementSnapshot);
+			}
+			if (hasAppStateChange) {
+				setAppState(appStateSnapshot);
+			}
+			if (hasFileChange) {
+				setFiles(filesSnapshot);
+			}
 			onSceneChange?.(elementSnapshot, appStateSnapshot, filesSnapshot);
 			onSaveNeeded?.(elementSnapshot, appStateSnapshot, filesSnapshot);
 		},

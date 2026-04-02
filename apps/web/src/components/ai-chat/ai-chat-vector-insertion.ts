@@ -1,10 +1,10 @@
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { rasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
 import { vectorizeSketch } from '@/lib/assistant/sketch-vectorizer';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
 import { addObservabilityBreadcrumb } from '@/lib/observability';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
+import type { AppState, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import {
 	resolveInsertionSceneCenter,
 	restoreCanvasSelectionState,
@@ -276,14 +276,30 @@ export async function insertNativeVectorElementsOnCanvas({
 			insertedElementIds.push(String(element.id));
 		}
 
-		excalidrawApi.updateScene({
-			elements: [...currentElements, ...layer],
-			appState: {
-				isCropping: false,
-				croppingElementId: null,
-				selectedElementIds: Object.fromEntries(insertedElementIds.map((id) => [id, true])),
+		const nextElements = [...currentElements, ...layer];
+		const nextAppState = {
+			...excalidrawApi.getAppState(),
+			isCropping: false,
+			croppingElementId: null,
+			selectedElementIds: Object.fromEntries(
+				insertedElementIds.map((id) => [id, true] as const),
+			) as Record<string, true>,
+		} as Partial<AppState>;
+		updateSceneAndSyncAppStore(
+			excalidrawApi,
+			{
+				elements: nextElements,
+				appState: {
+					isCropping: false,
+					croppingElementId: null,
+					selectedElementIds: nextAppState.selectedElementIds,
+				},
 			},
-		});
+			{
+				elements: nextElements,
+				appState: nextAppState,
+			},
+		);
 
 		if (index < layers.length - 1) {
 			await new Promise<void>((resolve) => {
@@ -293,7 +309,6 @@ export async function insertNativeVectorElementsOnCanvas({
 	}
 
 	restoreCanvasSelectionState(excalidrawApi);
-	syncAppStoreFromExcalidraw(excalidrawApi);
 	return {
 		status: 'inserted',
 		insertedElementIds,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	HEAVY_OVERLAY_TYPES,
 	LIGHT_OVERLAY_TYPES,
+	getOverlayTypeAIGenerationMode,
 	getOverlayTypeIconName,
 	getOverlayTypeLabel,
 	isHeavyOverlayType,
@@ -97,6 +98,22 @@ describe('resource-type-utils', () => {
 
 		it('returns FileIcon for unexpected types', () => {
 			expect(getOverlayTypeIconName('unknown' as never)).toBe('FileIcon');
+		});
+	});
+
+	describe('getOverlayTypeAIGenerationMode', () => {
+		it('uses kanban mode for boards', () => {
+			expect(getOverlayTypeAIGenerationMode('kanban')).toBe('kanban');
+		});
+
+		it('uses prototype mode for prototypes', () => {
+			expect(getOverlayTypeAIGenerationMode('prototype')).toBe('prototype');
+		});
+
+		it('falls back to chat for documents and lighter resources', () => {
+			expect(getOverlayTypeAIGenerationMode('newlex')).toBe('chat');
+			expect(getOverlayTypeAIGenerationMode('markdown')).toBe('chat');
+			expect(getOverlayTypeAIGenerationMode('web-embed')).toBe('chat');
 		});
 	});
 

@@ -87,7 +87,10 @@ export function WebEmbed(props: WebEmbedProps) {
 	const canRenderIframe = Boolean(previewUrl && !enhanced.warning && !shouldRenderPreviewCard);
 
 	const handlePipMouseDown = useCallback(
-		(event: React.MouseEvent<HTMLDivElement>) => {
+		(event: React.MouseEvent<HTMLButtonElement>) => {
+			event.preventDefault();
+			event.stopPropagation();
+
 			const start = { x: event.clientX, y: event.clientY };
 			const origin = pipPosition;
 
@@ -104,15 +107,38 @@ export function WebEmbed(props: WebEmbedProps) {
 				clearPipDragListeners();
 			};
 
+			const handleKeyDown = (keyboardEvent: KeyboardEvent) => {
+				if (keyboardEvent.key !== 'Escape') return;
+				keyboardEvent.preventDefault();
+				clearPipDragListeners();
+			};
+
+			const handleWindowBlur = () => {
+				clearPipDragListeners();
+			};
+
 			pipDragCleanupRef.current = () => {
 				window.removeEventListener('mousemove', handleMove);
 				window.removeEventListener('mouseup', handleUp);
+				window.removeEventListener('keydown', handleKeyDown);
+				window.removeEventListener('blur', handleWindowBlur);
 			};
 
 			window.addEventListener('mousemove', handleMove);
 			window.addEventListener('mouseup', handleUp);
+			window.addEventListener('keydown', handleKeyDown);
+			window.addEventListener('blur', handleWindowBlur);
 		},
 		[clearPipDragListeners, pipDragCleanupRef, pipPosition, setPipPosition],
+	);
+
+	const handlePipHandleKeyDown = useCallback(
+		(event: React.KeyboardEvent<HTMLButtonElement>) => {
+			if (event.key !== 'Escape') return;
+			event.preventDefault();
+			clearPipDragListeners();
+		},
+		[clearPipDragListeners],
 	);
 
 	const handleOpenExpandedOverlay = useCallback(() => {
@@ -248,9 +274,19 @@ export function WebEmbed(props: WebEmbedProps) {
 					height: pipDimensions.height,
 				}}
 			>
-				<div className="h-full cursor-move" onMouseDown={handlePipMouseDown}>
-					{frame}
-				</div>
+				<button
+					type="button"
+					aria-label="Drag web embed PiP"
+					title="Drag PiP"
+					className="absolute left-3 top-3 z-10 inline-flex h-8 items-center gap-2 rounded-full border border-stone-200 bg-white/95 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600 shadow-sm backdrop-blur cursor-move select-none"
+					style={{ touchAction: 'none' }}
+					onMouseDown={handlePipMouseDown}
+					onKeyDown={handlePipHandleKeyDown}
+				>
+					<DragHandleIcon />
+					Drag
+				</button>
+				<div className="h-full">{frame}</div>
 			</div>,
 			document.body,
 		);
@@ -266,4 +302,23 @@ export function WebEmbed(props: WebEmbedProps) {
 	}
 
 	return frame;
+}
+
+function DragHandleIcon() {
+	return (
+		<svg
+			viewBox="0 0 16 16"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.5"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			className="h-3.5 w-3.5"
+			aria-hidden="true"
+		>
+			<path d="M4 5h8" />
+			<path d="M4 8h8" />
+			<path d="M4 11h8" />
+		</svg>
+	);
 }

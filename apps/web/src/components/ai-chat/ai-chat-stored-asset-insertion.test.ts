@@ -1,4 +1,4 @@
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { fetchAssistantArtifactAsset, getRequiredAuthHeaders } from '@/lib/api';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -8,7 +8,7 @@ vi.mock('@/lib/api', () => ({
 }));
 
 vi.mock('@/components/canvas/excalidraw-store-sync', () => ({
-	syncAppStoreFromExcalidraw: vi.fn(),
+	updateSceneAndSyncAppStore: vi.fn(),
 }));
 
 vi.mock('@/lib/observability', () => ({
@@ -113,22 +113,13 @@ describe('ai chat stored asset insertion helpers', () => {
 			expect.objectContaining({ Authorization: 'Bearer test-token' }),
 		);
 		expect(addFiles).toHaveBeenCalledOnce();
-		expect(updateScene).toHaveBeenCalledWith({
-			elements: [expect.objectContaining({ type: 'image', fileId: expect.any(String) })],
-			appState: {
-				isCropping: false,
-				croppingElementId: null,
-				selectedElementIds: expect.objectContaining({}),
-			},
-		});
-		expect(syncAppStoreFromExcalidraw).toHaveBeenCalled();
+		expect(updateSceneAndSyncAppStore).toHaveBeenCalled();
 		expect(result).toMatchObject({
 			status: 'inserted',
 			insertedElementIds: [expect.any(String)],
 			insertedFileIds: [expect.any(String)],
 			insertMode: 'image-file',
 		});
-		expect(setFiles).toHaveBeenCalledWith(expect.any(Object));
 		expect(setChatError).not.toHaveBeenCalled();
 	});
 

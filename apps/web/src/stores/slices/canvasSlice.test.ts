@@ -1,3 +1,8 @@
+import {
+	areBinaryFilesEquivalent,
+	areExcalidrawAppStatesEquivalent,
+	areExcalidrawElementsEquivalent,
+} from '@/lib/excalidraw-scene-equality';
 import type { PersistenceState } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
@@ -37,9 +42,16 @@ const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> = (set) 
 
 	setExcalidrawApi: (api) =>
 		set((state) => (state.excalidrawApi === api ? state : { excalidrawApi: api })),
-	setElements: (elements) => set({ elements }),
-	setAppState: (appState) => set({ appState }),
-	setFiles: (files) => set({ files }),
+	setElements: (elements) =>
+		set((state) =>
+			areExcalidrawElementsEquivalent(state.elements, elements) ? state : { elements },
+		),
+	setAppState: (appState) =>
+		set((state) =>
+			areExcalidrawAppStatesEquivalent(state.appState, appState) ? state : { appState },
+		),
+	setFiles: (files) =>
+		set((state) => (areBinaryFilesEquivalent(state.files, files) ? state : { files })),
 	setPersistenceState: ({ isSaving, lastSaved, hasUnsavedChanges }) =>
 		set({ isSaving, lastSaved, hasUnsavedChanges }),
 });
@@ -121,6 +133,35 @@ describe('canvasSlice', () => {
 			store.getState().setElements(mockElements2);
 			expect(store.getState().elements).toBe(mockElements2);
 		});
+
+		it('keeps state stable for equivalent element payloads', () => {
+			const mockElements = [
+				{
+					id: 'element-1',
+					type: 'rectangle',
+					x: 10,
+					y: 20,
+					width: 100,
+					height: 80,
+					angle: 0,
+					strokeWidth: 1,
+					version: 1,
+					versionNonce: 5,
+					updated: 100,
+					isDeleted: false,
+				},
+			] as unknown as readonly ExcalidrawElement[];
+			store.getState().setElements(mockElements);
+			const previousState = store.getState();
+
+			store.getState().setElements([
+				{
+					...mockElements[0],
+				},
+			] as readonly ExcalidrawElement[]);
+
+			expect(store.getState()).toBe(previousState);
+		});
 	});
 
 	describe('setAppState', () => {
@@ -134,6 +175,26 @@ describe('canvasSlice', () => {
 			store.getState().setAppState({ scrollX: 100 });
 			store.getState().setAppState({ scrollY: 200 });
 			expect(store.getState().appState).toEqual({ scrollY: 200 });
+		});
+
+		it('keeps state stable for equivalent app state payloads', () => {
+			const appState = {
+				scrollX: 100,
+				scrollY: 200,
+				selectedElementIds: { overlay: true } as Record<string, true>,
+				zoom: { value: 1.5 as never },
+			} as Partial<AppState>;
+			store.getState().setAppState(appState);
+			const previousState = store.getState();
+
+			store.getState().setAppState({
+				scrollX: 100,
+				scrollY: 200,
+				selectedElementIds: { overlay: true } as Record<string, true>,
+				zoom: { value: 1.5 as never },
+			} as Partial<AppState>);
+
+			expect(store.getState()).toBe(previousState);
 		});
 	});
 
@@ -171,6 +232,25 @@ describe('canvasSlice', () => {
 			store.getState().setFiles(mockFiles1);
 			store.getState().setFiles(mockFiles2);
 			expect(store.getState().files).toBe(mockFiles2);
+		});
+
+		it('keeps state stable for equivalent files payloads', () => {
+			const mockFiles = {
+				'file-1': {
+					id: 'file-1',
+					mimeType: 'image/png',
+					dataURL: 'data:image/png;base64,test',
+					created: 1,
+				},
+			} as unknown as BinaryFiles;
+			store.getState().setFiles(mockFiles);
+			const previousState = store.getState();
+
+			store.getState().setFiles({
+				'file-1': mockFiles['file-1'],
+			} as BinaryFiles);
+
+			expect(store.getState()).toBe(previousState);
 		});
 	});
 

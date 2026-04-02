@@ -74,6 +74,7 @@ export interface OverlayRenderProps<K extends OverlayType> {
 	isActive: boolean;
 	onChange: (payload: OverlayUpdatePayloadMap[K]) => void;
 	onActivityChange?: (isActive: boolean) => void;
+	onOpen?: () => void;
 }
 
 export interface OverlayDefinition<K extends OverlayType> {

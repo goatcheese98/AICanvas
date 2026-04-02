@@ -8,6 +8,7 @@ import { getOverlayTypeLabel } from './resource-type-utils';
 interface DetailsPanelContentProps {
 	element?: TypedOverlayCanvasElement | null;
 	onOpenFocusedView?: (elementId: string) => void;
+	onAskAI?: (element: TypedOverlayCanvasElement) => void;
 	onDeleteElement?: (elementId: string) => void;
 }
 
@@ -23,6 +24,7 @@ interface DetailsPanelContentProps {
 export function DetailsPanelContent({
 	element,
 	onOpenFocusedView,
+	onAskAI,
 	onDeleteElement,
 }: DetailsPanelContentProps) {
 	const elements = useAppStore((s) => s.elements);
@@ -125,6 +127,7 @@ export function DetailsPanelContent({
 					<div className="flex gap-2">
 						<button
 							type="button"
+							onClick={() => onAskAI?.(resolvedElement)}
 							className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-stone-50"
 						>
 							<SparklesIcon />

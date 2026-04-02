@@ -1,3 +1,8 @@
+import {
+	areBinaryFilesEquivalent,
+	areExcalidrawAppStatesEquivalent,
+	areExcalidrawElementsEquivalent,
+} from '@/lib/excalidraw-scene-equality';
 import type { PersistenceState } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
@@ -56,9 +61,16 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 
 	setExcalidrawApi: (api) =>
 		set((state) => (state.excalidrawApi === api ? state : { excalidrawApi: api })),
-	setElements: (elements) => set({ elements }),
-	setAppState: (appState) => set({ appState }),
-	setFiles: (files) => set({ files }),
+	setElements: (elements) =>
+		set((state) =>
+			areExcalidrawElementsEquivalent(state.elements, elements) ? state : { elements },
+		),
+	setAppState: (appState) =>
+		set((state) =>
+			areExcalidrawAppStatesEquivalent(state.appState, appState) ? state : { appState },
+		),
+	setFiles: (files) =>
+		set((state) => (areBinaryFilesEquivalent(state.files, files) ? state : { files })),
 	setPersistenceState: ({ isSaving, lastSaved, hasUnsavedChanges }) =>
 		set({ isSaving, lastSaved, hasUnsavedChanges }),
 	saveNavigationState: (state) => set({ savedNavigationState: state }),

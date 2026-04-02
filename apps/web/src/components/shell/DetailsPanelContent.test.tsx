@@ -5,11 +5,13 @@ import { DetailsPanelContent } from './DetailsPanelContent';
 
 describe('DetailsPanelContent', () => {
 	const onOpenFocusedView = vi.fn();
+	const onAskAI = vi.fn();
 	const onDeleteElement = vi.fn();
 
 	beforeEach(() => {
 		cleanup();
 		onOpenFocusedView.mockClear();
+		onAskAI.mockClear();
 		onDeleteElement.mockClear();
 	});
 
@@ -32,6 +34,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={null}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -52,6 +55,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -83,6 +87,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -113,6 +118,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -136,6 +142,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -157,6 +164,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -175,6 +183,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -191,6 +200,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -214,6 +224,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -264,6 +275,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);
@@ -271,6 +283,32 @@ describe('DetailsPanelContent', () => {
 		const buttons = screen.getAllByRole('button');
 		const askAiButton = buttons.find((btn) => btn.textContent?.includes('Ask AI'));
 		expect(askAiButton).toBeDefined();
+	});
+
+	it('calls onAskAI when Ask AI is clicked', () => {
+		const element = createMockElement('prototype', {
+			title: 'Test Prototype',
+			template: 'react',
+			files: {},
+		});
+
+		render(
+			<DetailsPanelContent
+				element={element}
+				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
+				onDeleteElement={onDeleteElement}
+			/>,
+		);
+
+		const buttons = screen.getAllByRole('button');
+		const askAiButton = buttons.find((btn) => btn.textContent?.includes('Ask AI'));
+		expect(askAiButton).toBeDefined();
+
+		if (askAiButton) {
+			fireEvent.click(askAiButton);
+			expect(onAskAI).toHaveBeenCalledWith(element);
+		}
 	});
 
 	it('formats kanban lastUpdated date', () => {
@@ -285,6 +323,7 @@ describe('DetailsPanelContent', () => {
 			<DetailsPanelContent
 				element={element}
 				onOpenFocusedView={onOpenFocusedView}
+				onAskAI={onAskAI}
 				onDeleteElement={onDeleteElement}
 			/>,
 		);

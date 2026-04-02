@@ -1,12 +1,16 @@
 import { AIChatPanelContent } from '@/components/ai-chat/AIChatPanelContent';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
+import type { TypedOverlayCanvasElement } from '@/components/canvas/overlay-definition-types';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
 import { useAppStore } from '@/stores/store';
+import type { OverlayType } from '@ai-canvas/shared/types';
 import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useMemo, useState } from 'react';
 import { DetailsPanelContent } from './DetailsPanelContent';
 import { LeftSidebar, type NewResourceOption } from './LeftSidebar';
 import { RightPanel } from './RightPanel';
 import { Shell } from './Shell';
+import { getOverlayTypeAIGenerationMode } from './resource-type-utils';
 import type { ProjectResource } from './types';
 import { useDetailsPanelOnSelection } from './useDetailsPanelOnSelection';
 import { useNewResourceCreation } from './useNewResourceCreation';
@@ -50,6 +54,9 @@ export function ProjectShell({
 	const [isShortcutsHelpOpen, setIsShortcutsHelpOpen] = useState(false);
 	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const addToast = useAppStore((s) => s.addToast);
+	const setChatError = useAppStore((s) => s.setChatError);
+	const setContextMode = useAppStore((s) => s.setContextMode);
+	const setGenerationMode = useAppStore((s) => s.setGenerationMode);
 	const navigate = useNavigate();
 
 	// New resource creation hook
@@ -136,8 +143,13 @@ export function ProjectShell({
 
 			// Heavy resources - create, add to canvas, open focused view
 			if (type === 'canvas') {
-				// Navigate to dashboard for canvas creation
-				void navigate({ to: '/dashboard' });
+				const result = await createResource({ type: 'canvas' });
+				if (result.success && result.elementId) {
+					void navigate({
+						to: '/canvas/$id',
+						params: { id: result.elementId },
+					});
+				}
 				return;
 			}
 
@@ -243,7 +255,7 @@ export function ProjectShell({
 	);
 
 	const handleDeleteElement = useCallback((elementId: string) => {
-		const { excalidrawApi, setElements } = useAppStore.getState();
+		const { excalidrawApi } = useAppStore.getState();
 		if (!excalidrawApi) return;
 
 		const currentElements = excalidrawApi.getSceneElements();
@@ -251,9 +263,23 @@ export function ProjectShell({
 			el.id === elementId ? { ...el, isDeleted: true } : el,
 		);
 
-		excalidrawApi.updateScene({ elements: nextElements });
-		setElements(nextElements);
+		updateSceneAndSyncAppStore(
+			excalidrawApi,
+			{ elements: nextElements },
+			{ elements: nextElements },
+		);
 	}, []);
+
+	const handleAskAI = useCallback(
+		(element: TypedOverlayCanvasElement) => {
+			const overlayType = element.customData.type as OverlayType;
+			setContextMode('selected');
+			setGenerationMode(getOverlayTypeAIGenerationMode(overlayType));
+			setChatError(null);
+			shellState.openRightPanel('ai');
+		},
+		[setChatError, setContextMode, setGenerationMode, shellState.openRightPanel],
+	);
 
 	return (
 		<Shell
@@ -298,6 +324,7 @@ export function ProjectShell({
 					>
 						<DetailsPanelContent
 							onOpenFocusedView={handleOpenFocusedView}
+							onAskAI={handleAskAI}
 							onDeleteElement={handleDeleteElement}
 						/>
 					</RightPanel>

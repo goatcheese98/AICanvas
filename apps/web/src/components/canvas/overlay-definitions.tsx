@@ -14,8 +14,8 @@ import type {
 	PrototypeOverlayCustomData,
 	WebEmbedOverlayCustomData,
 } from '@ai-canvas/shared/types';
-import { KanbanBoard } from '../overlays/kanban';
-import { LexicalNote } from '../overlays/lexical';
+import { KanbanPreviewCard } from '../overlays/kanban';
+import { LexicalPreviewCard } from '../overlays/lexical';
 import { MarkdownNote } from '../overlays/markdown';
 import { WebEmbed } from '../overlays/web-embed';
 import { DEFAULT_MARKDOWN_CONTENT } from './overlay-defaults';
@@ -146,15 +146,8 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
-			<LexicalNote
-				element={element}
-				isSelected={isSelected}
-				isActive={isActive}
-				mode={mode}
-				onChange={(_elementId, updates) => onChange(updates)}
-				onActivityChange={onActivityChange}
-			/>
+		render: ({ element, isSelected, onOpen }) => (
+			<LexicalPreviewCard element={element} isSelected={isSelected} onOpen={onOpen} />
 		),
 	},
 	kanban: {
@@ -178,15 +171,8 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			});
 		},
-		render: ({ element, isSelected, isActive, mode, onChange, onActivityChange }) => (
-			<KanbanBoard
-				element={element}
-				mode={mode}
-				isSelected={isSelected}
-				isActive={isActive}
-				onChange={(_elementId, data) => onChange(data)}
-				onActivityChange={onActivityChange}
-			/>
+		render: ({ element, isSelected, onOpen }) => (
+			<KanbanPreviewCard element={element} isSelected={isSelected} onOpen={onOpen} />
 		),
 	},
 	'web-embed': {
@@ -248,8 +234,8 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				customData: nextCustomData,
 			}) as TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
 		},
-		render: ({ element, isSelected }) => (
-			<PrototypeCard element={element} isSelected={isSelected} />
+		render: ({ element, isSelected, onOpen }) => (
+			<PrototypeCard element={element} isSelected={isSelected} onOpen={onOpen} />
 		),
 	},
 };
@@ -257,9 +243,11 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 function PrototypeCard({
 	element,
 	isSelected,
+	onOpen,
 }: {
 	element: TypedOverlayCanvasElement<PrototypeOverlayCustomData>;
 	isSelected: boolean;
+	onOpen?: () => void;
 }) {
 	const prototype = normalizePrototypeOverlay(element.customData);
 	const snapshot = prototype.resourceSnapshot;
@@ -303,9 +291,14 @@ function PrototypeCard({
 						</div>
 					</div>
 				</div>
-				<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-					Double-click to open
-				</div>
+				<button
+					type="button"
+					onClick={onOpen}
+					disabled={!onOpen}
+					className="self-end rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600 transition-colors hover:bg-stone-50 disabled:cursor-default disabled:opacity-70"
+				>
+					Open Prototype
+				</button>
 			</div>
 		</div>
 	);

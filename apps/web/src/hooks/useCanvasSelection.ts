@@ -1,3 +1,4 @@
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -88,9 +89,18 @@ export function useCanvasSelection(
 	const clearSelection = useCallback(() => {
 		const excalidrawApi = useAppStore.getState().excalidrawApi;
 		if (excalidrawApi) {
-			excalidrawApi.updateScene({
-				appState: { selectedElementIds: {} },
-			});
+			updateSceneAndSyncAppStore(
+				excalidrawApi,
+				{
+					appState: { selectedElementIds: {} },
+				},
+				{
+					appState: {
+						...excalidrawApi.getAppState(),
+						selectedElementIds: {},
+					},
+				},
+			);
 		}
 	}, []);
 

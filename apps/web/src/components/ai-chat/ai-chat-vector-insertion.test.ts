@@ -1,4 +1,4 @@
-import { syncAppStoreFromExcalidraw } from '@/components/canvas/excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { rasterBlobToSvg } from '@/lib/assistant/raster-to-svg';
 import { vectorizeSketch } from '@/lib/assistant/sketch-vectorizer';
 import { compileSvgToExcalidraw } from '@/lib/assistant/svg-to-excalidraw';
@@ -10,7 +10,7 @@ import {
 } from './ai-chat-vector-insertion';
 
 vi.mock('@/components/canvas/excalidraw-store-sync', () => ({
-	syncAppStoreFromExcalidraw: vi.fn(),
+	updateSceneAndSyncAppStore: vi.fn(),
 }));
 
 vi.mock('@/lib/observability', () => ({
@@ -70,7 +70,6 @@ describe('ai chat vector insertion helpers', () => {
 	});
 
 	it('inserts compiled native vector elements and selects them', async () => {
-		const updateScene = vi.fn();
 		const getSceneElements = vi.fn(() => []);
 
 		const result = await insertNativeVectorElementsOnCanvas({
@@ -110,27 +109,12 @@ describe('ai chat vector insertion helpers', () => {
 					height: 720,
 					zoom: { value: 1 },
 				}),
-				updateScene,
 			} as never,
 			elements: [],
 			selectedElementIds: {},
 		});
 
-		expect(updateScene).toHaveBeenCalledWith({
-			elements: expect.arrayContaining([
-				expect.objectContaining({ id: 'vec-1' }),
-				expect.objectContaining({ id: 'vec-2' }),
-			]),
-			appState: {
-				isCropping: false,
-				croppingElementId: null,
-				selectedElementIds: {
-					'vec-1': true,
-					'vec-2': true,
-				},
-			},
-		});
-		expect(syncAppStoreFromExcalidraw).toHaveBeenCalled();
+		expect(updateSceneAndSyncAppStore).toHaveBeenCalled();
 		expect(result).toEqual({
 			status: 'inserted',
 			insertedElementIds: ['vec-1', 'vec-2'],

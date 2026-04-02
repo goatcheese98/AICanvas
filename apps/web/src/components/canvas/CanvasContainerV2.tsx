@@ -26,6 +26,7 @@ interface CanvasContainerV2Props {
  */
 export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
+	const liveElements = useAppStore((s) => s.elements);
 	const navigate = useNavigate();
 
 	const { collaboration, handleSaveNeeded, normalizeSceneChange, canvasQueryData } =
@@ -52,9 +53,9 @@ export function CanvasContainerV2({ canvasId }: CanvasContainerV2Props) {
 			buildProjectResources({
 				canvasId,
 				canvasName: canvasData.title,
-				elements: canvasData.elements,
+				elements: liveElements,
 			}),
-		[canvasData.elements, canvasData.title, canvasId],
+		[canvasData.title, canvasId, liveElements],
 	);
 
 	const handleNavigateToResource = (resource: (typeof resources)[number]) => {

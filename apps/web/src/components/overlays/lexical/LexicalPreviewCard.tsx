@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 interface LexicalPreviewCardProps {
 	element: ExcalidrawElement & { customData: NewLexOverlayCustomData };
 	isSelected: boolean;
+	onOpen?: () => void;
 }
 
 interface LexicalNode {
@@ -48,7 +49,7 @@ function truncateText(text: string, maxLength: number): string {
 	return `${truncated}...`;
 }
 
-export function LexicalPreviewCard({ element, isSelected }: LexicalPreviewCardProps) {
+export function LexicalPreviewCard({ element, isSelected, onOpen }: LexicalPreviewCardProps) {
 	const { title, lexicalState, comments, resourceSnapshot } = element.customData;
 	const displayTitle = resourceSnapshot?.title ?? title;
 	const displayBadge = resourceSnapshot?.display?.badge;
@@ -105,9 +106,14 @@ export function LexicalPreviewCard({ element, isSelected }: LexicalPreviewCardPr
 							</span>
 						)}
 					</div>
-					<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-						Double-click to open
-					</div>
+					<button
+						type="button"
+						onClick={onOpen}
+						disabled={!onOpen}
+						className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600 transition-colors hover:bg-stone-50 disabled:cursor-default disabled:opacity-70"
+					>
+						Open Document
+					</button>
 				</div>
 			</div>
 		</OverlaySurface>

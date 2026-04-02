@@ -1,6 +1,6 @@
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { KanbanPreviewCard } from './KanbanPreviewCard';
 
 // Clean up after each test to avoid duplicate element issues
@@ -190,11 +190,20 @@ describe('KanbanPreviewCard', () => {
 		expect(columnCountElements.length).toBeGreaterThan(0);
 	});
 
-	it('shows "Double-click to open" hint', () => {
+	it('shows an explicit open action', () => {
 		render(<KanbanPreviewCard element={createElement()} isSelected={false} />);
 
-		const hintElements = screen.getAllByText('Double-click to open');
-		expect(hintElements.length).toBeGreaterThan(0);
+		const openButtons = screen.getAllByRole('button', { name: 'Open Board' });
+		expect(openButtons.length).toBeGreaterThan(0);
+	});
+
+	it('calls onOpen when the open action is pressed', () => {
+		const onOpen = vi.fn();
+
+		render(<KanbanPreviewCard element={createElement()} isSelected={false} onOpen={onOpen} />);
+
+		fireEvent.click(screen.getAllByRole('button', { name: 'Open Board' })[0]!);
+		expect(onOpen).toHaveBeenCalledTimes(1);
 	});
 
 	it('displays overdue count when there are overdue cards', () => {

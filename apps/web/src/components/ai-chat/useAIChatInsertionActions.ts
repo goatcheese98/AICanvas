@@ -52,7 +52,6 @@ export function useAIChatInsertionActions({
 			removeInsertedArtifactFromScene({
 				excalidrawApi,
 				setElements,
-				setFiles,
 				insertionState,
 			});
 			setAssistantInsertionStates((current) => ({
@@ -63,7 +62,7 @@ export function useAIChatInsertionActions({
 				},
 			}));
 		},
-		[assistantInsertionStates, excalidrawApi, setAssistantInsertionStates, setElements, setFiles],
+		[assistantInsertionStates, excalidrawApi, setAssistantInsertionStates, setElements],
 	);
 
 	const insertMarkdownOnCanvas = useCallback(

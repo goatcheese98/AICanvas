@@ -107,6 +107,83 @@ describe('CanvasCore', () => {
 		});
 	});
 
+	it('ignores duplicate scene emissions so the shell does not re-render in a loop', () => {
+		const onSceneChange = vi.fn();
+		const onSaveNeeded = vi.fn();
+
+		render(
+			<CanvasCore canvasId="canvas-1" onSceneChange={onSceneChange} onSaveNeeded={onSaveNeeded} />,
+		);
+
+		const sourceElements = [
+			{
+				id: 'overlay-1',
+				type: 'rectangle',
+				x: 10,
+				y: 20,
+				width: 200,
+				height: 140,
+				angle: 0,
+				strokeWidth: 1,
+				version: 1,
+				versionNonce: 7,
+				updated: 100,
+				isDeleted: false,
+				customData: { type: 'markdown' },
+			},
+		] as unknown as readonly ExcalidrawElement[];
+		const sourceAppState = {
+			scrollX: -120,
+			scrollY: 48,
+			selectedElementIds: { 'overlay-1': true },
+			zoom: { value: 1.5 },
+		};
+		const sourceFiles = {
+			fileA: { id: 'fileA', mimeType: 'image/png' },
+		};
+
+		act(() => {
+			(
+				latestExcalidrawProps?.onChange as (
+					elements: readonly ExcalidrawElement[],
+					appState: typeof sourceAppState,
+					files: typeof sourceFiles,
+				) => void
+			)(sourceElements, sourceAppState, sourceFiles);
+		});
+
+		const previousState = useAppStore.getState();
+		const listener = vi.fn();
+		const unsubscribe = useAppStore.subscribe(listener);
+
+		try {
+			act(() => {
+				(
+					latestExcalidrawProps?.onChange as (
+						elements: readonly ExcalidrawElement[],
+						appState: typeof sourceAppState,
+						files: typeof sourceFiles,
+					) => void
+				)(
+					[...sourceElements],
+					{
+						...sourceAppState,
+						selectedElementIds: { ...sourceAppState.selectedElementIds },
+						zoom: { ...sourceAppState.zoom },
+					},
+					{ ...sourceFiles },
+				);
+			});
+
+			expect(listener).not.toHaveBeenCalled();
+			expect(useAppStore.getState()).toBe(previousState);
+			expect(onSceneChange).toHaveBeenCalledTimes(1);
+			expect(onSaveNeeded).toHaveBeenCalledTimes(1);
+		} finally {
+			unsubscribe();
+		}
+	});
+
 	it('replaces the stored Excalidraw API when a new instance arrives', async () => {
 		render(<CanvasCore canvasId="canvas-1" />);
 

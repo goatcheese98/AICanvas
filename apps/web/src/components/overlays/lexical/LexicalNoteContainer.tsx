@@ -1,3 +1,4 @@
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
 import { useAppStore } from '@/stores/store';
 import { type MouseEvent, useCallback, useRef } from 'react';
@@ -85,7 +86,11 @@ export function LexicalNoteContainer({
 			};
 		});
 
-		excalidrawApi.updateScene({ elements: nextElements });
+		updateSceneAndSyncAppStore(
+			excalidrawApi,
+			{ elements: nextElements },
+			{ elements: nextElements },
+		);
 	}, [commentsPanelOpen, element.id, element.width, excalidrawApi]);
 
 	const handlePreviewDoubleClick = useCallback(

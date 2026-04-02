@@ -7,6 +7,7 @@ import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_SURFACE, KANBAN_ACCENT_TEXT } from 
 interface KanbanPreviewCardProps {
 	element: ExcalidrawElement & { customData: KanbanOverlayCustomData };
 	isSelected: boolean;
+	onOpen?: () => void;
 }
 
 const PREVIEW_PRIORITY_META = {
@@ -46,7 +47,7 @@ function countOverdueCards(board: KanbanOverlayCustomData): number {
 	);
 }
 
-export function KanbanPreviewCard({ element, isSelected }: KanbanPreviewCardProps) {
+export function KanbanPreviewCard({ element, isSelected, onOpen }: KanbanPreviewCardProps) {
 	const board = element.customData;
 	const snapshot = board.resourceSnapshot;
 	const displayTitle = snapshot?.title ?? board.title;
@@ -157,9 +158,14 @@ export function KanbanPreviewCard({ element, isSelected }: KanbanPreviewCardProp
 						</span>
 						{overdueCount > 0 && <span>{overdueCount} overdue</span>}
 					</div>
-					<div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-400">
-						Double-click to open
-					</div>
+					<button
+						type="button"
+						onClick={onOpen}
+						disabled={!onOpen}
+						className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-stone-600 transition-colors hover:bg-stone-50 disabled:cursor-default disabled:opacity-70"
+					>
+						Open Board
+					</button>
 				</div>
 			</div>
 		</OverlaySurface>

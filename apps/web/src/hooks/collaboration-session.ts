@@ -1,3 +1,4 @@
+import { updateSceneAndSyncAppStore } from '@/components/canvas/excalidraw-store-sync';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState } from '@excalidraw/excalidraw/types';
 
@@ -164,7 +165,7 @@ export function buildCursorBroadcastPayload(
 export function applyCollaboratorsSnapshot(
 	api: CollaborationApi | null,
 	setCollaborators: (next: Map<string, CollaboratorState>) => void,
-	setAppState: (next: Partial<AppState>) => void,
+	_setAppState: (next: Partial<AppState>) => void,
 	next: Map<string, CollaboratorState>,
 ) {
 	setCollaborators(new Map(next));
@@ -172,13 +173,19 @@ export function applyCollaboratorsSnapshot(
 		return;
 	}
 
-	api.updateScene({
-		appState: { collaborators: next } as unknown as Partial<AppState>,
-	});
-	setAppState({
+	const nextAppState = {
 		...api.getAppState(),
 		collaborators: next,
-	} as unknown as Partial<AppState>);
+	} as unknown as Partial<AppState>;
+	updateSceneAndSyncAppStore(
+		api as unknown as Parameters<typeof updateSceneAndSyncAppStore>[0],
+		{
+			appState: { collaborators: next } as unknown as Partial<AppState>,
+		},
+		{
+			appState: nextAppState,
+		},
+	);
 }
 
 export function pruneCollaboratorsBySocketIds(

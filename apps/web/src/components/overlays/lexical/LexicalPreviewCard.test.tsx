@@ -1,7 +1,11 @@
 import type { NewLexOverlayCustomData } from '@ai-canvas/shared/types';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LexicalPreviewCard } from './LexicalPreviewCard';
+
+afterEach(() => {
+	cleanup();
+});
 
 function createElement(customData?: Partial<NewLexOverlayCustomData>) {
 	return {
@@ -165,10 +169,19 @@ describe('LexicalPreviewCard', () => {
 		expect(screen.getAllByText('2 comments')[0]).not.toBeNull();
 	});
 
-	it('shows "Double-click to open" hint', () => {
+	it('shows an explicit open action', () => {
 		render(<LexicalPreviewCard element={createElement()} isSelected={false} />);
 
-		expect(screen.getAllByText('Double-click to open')[0]).not.toBeNull();
+		expect(screen.getAllByRole('button', { name: 'Open Document' })[0]).not.toBeNull();
+	});
+
+	it('calls onOpen when the open action is pressed', () => {
+		const onOpen = vi.fn();
+
+		render(<LexicalPreviewCard element={createElement()} isSelected={false} onOpen={onOpen} />);
+
+		fireEvent.click(screen.getAllByRole('button', { name: 'Open Document' })[0]!);
+		expect(onOpen).toHaveBeenCalledTimes(1);
 	});
 
 	it('truncates long content', () => {
@@ -249,7 +262,6 @@ describe('LexicalPreviewCard', () => {
 			<LexicalPreviewCard element={createElement({ comments: undefined })} isSelected={false} />,
 		);
 
-		// Should render without comment count
-		expect(screen.getAllByText('Double-click to open')[0]).not.toBeNull();
+		expect(screen.getAllByRole('button', { name: 'Open Document' })[0]).not.toBeNull();
 	});
 });

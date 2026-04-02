@@ -11,7 +11,7 @@ import {
 	toSceneUpdateAppState,
 } from './canvas-container-utils';
 import { buildPersistedCanvasData, shouldWaitForCanvasHydration } from './canvas-persistence-utils';
-import { syncAppStoreFromExcalidraw } from './excalidraw-store-sync';
+import { updateSceneAndSyncAppStore } from './excalidraw-store-sync';
 import { normalizeSceneElements } from './scene-element-normalizer';
 
 type QueryStatus = 'pending' | 'error' | 'success';
@@ -86,14 +86,25 @@ export function useCanvasInitialization({
 					files ?? null,
 				);
 				const remoteFiles = toBinaryFiles(files);
-				excalidrawApi.updateScene({
-					elements: normalizeSceneElements(remoteData.elements as never[]),
-					appState: toSceneUpdateAppState(remoteData.appState),
-				});
+				const normalizedElements = normalizeSceneElements(remoteData.elements as never[]);
 				if (Object.keys(remoteFiles).length > 0) {
 					excalidrawApi.addFiles(toBinaryFileList(remoteFiles));
 				}
-				syncAppStoreFromExcalidraw(excalidrawApi);
+				updateSceneAndSyncAppStore(
+					excalidrawApi,
+					{
+						elements: normalizedElements,
+						appState: toSceneUpdateAppState(remoteData.appState),
+					},
+					{
+						elements: normalizedElements,
+						appState: {
+							...excalidrawApi.getAppState(),
+							...toSceneUpdateAppState(remoteData.appState),
+						},
+						files: remoteFiles,
+					},
+				);
 				onInitialized(remoteData);
 			}
 		} else if (localSnapshot) {
@@ -103,14 +114,25 @@ export function useCanvasInitialization({
 				localSnapshot.canvasData.files ?? null,
 			);
 			const localFiles = toBinaryFiles(localData.files);
-			excalidrawApi.updateScene({
-				elements: normalizeSceneElements(localData.elements as never[]),
-				appState: toSceneUpdateAppState(localData.appState),
-			});
+			const normalizedElements = normalizeSceneElements(localData.elements as never[]);
 			if (Object.keys(localFiles).length > 0) {
 				excalidrawApi.addFiles(toBinaryFileList(localFiles));
 			}
-			syncAppStoreFromExcalidraw(excalidrawApi);
+			updateSceneAndSyncAppStore(
+				excalidrawApi,
+				{
+					elements: normalizedElements,
+					appState: toSceneUpdateAppState(localData.appState),
+				},
+				{
+					elements: normalizedElements,
+					appState: {
+						...excalidrawApi.getAppState(),
+						...toSceneUpdateAppState(localData.appState),
+					},
+					files: localFiles,
+				},
+			);
 			onInitialized(localData);
 		}
 
@@ -121,14 +143,27 @@ export function useCanvasInitialization({
 				// Restore navigation state if returning from focused view
 				const { savedNavigationState, clearNavigationState } = useAppStore.getState();
 				if (savedNavigationState) {
-					excalidrawApi.updateScene({
-						appState: {
-							scrollX: savedNavigationState.scrollX,
-							scrollY: savedNavigationState.scrollY,
-							zoom: { value: savedNavigationState.zoomValue as never },
-							selectedElementIds: savedNavigationState.selectedElementIds,
+					const navigationAppState = {
+						...excalidrawApi.getAppState(),
+						scrollX: savedNavigationState.scrollX,
+						scrollY: savedNavigationState.scrollY,
+						zoom: { value: savedNavigationState.zoomValue as never },
+						selectedElementIds: savedNavigationState.selectedElementIds,
+					};
+					updateSceneAndSyncAppStore(
+						excalidrawApi,
+						{
+							appState: {
+								scrollX: savedNavigationState.scrollX,
+								scrollY: savedNavigationState.scrollY,
+								zoom: { value: savedNavigationState.zoomValue as never },
+								selectedElementIds: savedNavigationState.selectedElementIds,
+							},
 						},
-					});
+						{
+							appState: navigationAppState,
+						},
+					);
 					clearNavigationState();
 				}
 			});

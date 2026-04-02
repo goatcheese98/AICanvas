@@ -15,8 +15,8 @@ export function AIChatEmptyState({ onSuggestionClick }: AIChatEmptyStateProps) {
 	return (
 		<div className="rounded-[12px] border border-stone-200 bg-white px-4 py-4">
 			<div className="text-[10px] font-medium text-stone-500">
-				Ask the canvas assistant to work on the canvas. If something is selected, the assistant will
-				use it automatically when it helps.
+				Ask the canvas assistant to work on the canvas. Start a new chat above if you want a fresh
+				thread. If something is selected, the assistant will use it automatically when it helps.
 			</div>
 			<div className="mt-3 flex flex-wrap gap-2">
 				{DEFAULT_SUGGESTIONS.map((suggestion) => (
