@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "server",
+  "dolt_database": "AICanvas",
+  "project_id": "cb5cbeb6-f6eb-48cd-85ab-6743299037fc"
+}
