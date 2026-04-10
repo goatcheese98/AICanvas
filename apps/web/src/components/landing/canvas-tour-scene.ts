@@ -2,7 +2,6 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { BinaryFileData } from '@excalidraw/excalidraw/types';
 import { DEFAULT_TOUR_SCENE_STATE } from './canvas-tour-scene-data';
 import type { DemoScene, TourBindableNode, TourNodeKey } from './canvas-tour-scene-types';
-export type { DemoScene, TourNodeKey } from './canvas-tour-scene-types';
 export { TOUR_IMAGE_FILE_ID } from './canvas-tour-scene-data';
 import {
 	createArrowBetween,

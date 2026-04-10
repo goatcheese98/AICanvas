@@ -1,12 +1,12 @@
 import * as z from 'zod';
 
-export const kanbanChecklistItemSchema = z.object({
+const kanbanChecklistItemSchema = z.object({
 	id: z.string().optional(),
 	text: z.string().default(''),
 	done: z.boolean().default(false),
 });
 
-export const kanbanCardSchema = z.object({
+const kanbanCardSchema = z.object({
 	id: z
 		.string()
 		.trim()
@@ -24,7 +24,7 @@ export const kanbanCardSchema = z.object({
 	checklist: z.array(kanbanChecklistItemSchema).default([]),
 });
 
-export const kanbanColumnSchema = z.object({
+const kanbanColumnSchema = z.object({
 	id: z
 		.string()
 		.trim()

@@ -5,7 +5,7 @@ export type LexicalElement = ExcalidrawElement & {
 	customData: NewLexOverlayCustomData;
 };
 
-export interface LexicalNoteChangePayload {
+interface LexicalNoteChangePayload {
 	title?: string;
 	lexicalState?: string;
 	comments?: NewLexOverlayCustomData['comments'];

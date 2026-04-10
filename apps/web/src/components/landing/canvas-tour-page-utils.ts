@@ -23,8 +23,8 @@ export type OverlaySafeArea = {
 
 export const OVERLAY_LEFT_MARGIN_REM = 1.2;
 export const OVERLAY_TOP_MARGIN_REM = 1.2;
-export const OVERLAY_RIGHT_MARGIN_REM = 1.2;
-export const OVERLAY_BOTTOM_MARGIN_REM = 1.2;
+const OVERLAY_RIGHT_MARGIN_REM = 1.2;
+const OVERLAY_BOTTOM_MARGIN_REM = 1.2;
 export const OVERLAY_MIN_WIDTH_REM = 11;
 export const OVERLAY_DEFAULT_HEIGHT_REM = 22;
 export const OVERLAY_MAX_WIDTH_REM = 26;
@@ -156,7 +156,7 @@ export function getRootFontSizePx(): number {
 	return Number.parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
 }
 
-export function createCameraFromAppState(
+function createCameraFromAppState(
 	appState: Partial<{
 		zoom?: { value?: number };
 		width?: number;

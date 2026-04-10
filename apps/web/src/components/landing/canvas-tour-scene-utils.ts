@@ -180,7 +180,7 @@ export function createFreeText({
 	} as ExcalidrawElement;
 }
 
-export function createBoundCard({
+function createBoundCard({
 	id,
 	x,
 	y,
@@ -363,7 +363,7 @@ export function createCardFromConfig(config: TourCardConfig): TourBindableNode {
 	});
 }
 
-export function createSceneNodes(
+function createSceneNodes(
 	cards: Record<Exclude<TourNodeKey, 'studyNote' | 'checklistNote'>, TourCardConfig>,
 	notes: Record<
 		'studyNote' | 'checklistNote',

@@ -13,7 +13,7 @@ import {
 } from 'lexical';
 import React, { useMemo } from 'react';
 
-export type SerializedEquationNode = Spread<
+type SerializedEquationNode = Spread<
 	{
 		equation: string;
 		inline: boolean;
@@ -134,6 +134,6 @@ export function $createEquationNode(equation: string, inline?: boolean): Equatio
 	return $applyNodeReplacement(new EquationNode(equation, inline));
 }
 
-export function $isEquationNode(node: LexicalNode | null | undefined): node is EquationNode {
+function $isEquationNode(node: LexicalNode | null | undefined): node is EquationNode {
 	return node instanceof EquationNode;
 }

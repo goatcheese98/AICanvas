@@ -3,7 +3,7 @@ import { getCanvasTitleKey } from '@ai-canvas/shared/schemas';
 import type { Canvas } from '@ai-canvas/shared/types';
 import type { CanvasFormState } from './useCanvasLibraryState';
 
-export interface ValidationResult {
+interface ValidationResult {
 	valid: boolean;
 	error: string | null;
 	data?: {
@@ -57,7 +57,7 @@ export function validateCanvasForm(
 	};
 }
 
-export function hasCanvasTitleConflict(
+function hasCanvasTitleConflict(
 	canvases: Canvas[],
 	title: string,
 	excludeCanvasId?: string,

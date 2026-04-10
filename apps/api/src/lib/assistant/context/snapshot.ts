@@ -20,7 +20,7 @@ import { buildSelectionEnvironment, getSelectionBounds } from './geometry';
 import { buildCanvasElementSummaries, buildCanvasSummary } from './summary-builders';
 
 /** Input for building assistant context snapshot */
-export interface BuildAssistantContextSnapshotInput {
+interface BuildAssistantContextSnapshotInput {
 	canvasId: string;
 	contextMode: AssistantContextMode;
 	selectedElementIds: string[];
@@ -76,6 +76,3 @@ export async function buildAssistantContextSnapshot(
 		selectedContexts,
 	};
 }
-
-// Re-export types for convenience
-export type { AssistantContextSnapshot, AssistantContextMode, AssistantCanvasMeta };

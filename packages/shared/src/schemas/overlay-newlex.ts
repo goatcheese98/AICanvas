@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-export const newLexCommentReplySchema = z.object({
+const newLexCommentReplySchema = z.object({
 	id: z
 		.string()
 		.trim()
@@ -12,7 +12,7 @@ export const newLexCommentReplySchema = z.object({
 	deleted: z.boolean().optional(),
 });
 
-export const newLexCommentThreadSchema = z.object({
+const newLexCommentThreadSchema = z.object({
 	id: z
 		.string()
 		.trim()

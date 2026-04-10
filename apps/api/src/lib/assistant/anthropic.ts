@@ -1,6 +1,6 @@
 import type { AppEnv } from '../../types';
 
-export interface AnthropicMessageRequest {
+interface AnthropicMessageRequest {
 	system?: string;
 	messages: Array<{
 		role: 'user' | 'assistant';
@@ -9,7 +9,7 @@ export interface AnthropicMessageRequest {
 	maxTokens?: number;
 }
 
-export interface AnthropicMessageResult {
+interface AnthropicMessageResult {
 	text: string;
 	model: string;
 }

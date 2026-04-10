@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type BoardLogoKind = 'figma' | 'notion' | 'loom';
+type BoardLogoKind = 'figma' | 'notion' | 'loom';
 
 export function ToolbarIcon({
 	children,

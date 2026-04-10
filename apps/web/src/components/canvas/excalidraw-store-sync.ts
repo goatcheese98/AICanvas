@@ -2,7 +2,7 @@ import { useAppStore } from '@/stores/store';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 
-export type ExcalidrawSceneUpdate = {
+type ExcalidrawSceneUpdate = {
 	elements?: readonly ExcalidrawElement[];
 	appState?: Partial<AppState>;
 	files?: BinaryFiles;

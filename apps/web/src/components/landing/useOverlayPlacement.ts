@@ -27,7 +27,7 @@ import type {
 	CanvasTourOverlayPlacementState,
 } from './canvas-tour-types';
 
-export interface UseOverlayPlacementResult
+interface UseOverlayPlacementResult
 	extends CanvasTourOverlayMeasurementState,
 		CanvasTourOverlayPlacementState,
 		CanvasTourOverlayPlacementActions {}

@@ -235,7 +235,7 @@ const assistantContextSnapshotSchema = z.object({
 		.max(50),
 });
 
-export const sendMessageSchema = z.object({
+const sendMessageSchema = z.object({
 	message: z.string().min(1).max(10000),
 	contextMode: z.enum(['all', 'selected', 'none']).default('none'),
 	generationMode: generationModeSchema.default('chat'),
@@ -243,7 +243,7 @@ export const sendMessageSchema = z.object({
 	prototypeContext: overlaySchemas.prototype.optional(),
 });
 
-export const createRunSchema = z.object({
+const createRunSchema = z.object({
 	threadId: z.string().min(1).max(200),
 	canvasId: z.string().min(1).max(200),
 	message: z.string().min(1).max(10000),
@@ -255,16 +255,16 @@ export const createRunSchema = z.object({
 	contextSnapshot: assistantContextSnapshotSchema.optional(),
 });
 
-export const listThreadsSchema = z.object({
+const listThreadsSchema = z.object({
 	canvasId: z.string().min(1).max(200),
 });
 
-export const createThreadSchema = z.object({
+const createThreadSchema = z.object({
 	canvasId: z.string().min(1).max(200),
 	title: threadTitleSchema.optional(),
 });
 
-export const threadIdSchema = z.object({
+const threadIdSchema = z.object({
 	threadId: z.string().min(1).max(200),
 });
 

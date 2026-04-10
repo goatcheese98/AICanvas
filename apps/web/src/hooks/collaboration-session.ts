@@ -100,7 +100,7 @@ export function getSessionCollaboratorColor(): CollaboratorColor {
 	return colors[nextIndex] ?? colors[0]!;
 }
 
-export function collectSceneBroadcastFiles(
+function collectSceneBroadcastFiles(
 	files: Record<string, unknown> | null,
 	sentFileIds: Set<string>,
 ): Record<string, CollabFile> {

@@ -31,7 +31,7 @@ interface UserInfo {
 	imageUrl?: string;
 }
 
-export interface ProfileInfo {
+interface ProfileInfo {
 	initials: string;
 	profileName: string;
 	profileEmail: string;

@@ -22,7 +22,7 @@ import { executeTask } from './task-handlers';
 
 type AssistantDb = ReturnType<typeof createDb>;
 
-export interface ExecuteAssistantRunInput {
+interface ExecuteAssistantRunInput {
 	canvasId: string;
 	message: string;
 	contextMode: AssistantContextMode;

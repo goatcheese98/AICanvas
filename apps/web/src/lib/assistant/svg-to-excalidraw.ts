@@ -44,7 +44,7 @@ interface SvgCompileOptions {
 	customData?: Record<string, unknown>;
 }
 
-export interface SvgCompileResult {
+interface SvgCompileResult {
 	elements: ExcalidrawElement[];
 	width: number;
 	height: number;

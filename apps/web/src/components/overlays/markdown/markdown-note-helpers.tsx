@@ -10,13 +10,12 @@ import {
 import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ReactNode } from 'react';
 import { getRoundnessOptionId } from './markdown-utility-utils';
-export { getRoundnessOptionId };
 
 export type MarkdownViewMode = MarkdownEditorMode | 'preview';
 export type UtilityPanel = 'none' | 'style' | 'image';
 export type ControlsLayout = 'hidden' | 'icon' | 'full';
 
-export const FONT_OPTIONS = EXCALIDRAW_FONT_OPTIONS.map((option) => ({
+const FONT_OPTIONS = EXCALIDRAW_FONT_OPTIONS.map((option) => ({
 	id: option.id,
 	label: option.label,
 	font: getExcalidrawFontFamily(option.family) ?? DEFAULT_MARKDOWN_NOTE_SETTINGS.font,
@@ -102,11 +101,11 @@ export const NOTE_EDGE_OPTIONS = [
 	},
 ] as const;
 
-export function serializeImages(images: Record<string, string> | undefined) {
+function serializeImages(images: Record<string, string> | undefined) {
 	return JSON.stringify(images ?? {});
 }
 
-export function serializeSettings(settings: MarkdownOverlayCustomData['settings']) {
+function serializeSettings(settings: MarkdownOverlayCustomData['settings']) {
 	return JSON.stringify(settings);
 }
 

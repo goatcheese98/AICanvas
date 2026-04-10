@@ -21,7 +21,7 @@ const RESOLVABLE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.css', '.json'] as
 
 let prototypeCompilerWorkerFactory = () => new PrototypeCompilerWorker();
 
-export interface PrototypePreviewDiagnostic {
+interface PrototypePreviewDiagnostic {
 	message: string;
 	path?: string;
 	line?: number;
@@ -29,7 +29,7 @@ export interface PrototypePreviewDiagnostic {
 	source: 'compile' | 'runtime' | 'dependency';
 }
 
-export interface PrototypePreviewState {
+interface PrototypePreviewState {
 	status: 'idle' | 'compiling' | 'running' | 'ready' | 'error';
 	srcDoc: string;
 	diagnostics: PrototypePreviewDiagnostic[];

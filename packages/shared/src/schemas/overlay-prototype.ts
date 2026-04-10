@@ -1,20 +1,20 @@
 import * as z from 'zod';
 
-export const prototypeTemplateSchema = z.enum(['react', 'vanilla']);
+const prototypeTemplateSchema = z.enum(['react', 'vanilla']);
 
-export const prototypeOverlayFileSchema = z.object({
+const prototypeOverlayFileSchema = z.object({
 	code: z.string().default(''),
 	active: z.boolean().optional(),
 	hidden: z.boolean().optional(),
 	readOnly: z.boolean().optional(),
 });
 
-export const prototypeCardMetricSchema = z.object({
+const prototypeCardMetricSchema = z.object({
 	label: z.string().trim().min(1).max(24).default('Metric'),
 	value: z.string().trim().min(1).max(24).default('0'),
 });
 
-export const prototypeCardPreviewSchema = z.object({
+const prototypeCardPreviewSchema = z.object({
 	eyebrow: z.string().trim().min(1).max(24).default('Prototype'),
 	title: z.string().trim().min(1).max(48).default('Prototype'),
 	description: z.string().trim().min(1).max(140).default('Interactive concept'),

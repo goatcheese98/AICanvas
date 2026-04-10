@@ -1,4 +1,4 @@
-export interface ResizeDragState {
+interface ResizeDragState {
 	startW: number;
 	startH: number;
 	scale: number;

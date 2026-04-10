@@ -29,10 +29,8 @@ export type {
 	ApplySceneSnapshotOptions,
 	CameraTarget,
 	CanvasSceneSnapshot,
-	CanvasTourDefaultScene,
 	TourTool,
 };
-export { getTourTool };
 
 interface UseCanvasTourSceneControllerArgs {
 	imageId: BinaryFileData['id'];

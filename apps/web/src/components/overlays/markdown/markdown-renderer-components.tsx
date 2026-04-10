@@ -105,7 +105,7 @@ const MarkdownImage = memo(function MarkdownImage({
 });
 
 // ===== Component Factory Types =====
-export interface CreateMarkdownComponentsOptions {
+interface CreateMarkdownComponentsOptions {
 	images?: Record<string, string>;
 	settings: MarkdownNoteSettings;
 	onCheckboxToggle?: (lineIndex: number) => void;

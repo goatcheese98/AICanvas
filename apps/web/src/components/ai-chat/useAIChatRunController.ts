@@ -28,6 +28,9 @@ import {
 } from './run-progress';
 import { getSelectedElementIdsFromMap } from './selection-context';
 
+type ResolvedAIChatRequest = ReturnType<typeof resolveAIChatRequest>;
+type PatchReplyKind = 'affirmative' | 'negative';
+
 export function useAIChatRunController({
 	canvasId,
 	getToken,
@@ -101,6 +104,185 @@ export function useAIChatRunController({
 		[],
 	);
 
+	const clearInputIfNeeded = (promptOverride?: string) => {
+		if (!promptOverride) {
+			setInput('');
+		}
+	};
+
+	const handlePatchReply = (text: string, promptOverride?: string) => {
+		const patchReplyKind = getPatchReplyKind(text);
+		if (!patchReplyKind) {
+			return false;
+		}
+
+		clearInputIfNeeded(promptOverride);
+		setChatError(null);
+
+		if (latestPendingPatchArtifacts.length === 1) {
+			handleSinglePendingPatchReply(patchReplyKind, latestPendingPatchArtifacts[0]);
+			return true;
+		}
+
+		if (latestPendingPatchArtifacts.length > 1) {
+			setChatError(
+				'There are multiple pending patches right now. Use the specific patch button so we apply the right change.',
+			);
+			return true;
+		}
+
+		appendLocalAssistantMessage(
+			"There isn't a pending structured patch ready to apply right now. Use an Apply Patch button when one is shown, or ask me to regenerate the change.",
+		);
+		return true;
+	};
+
+	const handleSinglePendingPatchReply = (
+		patchReplyKind: PatchReplyKind,
+		pendingPatch: PatchArtifactDescriptor | undefined,
+	) => {
+		if (!pendingPatch) {
+			return;
+		}
+
+		if (patchReplyKind === 'negative') {
+			appendLocalAssistantMessage(
+				'Kept the pending patch as a suggestion. Nothing changed on the canvas.',
+			);
+			return;
+		}
+
+		const { artifact, artifactKey } = pendingPatch;
+		const patchState = assistantPatchStates[artifactKey];
+		const didApply = applyAssistantPatch(
+			artifactKey,
+			artifact,
+			patchState?.status === 'undone' ? 'reapply' : 'apply',
+		);
+		if (didApply) {
+			appendLocalAssistantMessage(
+				patchState?.status === 'undone'
+					? 'Reapplied the pending patch to the selected canvas item.'
+					: 'Applied the pending patch to the selected canvas item.',
+			);
+		}
+	};
+
+	const getResolvedRequestError = (
+		text: string,
+		resolvedRequest: ResolvedAIChatRequest,
+		requestSelectedIds: string[],
+	) => {
+		if (text.trimStart().startsWith('/') && resolvedRequest.commands.length === 0) {
+			return 'Unknown slash command. Try /select, /selectall, /raster, /vector, or /svg.';
+		}
+
+		if (
+			resolvedRequest.commands.some((command) => command.name === 'select') &&
+			requestSelectedIds.length === 0
+		) {
+			return 'There is no current selection to use. Select an item or use /selectall.';
+		}
+
+		if (resolvedRequest.commands.length > 0 && !resolvedRequest.prompt) {
+			return 'Add a prompt after the command, for example "/select rewrite this".';
+		}
+
+		return null;
+	};
+
+	const sendAssistantRun = async ({
+		effectiveContextMode,
+		effectiveModeHint,
+		menuState,
+		requestSelectedIds,
+		resolvedRequest,
+		userMessage,
+	}: {
+		effectiveContextMode: AssistantContextMode;
+		effectiveModeHint: ResolvedAIChatRequest['modeHint'];
+		menuState: ReturnType<typeof getAIChatCommandMenuState>;
+		requestSelectedIds: string[];
+		resolvedRequest: ResolvedAIChatRequest;
+		userMessage: AssistantMessage;
+	}) => {
+		const history = buildConversationHistory(messages);
+		const prototypeContext = getPrototypeContextForRequest(effectiveContextMode);
+
+		if (!isSignedIn) {
+			throw new Error('Sign in is required before using the assistant.');
+		}
+
+		const ensuredThread = currentThread ?? (await createThread());
+		appendMessageToThread(ensuredThread.id, userMessage);
+		const headers = await getRequiredAuthHeaders(getToken);
+		const response = await api.api.assistant.runs.$post(
+			{
+				json: {
+					threadId: ensuredThread.id,
+					canvasId,
+					message: resolvedRequest.prompt,
+					contextMode: effectiveContextMode,
+					modeHint: effectiveModeHint,
+					history,
+					selectedElementIds: requestSelectedIds,
+					prototypeContext,
+				},
+			},
+			{ headers },
+		);
+
+		if (!response.ok) {
+			const body = await response.text();
+			throw new Error(body || `Assistant request failed with status ${response.status}`);
+		}
+
+		const created = (await response.json()) as AssistantRunCreated;
+		setRunProgressState(createAssistantRunProgress(created));
+		setIsRunProgressExpanded(true);
+
+		await streamAssistantRunEvents(created.runId, headers, (event) => {
+			setRunProgress((current) =>
+				current && current.runId === created.runId
+					? applyAssistantRunEvent(current, event)
+					: current,
+			);
+			if (event.type === 'message.created' && event.data?.message) {
+				appendMessageToThread(ensuredThread.id, event.data.message);
+			}
+			if (event.type === 'run.failed') {
+				captureBrowserException(new Error(event.data?.error ?? 'Assistant run failed'), {
+					tags: {
+						area: 'ai_chat',
+						action: 'run_failed_event',
+					},
+					extra: {
+						canvasId,
+						runId: created.runId,
+						contextMode: effectiveContextMode,
+					},
+				});
+				setChatError(event.data?.error ?? 'Assistant run failed');
+			}
+		});
+
+		const [run, tasks, artifacts] = await Promise.all([
+			fetchAssistantRun(created.runId, headers),
+			fetchAssistantRunTasks(created.runId, headers),
+			fetchAssistantRunArtifacts(created.runId, headers),
+		]);
+		setRunProgress((current) =>
+			current && current.runId === created.runId
+				? reconcileAssistantRunProgress(current, {
+						status: run.status,
+						error: run.error,
+						tasks,
+						artifacts,
+					})
+				: current,
+		);
+	};
+
 	const sendMessage = async (options?: {
 		promptOverride?: string;
 	}) => {
@@ -110,68 +292,16 @@ export function useAIChatRunController({
 			return;
 		}
 
-		const isAffirmativePatchReply = AFFIRMATIVE_PATCH_REPLY.test(text);
-		const isNegativePatchReply = NEGATIVE_PATCH_REPLY.test(text);
-
-		if (isAffirmativePatchReply || isNegativePatchReply) {
-			if (!options?.promptOverride) {
-				setInput('');
-			}
-			setChatError(null);
-
-			if (latestPendingPatchArtifacts.length === 1) {
-				const [{ artifact, artifactKey }] = latestPendingPatchArtifacts;
-				if (isAffirmativePatchReply) {
-					const patchState = assistantPatchStates[artifactKey];
-					const didApply = applyAssistantPatch(
-						artifactKey,
-						artifact,
-						patchState?.status === 'undone' ? 'reapply' : 'apply',
-					);
-					if (didApply) {
-						appendLocalAssistantMessage(
-							patchState?.status === 'undone'
-								? 'Reapplied the pending patch to the selected canvas item.'
-								: 'Applied the pending patch to the selected canvas item.',
-						);
-					}
-				} else {
-					appendLocalAssistantMessage(
-						'Kept the pending patch as a suggestion. Nothing changed on the canvas.',
-					);
-				}
-				return;
-			}
-
-			if (latestPendingPatchArtifacts.length > 1) {
-				setChatError(
-					'There are multiple pending patches right now. Use the specific patch button so we apply the right change.',
-				);
-				return;
-			}
-
-			appendLocalAssistantMessage(
-				"There isn't a pending structured patch ready to apply right now. Use an Apply Patch button when one is shown, or ask me to regenerate the change.",
-			);
+		if (handlePatchReply(text, options?.promptOverride)) {
 			return;
 		}
 
 		const requestSelectedIds = getSelectedElementIdsFromMap(selectedElementIds);
 		const resolvedRequest = resolveAIChatRequest(text, requestSelectedIds.length);
 		const menuState = getAIChatCommandMenuState(text);
-		if (text.trimStart().startsWith('/') && resolvedRequest.commands.length === 0) {
-			setChatError('Unknown slash command. Try /select, /selectall, /raster, /vector, or /svg.');
-			return;
-		}
-		if (
-			resolvedRequest.commands.some((command) => command.name === 'select') &&
-			requestSelectedIds.length === 0
-		) {
-			setChatError('There is no current selection to use. Select an item or use /selectall.');
-			return;
-		}
-		if (resolvedRequest.commands.length > 0 && !resolvedRequest.prompt) {
-			setChatError('Add a prompt after the command, for example "/select rewrite this".');
+		const requestError = getResolvedRequestError(text, resolvedRequest, requestSelectedIds);
+		if (requestError) {
+			setChatError(requestError);
 			return;
 		}
 
@@ -187,87 +317,17 @@ export function useAIChatRunController({
 			content: resolvedRequest.prompt,
 			createdAt: new Date().toISOString(),
 		};
-		const history = buildConversationHistory(messages);
-		const prototypeContext = getPrototypeContextForRequest(effectiveContextMode);
-		if (!options?.promptOverride) {
-			setInput('');
-		}
+		clearInputIfNeeded(options?.promptOverride);
 
 		try {
-			if (!isSignedIn) {
-				throw new Error('Sign in is required before using the assistant.');
-			}
-
-			const ensuredThread = currentThread ?? (await createThread());
-			appendMessageToThread(ensuredThread.id, userMessage);
-			const headers = await getRequiredAuthHeaders(getToken);
-			const response = await api.api.assistant.runs.$post(
-				{
-					json: {
-						threadId: ensuredThread.id,
-						canvasId,
-						message: resolvedRequest.prompt,
-						contextMode: effectiveContextMode,
-						modeHint: effectiveModeHint,
-						history,
-						selectedElementIds: requestSelectedIds,
-						prototypeContext,
-					},
-				},
-				{ headers },
-			);
-
-			if (!response.ok) {
-				const body = await response.text();
-				throw new Error(body || `Assistant request failed with status ${response.status}`);
-			}
-
-			const created = (await response.json()) as AssistantRunCreated;
-			// Set initial progress and expand the UI
-			setRunProgressState(createAssistantRunProgress(created));
-			setIsRunProgressExpanded(true);
-			await streamAssistantRunEvents(created.runId, headers, (event) => {
-				// Update progress - use wrapper to sync expanded state
-				setRunProgress((current) =>
-					current && current.runId === created.runId
-						? applyAssistantRunEvent(current, event)
-						: current,
-				);
-				if (event.type === 'message.created' && event.data?.message) {
-					appendMessageToThread(ensuredThread.id, event.data.message);
-				}
-				if (event.type === 'run.failed') {
-					captureBrowserException(new Error(event.data?.error ?? 'Assistant run failed'), {
-						tags: {
-							area: 'ai_chat',
-							action: 'run_failed_event',
-						},
-						extra: {
-							canvasId,
-							runId: created.runId,
-							contextMode: effectiveContextMode,
-						},
-					});
-					setChatError(event.data?.error ?? 'Assistant run failed');
-				}
+			await sendAssistantRun({
+				effectiveContextMode,
+				effectiveModeHint,
+				menuState,
+				requestSelectedIds,
+				resolvedRequest,
+				userMessage,
 			});
-
-			const [run, tasks, artifacts] = await Promise.all([
-				fetchAssistantRun(created.runId, headers),
-				fetchAssistantRunTasks(created.runId, headers),
-				fetchAssistantRunArtifacts(created.runId, headers),
-			]);
-			// Use wrapper to sync expanded state based on final status
-			setRunProgress((current) =>
-				current && current.runId === created.runId
-					? reconcileAssistantRunProgress(current, {
-							status: run.status,
-							error: run.error,
-							tasks,
-							artifacts,
-						})
-					: current,
-			);
 		} catch (error) {
 			captureBrowserException(error, {
 				tags: {
@@ -297,4 +357,16 @@ export function useAIChatRunController({
 		setIsRunProgressExpanded,
 		sendMessage,
 	};
+}
+
+function getPatchReplyKind(text: string): PatchReplyKind | null {
+	if (AFFIRMATIVE_PATCH_REPLY.test(text)) {
+		return 'affirmative';
+	}
+
+	if (NEGATIVE_PATCH_REPLY.test(text)) {
+		return 'negative';
+	}
+
+	return null;
 }

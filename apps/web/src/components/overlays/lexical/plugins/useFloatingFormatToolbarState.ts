@@ -30,12 +30,12 @@ export interface ToolbarFormatState {
 	textColor: string;
 }
 
-export interface ToolbarPosition {
+interface ToolbarPosition {
 	top: number;
 	left: number;
 }
 
-export interface UseFloatingFormatToolbarStateReturn {
+interface UseFloatingFormatToolbarStateReturn {
 	// State
 	formatState: ToolbarFormatState;
 	isVisible: boolean;

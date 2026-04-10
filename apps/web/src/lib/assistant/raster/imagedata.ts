@@ -173,7 +173,7 @@ function mergeSimilarCenters(
 
 // ─── Main ImageData Function ────────────────────────────────────────────────────
 
-export interface ImageDataVectorizeOptions {
+interface ImageDataVectorizeOptions {
 	maxColors: number;
 	colorMergeThreshold: number;
 	bgLuminanceThreshold: number;

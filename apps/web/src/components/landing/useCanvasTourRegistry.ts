@@ -28,7 +28,7 @@ import type {
 	TourTool,
 } from './useCanvasTourSceneController';
 
-export interface UseCanvasTourRegistryResult
+interface UseCanvasTourRegistryResult
 	extends CanvasTourRegistryState,
 		CanvasTourRegistryActions {
 	activeChapter: CanvasTourChapter;

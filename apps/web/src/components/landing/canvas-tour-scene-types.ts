@@ -6,7 +6,7 @@ export interface DemoScene {
 	files: BinaryFiles;
 }
 
-export interface TourBoundElement {
+interface TourBoundElement {
 	id: string;
 	type: 'arrow' | 'text';
 }
@@ -33,7 +33,7 @@ export type TourNodeKey =
 	| 'studyNote'
 	| 'checklistNote';
 
-export type TourAnchorSide = 'left' | 'right' | 'top' | 'bottom';
+type TourAnchorSide = 'left' | 'right' | 'top' | 'bottom';
 
 export interface TourAnchorConfig {
 	side: TourAnchorSide;
@@ -77,7 +77,7 @@ export interface TourCardConfig {
 	fontFamily?: number;
 }
 
-export interface TourNoteConfig {
+interface TourNoteConfig {
 	left: number;
 	top: number;
 	width: number;
@@ -89,7 +89,7 @@ export interface TourNoteConfig {
 	customData: Record<string, unknown>;
 }
 
-export interface TourArrowConfig {
+interface TourArrowConfig {
 	source: TourNodeKey;
 	target: TourNodeKey;
 	sourceAnchor: TourAnchorConfig;

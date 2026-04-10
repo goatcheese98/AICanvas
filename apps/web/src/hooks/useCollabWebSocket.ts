@@ -8,9 +8,9 @@ import {
 	getReconnectDelayMs,
 } from './collaboration-utils';
 
-export type WebSocketStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+type WebSocketStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error';
 
-export interface CollabWebSocket {
+interface CollabWebSocket {
 	connect: (roomId: string) => void;
 	disconnect: () => void;
 	send: (message: ClientToServerMessage) => boolean;

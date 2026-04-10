@@ -1,7 +1,7 @@
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData, PrototypeOverlayFile } from '@ai-canvas/shared/types';
 
-export type PrototypeStudioCommand =
+type PrototypeStudioCommand =
 	| { type: 'set_title'; title: string }
 	| { type: 'set_active_file'; path: string }
 	| { type: 'write_file'; path: string; code: string }

@@ -50,19 +50,9 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 		setActivePanel(activePanel === 'assets' ? 'none' : 'assets');
 	}, [activePanel, setActivePanel]);
 
-	const handleToggleCollabPanel = useCallback(() => {
-		setActivePanel(activePanel === 'collab' ? 'none' : 'collab');
-	}, [activePanel, setActivePanel]);
-
 	const handleToggleChatPanel = useCallback(() => {
 		setActivePanel(activePanel === 'chat' ? 'none' : 'chat');
 	}, [activePanel, setActivePanel]);
-
-	// Insert menu open handler for profile panel
-	const handleOpenInsertMenu = useCallback(() => {
-		setActivePanel('none');
-		setIsInsertMenuOpen(true);
-	}, [setActivePanel, setIsInsertMenuOpen]);
 
 	// Overlay insertion handler
 	const handleInsertOverlay = useCallback(
@@ -92,18 +82,11 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				chatPanelHeight={chatPanelHeight}
 				onStartChatPanelResize={startChatPanelResize}
 				onStartChatHeightResize={startChatHeightResize}
-				onInsertOverlay={handleInsertOverlay}
-				onOpenInsertMenu={handleOpenInsertMenu}
 				canvasId={canvasId}
 				collaboration={collaboration}
 			/>
 
-			<CanvasBottomToolbar
-				activePanel={activePanel}
-				onToggleCollabPanel={handleToggleCollabPanel}
-				onToggleChatPanel={handleToggleChatPanel}
-				sessionStatus={collaboration.sessionStatus}
-			/>
+			<CanvasBottomToolbar activePanel={activePanel} onToggleChatPanel={handleToggleChatPanel} />
 		</>
 	);
 }

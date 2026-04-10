@@ -23,7 +23,7 @@ export type AssistantPatchApplyOptions = {
 	markdownContentOverride?: string;
 };
 
-export type PendingSelectionConfirmation = {
+type PendingSelectionConfirmation = {
 	prompt: string;
 	createdAt: string;
 } | null;

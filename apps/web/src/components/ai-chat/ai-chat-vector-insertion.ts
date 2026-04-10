@@ -11,9 +11,9 @@ import {
 } from './ai-chat-canvas-mutations';
 import type { AssistantInsertionState } from './ai-chat-types';
 
-export type NativeVectorCompileStrategy = 'sketch-vectorizer' | 'svg-trace' | 'svg-compile';
+type NativeVectorCompileStrategy = 'sketch-vectorizer' | 'svg-trace' | 'svg-compile';
 
-export interface NativeVectorCompileResult {
+interface NativeVectorCompileResult {
 	elements: ExcalidrawElement[];
 	width: number;
 	height: number;
@@ -25,7 +25,7 @@ interface NativeVectorCompileFailure {
 	message: string;
 }
 
-export class NativeVectorPipelineError extends Error {
+class NativeVectorPipelineError extends Error {
 	readonly failures: NativeVectorCompileFailure[];
 
 	constructor(message: string, failures: NativeVectorCompileFailure[]) {

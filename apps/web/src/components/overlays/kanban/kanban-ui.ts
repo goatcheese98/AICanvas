@@ -6,7 +6,7 @@ export const KANBAN_BUTTON =
 export const KANBAN_ICON_BUTTON =
 	'inline-flex h-8 w-8 items-center justify-center rounded-[10px] border transition-colors disabled:cursor-not-allowed disabled:opacity-40';
 
-export const KANBAN_BUTTON_SURFACE_STYLE: CSSProperties = {
+const KANBAN_BUTTON_SURFACE_STYLE: CSSProperties = {
 	borderColor: 'var(--color-border)',
 	backgroundColor: 'var(--color-surface-strong)',
 	backgroundImage: 'var(--kanban-sketch-control-texture)',

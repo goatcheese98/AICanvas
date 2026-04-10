@@ -19,15 +19,6 @@ import type {
 	SketchVectorizerOptions,
 } from './vectorizer/types.js';
 
-// Re-export public types
-export type { SketchVectorStyle, SketchVectorComplexity } from './vectorizer/types.js';
-export type {
-	SketchVectorControls,
-	SketchVectorizerOptions,
-	SketchVectorizationMetadata,
-	CompiledSketchVectorization,
-} from './vectorizer/types.js';
-
 /** Clamp value between min and max */
 function clamp(value: number, min: number, max: number): number {
 	return Math.min(max, Math.max(min, value));
@@ -225,12 +216,4 @@ export async function vectorizeSketch(
 	options?: SketchVectorizerOptions,
 ): Promise<CompiledSketchVectorization> {
 	return runVectorizationPipeline(imageData, options);
-}
-
-/** @deprecated Use vectorizeSketch instead */
-export async function vectorizeRasterBlobToSketchElements(
-	blob: Blob,
-	options?: SketchVectorizerOptions,
-): Promise<CompiledSketchVectorization> {
-	return vectorizeSketch(blob, options);
 }

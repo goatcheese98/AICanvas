@@ -2,7 +2,7 @@ import { sanitizeSvgMarkup } from './svg-sanitizer';
 
 export type D2RenderVariant = 'default' | 'sketch' | 'ascii';
 
-export interface DiagramSvgRenderResult {
+interface DiagramSvgRenderResult {
 	svgMarkup: string;
 	width: number;
 	height: number;
@@ -49,7 +49,7 @@ function escapeSvgText(text: string): string {
 		.replaceAll("'", '&#39;');
 }
 
-export function asciiFromD2(source: string): string {
+function asciiFromD2(source: string): string {
 	const lines = source
 		.split('\n')
 		.map((line) => line.trim())
@@ -99,7 +99,7 @@ export function asciiFromD2(source: string): string {
 	return output.join('\n');
 }
 
-export function asciiToSvg(ascii: string): string {
+function asciiToSvg(ascii: string): string {
 	const lines = ascii.split('\n');
 	const maxChars = lines.reduce((max, line) => Math.max(max, line.length), 0);
 	const fontSize = 14;

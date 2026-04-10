@@ -5,8 +5,8 @@ import type remarkGfm from 'remark-gfm';
 import type remarkMath from 'remark-math';
 
 // ===== Types for Plugins =====
-export type RemarkPlugin = typeof remarkMath | typeof remarkGfm;
-export type RehypePlugin = typeof rehypeRaw | typeof rehypeKatex;
+type RemarkPlugin = typeof remarkMath | typeof remarkGfm;
+type RehypePlugin = typeof rehypeRaw | typeof rehypeKatex;
 
 // ===== Styling Constants =====
 export const RENDERER_SURFACE = 'border border-stone-200';
@@ -27,7 +27,7 @@ export const HEADING_STYLES = {
 } as const satisfies Record<string, CSSProperties>;
 
 // ===== Type Helpers =====
-export type HeadingLevel = keyof typeof HEADING_STYLES;
+type HeadingLevel = keyof typeof HEADING_STYLES;
 
 interface NodePosition {
 	start?: { line?: number | null } | null;

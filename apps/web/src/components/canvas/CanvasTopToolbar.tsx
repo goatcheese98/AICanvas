@@ -1,6 +1,5 @@
 import type { OverlayType } from '@ai-canvas/shared/types';
 import { useUser } from '@clerk/clerk-react';
-import { useNavigate } from '@tanstack/react-router';
 import { CHROME_BUTTON_BASE, CHROME_BUTTON_IDLE } from './canvas-chrome';
 import { getProfileInfo, overlayActions } from './canvas-ui-utils';
 
@@ -21,22 +20,11 @@ export function CanvasTopToolbar({
 	onToggleAssetsPanel,
 	insertMenuRef,
 }: CanvasTopToolbarProps) {
-	const navigate = useNavigate();
 	const { user } = useUser();
 	const { initials } = getProfileInfo(user);
 
 	return (
 		<>
-			<div className="absolute left-16 top-4 z-20">
-				<button
-					type="button"
-					onClick={() => void navigate({ to: '/dashboard' })}
-					className={`${CHROME_BUTTON_BASE} ${CHROME_BUTTON_IDLE} bg-white/92 shadow-md backdrop-blur`}
-				>
-					Back To Dashboard
-				</button>
-			</div>
-
 			<div className="absolute right-4 top-4 z-20 flex max-w-[calc(100vw-1rem)] items-center gap-2">
 				<div className="relative" ref={insertMenuRef}>
 					<button

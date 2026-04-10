@@ -12,54 +12,31 @@ import { newLexOverlaySchema, normalizeNewLexOverlay } from './overlay-newlex';
 import { normalizePrototypeOverlay, prototypeOverlaySchema } from './overlay-prototype';
 import { normalizeWebEmbedOverlay, webEmbedOverlaySchema } from './overlay-webembed';
 
-// Re-export from overlay-prototype
-export {
-	prototypeCardMetricSchema,
-	prototypeCardPreviewSchema,
-	prototypeOverlayFileSchema,
-	prototypeOverlaySchema,
-	normalizePrototypeOverlay,
-	prototypeTemplateSchema,
-} from './overlay-prototype';
-
 // Re-export from overlay-markdown
 export {
 	MARKDOWN_SYSTEM_FONT_STACK,
 	DEFAULT_MARKDOWN_NOTE_SETTINGS,
-	markdownEditorModeSchema,
-	markdownNoteSettingsSchema,
-	markdownOverlaySchema,
 	normalizeMarkdownSettings,
 	normalizeMarkdownOverlay,
 } from './overlay-markdown';
 
 // Re-export from overlay-newlex
-export {
-	newLexCommentReplySchema,
-	newLexCommentThreadSchema,
-	newLexOverlaySchema,
-	normalizeNewLexOverlay,
-} from './overlay-newlex';
+export { normalizeNewLexOverlay } from './overlay-newlex';
 
 // Re-export from overlay-kanban
 export {
-	kanbanChecklistItemSchema,
-	kanbanCardSchema,
-	kanbanColumnSchema,
-	kanbanOverlaySchema,
 	createStarterKanbanColumns,
 	normalizeKanbanOverlay,
 	summarizeKanbanOverlay,
 } from './overlay-kanban';
 
 // Re-export from overlay-webembed
-export {
-	webEmbedOverlaySchema,
-	normalizeWebEmbedOverlay,
-} from './overlay-webembed';
+export { normalizeWebEmbedOverlay } from './overlay-webembed';
+
+export { normalizePrototypeOverlay } from './overlay-prototype';
 
 // Combined schema for discriminated union
-export const overlayCustomDataSchema = z.discriminatedUnion('type', [
+const overlayCustomDataSchema = z.discriminatedUnion('type', [
 	markdownOverlaySchema,
 	newLexOverlaySchema,
 	kanbanOverlaySchema,
@@ -98,7 +75,3 @@ export const overlaySchemas = {
 	prototype: prototypeOverlaySchema,
 	customData: overlayCustomDataSchema,
 } as const;
-
-// Type exports
-export type MarkdownNoteSettingsInput = import('./overlay-markdown').MarkdownNoteSettingsInput;
-export type MarkdownOverlayInput = import('./overlay-markdown').MarkdownOverlayInput;

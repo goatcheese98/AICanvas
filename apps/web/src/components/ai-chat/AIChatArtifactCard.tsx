@@ -99,6 +99,3 @@ export function ArtifactCard(props: ArtifactCardProps) {
 			return null;
 	}
 }
-
-// Public API: export ArtifactCard as AIChatArtifactCard for backward compatibility
-export { ArtifactCard as AIChatArtifactCard };

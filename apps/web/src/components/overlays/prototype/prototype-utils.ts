@@ -5,7 +5,7 @@ export function getPrototypeStudioPath(canvasId: string, prototypeId: string) {
 	return `/canvas/${canvasId}/prototype/${prototypeId}`;
 }
 
-export function serializePrototypeFiles(files: PrototypeOverlayCustomData['files']) {
+function serializePrototypeFiles(files: PrototypeOverlayCustomData['files']) {
 	return JSON.stringify(
 		Object.keys(files)
 			.sort()

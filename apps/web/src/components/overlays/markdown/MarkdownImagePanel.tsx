@@ -6,7 +6,7 @@ import {
 	NOTE_SEGMENTED_SHELL,
 } from './markdown-note-helpers';
 
-export interface MarkdownImagePanelProps {
+interface MarkdownImagePanelProps {
 	imageCount: number;
 	onActiveUtilityPanelChange: (panel: 'style') => void;
 	onRequestImagePicker: () => void;

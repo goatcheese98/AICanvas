@@ -12,7 +12,7 @@ import type { CanvasElement } from '@ai-canvas/shared/types';
 import { OVERLAY_TYPES, TEXT_EXCERPT_LIMIT } from './constants';
 
 /** Interface for generated diagram metadata */
-export interface GeneratedDiagramMetadata {
+interface GeneratedDiagramMetadata {
 	type: 'ai-generated-diagram';
 	language: 'mermaid' | 'd2';
 	code: string;

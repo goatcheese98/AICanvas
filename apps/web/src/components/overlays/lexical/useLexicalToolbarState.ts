@@ -35,7 +35,7 @@ import {
 import { INSERT_EQUATION_COMMAND } from './plugins/EquationPlugin';
 import { INSERT_IMAGE_COMMAND, openImageFilePicker } from './plugins/ImagesPlugin';
 
-export interface UseLexicalToolbarStateReturn {
+interface UseLexicalToolbarStateReturn {
 	editor: ReturnType<typeof useLexicalComposerContext>[0];
 	state: ToolbarState;
 	actions: ToolbarActions;

@@ -25,7 +25,7 @@ export interface SketchVectorizerOptions {
 }
 
 /** Processing metadata for debugging and analytics */
-export interface SketchVectorizationMetadata {
+interface SketchVectorizationMetadata {
 	sourceWidth: number;
 	sourceHeight: number;
 	workingWidth: number;
@@ -108,7 +108,7 @@ export interface QuantizationResult {
 }
 
 /** Parameters computed from controls for processing stages */
-export interface ProcessingParams {
+interface ProcessingParams {
 	epsilon: number;
 	minArea: number;
 	kernelSize: number;

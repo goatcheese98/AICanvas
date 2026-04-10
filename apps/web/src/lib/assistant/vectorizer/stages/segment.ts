@@ -2,7 +2,7 @@ import { DARK_CLUSTER_THRESHOLD } from '../config.js';
 import type { Component, RGB } from '../types.js';
 
 /** Create a binary mask for a specific label */
-export function binaryMaskForLabel(
+function binaryMaskForLabel(
 	labels: Uint16Array,
 	width: number,
 	height: number,
@@ -95,7 +95,7 @@ function morphDilate(
 }
 
 /** Morphological opening operation (erosion followed by dilation) */
-export function morphOpen(
+function morphOpen(
 	mask: Uint8Array,
 	width: number,
 	height: number,
@@ -105,7 +105,7 @@ export function morphOpen(
 }
 
 /** Morphological closing operation (dilation followed by erosion) */
-export function morphClose(
+function morphClose(
 	mask: Uint8Array,
 	width: number,
 	height: number,
@@ -115,7 +115,7 @@ export function morphClose(
 }
 
 /** Extract connected components from a binary mask using flood fill */
-export function extractComponents(mask: Uint8Array, width: number, height: number): Component[] {
+function extractComponents(mask: Uint8Array, width: number, height: number): Component[] {
 	const visited = new Uint8Array(width * height);
 	const queue = new Int32Array(width * height);
 	const components: Component[] = [];

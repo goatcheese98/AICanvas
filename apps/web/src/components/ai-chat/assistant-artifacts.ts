@@ -9,11 +9,6 @@ export {
 	detectMarkdownPatchConflict,
 	parseMarkdownPatchArtifact,
 } from './artifacts/assistant-artifact-markdown-patch';
-export type {
-	MarkdownPatchConflictState,
-	MarkdownPatchDiffLine,
-	MarkdownPatchHunk,
-} from './artifacts/assistant-artifact-markdown-patch';
 export {
 	buildKanbanFromArtifact,
 	parseKanbanPatchArtifact,
@@ -27,4 +22,3 @@ export {
 	filterVisibleArtifacts,
 	getDiagramArtifactSource,
 } from './artifacts/assistant-artifact-diagram';
-export type { DiagramArtifactSource } from './artifacts/assistant-artifact-diagram';

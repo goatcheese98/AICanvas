@@ -16,7 +16,7 @@ export const TEXT_COLORS = [
 	'#7c3aed',
 ];
 
-export interface Position {
+interface Position {
 	top: number;
 	left: number;
 }

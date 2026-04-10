@@ -1,7 +1,7 @@
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
 import { extractCodeBlock, normalizeLineEndings } from './assistant-artifact-text';
 
-export interface DiagramArtifactSource {
+interface DiagramArtifactSource {
 	language: 'mermaid' | 'd2';
 	code: string;
 }

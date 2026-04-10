@@ -1,6 +1,6 @@
 import type { AppState } from '@excalidraw/excalidraw/types';
 
-export interface ParsedRoomHash {
+interface ParsedRoomHash {
 	roomId: string;
 	keyBase64: string;
 }

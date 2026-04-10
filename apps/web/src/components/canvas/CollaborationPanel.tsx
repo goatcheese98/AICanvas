@@ -9,7 +9,7 @@ import {
 	CHROME_BUTTON_IDLE,
 } from './canvas-chrome';
 
-interface CollaborationPanelProps {
+export interface CollaborationPanelProps {
 	isCollaborating: boolean;
 	collaborators: Map<string, { username?: string }>;
 	roomLink: string | null;

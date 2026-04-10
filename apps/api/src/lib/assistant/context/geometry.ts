@@ -22,7 +22,7 @@ export function buildBounds(element: CanvasElement): AssistantCanvasBounds | und
 }
 
 /** Stringify roundness value for style hints */
-export function stringifyRoundness(value: unknown): string | undefined {
+function stringifyRoundness(value: unknown): string | undefined {
 	if (typeof value === 'string' || typeof value === 'number') {
 		return String(value);
 	}
@@ -88,7 +88,7 @@ export function getSelectionBounds(elements: CanvasElement[]): AssistantCanvasBo
 }
 
 /** Calculate distance between two rectangles */
-export function rectDistance(a: AssistantCanvasBounds, b: AssistantCanvasBounds): number {
+function rectDistance(a: AssistantCanvasBounds, b: AssistantCanvasBounds): number {
 	const dx = Math.max(0, a.x - (b.x + b.width), b.x - (a.x + a.width));
 	const dy = Math.max(0, a.y - (b.y + b.height), b.y - (a.y + a.height));
 	return Math.sqrt(dx * dx + dy * dy);

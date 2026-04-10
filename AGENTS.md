@@ -60,10 +60,6 @@ bun run db:generate    # Generate migrations
 bun run db:migrate     # Run migrations
 ```
 
-## Anti-Slop Manifesto
-
-This repository does not reward volume, cleverness, or abstraction for its own sake.
-
 ## Code Economy
 
 Code is not free. Every new line adds maintenance cost, review surface, and future debugging burden.
@@ -87,19 +83,6 @@ Do not add code unless it clearly improves at least one of these:
 Do not introduce helpers, abstractions, or structure that cost more to carry than they save.
 
 A change is better when it solves the problem with fewer moving parts.
-
-## What To Resist
-
-- Resist abstraction before there is real pressure for it.
-- Resist helpers, wrappers, hooks, services, and layers that mainly move code around.
-- Resist "reusable" designs that make today's change harder to understand.
-- Resist solving the generalized version of the problem.
-- Resist widening scope to clean up nearby code unless it is truly necessary.
-- Resist hiding important behavior behind indirection.
-- Resist magic defaults, silent fallbacks, and invisible state changes.
-- Resist changes that require reading many files to understand one behavior.
-- Resist architecture that signals sophistication without improving clarity.
-- Resist adding code when deletion, simplification, or a direct edit would do.
 
 ## Local Reasoning Standard
 
@@ -126,17 +109,6 @@ The code should make it easy to answer:
 - How do we verify it?
 
 If a change makes these questions harder to answer, it is likely too abstract, too indirect, or too broad.
-
-## Slop Signals
-
-Reject patterns like:
-
-- broad exception handling that hides failure
-- wrappers or helpers that add indirection without reducing complexity
-- abstractions introduced for hypothetical reuse
-- functions with hidden mutations
-- "cleaner" designs that spread a local change across many files
-- vague verification like "appears to work" without a named check
 
 ## Loud Failure Rule
 
@@ -166,6 +138,10 @@ If a function mutates state, that mutation should be:
 
 Do not hide writes inside helpers that sound read only or neutral.
 
+## When Principles Conflict
+
+Prefer correctness and observability over brevity. A verbose correct solution beats a concise buggy one.
+
 ## Verification Standard
 
 Every change must include a concrete verification statement.
@@ -188,21 +164,21 @@ Before finalizing, ask:
 - Did I add code that will cost more to maintain than it saves?
 - Did I keep the behavior easy to trace and debug?
 - Can someone understand this without reading half the codebase?
-- Did I solve the actual problem instead of a more impressive one?
 - Did I add any abstraction that exists mostly to make the code look engineered?
 
-## Additional Guidance
+## Preferred Skills
 
-- Good code is small, explicit, easy to debug, and restrained enough to solve the real problem and stop there.
-- Prefer the smallest correct change with the fewest moving parts.
-- Follow existing patterns unless there is a strong reason not to.
-- Make uncertainty explicit instead of guessing.
-- Abstraction is a cost, not a reward, and should exist only when it clearly improves understanding, diagnosis, or shared boundaries.
-- Treat every new dependency as a permanent maintenance tax and avoid adding one for a trivial utility.
-- Names should make behavior easier to understand without reading the implementation.
-- Before editing, briefly state the intended change and what will not be touched.
-- File size is a heuristic, not a law; split code when size harms cohesion, readability, or local reasoning.
-- Explain completed work for an intelligent non-programmer first, then include technical detail.
+When a task clearly matches one of these skills, prefer using it instead of inventing a custom workflow:
+
+- `planning-and-task-breakdown` for multi-step feature work before implementation begins
+- `spec-driven-development` for changes where a clear contract, acceptance criteria, or implementation plan will reduce churn
+- `debugging-and-error-recovery` for bug investigation, invalid state, and recovery-path analysis
+- `browser-testing-with-devtools` for UI, interaction, canvas, and browser-only regressions
+- `frontend-ui-engineering` for meaningful UI work that should still follow the existing product language
+- `code-simplification` for refactors where the goal is fewer moving parts and better local reasoning
+- `code-review-and-quality` for review passes focused on regressions, risks, and missing verification
+
+Use skills as a bias, not as an excuse to widen scope. Keep changes direct, local, and easy to verify.
 
 ## Key Patterns
 

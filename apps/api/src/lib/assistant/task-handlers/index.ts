@@ -5,7 +5,7 @@ import { executeAssistantResponseTask } from './assistant-response';
 import { executeImageGenerationTask } from './image-generation';
 import { executeVectorizationTask } from './vectorization';
 
-export type AssistantDb = ReturnType<typeof createDb>;
+type AssistantDb = ReturnType<typeof createDb>;
 
 export interface TaskHandlerContext {
 	db: AssistantDb;
@@ -237,7 +237,3 @@ async function executeRunVerificationTask(
 		},
 	};
 }
-
-export { executeImageGenerationTask } from './image-generation';
-export { executeVectorizationTask } from './vectorization';
-export { executeAssistantResponseTask } from './assistant-response';

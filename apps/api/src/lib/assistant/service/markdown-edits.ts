@@ -8,7 +8,7 @@ import { buildMarkdownRewritePrompt, extractCodeBlock } from '../parsing';
 import type { AssistantServiceInput } from '../types';
 import { normalizeSource, truncateLabel } from './service-utils';
 
-export function normalizeMarkdownComparableText(value: string): string {
+function normalizeMarkdownComparableText(value: string): string {
 	return value
 		.toLowerCase()
 		.replace(/[`*_>#-]/g, ' ')

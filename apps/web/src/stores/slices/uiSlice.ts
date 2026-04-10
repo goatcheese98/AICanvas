@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { AppStore } from '../store';
 
-export interface Toast {
+interface Toast {
 	id: string;
 	message: string;
 	type: 'success' | 'error' | 'info';

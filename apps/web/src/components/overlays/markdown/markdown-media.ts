@@ -193,7 +193,7 @@ export function markdownUrlTransform(url: string) {
 	return defaultUrlTransform(trimmed);
 }
 
-export interface HandleMarkdownImagePasteOptions {
+interface HandleMarkdownImagePasteOptions {
 	event: React.ClipboardEvent<HTMLTextAreaElement>;
 	value: string;
 	onChange: (nextValue: string) => void;

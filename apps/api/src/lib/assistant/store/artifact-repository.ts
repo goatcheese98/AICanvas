@@ -95,36 +95,3 @@ export async function listAssistantArtifactsRecord(
 		}),
 	);
 }
-
-export async function listAssistantArtifactsByTaskRecord(
-	db: Database,
-	userId: string,
-	taskId: string,
-): Promise<AssistantArtifactRecord[]> {
-	const rows = await db
-		.select({
-			id: assistantArtifacts.id,
-			runId: assistantArtifacts.runId,
-			taskId: assistantArtifacts.taskId,
-			type: assistantArtifacts.type,
-			title: assistantArtifacts.title,
-			content: assistantArtifacts.content,
-			createdAt: assistantArtifacts.createdAt,
-		})
-		.from(assistantArtifacts)
-		.innerJoin(assistantRuns, eq(assistantArtifacts.runId, assistantRuns.id))
-		.where(and(eq(assistantArtifacts.taskId, taskId), eq(assistantRuns.userId, userId)))
-		.orderBy(asc(assistantArtifacts.createdAt));
-
-	return rows.map((row) =>
-		toAssistantArtifactRecord({
-			id: row.id,
-			runId: row.runId,
-			taskId: row.taskId,
-			type: row.type,
-			title: row.title,
-			content: row.content,
-			createdAt: row.createdAt,
-		}),
-	);
-}

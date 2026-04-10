@@ -11,7 +11,7 @@ import { useCallback, useState } from 'react';
 import type { CanvasTourNavigationActions, CanvasTourNavigationState } from './canvas-tour-types';
 import type { CanvasSceneSnapshot, TourTool } from './useCanvasTourSceneController';
 
-export interface UseCanvasTourNavigationResult
+interface UseCanvasTourNavigationResult
 	extends CanvasTourNavigationState,
 		CanvasTourNavigationActions {
 	setActiveTool: React.Dispatch<React.SetStateAction<TourTool>>;
@@ -24,7 +24,7 @@ interface UseCanvasTourNavigationArgs {
 	initialRegistryOpen?: boolean;
 }
 
-export interface UseCanvasTourNavigationReturn {
+interface UseCanvasTourNavigationReturn {
 	isGuideMode: boolean;
 	isGridVisible: boolean;
 	activeTool: TourTool;

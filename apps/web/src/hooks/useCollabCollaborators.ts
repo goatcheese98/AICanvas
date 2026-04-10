@@ -9,7 +9,7 @@ import {
 	getSessionCollaboratorColor,
 } from './collaboration-session';
 
-export interface CollabCollaborators {
+interface CollabCollaborators {
 	collaborators: Map<string, CollaboratorState>;
 	applyCollaborators: (next: Map<string, CollaboratorState>) => void;
 	collaboratorColor: CollaboratorColor;

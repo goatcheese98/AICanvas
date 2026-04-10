@@ -8,13 +8,13 @@ import type {
 import { resolveGenerationMode } from './service';
 import { createImageGenerationInput } from './task-execution';
 
-export interface PlannedAssistantTask {
+interface PlannedAssistantTask {
 	type: Exclude<AssistantTaskType, 'plan_run'>;
 	title: string;
 	input: AssistantTaskInput;
 }
 
-export interface AssistantPlan {
+interface AssistantPlan {
 	resolvedMode: GenerationMode;
 	tasks: PlannedAssistantTask[];
 }

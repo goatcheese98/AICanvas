@@ -6,8 +6,6 @@ import { WorkspaceSettingsView } from './DashboardProfileWorkspaceView';
 import type { DashboardProfileMenuProps } from './dashboard-profile-utils';
 import { useDashboardProfileMenuState } from './useDashboardProfileMenuState';
 
-export type { DashboardProfileMenuProps } from './dashboard-profile-utils';
-
 export function DashboardProfileMenu({
 	displayName,
 	email,

@@ -5,7 +5,7 @@ export const CHROME_BUTTON_BASE =
 export const CHROME_BUTTON_IDLE =
 	'border-stone-200 bg-white/96 text-stone-700 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 export const CHROME_BUTTON_ACTIVE = 'border-[#d7dafd] bg-[#eef0ff] text-[#4d55cc]';
-export const CHROME_BUTTON_SUBTLE =
+const CHROME_BUTTON_SUBTLE =
 	'border-stone-200 bg-stone-50/92 text-stone-600 hover:border-[#d7dafd] hover:bg-[#f3f1ff] hover:text-[#4d55cc]';
 export const CHROME_BUTTON_DANGER = 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100';
 

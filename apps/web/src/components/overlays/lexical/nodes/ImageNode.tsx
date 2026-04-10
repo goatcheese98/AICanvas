@@ -22,7 +22,7 @@ export interface ImagePayload {
 	width?: number;
 }
 
-export type SerializedImageNode = Spread<
+type SerializedImageNode = Spread<
 	{
 		altText: string;
 		height?: number;

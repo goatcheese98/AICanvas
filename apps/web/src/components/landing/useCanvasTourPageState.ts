@@ -144,4 +144,3 @@ export function useCanvasTourPageState(): CanvasTourPageState {
 }
 
 // Re-export types from the types file for backward compatibility
-export type { CanvasTourPageState } from './canvas-tour-types';

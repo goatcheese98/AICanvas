@@ -123,7 +123,7 @@ export interface AssistantCanvasSummary {
 	highlights: string[];
 }
 
-export interface AssistantSelectedContextBase {
+interface AssistantSelectedContextBase {
 	id: string;
 	priority: number;
 	elementType: string;

@@ -56,7 +56,7 @@ export type OverlayUpdatePayloadMap = {
 	};
 };
 
-export interface CreateOverlayElementOptions {
+interface CreateOverlayElementOptions {
 	type: OverlayType;
 	x: number;
 	y: number;
@@ -65,9 +65,9 @@ export interface CreateOverlayElementOptions {
 	customData?: Record<string, unknown>;
 }
 
-export type OverlayRenderMode = 'preview' | 'shell' | 'live';
+type OverlayRenderMode = 'preview' | 'shell' | 'live';
 
-export interface OverlayRenderProps<K extends OverlayType> {
+interface OverlayRenderProps<K extends OverlayType> {
 	element: TypedOverlayCanvasElement<OverlayCustomDataMap[K]>;
 	mode: OverlayRenderMode;
 	isSelected: boolean;

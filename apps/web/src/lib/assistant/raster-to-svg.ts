@@ -10,10 +10,6 @@ import type {
 	TraceOutput,
 } from './raster/types';
 
-// ─── Re-exports ─────────────────────────────────────────────────────────────────
-
-export type { RasterToSvgOptions } from './raster/types';
-
 // ─── Options Merging ────────────────────────────────────────────────────────────
 
 function mergeOptions(options?: RasterToSvgOptions) {
@@ -96,16 +92,4 @@ export async function rasterBlobToSvg(blob: Blob, options?: RasterToSvgOptions):
 	});
 
 	return serializeResult.svg;
-}
-
-// ─── Legacy Export ──────────────────────────────────────────────────────────────
-
-/**
- * @deprecated Use rasterBlobToSvg instead.
- */
-export async function vectorizeRasterBlobToSvg(
-	blob: Blob,
-	options?: RasterToSvgOptions,
-): Promise<string> {
-	return rasterBlobToSvg(blob, options);
 }

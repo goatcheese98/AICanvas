@@ -2,7 +2,7 @@ import { fetchAssistantCapabilities, getRequiredAuthHeaders } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import type { AuthContext } from './ai-chat-panel-types';
 
-export interface AssistantCapabilities {
+interface AssistantCapabilities {
 	vectorizationEnabled: boolean;
 	svgGenerationEnabled: boolean;
 }

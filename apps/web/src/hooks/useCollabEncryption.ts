@@ -7,7 +7,7 @@ import {
 } from '@/lib/collab/encryption';
 import { useCallback, useRef } from 'react';
 
-export interface CollabEncryption {
+interface CollabEncryption {
 	key: CryptoKey | null;
 	generateKey: () => Promise<CryptoKey>;
 	encrypt: (plaintext: string) => Promise<{ payload: string; iv: string } | null>;

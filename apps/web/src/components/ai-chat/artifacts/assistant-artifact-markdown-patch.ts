@@ -5,12 +5,12 @@ import type {
 } from '@ai-canvas/shared/types';
 import { normalizeLineEndings } from './assistant-artifact-text';
 
-export interface MarkdownPatchDiffLine {
+interface MarkdownPatchDiffLine {
 	type: 'context' | 'remove' | 'add';
 	text: string;
 }
 
-export interface MarkdownPatchHunk {
+interface MarkdownPatchHunk {
 	id: string;
 	baseStart: number;
 	baseEnd: number;
@@ -20,11 +20,26 @@ export interface MarkdownPatchHunk {
 	lines: MarkdownPatchDiffLine[];
 }
 
-export type MarkdownPatchConflictState = 'clean' | 'modified' | 'already-applied';
+type MarkdownPatchConflictState = 'clean' | 'modified' | 'already-applied';
 
 interface MarkdownDiffChunk {
 	type: 'equal' | 'remove' | 'add';
 	lines: string[];
+}
+
+interface MarkdownPatchHunkDraft {
+	lines: MarkdownPatchDiffLine[];
+	nextLines: string[];
+	addedLineCount: number;
+	removedLineCount: number;
+}
+
+interface MarkdownPatchHunkReadResult {
+	baseCursor: number;
+	chunkIndex: number;
+	hunk: MarkdownPatchHunk;
+	nextCursor: number;
+	previousEqualLines: string[];
 }
 
 export function parseMarkdownPatchArtifact(
@@ -59,58 +74,31 @@ export function parseMarkdownPatchArtifact(
 }
 
 function buildMarkdownDiffChunks(baseLines: string[], nextLines: string[]): MarkdownDiffChunk[] {
-	const lcs: number[][] = Array.from({ length: baseLines.length + 1 }, () =>
-		Array(nextLines.length + 1).fill(0),
-	);
-
-	for (let baseIndex = baseLines.length - 1; baseIndex >= 0; baseIndex -= 1) {
-		for (let nextIndex = nextLines.length - 1; nextIndex >= 0; nextIndex -= 1) {
-			lcs[baseIndex]![nextIndex] =
-				baseLines[baseIndex] === nextLines[nextIndex]
-					? (lcs[baseIndex + 1]?.[nextIndex + 1] ?? 0) + 1
-					: Math.max(lcs[baseIndex + 1]?.[nextIndex] ?? 0, lcs[baseIndex]?.[nextIndex + 1] ?? 0);
-		}
-	}
-
 	const chunks: MarkdownDiffChunk[] = [];
-	const pushChunk = (type: MarkdownDiffChunk['type'], line: string) => {
-		const previous = chunks[chunks.length - 1];
-		if (previous?.type === type) {
-			previous.lines.push(line);
-			return;
-		}
-		chunks.push({ type, lines: [line] });
-	};
+	const lcs = buildMarkdownLcsTable(baseLines, nextLines);
 
 	let baseIndex = 0;
 	let nextIndex = 0;
 	while (baseIndex < baseLines.length && nextIndex < nextLines.length) {
 		if (baseLines[baseIndex] === nextLines[nextIndex]) {
-			pushChunk('equal', baseLines[baseIndex] ?? '');
+			appendMarkdownDiffChunk(chunks, 'equal', baseLines[baseIndex] ?? '');
 			baseIndex += 1;
 			nextIndex += 1;
 			continue;
 		}
 
 		if ((lcs[baseIndex + 1]?.[nextIndex] ?? 0) >= (lcs[baseIndex]?.[nextIndex + 1] ?? 0)) {
-			pushChunk('remove', baseLines[baseIndex] ?? '');
+			appendMarkdownDiffChunk(chunks, 'remove', baseLines[baseIndex] ?? '');
 			baseIndex += 1;
 			continue;
 		}
 
-		pushChunk('add', nextLines[nextIndex] ?? '');
+		appendMarkdownDiffChunk(chunks, 'add', nextLines[nextIndex] ?? '');
 		nextIndex += 1;
 	}
 
-	while (baseIndex < baseLines.length) {
-		pushChunk('remove', baseLines[baseIndex] ?? '');
-		baseIndex += 1;
-	}
-
-	while (nextIndex < nextLines.length) {
-		pushChunk('add', nextLines[nextIndex] ?? '');
-		nextIndex += 1;
-	}
+	appendRemainingMarkdownDiffLines(chunks, 'remove', baseLines, baseIndex);
+	appendRemainingMarkdownDiffLines(chunks, 'add', nextLines, nextIndex);
 
 	return chunks;
 }
@@ -137,62 +125,29 @@ export function buildMarkdownPatchHunks(
 		}
 
 		if (chunk.type === 'equal') {
-			baseCursor += chunk.lines.length;
-			nextCursor += chunk.lines.length;
-			previousEqualLines = chunk.lines;
+			({ baseCursor, nextCursor, previousEqualLines } = consumeEqualMarkdownChunk(
+				chunk,
+				baseCursor,
+				nextCursor,
+			));
 			chunkIndex += 1;
 			continue;
 		}
 
-		const baseStart = baseCursor;
-		const lines: MarkdownPatchDiffLine[] = previousEqualLines
-			.slice(-contextLineCount)
-			.map((line) => ({ type: 'context' as const, text: line }));
-		const nextHunkLines: string[] = [];
-		let removedLineCount = 0;
-		let addedLineCount = 0;
-
-		while (chunkIndex < chunks.length && chunks[chunkIndex]?.type !== 'equal') {
-			const currentChunk = chunks[chunkIndex];
-			if (!currentChunk) {
-				break;
-			}
-
-			if (currentChunk.type === 'remove') {
-				for (const line of currentChunk.lines) {
-					lines.push({ type: 'remove', text: line });
-				}
-				baseCursor += currentChunk.lines.length;
-				removedLineCount += currentChunk.lines.length;
-			} else {
-				for (const line of currentChunk.lines) {
-					lines.push({ type: 'add', text: line });
-					nextHunkLines.push(line);
-				}
-				nextCursor += currentChunk.lines.length;
-				addedLineCount += currentChunk.lines.length;
-			}
-
-			chunkIndex += 1;
-		}
-
-		const trailingEqualLines =
-			chunks[chunkIndex]?.type === 'equal' ? (chunks[chunkIndex]?.lines ?? []) : [];
-		for (const line of trailingEqualLines.slice(0, contextLineCount)) {
-			lines.push({ type: 'context', text: line });
-		}
-
-		const baseEnd = baseCursor;
-		hunks.push({
-			id: `hunk-${baseStart}-${baseEnd}-${nextCursor}-${hunks.length + 1}`,
-			baseStart,
-			baseEnd,
-			addedLineCount,
-			removedLineCount,
-			nextLines: nextHunkLines,
-			lines,
-		});
-		previousEqualLines = trailingEqualLines;
+		const hunkResult = readMarkdownPatchHunk(
+			chunks,
+			chunkIndex,
+			baseCursor,
+			nextCursor,
+			previousEqualLines,
+			contextLineCount,
+			hunks.length,
+		);
+		hunks.push(hunkResult.hunk);
+		baseCursor = hunkResult.baseCursor;
+		chunkIndex = hunkResult.chunkIndex;
+		nextCursor = hunkResult.nextCursor;
+		previousEqualLines = hunkResult.previousEqualLines;
 	}
 
 	return hunks;
@@ -253,4 +208,148 @@ export function detectMarkdownPatchConflict(
 	}
 
 	return 'modified';
+}
+
+function buildMarkdownLcsTable(baseLines: string[], nextLines: string[]): number[][] {
+	const lcs: number[][] = Array.from({ length: baseLines.length + 1 }, () =>
+		Array(nextLines.length + 1).fill(0),
+	);
+
+	for (let baseIndex = baseLines.length - 1; baseIndex >= 0; baseIndex -= 1) {
+		for (let nextIndex = nextLines.length - 1; nextIndex >= 0; nextIndex -= 1) {
+			lcs[baseIndex]![nextIndex] =
+				baseLines[baseIndex] === nextLines[nextIndex]
+					? (lcs[baseIndex + 1]?.[nextIndex + 1] ?? 0) + 1
+					: Math.max(lcs[baseIndex + 1]?.[nextIndex] ?? 0, lcs[baseIndex]?.[nextIndex + 1] ?? 0);
+		}
+	}
+
+	return lcs;
+}
+
+function appendMarkdownDiffChunk(
+	chunks: MarkdownDiffChunk[],
+	type: MarkdownDiffChunk['type'],
+	line: string,
+) {
+	const previous = chunks[chunks.length - 1];
+	if (previous?.type === type) {
+		previous.lines.push(line);
+		return;
+	}
+
+	chunks.push({ type, lines: [line] });
+}
+
+function appendRemainingMarkdownDiffLines(
+	chunks: MarkdownDiffChunk[],
+	type: Extract<MarkdownDiffChunk['type'], 'remove' | 'add'>,
+	lines: string[],
+	startIndex: number,
+) {
+	for (let index = startIndex; index < lines.length; index += 1) {
+		appendMarkdownDiffChunk(chunks, type, lines[index] ?? '');
+	}
+}
+
+function createMarkdownPatchHunkDraft(
+	previousEqualLines: string[],
+	contextLineCount: number,
+): MarkdownPatchHunkDraft {
+	return {
+		lines: previousEqualLines
+			.slice(-contextLineCount)
+			.map((line) => ({ type: 'context' as const, text: line })),
+		nextLines: [],
+		addedLineCount: 0,
+		removedLineCount: 0,
+	};
+}
+
+function applyMarkdownChunkToHunkDraft(chunk: MarkdownDiffChunk, draft: MarkdownPatchHunkDraft) {
+	if (chunk.type === 'remove') {
+		for (const line of chunk.lines) {
+			draft.lines.push({ type: 'remove', text: line });
+		}
+		draft.removedLineCount += chunk.lines.length;
+		return;
+	}
+
+	for (const line of chunk.lines) {
+		draft.lines.push({ type: 'add', text: line });
+		draft.nextLines.push(line);
+	}
+	draft.addedLineCount += chunk.lines.length;
+}
+
+function appendMarkdownContextLines(
+	lines: MarkdownPatchDiffLine[],
+	trailingEqualLines: string[],
+	contextLineCount: number,
+) {
+	for (const line of trailingEqualLines.slice(0, contextLineCount)) {
+		lines.push({ type: 'context', text: line });
+	}
+}
+
+function consumeEqualMarkdownChunk(
+	chunk: MarkdownDiffChunk,
+	baseCursor: number,
+	nextCursor: number,
+) {
+	return {
+		baseCursor: baseCursor + chunk.lines.length,
+		nextCursor: nextCursor + chunk.lines.length,
+		previousEqualLines: chunk.lines,
+	};
+}
+
+function readMarkdownPatchHunk(
+	chunks: MarkdownDiffChunk[],
+	startChunkIndex: number,
+	baseCursor: number,
+	nextCursor: number,
+	previousEqualLines: string[],
+	contextLineCount: number,
+	hunkCount: number,
+): MarkdownPatchHunkReadResult {
+	const baseStart = baseCursor;
+	const draft = createMarkdownPatchHunkDraft(previousEqualLines, contextLineCount);
+	let chunkIndex = startChunkIndex;
+
+	while (chunkIndex < chunks.length && chunks[chunkIndex]?.type !== 'equal') {
+		const currentChunk = chunks[chunkIndex];
+		if (!currentChunk) {
+			break;
+		}
+
+		applyMarkdownChunkToHunkDraft(currentChunk, draft);
+		if (currentChunk.type === 'remove') {
+			baseCursor += currentChunk.lines.length;
+		} else {
+			nextCursor += currentChunk.lines.length;
+		}
+
+		chunkIndex += 1;
+	}
+
+	const trailingEqualLines =
+		chunks[chunkIndex]?.type === 'equal' ? (chunks[chunkIndex]?.lines ?? []) : [];
+	appendMarkdownContextLines(draft.lines, trailingEqualLines, contextLineCount);
+
+	return {
+		baseCursor,
+		chunkIndex,
+		nextCursor,
+		previousEqualLines: trailingEqualLines,
+		hunk: {
+			id: `hunk-${baseStart}-${baseCursor}-${nextCursor}-${hunkCount + 1}`,
+			baseStart,
+			baseEnd: baseCursor,
+			addedLineCount: draft.addedLineCount,
+			removedLineCount: draft.removedLineCount,
+			nextLines: draft.nextLines,
+			lines: draft.lines,
+		},
+	};
 }

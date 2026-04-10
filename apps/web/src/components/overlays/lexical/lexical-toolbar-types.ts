@@ -11,7 +11,7 @@ export type BlockType =
 
 export type ToolbarDropdownType = 'text-color' | 'highlight' | 'table' | 'equation' | null;
 
-export interface BlockOption {
+interface BlockOption {
 	value: BlockType;
 	label: string;
 }
@@ -33,7 +33,7 @@ export const NOTE_FONT_STACK =
 export const NOTE_MONO_STACK =
 	'"SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace';
 export const ACCENT_TEXT = '#4d55cc';
-export const ACCENT_BG = '#eef0ff';
+const ACCENT_BG = '#eef0ff';
 
 export const TEXT_COLORS = [
 	'#000000',
@@ -61,7 +61,7 @@ export const HIGHLIGHT_COLORS = [
 	'#fce7f3',
 ];
 
-export interface ToolbarFormatState {
+interface ToolbarFormatState {
 	blockType: BlockType;
 	isBold: boolean;
 	isItalic: boolean;

@@ -23,4 +23,28 @@ describe('scene-element-normalizer', () => {
 		expect(normalized.isDeleted).toBe(false);
 		expect(typeof normalized.seed).toBe('number');
 	});
+
+	it('preserves a valid fractional index and rejects timestamp-like indices', () => {
+		const valid = normalizeSceneElement({
+			id: 'overlay-valid',
+			type: 'rectangle',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			index: 'Zz',
+		} as unknown as ExcalidrawElement);
+		const invalid = normalizeSceneElement({
+			id: 'overlay-invalid',
+			type: 'rectangle',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			index: 'a1773614343380',
+		} as unknown as ExcalidrawElement);
+
+		expect(valid.index).toBe('Zz');
+		expect(invalid.index).toBe('a0');
+	});
 });

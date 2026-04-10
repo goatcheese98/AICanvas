@@ -50,7 +50,7 @@ export function commitState({
 	onChangeRef.current?.(elementId, content, images, title, settings, editorMode);
 }
 
-export function scheduleDebounce({
+function scheduleDebounce({
 	content,
 	images,
 	title,
@@ -98,7 +98,7 @@ interface UseMarkdownCommitProps {
 	externalSignature: string;
 }
 
-export type OnChangeCallback = (
+type OnChangeCallback = (
 	id: string,
 	content: string,
 	images: Record<string, string>,

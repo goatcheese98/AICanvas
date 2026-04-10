@@ -68,6 +68,3 @@ export function normalizeMarkdownOverlay(
 		editorMode: parsed.editorMode ?? 'raw',
 	};
 }
-
-export type MarkdownNoteSettingsInput = z.input<typeof markdownNoteSettingsSchema>;
-export type MarkdownOverlayInput = z.input<typeof markdownOverlaySchema>;

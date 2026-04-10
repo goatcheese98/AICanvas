@@ -12,14 +12,14 @@ import type { CanvasTourChapter } from '../canvas-tour-content';
 import { canvasTourChapters } from '../canvas-tour-content';
 import type { RegisteredTourSceneSnapshot } from '../canvas-tour-registry';
 
-export interface TourScene {
+interface TourScene {
 	id: string;
 	chapter: CanvasTourChapter;
 	label: string;
 	slug: string;
 }
 
-export interface UseTourSceneRegistryReturn {
+interface UseTourSceneRegistryReturn {
 	/** All available scenes derived from chapters */
 	scenes: TourScene[];
 	/** All chapter definitions */
@@ -146,15 +146,4 @@ export function buildDefaultSceneSnapshot(
 		overlay: chapter.overlay,
 		capturedAt: new Date(0).toISOString(),
 	} as Omit<RegisteredTourSceneSnapshot, 'elements'> & { elements: unknown[] };
-}
-
-/**
- * Resolve chapter for a given scene ID.
- * Pure function - no hooks.
- */
-export function resolveChapterById(
-	sceneId: string,
-	fallback?: CanvasTourChapter,
-): CanvasTourChapter {
-	return canvasTourChapters.find((c) => c.id === sceneId) ?? fallback ?? canvasTourChapters[0];
 }

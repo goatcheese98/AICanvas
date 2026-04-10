@@ -1,12 +1,10 @@
 import { AIChatPanel } from '@/components/ai-chat';
 import type { CollaborationSessionStatus } from '@/hooks/collaboration-utils';
-import type { OverlayType } from '@ai-canvas/shared/types';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from '@tanstack/react-router';
-import { CollaborationPanel } from './CollaborationPanel';
 import { ProfilePanel } from './ProfilePanel';
 import { PanelFrame, PanelShell } from './canvas-chrome';
-import { getProfileInfo, overlayActions } from './canvas-ui-utils';
+import { getProfileInfo } from './canvas-ui-utils';
 
 interface CanvasPanelsProps {
 	activePanel: 'none' | 'assets' | 'collab' | 'chat';
@@ -17,8 +15,6 @@ interface CanvasPanelsProps {
 	chatPanelHeight: number;
 	onStartChatPanelResize: (event: React.PointerEvent<HTMLDivElement>) => void;
 	onStartChatHeightResize: (event: React.PointerEvent<HTMLDivElement>) => void;
-	onInsertOverlay: (type: OverlayType) => void;
-	onOpenInsertMenu: () => void;
 	canvasId: string;
 	collaboration: {
 		isCollaborating: boolean;
@@ -42,8 +38,6 @@ export function CanvasPanels({
 	chatPanelHeight,
 	onStartChatPanelResize,
 	onStartChatHeightResize,
-	onInsertOverlay,
-	onOpenInsertMenu,
 	canvasId,
 	collaboration,
 }: CanvasPanelsProps) {
@@ -53,32 +47,6 @@ export function CanvasPanels({
 
 	return (
 		<>
-			{activePanel === 'collab' ? (
-				<PanelFrame
-					width={sidePanelWidth}
-					onResizeStart={onStartSidePanelResize}
-					className="absolute bottom-20 right-4 z-20 h-[min(30rem,calc(100vh-9rem))]"
-				>
-					<PanelShell
-						title="Live Collaboration"
-						description="End-to-end encrypted room sharing through PartyKit."
-						onClose={() => onSetActivePanel('none')}
-					>
-						<CollaborationPanel
-							isCollaborating={collaboration.isCollaborating}
-							collaborators={collaboration.collaborators}
-							roomLink={collaboration.roomLink}
-							sessionError={collaboration.sessionError}
-							sessionStatus={collaboration.sessionStatus}
-							username={collaboration.username}
-							setUsername={collaboration.setUsername}
-							startSession={collaboration.startSession}
-							stopSession={collaboration.stopSession}
-						/>
-					</PanelShell>
-				</PanelFrame>
-			) : null}
-
 			{activePanel === 'assets' ? (
 				<PanelFrame
 					width={sidePanelWidth}
@@ -87,7 +55,7 @@ export function CanvasPanels({
 				>
 					<PanelShell
 						title="Profile & Workspace"
-						description="Account details, workspace shortcuts, and quick inserts."
+						description="Account details and live collaboration."
 						onClose={() => onSetActivePanel('none')}
 					>
 						<ProfilePanel
@@ -95,15 +63,8 @@ export function CanvasPanels({
 							profileName={profileName}
 							profileEmail={profileEmail}
 							userImageUrl={user?.imageUrl}
-							overlayActions={overlayActions}
+							collaboration={collaboration}
 							onNavigateDashboard={() => void navigate({ to: '/dashboard' })}
-							onOpenInsertMenu={onOpenInsertMenu}
-							onOpenCollaboration={() => onSetActivePanel('collab')}
-							onOpenChat={() => onSetActivePanel('chat')}
-							onInsertOverlay={(type) => {
-								onInsertOverlay(type);
-								onSetActivePanel('none');
-							}}
 						/>
 					</PanelShell>
 				</PanelFrame>

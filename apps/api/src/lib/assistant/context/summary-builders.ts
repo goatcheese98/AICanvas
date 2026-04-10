@@ -18,7 +18,7 @@ import {
 import { toElementId } from './element-parsers';
 
 /** Compare elements for canvas summary prioritization */
-export function compareCanvasSummaryCandidates(a: CanvasElement, b: CanvasElement): number {
+function compareCanvasSummaryCandidates(a: CanvasElement, b: CanvasElement): number {
 	const overlayA = getOverlayLikeType(a);
 	const overlayB = getOverlayLikeType(b);
 	if (Boolean(overlayA) !== Boolean(overlayB)) {
@@ -58,7 +58,7 @@ export function buildCanvasElementSummaries(
 }
 
 /** Increment count in a record map */
-export function incrementCount(map: Record<string, number>, key: string | undefined) {
+function incrementCount(map: Record<string, number>, key: string | undefined) {
 	if (!key) {
 		return;
 	}

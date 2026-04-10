@@ -1,4 +1,4 @@
-export type PrototypeStudioSaveState = 'idle' | 'saving' | 'saved' | 'error';
+type PrototypeStudioSaveState = 'idle' | 'saving' | 'saved' | 'error';
 
 interface PrototypeStudioStatusCopyOptions {
 	saveState: PrototypeStudioSaveState;
