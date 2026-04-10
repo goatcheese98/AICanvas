@@ -14,3 +14,6 @@ client_secret*.json
 .dolt/
 *.db
 .beads-credential-key
+
+# Local PartyKit runtime state
+workers/partykit/.partykit/
