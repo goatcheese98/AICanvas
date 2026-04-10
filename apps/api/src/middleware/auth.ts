@@ -1,3 +1,4 @@
+import { userSchemas } from '@ai-canvas/shared/schemas';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { eq } from 'drizzle-orm';
 import { createMiddleware } from 'hono/factory';
@@ -16,6 +17,20 @@ function getBearerToken(authHeader: string | undefined) {
 	}
 
 	return authHeader.slice('Bearer '.length).trim() || null;
+}
+
+function parseStoredPreferences(value: string | null | undefined) {
+	if (!value) {
+		return undefined;
+	}
+
+	try {
+		const parsed = JSON.parse(value);
+		const result = userSchemas.preferences.safeParse(parsed);
+		return result.success ? result.data : undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
@@ -52,11 +67,18 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 		if (existingRows[0]) {
 			// Returning user — use the locally stored profile.
 			const row = existingRows[0];
+			const preferences = parseStoredPreferences(row.preferences);
+			if (row.preferences && !preferences) {
+				logApiEvent('warn', 'auth.user_preferences_invalid', {
+					userId: row.id,
+				});
+			}
 			user = {
 				id: row.id,
 				email: row.email,
 				name: row.name,
 				avatarUrl: row.avatarUrl ?? undefined,
+				preferences,
 			};
 		} else {
 			// New user — fetch their profile from Clerk and sync to D1.

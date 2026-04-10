@@ -183,6 +183,55 @@ describe('requireAuth', () => {
 				email: 'rohan@example.com',
 				name: 'Rohan Jasani',
 				avatarUrl: 'https://example.com/avatar.png',
+				preferences: JSON.stringify({
+					theme: 'dark',
+					aiProvider: 'claude',
+				}),
+			},
+		]);
+		const app = createTestApp();
+
+		const response = await app.request(
+			'http://localhost/protected',
+			{
+				headers: {
+					Authorization: 'Bearer good-token',
+				},
+			},
+			{
+				DB: {} as D1Database,
+				R2: {} as R2Bucket,
+				CLERK_SECRET_KEY: 'sk_test_123',
+				ENVIRONMENT: 'test',
+			},
+		);
+
+		expect(response.status).toBe(200);
+		await expect(response.json()).resolves.toEqual({
+			user: {
+				id: 'user_123',
+				email: 'rohan@example.com',
+				name: 'Rohan Jasani',
+				avatarUrl: 'https://example.com/avatar.png',
+				preferences: {
+					theme: 'dark',
+					aiProvider: 'claude',
+				},
+			},
+		});
+		expect(getUserMock).not.toHaveBeenCalled();
+		expect(syncAuthenticatedUserMock).not.toHaveBeenCalled();
+	});
+
+	it('ignores malformed stored preferences instead of failing auth', async () => {
+		verifyTokenMock.mockResolvedValueOnce({ sub: 'user_123' });
+		dbQueryMock.mockResolvedValueOnce([
+			{
+				id: 'user_123',
+				email: 'rohan@example.com',
+				name: 'Rohan Jasani',
+				avatarUrl: 'https://example.com/avatar.png',
+				preferences: 'preferences',
 			},
 		]);
 		const app = createTestApp();
