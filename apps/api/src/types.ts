@@ -1,5 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
+import type { UserPreferences } from '@ai-canvas/shared/schemas';
+
 export type AppEnv = {
 	Bindings: {
 		AI?: Ai;
@@ -39,4 +41,5 @@ export interface AuthUser {
 	email: string;
 	name: string;
 	avatarUrl?: string;
+	preferences?: UserPreferences;
 }
