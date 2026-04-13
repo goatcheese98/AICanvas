@@ -4,10 +4,18 @@ import { createElement } from 'react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { addToastMock, putMock, setPersistenceStateMock } = vi.hoisted(() => ({
+const {
+	addToastMock,
+	putMock,
+	setPersistenceStateMock,
+	setRemoteSavingMock,
+	observedFetchMock,
+} = vi.hoisted(() => ({
 	addToastMock: vi.fn(),
 	putMock: vi.fn(),
 	setPersistenceStateMock: vi.fn(),
+	setRemoteSavingMock: vi.fn(),
+	observedFetchMock: vi.fn(),
 }));
 
 vi.mock('@clerk/clerk-react', () => ({
@@ -28,7 +36,7 @@ vi.mock('@/lib/api', () => ({
 	},
 	createObservedResponseError: vi.fn(),
 	getRequiredAuthHeaders: vi.fn().mockResolvedValue({ Authorization: 'Bearer mock-token' }),
-	observedFetch: vi.fn(),
+	observedFetch: observedFetchMock,
 	toApiUrl: vi.fn((path: string) => path),
 }));
 
@@ -41,12 +49,13 @@ vi.mock('@/stores/store', () => ({
 		selector({
 			addToast: addToastMock,
 			setPersistenceState: setPersistenceStateMock,
+			setRemoteSaving: setRemoteSavingMock,
 		}),
 	),
 }));
 
 vi.mock('./canvas-container-utils', () => ({
-	getExportToBlob: vi.fn(),
+	getExportToBlob: vi.fn().mockResolvedValue(vi.fn().mockResolvedValue(new Blob())),
 	getThumbnailSignature: vi.fn().mockReturnValue('thumbnail-signature'),
 }));
 
@@ -71,6 +80,7 @@ describe('useCanvasPersistence', () => {
 		});
 		vi.clearAllMocks();
 		vi.useFakeTimers();
+		observedFetchMock.mockResolvedValue(new Response(null, { status: 200 }));
 	});
 
 	function wrapper({ children }: { children: ReactNode }) {
@@ -137,5 +147,53 @@ describe('useCanvasPersistence', () => {
 			message: 'Canvas changed in another session. Refresh before saving again.',
 			type: 'error',
 		});
+	});
+
+	it('flushes pending canvas changes at least once per minute during continuous edits', async () => {
+		putMock.mockResolvedValue(
+			new Response(JSON.stringify({ success: true, version: 9 }), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			}),
+		);
+
+		const { result } = renderHook(() => useCanvasPersistence({ canvasId: 'canvas-1' }), {
+			wrapper,
+		});
+		result.current.canvasVersionRef.current = 8;
+
+		const editedCanvasData = {
+			elements: [{ id: 'shape-1' }],
+			appState: {},
+			files: null,
+		};
+
+		for (let index = 0; index < 15; index += 1) {
+			act(() => {
+				result.current.scheduleServerSave(editedCanvasData);
+			});
+			await act(async () => {
+				vi.advanceTimersByTime(4000);
+			});
+		}
+
+		await act(async () => {
+			vi.advanceTimersByTime(1000);
+			await Promise.resolve();
+		});
+
+		expect(putMock).toHaveBeenCalledTimes(1);
+		expect(putMock).toHaveBeenCalledWith(
+			{
+				param: { id: 'canvas-1' },
+				json: {
+					elements: [{ id: 'shape-1' }],
+					appState: {},
+					files: null,
+					expectedVersion: 8,
+				},
+			},
+			{ headers: { Authorization: 'Bearer mock-token' } },
+		);
 	});
 });

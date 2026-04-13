@@ -82,4 +82,70 @@ describe('useCanvasInitialization', () => {
 		});
 		expect(syncAppStoreFromExcalidrawMock).toHaveBeenCalledTimes(1);
 	});
+
+	it('hydrates once async canvas data arrives after the first render', async () => {
+		const excalidrawApi = {
+			updateScene: vi.fn(),
+			addFiles: vi.fn(),
+			refresh: vi.fn(),
+		} as const;
+		const onInitialized = vi.fn();
+
+		type HookProps = {
+			excalidrawApi: typeof excalidrawApi | null;
+			status: 'pending' | 'success';
+			fetchStatus: 'fetching' | 'idle';
+			canvasQueryData: unknown;
+		};
+
+		const { rerender } = renderHook<ReturnType<typeof useCanvasInitialization>, HookProps>(
+			(props: HookProps) =>
+				useCanvasInitialization({
+					canvasId: 'canvas-1',
+					excalidrawApi: props.excalidrawApi as never,
+					status: props.status,
+					fetchStatus: props.fetchStatus,
+					canvasQueryData: props.canvasQueryData,
+					loadSnapshot: () => null,
+					onInitialized,
+				}),
+			{
+				initialProps: {
+					excalidrawApi: null,
+					status: 'pending',
+					fetchStatus: 'fetching',
+					canvasQueryData: null,
+				} satisfies HookProps,
+			},
+		);
+
+		rerender({
+			excalidrawApi,
+			status: 'success',
+			fetchStatus: 'idle',
+			canvasQueryData: {
+				canvas: {
+					updatedAt: '2026-03-22T00:00:00.000Z',
+				},
+				data: {
+					elements: [{ id: 'remote-delayed' }],
+					appState: { viewBackgroundColor: '#f5f5f5' },
+					files: null,
+				},
+			},
+		});
+
+		await waitFor(() => {
+			expect(excalidrawApi.updateScene).toHaveBeenCalledWith({
+				elements: [{ id: 'remote-delayed' }],
+				appState: { viewBackgroundColor: '#f5f5f5' },
+			});
+		});
+
+		expect(onInitialized).toHaveBeenCalledWith({
+			elements: [{ id: 'remote-delayed' }],
+			appState: { viewBackgroundColor: '#f5f5f5' },
+			files: null,
+		});
+	});
 });

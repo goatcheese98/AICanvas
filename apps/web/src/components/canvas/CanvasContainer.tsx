@@ -22,9 +22,10 @@ interface CanvasContainerProps {
 export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 	const excalidrawApi = useAppStore((s) => s.excalidrawApi);
 
-	const { collaboration, handleSaveNeeded, normalizeSceneChange } = useCanvasContainerState({
+	const { collaboration, handleSaveNeeded, saveCanvasNow, normalizeSceneChange } =
+		useCanvasContainerState({
 		canvasId,
-	});
+		});
 
 	return (
 		<div className="relative h-full w-full overflow-hidden">
@@ -38,7 +39,7 @@ export function CanvasContainer({ canvasId }: CanvasContainerProps) {
 			{excalidrawApi && <CanvasNotesLayer />}
 			{excalidrawApi && <AIVectorSelectionOverlay />}
 			{excalidrawApi && <ExpandedOverlayLayer />}
-			<CanvasUI canvasId={canvasId} collaboration={collaboration} />
+			<CanvasUI canvasId={canvasId} collaboration={collaboration} onSaveCanvas={saveCanvasNow} />
 		</div>
 	);
 }

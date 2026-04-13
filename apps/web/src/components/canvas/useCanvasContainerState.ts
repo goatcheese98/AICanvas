@@ -1,5 +1,4 @@
 import { useCollaboration } from '@/hooks/useCollaboration';
-import { useMountEffect } from '@/hooks/useMountEffect';
 import { api, getRequiredAuthHeaders } from '@/lib/api';
 import { useAppStore } from '@/stores/store';
 import { useAuth } from '@clerk/clerk-react';
@@ -7,6 +6,7 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import type { UseQueryResult } from '@tanstack/react-query';
 import { useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect } from 'react';
 
 import { buildPersistedCanvasData, readCanvasVersion } from './canvas-persistence-utils';
 import { useCanvasInitialization } from './useCanvasInitialization';
@@ -24,6 +24,7 @@ interface UseCanvasContainerStateReturn {
 		appState: AppState,
 		files: BinaryFiles,
 	) => void;
+	saveCanvasNow: () => Promise<void>;
 	normalizeSceneChange: (
 		nextElements: readonly ExcalidrawElement[],
 		nextAppState: AppState,
@@ -99,13 +100,13 @@ export function useCanvasContainerState({
 	});
 
 	// Reset on canvasId change
-	useMountEffect(() => {
+	useEffect(() => {
 		persistence.latestSceneRef.current = null;
 		persistence.coordinatorRef.current?.cancelPendingSave();
-	});
+	}, [canvasId, persistence.coordinatorRef, persistence.latestSceneRef]);
 
 	// Cleanup on unmount
-	useMountEffect(() => {
+	useEffect(() => {
 		return () => {
 			const coordinator = persistence.coordinatorRef.current;
 			const latestData = persistence.latestSceneRef.current;
@@ -117,7 +118,15 @@ export function useCanvasContainerState({
 			}
 			persistence.cleanup();
 		};
-	});
+	}, [
+		canvasId,
+		isInitializedRef,
+		persistence.cleanup,
+		persistence.coordinatorRef,
+		persistence.forceServerSave,
+		persistence.hasPendingServerSaveRef,
+		persistence.latestSceneRef,
+	]);
 
 	// Save handler
 	const handleSaveNeeded = (
@@ -138,9 +147,54 @@ export function useCanvasContainerState({
 		persistence.scheduleServerSave(data);
 	};
 
+	const saveCanvasNow = useCallback(async () => {
+		if (!isInitializedRef.current) {
+			addToast({
+				message: 'Canvas is still loading. Try again in a moment.',
+				type: 'info',
+			});
+			return;
+		}
+
+		const latestData = persistence.latestSceneRef.current;
+		if (!latestData) {
+			addToast({
+				message: 'Nothing to save yet.',
+				type: 'info',
+			});
+			return;
+		}
+
+		persistence.coordinatorRef.current?.forceSave(latestData, canvasId);
+		const didSave = await persistence.forceServerSave(latestData);
+		if (didSave) {
+			addToast({
+				message: 'Canvas saved.',
+				type: 'success',
+			});
+			return;
+		}
+
+		if (!persistence.hasVersionConflictRef.current) {
+			addToast({
+				message: 'Save failed. Changes remain available locally.',
+				type: 'error',
+			});
+		}
+	}, [
+		addToast,
+		canvasId,
+		isInitializedRef,
+		persistence.coordinatorRef,
+		persistence.forceServerSave,
+		persistence.hasVersionConflictRef,
+		persistence.latestSceneRef,
+	]);
+
 	return {
 		collaboration,
 		handleSaveNeeded,
+		saveCanvasNow,
 		normalizeSceneChange: tools.normalizeSceneChange,
 		isInitialized,
 		canvasQueryData,

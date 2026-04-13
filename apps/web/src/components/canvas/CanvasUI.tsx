@@ -9,6 +9,7 @@ import { useOutsideClick } from './useOutsideClick';
 
 interface CanvasUIProps {
 	canvasId: string;
+	onSaveCanvas: () => Promise<void>;
 	collaboration: {
 		isCollaborating: boolean;
 		collaborators: Map<string, { username?: string }>;
@@ -22,7 +23,7 @@ interface CanvasUIProps {
 	};
 }
 
-export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
+export function CanvasUI({ canvasId, onSaveCanvas, collaboration }: CanvasUIProps) {
 	const {
 		activePanel,
 		setActivePanel,
@@ -83,6 +84,7 @@ export function CanvasUI({ canvasId, collaboration }: CanvasUIProps) {
 				onStartChatPanelResize={startChatPanelResize}
 				onStartChatHeightResize={startChatHeightResize}
 				canvasId={canvasId}
+				onSaveCanvas={onSaveCanvas}
 				collaboration={collaboration}
 			/>
 

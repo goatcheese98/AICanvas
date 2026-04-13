@@ -11,6 +11,7 @@ interface CanvasSlice {
 	appState: Partial<AppState>;
 	files: BinaryFiles;
 	isSaving: boolean;
+	isRemoteSaving: boolean;
 	lastSaved: Date | null;
 	hasUnsavedChanges: boolean;
 	setExcalidrawApi: (api: ExcalidrawImperativeAPI) => void;
@@ -18,6 +19,7 @@ interface CanvasSlice {
 	setAppState: (appState: Partial<AppState>) => void;
 	setFiles: (files: BinaryFiles) => void;
 	setPersistenceState: (state: PersistenceState) => void;
+	setRemoteSaving: (isRemoteSaving: boolean) => void;
 }
 
 const INITIAL_APP_STATE: Partial<AppState> = {
@@ -32,6 +34,7 @@ const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> = (set) 
 	appState: INITIAL_APP_STATE,
 	files: {},
 	isSaving: false,
+	isRemoteSaving: false,
 	lastSaved: null,
 	hasUnsavedChanges: false,
 
@@ -42,6 +45,7 @@ const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> = (set) 
 	setFiles: (files) => set({ files }),
 	setPersistenceState: ({ isSaving, lastSaved, hasUnsavedChanges }) =>
 		set({ isSaving, lastSaved, hasUnsavedChanges }),
+	setRemoteSaving: (isRemoteSaving) => set({ isRemoteSaving }),
 });
 
 function createTestStore() {
@@ -76,6 +80,7 @@ describe('canvasSlice', () => {
 
 		it('has default persistence state', () => {
 			expect(store.getState().isSaving).toBe(false);
+			expect(store.getState().isRemoteSaving).toBe(false);
 			expect(store.getState().lastSaved).toBeNull();
 			expect(store.getState().hasUnsavedChanges).toBe(false);
 		});
@@ -206,6 +211,16 @@ describe('canvasSlice', () => {
 			expect(state.isSaving).toBe(false);
 			expect(state.lastSaved).toBe(now);
 			expect(state.hasUnsavedChanges).toBe(false);
+		});
+	});
+
+	describe('setRemoteSaving', () => {
+		it('tracks remote save activity independently from local save state', () => {
+			store.getState().setRemoteSaving(true);
+			expect(store.getState().isRemoteSaving).toBe(true);
+
+			store.getState().setRemoteSaving(false);
+			expect(store.getState().isRemoteSaving).toBe(false);
 		});
 	});
 });

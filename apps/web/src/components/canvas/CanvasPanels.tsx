@@ -16,6 +16,7 @@ interface CanvasPanelsProps {
 	onStartChatPanelResize: (event: React.PointerEvent<HTMLDivElement>) => void;
 	onStartChatHeightResize: (event: React.PointerEvent<HTMLDivElement>) => void;
 	canvasId: string;
+	onSaveCanvas: () => Promise<void>;
 	collaboration: {
 		isCollaborating: boolean;
 		collaborators: Map<string, { username?: string }>;
@@ -39,6 +40,7 @@ export function CanvasPanels({
 	onStartChatPanelResize,
 	onStartChatHeightResize,
 	canvasId,
+	onSaveCanvas,
 	collaboration,
 }: CanvasPanelsProps) {
 	const { user } = useUser();
@@ -64,6 +66,7 @@ export function CanvasPanels({
 							profileEmail={profileEmail}
 							userImageUrl={user?.imageUrl}
 							collaboration={collaboration}
+							onSaveCanvas={onSaveCanvas}
 							onNavigateDashboard={() => void navigate({ to: '/dashboard' })}
 						/>
 					</PanelShell>
