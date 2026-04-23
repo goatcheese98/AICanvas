@@ -14,7 +14,6 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { Database } from '../../db/client';
 import { assistantRunEvents, assistantRuns, assistantThreads } from '../../db/schema';
-import { updateAssistantThreadRecord } from './thread-repository';
 import { summarizeAssistantThreadTitle } from './transforms';
 import { toAssistantRun, toAssistantRunEvent } from './transforms';
 
@@ -128,9 +127,12 @@ export async function updateAssistantRunRecord(
 
 	const run = await getAssistantRunRecord(db, userId, runId);
 	if (run?.request.threadId) {
-		await updateAssistantThreadRecord(db, userId, run.request.threadId, {
-			touchUpdatedAt: true,
-		});
+		await db
+			.update(assistantThreads)
+			.set({ updatedAt: new Date() })
+			.where(
+				and(eq(assistantThreads.id, run.request.threadId), eq(assistantThreads.userId, userId)),
+			);
 	}
 
 	return run;

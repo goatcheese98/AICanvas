@@ -1,26 +1,10 @@
 import type { AppEnv } from '../../types';
+import type { GeneratedImageAsset, VectorizedAsset } from './media-types';
 import {
 	generateCloudflareImageAsset,
 	generateOpenRouterImageAsset,
 	vectorizeWithHttpTool,
 } from './providers';
-
-export interface GeneratedImageAsset {
-	bytes: ArrayBuffer;
-	mimeType: string;
-	provider: 'cloudflare' | 'openrouter';
-	model: string;
-	prompt: string;
-	revisedPrompt?: string;
-}
-
-export interface VectorizedAsset {
-	content: string;
-	mimeType: 'image/svg+xml';
-	provider: 'http-tool';
-	tool: string;
-	model?: string;
-}
 
 export async function generateImageAsset(
 	bindings: AppEnv['Bindings'],

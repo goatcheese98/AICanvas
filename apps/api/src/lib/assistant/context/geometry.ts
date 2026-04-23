@@ -4,9 +4,7 @@
 
 import type { AssistantCanvasBounds, CanvasElement } from '@ai-canvas/shared/types';
 import type { AssistantCanvasStyleHints } from '@ai-canvas/shared/types';
-import { SELECTION_ENVIRONMENT_LIMIT } from './constants';
-import { buildElementSummary, compareByPriorityAndLabel } from './context-builders';
-import { toElementId, toObjectRecord } from './element-parsers';
+import { toObjectRecord } from './element-parsers';
 
 /** Build bounds from element position and dimensions */
 export function buildBounds(element: CanvasElement): AssistantCanvasBounds | undefined {
@@ -85,44 +83,4 @@ export function getSelectionBounds(elements: CanvasElement[]): AssistantCanvasBo
 		width: Math.max(0, right - left),
 		height: Math.max(0, bottom - top),
 	};
-}
-
-/** Calculate distance between two rectangles */
-function rectDistance(a: AssistantCanvasBounds, b: AssistantCanvasBounds): number {
-	const dx = Math.max(0, a.x - (b.x + b.width), b.x - (a.x + a.width));
-	const dy = Math.max(0, a.y - (b.y + b.height), b.y - (a.y + a.height));
-	return Math.sqrt(dx * dx + dy * dy);
-}
-
-/** Build selection environment - nearby elements sorted by distance */
-export function buildSelectionEnvironment(
-	elements: CanvasElement[],
-	selectedIdSet: Set<string>,
-	selectedBounds?: AssistantCanvasBounds,
-): import('@ai-canvas/shared/types').AssistantCanvasElementSummary[] | undefined {
-	if (!selectedBounds) {
-		return undefined;
-	}
-
-	const candidates = elements
-		.filter((element) => {
-			const id = toElementId(element);
-			return id ? !selectedIdSet.has(id) : false;
-		})
-		.map((element) => {
-			const bounds = buildBounds(element);
-			const distance = bounds ? rectDistance(selectedBounds, bounds) : Number.POSITIVE_INFINITY;
-			return { element, distance };
-		})
-		.filter((candidate) => Number.isFinite(candidate.distance))
-		.sort((left, right) => {
-			if (left.distance !== right.distance) {
-				return left.distance - right.distance;
-			}
-			return compareByPriorityAndLabel(left.element, right.element);
-		})
-		.slice(0, SELECTION_ENVIRONMENT_LIMIT)
-		.map((candidate) => buildElementSummary(candidate.element, candidate.distance));
-
-	return candidates.length > 0 ? candidates : undefined;
 }

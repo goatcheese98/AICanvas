@@ -1,7 +1,7 @@
 import { normalizeSceneElements } from '@/components/canvas/scene-element-normalizer';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import { type CanvasTourGuideOverlay, canvasTourChapters } from './canvas-tour-content';
-import type { CameraTarget } from './useCanvasTourSceneController';
+import type { CameraTarget } from './tour-types';
 
 export interface RegisteredTourSceneSnapshot {
 	sceneId: string;

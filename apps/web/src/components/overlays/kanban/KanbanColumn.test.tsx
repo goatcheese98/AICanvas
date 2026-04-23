@@ -1,7 +1,7 @@
 import type { KanbanColumn as KanbanColumnType } from '@ai-canvas/shared/types';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { KanbanColumn } from './KanbanColumn';
+import KanbanColumn from './KanbanColumn';
 
 function createColumn(overrides?: Partial<KanbanColumnType>): KanbanColumnType {
 	return {

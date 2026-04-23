@@ -94,28 +94,6 @@ export async function listAssistantThreadsRecord(
 	return threads;
 }
 
-export async function updateAssistantThreadRecord(
-	db: Database,
-	userId: string,
-	threadId: string,
-	patch: {
-		title?: string;
-		touchUpdatedAt?: boolean;
-	},
-): Promise<AssistantThread | null> {
-	const nextTitle = patch.title !== undefined ? normalizeThreadTitle(patch.title) : undefined;
-
-	await db
-		.update(assistantThreads)
-		.set({
-			title: nextTitle,
-			updatedAt: patch.touchUpdatedAt || nextTitle !== undefined ? new Date() : undefined,
-		})
-		.where(and(eq(assistantThreads.id, threadId), eq(assistantThreads.userId, userId)));
-
-	return getAssistantThreadRecord(db, userId, threadId);
-}
-
 export async function deleteAssistantThreadRecord(
 	db: Database,
 	userId: string,

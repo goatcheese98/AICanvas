@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 /**
  * Link icon component for the floating toolbar.
  */
-export function LinkIcon(): ReactElement {
+export function FloatingLinkIcon(): ReactElement {
 	return (
 		<svg
 			width="13"

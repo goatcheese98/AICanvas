@@ -1,9 +1,9 @@
 import { OverlaySurface } from '@/components/overlays/overlay-surface';
-import { Route as CanvasRoute } from '@/routes/_app/canvas.$id';
 import { useAppStore } from '@/stores/store';
 import { normalizePrototypeOverlay } from '@ai-canvas/shared/schemas';
 import type { PrototypeOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { useParams } from '@tanstack/react-router';
 import { useMemo } from 'react';
 import { OverlayExpandButton } from '../OverlayExpandButton';
 import { PrototypeStudioEditor } from './PrototypeStudioEditor';
@@ -39,7 +39,7 @@ function getPreviewStatusLabel(status: 'idle' | 'compiling' | 'running' | 'ready
 }
 
 export function PrototypeNote({ element, isSelected, mode, onChange }: PrototypeNoteProps) {
-	const { id: canvasId } = CanvasRoute.useParams();
+	const { id: canvasId } = useParams({ strict: false }) as { id: string };
 	const openExpandedOverlay = useAppStore((s) => s.openExpandedOverlay);
 	const prototype = useMemo(
 		() => normalizePrototypeOverlay(element.customData),

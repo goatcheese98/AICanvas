@@ -1,6 +1,6 @@
 import type { CanvasTourChapter, CanvasTourGuideOverlay } from './canvas-tour-content';
 import type { RegisteredTourSceneSnapshot } from './canvas-tour-registry';
-import type { CameraTarget } from './useCanvasTourSceneController';
+import type { CameraTarget } from './tour-types';
 
 /**
  * Props for the CanvasTourLayoutPanel component.

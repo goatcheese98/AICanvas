@@ -14,7 +14,7 @@ import {
 	listAssistantTasksRecord,
 } from '../store';
 import { resolveSourceArtifactForTask } from '../task-execution';
-import type { TaskHandlerContext, TaskHandlerResult } from './index';
+import type { TaskHandlerContext, TaskHandlerResult } from './task-handler-types';
 
 export async function executeVectorizationTask(
 	task: AssistantTask,

@@ -1,3 +1,4 @@
+// fallow-ignore-file duplicate-exports
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 import type { FormEvent, MouseEvent } from 'react';
 import { useMemo } from 'react';
@@ -88,7 +89,7 @@ function ChecklistIcon() {
 	);
 }
 
-export function KanbanCardSummary({
+function KanbanCardSummaryView({
 	card,
 	titleDraft,
 	fontSize,
@@ -432,3 +433,5 @@ export function KanbanCardSummary({
 		</>
 	);
 }
+
+export default KanbanCardSummaryView;

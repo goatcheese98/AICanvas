@@ -241,5 +241,11 @@ describe('assistant task execution helpers', () => {
 		expect(createImageGenerationInput('draw an elephant', 'sketch').prompt).toContain(
 			'dark contour lines should be continuous, smooth, and flow naturally',
 		);
+		expect(createImageGenerationInput('draw an elephant', 'image').prompt).toContain(
+			'preserve the subject in color unless the user explicitly asks for monochrome, grayscale, black-and-white, or silhouette-only treatment',
+		);
+		expect(createImageGenerationInput('draw an elephant', 'image').prompt).toContain(
+			'render the subject in full color with a deliberate palette that matches the request rather than defaulting to grayscale or black ink',
+		);
 	});
 });

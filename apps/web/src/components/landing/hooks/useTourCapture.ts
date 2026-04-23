@@ -20,7 +20,7 @@ import {
 	loadRegisteredTourScenes,
 	persistRegisteredTourScenes,
 } from '../canvas-tour-registry';
-import type { CameraTarget, CanvasSceneSnapshot } from '../useCanvasTourSceneController';
+import type { CameraTarget, CanvasSceneSnapshot } from '../tour-types';
 
 export type CaptureMode = 'full' | 'camera' | 'elements';
 

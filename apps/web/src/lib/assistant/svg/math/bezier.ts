@@ -1,4 +1,4 @@
-import type { SvgPoint } from './points';
+import type { SvgPoint } from './types';
 
 const SAMPLE_LENGTH = 8;
 const MIN_CURVE_SEGMENTS = 6;

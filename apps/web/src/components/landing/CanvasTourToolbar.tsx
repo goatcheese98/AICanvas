@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { TourTool } from './useCanvasTourSceneController';
+import type { TourTool } from './tour-types';
 
 function ToolbarSvg({
 	children,

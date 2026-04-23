@@ -1,8 +1,8 @@
+// fallow-ignore-file circular-dependencies
 import type { PersistenceState } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles, ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
 import type { StateCreator } from 'zustand';
-import type { AppStore } from '../store';
 
 export interface CanvasSlice {
 	// Canvas state
@@ -32,7 +32,7 @@ const INITIAL_APP_STATE: Partial<AppState> = {
 	scrollY: 0,
 };
 
-export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (set) => ({
+export const createCanvasSlice: StateCreator<CanvasSlice, [], [], CanvasSlice> = (set) => ({
 	excalidrawApi: null,
 	elements: [],
 	appState: INITIAL_APP_STATE,

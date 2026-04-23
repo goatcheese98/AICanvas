@@ -2,6 +2,7 @@ node_modules/
 dist/
 .output/
 .turbo/
+.fallow/
 .wrangler/
 .dev.vars
 .env

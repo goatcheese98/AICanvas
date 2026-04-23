@@ -3,7 +3,7 @@ import type { AssistantTask } from '@ai-canvas/shared/types';
 import { saveAssistantAssetToR2 } from '../../storage/assistant-asset-storage';
 import { generateImageAsset } from '../media-adapters';
 import { createAssistantArtifactRecord } from '../store';
-import type { TaskHandlerContext, TaskHandlerResult } from './index';
+import type { TaskHandlerContext, TaskHandlerResult } from './task-handler-types';
 
 export async function executeImageGenerationTask(
 	task: AssistantTask,

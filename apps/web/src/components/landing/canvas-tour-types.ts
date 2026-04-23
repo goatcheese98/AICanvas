@@ -22,7 +22,7 @@ import type {
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
-} from './useCanvasTourSceneController';
+} from './tour-types';
 
 // =============================================================================
 // Core Refs and Data

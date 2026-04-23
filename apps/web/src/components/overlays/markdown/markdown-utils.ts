@@ -1,6 +1,4 @@
-import { MARKDOWN_IMAGE_SCHEME } from './markdown-media';
-
-export { MARKDOWN_IMAGE_SCHEME };
+export const MARKDOWN_IMAGE_SCHEME = 'image://';
 
 export function createMarkdownImageToken(imageId: string, alt = 'image'): string {
 	return `![${alt}](${MARKDOWN_IMAGE_SCHEME}${imageId})`;

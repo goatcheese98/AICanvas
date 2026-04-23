@@ -1,5 +1,5 @@
 import type { AssistantArtifact } from '@ai-canvas/shared/types';
-import { extractCodeBlock, normalizeLineEndings } from './assistant-artifact-text';
+import { extractArtifactCodeBlock, normalizeLineEndings } from './assistant-artifact-text';
 
 interface DiagramArtifactSource {
 	language: 'mermaid' | 'd2';
@@ -28,7 +28,7 @@ export function getDiagramArtifactSource(
 		return null;
 	}
 
-	const mermaidCode = extractCodeBlock(artifact.content, 'mermaid');
+	const mermaidCode = extractArtifactCodeBlock(artifact.content, 'mermaid');
 	if (mermaidCode) {
 		return {
 			language: 'mermaid',
@@ -36,7 +36,7 @@ export function getDiagramArtifactSource(
 		};
 	}
 
-	const d2Code = extractCodeBlock(artifact.content, 'd2');
+	const d2Code = extractArtifactCodeBlock(artifact.content, 'd2');
 	if (d2Code) {
 		return {
 			language: 'd2',

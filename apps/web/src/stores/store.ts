@@ -4,7 +4,7 @@ import { type CanvasSlice, createCanvasSlice } from './slices/canvasSlice';
 import { type ChatSlice, type ChatThread, createChatSlice } from './slices/chatSlice';
 import { type UiSlice, createUiSlice } from './slices/uiSlice';
 
-export type AppStore = CanvasSlice & ChatSlice & UiSlice;
+type AppStore = CanvasSlice & ChatSlice & UiSlice;
 
 function coercePersistedThreads(state: Partial<AppStore>, fallbackThreads: ChatThread[]) {
 	if (Array.isArray(state.chatThreads) && state.chatThreads.length > 0) {

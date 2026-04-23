@@ -1,5 +1,5 @@
 import { DEFAULT_TRACE_OPTIONS } from './raster/config';
-import { vectorizeImageDataToSvg as vectorizeImageData } from './raster/imagedata';
+import { vectorizeImageDataToSvgInternal } from './raster/imagedata';
 import { optimize, optimizeLayers, preprocess, serialize, trace } from './raster/stages';
 import type { RasterToSvgOptions } from './raster/types';
 import type {
@@ -34,7 +34,7 @@ export function vectorizeImageDataToSvg(
 	options?: RasterToSvgOptions,
 ): string {
 	const mergedOptions = mergeOptions(options);
-	return vectorizeImageData(imageData, mergedOptions);
+	return vectorizeImageDataToSvgInternal(imageData, mergedOptions);
 }
 
 // ─── Blob Path (Primary API) ────────────────────────────────────────────────────

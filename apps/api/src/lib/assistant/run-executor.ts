@@ -2,7 +2,6 @@ import type {
 	AssistantContextMode,
 	AssistantContextSnapshot,
 	AssistantMessage,
-	AssistantTask,
 	GenerationMode,
 	PrototypeOverlayCustomData,
 } from '@ai-canvas/shared/types';
@@ -18,9 +17,12 @@ import {
 	updateAssistantRunRecord,
 	updateAssistantTaskRecord,
 } from './store';
+import { publishTaskEvent } from './task-events';
 import { executeTask } from './task-handlers';
 
 type AssistantDb = ReturnType<typeof createDb>;
+
+export { publishTaskEvent } from './task-events';
 
 interface ExecuteAssistantRunInput {
 	canvasId: string;
@@ -33,34 +35,13 @@ interface ExecuteAssistantRunInput {
 	prototypeContext?: PrototypeOverlayCustomData;
 }
 
-async function findRunningTaskOrQueuedTask(
-	db: AssistantDb,
-	ownerId: string,
-	runId: string,
-): Promise<AssistantTask | null> {
+async function findRunningTaskOrQueuedTask(db: AssistantDb, ownerId: string, runId: string) {
 	const tasks = await listAssistantTasksRecord(db, ownerId, runId);
 	return (
 		tasks.find((task) => task.status === 'running') ??
 		tasks.find((task) => task.status === 'queued') ??
 		null
 	);
-}
-
-export async function publishTaskEvent(
-	db: AssistantDb,
-	ownerId: string,
-	task: AssistantTask,
-	type: 'task.created' | 'task.started' | 'task.completed' | 'task.failed',
-	taskStatus: AssistantTask['status'],
-) {
-	const event = await appendAssistantRunEventRecord(db, ownerId, task.runId, type, {
-		taskId: task.id,
-		taskType: task.type,
-		taskTitle: task.title,
-		taskStatus,
-		error: type === 'task.failed' ? task.error : undefined,
-	});
-	publishAssistantRunEvent(ownerId, task.runId, event);
 }
 
 export async function executeAssistantRun(

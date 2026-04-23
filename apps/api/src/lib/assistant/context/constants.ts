@@ -2,6 +2,7 @@
  * Constants for assistant context building
  */
 
+import { OVERLAY_TYPES as SHARED_OVERLAY_TYPES } from '@ai-canvas/shared/constants';
 import type { AssistantSelectedContext } from '@ai-canvas/shared/types';
 
 /** Priority map for context kinds (lower number = higher priority) */
@@ -15,7 +16,7 @@ export const SELECTION_CONTEXT_PRIORITY: Record<AssistantSelectedContext['kind']
 };
 
 /** Set of recognized overlay types */
-export const OVERLAY_TYPES = new Set(['markdown', 'kanban', 'prototype', 'web-embed', 'newlex']);
+export const OVERLAY_TYPE_SET = new Set<string>(SHARED_OVERLAY_TYPES);
 
 /** Set of overlay types that are editable */
 export const EDITABLE_OVERLAY_TYPES = new Set(['markdown', 'kanban', 'prototype']);

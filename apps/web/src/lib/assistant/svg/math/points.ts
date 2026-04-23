@@ -1,10 +1,5 @@
-import type { SvgMatrix } from './matrices';
 import { applySvgMatrix } from './matrices';
-
-export interface SvgPoint {
-	x: number;
-	y: number;
-}
+import type { SvgMatrix, SvgPoint } from './types';
 
 export function distance(a: SvgPoint, b: SvgPoint): number {
 	return Math.hypot(b.x - a.x, b.y - a.y);
@@ -107,11 +102,4 @@ export function distributePoints(points: SvgPoint[], maxPoints: number) {
 
 export function transformPointCloud(points: SvgPoint[], matrix: SvgMatrix) {
 	return points.map((point) => applySvgMatrix(point, matrix));
-}
-
-function scalePointCloud(points: SvgPoint[], scale: number) {
-	return points.map((point) => ({
-		x: point.x * scale,
-		y: point.y * scale,
-	}));
 }

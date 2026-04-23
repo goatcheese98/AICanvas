@@ -1,5 +1,5 @@
+import { compressImageDataUrl } from '@/lib/image-compression';
 import { useCallback, useRef } from 'react';
-import { compressImageDataUrl } from './markdown-media';
 import { appendBlock, createMarkdownImageToken } from './markdown-utils';
 
 interface InsertResult {

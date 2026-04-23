@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { TEXT_COLORS } from './floating-toolbar-utils';
+import { TEXT_COLORS } from '../lexical-toolbar-types';
 
 interface ColorPickerProps {
 	visible: boolean;

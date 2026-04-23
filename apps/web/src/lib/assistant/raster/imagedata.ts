@@ -186,7 +186,7 @@ interface ImageDataVectorizeOptions {
 	minPointCount: number;
 }
 
-export function vectorizeImageDataToSvg(
+export function vectorizeImageDataToSvgInternal(
 	imageData: ImageData,
 	options: ImageDataVectorizeOptions,
 ): string {

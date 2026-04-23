@@ -1,5 +1,5 @@
 import type { AppEnv } from '../../../types';
-import type { VectorizedAsset } from '../media-adapters';
+import type { VectorizedAsset } from '../media-types';
 
 interface VectorizationPayload {
 	svg?: string;

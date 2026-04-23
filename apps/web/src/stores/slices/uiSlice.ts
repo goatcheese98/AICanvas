@@ -1,5 +1,5 @@
+// fallow-ignore-file circular-dependencies
 import type { StateCreator } from 'zustand';
-import type { AppStore } from '../store';
 
 interface Toast {
 	id: string;
@@ -23,7 +23,7 @@ export interface UiSlice {
 	closeExpandedOverlay: () => void;
 }
 
-export const createUiSlice: StateCreator<AppStore, [], [], UiSlice> = (set) => ({
+export const createUiSlice: StateCreator<UiSlice, [], [], UiSlice> = (set) => ({
 	isSidebarOpen: false,
 	activePanel: 'none',
 	toasts: [],

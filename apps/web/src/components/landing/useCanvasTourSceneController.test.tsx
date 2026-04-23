@@ -3,12 +3,8 @@ import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFileData, BinaryFiles } from '@excalidraw/excalidraw/types';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-	type CameraTarget,
-	type CanvasSceneSnapshot,
-	type TourTool,
-	useCanvasTourSceneController,
-} from './useCanvasTourSceneController';
+import type { CameraTarget, CanvasSceneSnapshot, TourTool } from './tour-types';
+import { useCanvasTourSceneController } from './useCanvasTourSceneController';
 
 function createElement(id: string, x = 0, y = 0): ExcalidrawElement {
 	return {

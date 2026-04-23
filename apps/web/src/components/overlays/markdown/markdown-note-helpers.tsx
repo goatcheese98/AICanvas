@@ -9,7 +9,6 @@ import {
 } from '@ai-canvas/shared/schemas';
 import type { MarkdownEditorMode, MarkdownOverlayCustomData } from '@ai-canvas/shared/types';
 import type { ReactNode } from 'react';
-import { getRoundnessOptionId } from './markdown-utility-utils';
 
 export type MarkdownViewMode = MarkdownEditorMode | 'preview';
 export type UtilityPanel = 'none' | 'style' | 'image';
@@ -82,32 +81,6 @@ export const MAX_MARKDOWN_TITLE_LENGTH = 8;
 export const MARKDOWN_HEADER_HIDDEN_BREAKPOINT = 320;
 export const MARKDOWN_HEADER_FULL_BREAKPOINT = 570;
 export const TITLE_COMPACT_BREAKPOINT = 220;
-
-export const NOTE_EDGE_OPTIONS = [
-	{
-		id: 'square',
-		label: 'Square',
-		roundness: null,
-	},
-	{
-		id: 'rounded',
-		label: 'Rounded',
-		roundness: { type: 3, value: 18 } as const,
-	},
-	{
-		id: 'pill',
-		label: 'Pill',
-		roundness: { type: 1 } as const,
-	},
-] as const;
-
-function serializeImages(images: Record<string, string> | undefined) {
-	return JSON.stringify(images ?? {});
-}
-
-function serializeSettings(settings: MarkdownOverlayCustomData['settings']) {
-	return JSON.stringify(settings);
-}
 
 export function serializeNoteState(input: {
 	content: string;

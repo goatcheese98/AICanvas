@@ -2,7 +2,13 @@
  * Selected context building for assistant context
  */
 
-import { summarizeKanbanOverlay } from '@ai-canvas/shared/schemas';
+import {
+	normalizeKanbanOverlay,
+	normalizeMarkdownOverlay,
+	normalizePrototypeOverlay,
+	normalizeWebEmbedOverlay,
+	summarizeKanbanOverlay,
+} from '@ai-canvas/shared/schemas';
 import type {
 	AssistantCanvasElementSummary,
 	AssistantSelectedContext,
@@ -19,11 +25,7 @@ import {
 	getElementType,
 	getOverlayLikeType,
 	getOverlayType,
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
 	normalizeText,
-	normalizeWebEmbedOverlay,
 	parseGeneratedDiagramMetadata,
 	toObjectRecord,
 } from './element-parsers';

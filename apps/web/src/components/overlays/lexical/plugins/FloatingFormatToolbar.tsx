@@ -1,8 +1,8 @@
 import type { ReactElement } from 'react';
 import ReactDOM from 'react-dom';
+import { NOTE_FONT_STACK } from '../lexical-note-helpers';
 import { ColorPicker } from './ColorPicker';
 import { FloatingFormatToolbarUI } from './FloatingFormatToolbarUI';
-import { NOTE_FONT_STACK } from './floating-toolbar-utils';
 import { useFloatingFormatToolbarState } from './useFloatingFormatToolbarState';
 
 /**

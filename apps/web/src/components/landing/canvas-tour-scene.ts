@@ -5,11 +5,11 @@ import type { DemoScene, TourBindableNode, TourNodeKey } from './canvas-tour-sce
 export { TOUR_IMAGE_FILE_ID } from './canvas-tour-scene-data';
 import {
 	createArrowBetween,
-	createCanvasImageElement,
 	createCardFromConfig,
 	createFreeText,
 	createLooseShape,
 	createOverlayElement,
+	createTourCanvasImageElement,
 } from './canvas-tour-scene-utils';
 
 export function createCanvasTourScene(imageId: string): DemoScene {
@@ -88,7 +88,7 @@ export function createCanvasTourScene(imageId: string): DemoScene {
 
 		// Lecture clip section
 		createFreeText(DEFAULT_TOUR_SCENE_STATE.lectureClipLabel),
-		createCanvasImageElement({
+		createTourCanvasImageElement({
 			fileId: imageId as BinaryFileData['id'],
 			...DEFAULT_TOUR_SCENE_STATE.lectureClipImage,
 		}),

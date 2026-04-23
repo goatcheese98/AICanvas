@@ -1,8 +1,7 @@
 // Re-exports from organized svg modules for backward compatibility
 // See svg/math/ and svg/path/ for implementation details
 
-export type { SvgPoint } from './svg/math/points';
-export type { SvgMatrix } from './svg/math/matrices';
+export type { SvgPoint, SvgMatrix } from './svg/math/types';
 export type { SvgPathContour } from './svg/path/parsing';
 
 export { IDENTITY_MATRIX } from './svg/math/matrices';

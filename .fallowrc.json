@@ -1,0 +1,60 @@
+{
+	"dynamicallyLoaded": ["apps/web/src/test/setup.ts"],
+	"entry": ["workers/partykit/collab.ts"],
+	"ignoreExports": [
+		{
+			"file": "apps/web/src/components/canvas/CanvasContainer.tsx",
+			"exports": ["CanvasContainer"]
+		},
+		{
+			"file": "apps/web/src/components/experiments/OverlayRegressionPage.tsx",
+			"exports": ["OverlayRegressionPage"]
+		},
+		{
+			"file": "apps/web/src/components/prototype/PrototypeStudioPage.tsx",
+			"exports": ["PrototypeStudioPage"]
+		}
+	],
+	"overrides": [
+		{
+			"files": [
+				"apps/web/src/components/overlays/lexical/nodes/EquationNode.ts",
+				"apps/web/src/components/overlays/lexical/nodes/ImageNode.tsx",
+				"apps/web/src/lib/persistence/CanvasPersistenceCoordinator.ts"
+			],
+			"rules": {
+				"unused-class-members": "off"
+			}
+		},
+		{
+			"files": [
+				"apps/web/src/components/overlays/kanban/KanbanCard.tsx",
+				"apps/web/src/components/overlays/kanban/KanbanCardSummary.tsx",
+				"apps/web/src/components/overlays/kanban/KanbanColumn.tsx"
+			],
+			"rules": {
+				"duplicate-exports": "off"
+			}
+		},
+		{
+			"files": [
+				"apps/web/src/components/overlays/lexical/nodes/ImageComponent.tsx",
+				"apps/web/src/components/overlays/lexical/nodes/ImageNode.tsx"
+			],
+			"rules": {
+				"circular-dependencies": "off"
+			}
+		},
+		{
+			"files": [
+				"apps/web/src/stores/store.ts",
+				"apps/web/src/stores/slices/canvasSlice.ts",
+				"apps/web/src/stores/slices/chatSlice.ts",
+				"apps/web/src/stores/slices/uiSlice.ts"
+			],
+			"rules": {
+				"circular-dependencies": "off"
+			}
+		}
+	]
+}

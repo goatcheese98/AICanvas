@@ -1,6 +1,6 @@
-import type { ArtifactCardProps } from '../AIChatArtifactCard';
 import { CodeSnippet } from '../AIChatArtifactPrimitives';
 import { PANEL_BUTTON, PANEL_BUTTON_DANGER } from '../ai-chat-constants';
+import type { ArtifactCardProps } from './artifact-card-types';
 
 export function PrototypeArtifactCard({
 	artifact,

@@ -4,7 +4,7 @@ import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { buildAssistantContextSnapshot } from '../lib/assistant/context';
-import { executeAssistantRun, publishTaskEvent } from '../lib/assistant/run-executor';
+import { executeAssistantRun } from '../lib/assistant/run-executor';
 import { publishAssistantRunEvent } from '../lib/assistant/runtime-store';
 import { generateAssistantResponse } from '../lib/assistant/service';
 import {
@@ -20,6 +20,7 @@ import {
 	listAssistantTasksRecord,
 	listAssistantThreadsRecord,
 } from '../lib/assistant/store';
+import { publishTaskEvent } from '../lib/assistant/task-events';
 import { createDb } from '../lib/db/client';
 import { canvases } from '../lib/db/schema';
 import { logApiEvent } from '../lib/observability';

@@ -1,7 +1,7 @@
 import { canvasSchemas } from '@ai-canvas/shared/schemas';
 import { getCanvasTitleKey } from '@ai-canvas/shared/schemas';
 import type { Canvas } from '@ai-canvas/shared/types';
-import type { CanvasFormState } from './useCanvasLibraryState';
+import type { CanvasFormState } from './canvas-library-types';
 
 interface ValidationResult {
 	valid: boolean;

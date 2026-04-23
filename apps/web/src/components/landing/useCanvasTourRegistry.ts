@@ -26,11 +26,9 @@ import type {
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
-} from './useCanvasTourSceneController';
+} from './tour-types';
 
-interface UseCanvasTourRegistryResult
-	extends CanvasTourRegistryState,
-		CanvasTourRegistryActions {
+interface UseCanvasTourRegistryResult extends CanvasTourRegistryState, CanvasTourRegistryActions {
 	activeChapter: CanvasTourChapter;
 	defaultScene: { elements: unknown[]; imageId: BinaryFileData['id'] };
 	getDefaultSceneForId: (sceneId: string) => RegisteredTourSceneSnapshot;

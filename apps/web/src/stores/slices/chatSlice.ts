@@ -1,6 +1,6 @@
+// fallow-ignore-file circular-dependencies
 import type { AssistantMessage, GenerationMode } from '@ai-canvas/shared/types';
 import type { StateCreator } from 'zustand';
-import type { AppStore } from '../store';
 
 export interface ChatThread {
 	id: string;
@@ -82,7 +82,7 @@ export interface ChatSlice {
 	setGenerationMode: (mode: GenerationMode) => void;
 }
 
-export const createChatSlice: StateCreator<AppStore, [], [], ChatSlice> = (set) => ({
+export const createChatSlice: StateCreator<ChatSlice, [], [], ChatSlice> = (set) => ({
 	messages: [],
 	chatThreads: [createChatThread()],
 	activeChatThreadId: null,
