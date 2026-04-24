@@ -23,8 +23,6 @@ export {
 	normalizePrototypeOverlay,
 	normalizeOverlayCustomData,
 	isOverlayCustomData,
-	type MarkdownNoteSettingsInput,
-	type MarkdownOverlayInput,
 } from './overlay';
 export { userSchemas, type UserPreferences } from './user';
 export {

@@ -1,27 +1,9 @@
-import type { AssistantContextMode, AssistantTask } from '@ai-canvas/shared/types';
-import type { AppEnv } from '../../../types';
-import type { createDb } from '../../db/client';
+import type { AssistantTask } from '@ai-canvas/shared/types';
+import { publishTaskEvent } from '../task-events';
 import { executeAssistantResponseTask } from './assistant-response';
 import { executeImageGenerationTask } from './image-generation';
+import type { TaskHandlerContext, TaskHandlerResult } from './task-handler-types';
 import { executeVectorizationTask } from './vectorization';
-
-export type AssistantDb = ReturnType<typeof createDb>;
-
-export interface TaskHandlerContext {
-	db: AssistantDb;
-	bindings: AppEnv['Bindings'];
-	ownerId: string;
-	runId: string;
-	message: string;
-	contextMode: AssistantContextMode;
-	history: import('@ai-canvas/shared/types').AssistantMessage[] | undefined;
-	contextSnapshot: import('@ai-canvas/shared/types').AssistantContextSnapshot | undefined;
-	prototypeContext: import('@ai-canvas/shared/types').PrototypeOverlayCustomData | undefined;
-}
-
-export interface TaskHandlerResult {
-	output: AssistantTask['output'];
-}
 
 export async function executeTask(
 	task: AssistantTask,
@@ -82,7 +64,6 @@ async function executePlanRunTask(
 			title: t.title,
 			input: t.input,
 		});
-		const { publishTaskEvent } = await import('../run-executor');
 		await publishTaskEvent(ctx.db, ctx.ownerId, queuedTask, 'task.created', 'queued');
 	}
 
@@ -237,7 +218,3 @@ async function executeRunVerificationTask(
 		},
 	};
 }
-
-export { executeImageGenerationTask } from './image-generation';
-export { executeVectorizationTask } from './vectorization';
-export { executeAssistantResponseTask } from './assistant-response';

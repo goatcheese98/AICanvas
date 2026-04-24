@@ -14,7 +14,7 @@ const SELECTION_DEPENDENT_PROMPT_PATTERN =
 const SELECTION_TRANSFORM_PROMPT_PATTERN =
 	/\b(change|convert|edit|expand|fix|improve|make|organize|refine|rename|rewrite|shorten|summarize|transform|turn|update)\b/i;
 
-export interface SelectionIndicator {
+interface SelectionIndicator {
 	count: number;
 	label: string;
 	detail: string;

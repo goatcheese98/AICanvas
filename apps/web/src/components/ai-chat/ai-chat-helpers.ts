@@ -21,7 +21,7 @@ export function buildConversationHistory(messages: AssistantMessage[]): Assistan
 	}));
 }
 
-export function looksLikePatchProposalContent(content: string): boolean {
+function looksLikePatchProposalContent(content: string): boolean {
 	return /(apply this patch|ready to apply|reversible changes|reversible selection edits|use the patch cards below|kanban update applied|patch successfully applied)/i.test(
 		content,
 	);
@@ -75,14 +75,14 @@ export function canApplyMessageAsPrototype(_message: AssistantMessage): boolean 
 	return false;
 }
 
-export function extractCodeBlock(content: string, language: string): string | null {
+function extractCodeBlock(content: string, language: string): string | null {
 	const pattern = new RegExp(`\\\`\\\`\\\`${language}\\s*([\\s\\S]*?)\\\`\\\`\\\``, 'i');
 	const match = content.match(pattern);
 	const value = match?.[1]?.trim();
 	return value ? value : null;
 }
 
-export function extractSvgFromMessageContent(message: AssistantMessage): string | null {
+function extractSvgFromMessageContent(message: AssistantMessage): string | null {
 	return message.role === 'assistant' ? extractCodeBlock(message.content, 'svg') : null;
 }
 

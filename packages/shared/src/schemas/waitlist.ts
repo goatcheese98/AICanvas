@@ -6,12 +6,12 @@ const waitlistEmailSchema = z
 	.toLowerCase()
 	.email('Enter a valid work email address.');
 
-export const joinWaitlistSchema = z.object({
+const joinWaitlistSchema = z.object({
 	email: waitlistEmailSchema,
 	source: z.enum(['landing-hero', 'landing-footer']),
 });
 
-export const joinWaitlistResponseSchema = z.object({
+const joinWaitlistResponseSchema = z.object({
 	status: z.enum(['created', 'duplicate']),
 	message: z.string().min(1),
 });

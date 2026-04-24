@@ -22,13 +22,13 @@ import type {
 	CameraTarget,
 	CanvasSceneSnapshot,
 	TourTool,
-} from './useCanvasTourSceneController';
+} from './tour-types';
 
 // =============================================================================
 // Core Refs and Data
 // =============================================================================
 
-export interface CanvasTourCoreRefs {
+interface CanvasTourCoreRefs {
 	imageId: BinaryFileData['id'];
 	activeChapter: CanvasTourChapter;
 	defaultScene: { elements: unknown[]; imageId: BinaryFileData['id'] };
@@ -149,7 +149,7 @@ export interface CanvasTourOverlayPlacementActions {
 // Computed Registry State
 // =============================================================================
 
-export interface CanvasTourRegistryComputedState {
+interface CanvasTourRegistryComputedState {
 	showRegistryControls: boolean;
 	selectedRegistryChapter: CanvasTourChapter;
 	selectedRegisteredScene: RegisteredTourSceneSnapshot | null;

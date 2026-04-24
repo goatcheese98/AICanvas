@@ -1,6 +1,6 @@
 import type { TextFormatType } from 'lexical';
 import type { ReactElement } from 'react';
-import { LinkIcon } from './LinkIcon';
+import { FloatingLinkIcon } from './LinkIcon';
 import type { ToolbarFormatState } from './useFloatingFormatToolbarState';
 
 interface FloatingFormatToolbarUIProps {
@@ -163,7 +163,7 @@ export function FloatingFormatToolbarUI({
 
 			{/* Link toggle */}
 			<button type="button" style={buttonStyle(isLink)} onClick={onToggleLink} title="Toggle link">
-				<LinkIcon />
+				<FloatingLinkIcon />
 			</button>
 		</div>
 	);

@@ -24,13 +24,9 @@ import { useCollabCollaborators } from './useCollabCollaborators';
 import { useCollabEncryption } from './useCollabEncryption';
 import { useCollabWebSocket } from './useCollabWebSocket';
 
-export type { CollaboratorState, CollabFile, RemoteElement } from './collaboration-session';
-
-export type CollaborationOptions = {
+type CollaborationOptions = {
 	onError?: (message: string) => void;
 };
-
-export type { CollaborationOptions as CollaborationOptionsType };
 
 interface PendingScene {
 	elements: RemoteElement[];

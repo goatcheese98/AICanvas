@@ -1,8 +1,7 @@
-import { useMountEffect } from '@/hooks/useMountEffect';
 import type { CanvasStorageSnapshot } from '@/lib/persistence/CanvasPersistenceCoordinator';
 import { useAppStore } from '@/stores/store';
 import type { ExcalidrawImperativeAPI } from '@excalidraw/excalidraw/types';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import {
 	toBinaryFileList,
@@ -63,11 +62,11 @@ export function useCanvasInitialization({
 }: UseCanvasInitializationProps): UseCanvasInitializationReturn {
 	const isInitializedRef = useRef(false);
 
-	useMountEffect(() => {
+	useEffect(() => {
 		isInitializedRef.current = false;
-	});
+	}, [canvasId]);
 
-	useMountEffect(() => {
+	useEffect(() => {
 		if (isInitializedRef.current || !excalidrawApi) return;
 		if (shouldWaitForCanvasHydration(status, fetchStatus)) return;
 
@@ -170,7 +169,7 @@ export function useCanvasInitialization({
 		});
 
 		isInitializedRef.current = true;
-	});
+	}, [canvasId, canvasQueryData, excalidrawApi, fetchStatus, loadSnapshot, onInitialized, status]);
 
 	return {
 		isInitialized: isInitializedRef.current,

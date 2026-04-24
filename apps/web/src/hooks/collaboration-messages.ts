@@ -13,7 +13,7 @@ import {
 	pruneCollaboratorsBySocketIds,
 } from './collaboration-session';
 
-export interface CollaborationMessageDependencies {
+interface CollaborationMessageDependencies {
 	getApi: () => CollaborationApi | null;
 	getKey: () => CryptoKey | null;
 	getRoomId: () => string | null;

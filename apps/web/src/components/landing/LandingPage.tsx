@@ -219,8 +219,33 @@ export function LandingPage() {
 										<p className="landing-scene-label">{landingContent.scene.label}</p>
 										<h1 className="landing-display">{landingContent.scene.title}</h1>
 										<p className="landing-subtitle">{landingContent.scene.description}</p>
+										<p className="landing-sidebar-kicker">
+											From loose capture to finished output, each step stays tied to the same board.
+										</p>
+										<div className="landing-process-summary" aria-label="Workflow summary">
+											{landingContent.proof.map((proofPoint) => (
+												<div className="landing-process-summary-item" key={proofPoint.value}>
+													<strong>{proofPoint.value}</strong>
+													<span>{proofPoint.label}</span>
+												</div>
+											))}
+										</div>
 									</div>
 									<div className="landing-sidebar-dock">
+										<div className="landing-process-rail" aria-label="Canvas chapters">
+											{landingStoryChapters.slice(1).map((chapter) => (
+												<button
+													key={chapter.id}
+													type="button"
+													onClick={() => {
+														scrollToChapter(chapter.id);
+													}}
+												>
+													<span>{chapter.eyebrow.replace('Chapter ', '')}</span>
+													{chapter.label}
+												</button>
+											))}
+										</div>
 										<div className="landing-hero-actions">
 											<a
 												className="landing-button landing-button-primary"
@@ -238,15 +263,6 @@ export function LandingPage() {
 											>
 												{landingContent.scene.secondaryLabel}
 											</a>
-										</div>
-										<div className="landing-stage-pips" aria-label="Canvas tour progress">
-											{landingStoryChapters.map((chapter) => (
-												<span
-													key={chapter.id}
-													data-active={chapter.id === progressChapterId ? 'true' : undefined}
-													title={chapter.label}
-												/>
-											))}
 										</div>
 									</div>
 								</div>

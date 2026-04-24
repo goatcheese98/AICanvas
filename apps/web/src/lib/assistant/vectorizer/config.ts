@@ -64,9 +64,6 @@ export const MIN_WORKING_SIZE = 1;
 /** Maximum working dimension */
 export const MAX_WORKING_SIZE = 1024;
 
-/** Minimum polygon area threshold */
-export const MIN_POLYGON_AREA = 18;
-
 /** Dark cluster brightness threshold */
 export const DARK_CLUSTER_THRESHOLD = 80;
 

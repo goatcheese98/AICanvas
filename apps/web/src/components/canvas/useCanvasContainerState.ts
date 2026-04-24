@@ -25,6 +25,7 @@ interface UseCanvasContainerStateReturn {
 		appState: AppState,
 		files: BinaryFiles,
 	) => void;
+	saveCanvasNow: () => Promise<void>;
 	normalizeSceneChange: (
 		nextElements: readonly ExcalidrawElement[],
 		nextAppState: AppState,
@@ -143,9 +144,46 @@ export function useCanvasContainerState({
 		[canvasId, coordinatorRef, latestSceneRef, scheduleServerSave],
 	);
 
+	const saveCanvasNow = useCallback(async () => {
+		if (!isInitializedRef.current) {
+			addToast({
+				message: 'Canvas is still loading. Try again in a moment.',
+				type: 'info',
+			});
+			return;
+		}
+
+		const latestData = persistence.latestSceneRef.current;
+		if (!latestData) {
+			addToast({
+				message: 'Nothing to save yet.',
+				type: 'info',
+			});
+			return;
+		}
+
+		persistence.coordinatorRef.current?.forceSave(latestData, canvasId);
+		const didSave = await persistence.forceServerSave(latestData);
+		if (didSave) {
+			addToast({
+				message: 'Canvas saved.',
+				type: 'success',
+			});
+			return;
+		}
+
+		if (!persistence.hasVersionConflictRef.current) {
+			addToast({
+				message: 'Save failed. Changes remain available locally.',
+				type: 'error',
+			});
+		}
+	}, [addToast, canvasId, isInitializedRef, persistence]);
+
 	return {
 		collaboration,
 		handleSaveNeeded,
+		saveCanvasNow,
 		normalizeSceneChange: tools.normalizeSceneChange,
 		isInitialized,
 		canvasQueryData,

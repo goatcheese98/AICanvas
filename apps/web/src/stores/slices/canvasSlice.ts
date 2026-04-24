@@ -25,6 +25,7 @@ export interface CanvasSlice {
 
 	// Persistence state
 	isSaving: boolean;
+	isRemoteSaving: boolean;
 	lastSaved: Date | null;
 	hasUnsavedChanges: boolean;
 
@@ -37,6 +38,7 @@ export interface CanvasSlice {
 	setAppState: (appState: Partial<AppState>) => void;
 	setFiles: (files: BinaryFiles) => void;
 	setPersistenceState: (state: PersistenceState) => void;
+	setRemoteSaving: (isRemoteSaving: boolean) => void;
 	saveNavigationState: (state: CanvasNavigationState) => void;
 	clearNavigationState: () => void;
 }
@@ -54,6 +56,7 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 	files: {},
 
 	isSaving: false,
+	isRemoteSaving: false,
 	lastSaved: null,
 	hasUnsavedChanges: false,
 
@@ -73,6 +76,7 @@ export const createCanvasSlice: StateCreator<AppStore, [], [], CanvasSlice> = (s
 		set((state) => (areBinaryFilesEquivalent(state.files, files) ? state : { files })),
 	setPersistenceState: ({ isSaving, lastSaved, hasUnsavedChanges }) =>
 		set({ isSaving, lastSaved, hasUnsavedChanges }),
+	setRemoteSaving: (isRemoteSaving) => set({ isRemoteSaving }),
 	saveNavigationState: (state) => set({ savedNavigationState: state }),
 	clearNavigationState: () => set({ savedNavigationState: null }),
 });

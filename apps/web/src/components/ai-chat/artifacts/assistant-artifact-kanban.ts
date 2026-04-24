@@ -220,35 +220,28 @@ export function summarizeKanbanPatchChanges(patch: AssistantKanbanPatchArtifact)
 	return changes.length > 0 ? changes : ['Update selected kanban board'];
 }
 
-export function buildKanbanFromArtifact(
-	artifact: AssistantArtifact,
-	baseBoard?: KanbanOverlayCustomData,
-): KanbanOverlayCustomData {
-	const board = normalizeKanbanOverlay(baseBoard ?? createDefaultKanbanBoard());
-	if (artifact.type === 'kanban-patch') {
-		return parseKanbanPatchArtifact(artifact)?.next ?? board;
-	}
-
-	if (artifact.type !== 'kanban-ops') {
-		return board;
-	}
-
-	let parsed: ExtendedKanbanOp[] = [];
+function parseKanbanOpsContent(
+	content: string,
+): ExtendedKanbanOp[] | KanbanOverlayCustomData | null {
 	try {
-		const candidate = JSON.parse(artifact.content) as
+		const candidate = JSON.parse(content) as
 			| ExtendedKanbanOp[]
 			| { operations?: ExtendedKanbanOp[] }
 			| KanbanOverlayCustomData;
 		if (Array.isArray(candidate)) {
-			parsed = candidate;
-		} else if (
+			return candidate;
+		}
+
+		if (
 			candidate &&
 			typeof candidate === 'object' &&
 			'operations' in candidate &&
 			Array.isArray(candidate.operations)
 		) {
-			parsed = candidate.operations;
-		} else if (
+			return candidate.operations;
+		}
+
+		if (
 			candidate &&
 			typeof candidate === 'object' &&
 			'columns' in candidate &&
@@ -256,154 +249,168 @@ export function buildKanbanFromArtifact(
 		) {
 			return normalizeKanbanOverlay(candidate as KanbanOverlayCustomData);
 		}
+
+		return [];
 	} catch {
-		return board;
+		return null;
+	}
+}
+
+function getNormalizedColumnFromOp(
+	op: ExtendedKanbanOp,
+	index: number,
+): NormalizedKanbanColumn | null {
+	if ('op' in op && op.op === 'add_column') {
+		return {
+			id: op.column.id,
+			title: op.column.title,
+			order: index,
+			color: op.column.color,
+		};
 	}
 
-	const workingBoard = normalizeKanbanOverlay(board);
-	const normalizedColumns: NormalizedKanbanColumn[] = [];
-	const normalizedCards: NormalizedKanbanCard[] = [];
-
-	for (const [index, op] of parsed.entries()) {
-		if ('op' in op && op.op === 'add_column') {
-			normalizedColumns.push({
-				id: op.column.id,
-				title: op.column.title,
-				order: index,
-				color: op.column.color,
-			});
-			continue;
-		}
-
-		if ('operation' in op && op.operation === 'add_column') {
-			normalizedColumns.push({
-				id: op.id,
-				title: op.title,
-				order: op.order ?? index,
-				color: op.color,
-			});
-			continue;
-		}
-
-		if ('type' in op && op.type === 'add_column') {
-			normalizedColumns.push({
-				id: op.id,
-				title: op.title,
-				order: op.position ?? index,
-				color: op.color,
-			});
-			continue;
-		}
-
-		if ('op' in op && op.op === 'add_card') {
-			normalizedCards.push({
-				id: crypto.randomUUID(),
-				columnId: op.columnId,
-				title: op.card.title,
-				description: op.card.description,
-				priority: op.card.priority,
-				labels: op.card.labels,
-				dueDate: op.card.dueDate,
-				checklist: normalizeChecklistItems(op.card.checklist),
-			});
-			continue;
-		}
-
-		if ('type' in op && op.type === 'add_card') {
-			const columnRef = op.column_id ?? op.column;
-			const targetColumn = findColumnByReferenceWithNormalized(
-				workingBoard.columns,
-				normalizedColumns,
-				columnRef,
-			);
-			if (!targetColumn) {
-				continue;
-			}
-			normalizedCards.push({
-				id: op.id ?? crypto.randomUUID(),
-				columnId: targetColumn.id,
-				title: op.title,
-				description: op.description,
-				priority: op.priority,
-				labels: op.labels,
-				dueDate: op.due_date,
-				checklist: [],
-			});
-			continue;
-		}
-
-		if ('operation' in op && op.operation === 'add_card') {
-			normalizedCards.push({
-				id: op.id ?? crypto.randomUUID(),
-				columnId: op.column_id,
-				title: op.title,
-				description: op.description,
-				priority: op.priority,
-				labels: op.labels,
-				dueDate: op.due_date,
-				checklist: [],
-			});
-			continue;
-		}
-
-		if ('op' in op && op.op === 'update_card') {
-			const column = findColumnByReference(workingBoard.columns, op.columnId ?? op.column);
-			const cardIndex = op.cardIndex ?? op.card_index ?? -1;
-			if (!column || cardIndex < 0 || cardIndex >= column.cards.length) {
-				continue;
-			}
-			const existingCard = column.cards[cardIndex];
-			if (!existingCard) {
-				continue;
-			}
-			column.cards[cardIndex] = {
-				...existingCard,
-				...op.updates,
-				checklist:
-					op.updates?.checklist != null
-						? normalizeChecklistItems(op.updates.checklist)
-						: normalizeChecklistItems(existingCard.checklist),
-			};
-			continue;
-		}
-
-		if ('op' in op && op.op === 'move_card') {
-			const fromColumn = findColumnByReference(
-				workingBoard.columns,
-				op.fromColumn ?? op.from_column,
-			);
-			const toColumn = findColumnByReference(workingBoard.columns, op.toColumn ?? op.to_column);
-			const cardIndex = op.cardIndex ?? op.card_index ?? -1;
-			const targetIndex = op.targetIndex ?? op.target_index ?? -1;
-			if (!fromColumn || !toColumn || cardIndex < 0 || cardIndex >= fromColumn.cards.length) {
-				continue;
-			}
-			const [movedCard] = fromColumn.cards.splice(cardIndex, 1);
-			if (!movedCard) {
-				continue;
-			}
-			if (targetIndex >= 0 && targetIndex <= toColumn.cards.length) {
-				toColumn.cards.splice(targetIndex, 0, movedCard);
-			} else {
-				toColumn.cards.push(movedCard);
-			}
-		}
+	if ('operation' in op && op.operation === 'add_column') {
+		return {
+			id: op.id,
+			title: op.title,
+			order: op.order ?? index,
+			color: op.color,
+		};
 	}
 
-	const baseColumns =
-		normalizedColumns.length > 0
-			? normalizedColumns
-					.sort((left, right) => left.order - right.order)
-					.map<KanbanColumn>((column) => ({
-						id: column.id,
-						title: column.title,
-						color: column.color,
-						cards: [],
-					}))
-			: [...workingBoard.columns];
+	if ('type' in op && op.type === 'add_column') {
+		return {
+			id: op.id,
+			title: op.title,
+			order: op.position ?? index,
+			color: op.color,
+		};
+	}
 
+	return null;
+}
+
+function getNormalizedCardFromOp(
+	op: ExtendedKanbanOp,
+	columns: KanbanColumn[],
+	normalizedColumns: NormalizedKanbanColumn[],
+): NormalizedKanbanCard | null {
+	if ('op' in op && op.op === 'add_card') {
+		return {
+			id: crypto.randomUUID(),
+			columnId: op.columnId,
+			title: op.card.title,
+			description: op.card.description,
+			priority: op.card.priority,
+			labels: op.card.labels,
+			dueDate: op.card.dueDate,
+			checklist: normalizeChecklistItems(op.card.checklist),
+		};
+	}
+
+	if ('type' in op && op.type === 'add_card') {
+		const targetColumn = findColumnByReferenceWithNormalized(
+			columns,
+			normalizedColumns,
+			op.column_id ?? op.column,
+		);
+		if (!targetColumn) {
+			return null;
+		}
+
+		return {
+			id: op.id ?? crypto.randomUUID(),
+			columnId: targetColumn.id,
+			title: op.title,
+			description: op.description,
+			priority: op.priority,
+			labels: op.labels,
+			dueDate: op.due_date,
+			checklist: [],
+		};
+	}
+
+	if ('operation' in op && op.operation === 'add_card') {
+		return {
+			id: op.id ?? crypto.randomUUID(),
+			columnId: op.column_id,
+			title: op.title,
+			description: op.description,
+			priority: op.priority,
+			labels: op.labels,
+			dueDate: op.due_date,
+			checklist: [],
+		};
+	}
+
+	return null;
+}
+
+function applyUpdatedCard(columns: KanbanColumn[], op: Extract<ExtendedKanbanOp, { op: 'update_card' }>) {
+	const column = findColumnByReference(columns, op.columnId ?? op.column);
+	const cardIndex = op.cardIndex ?? op.card_index ?? -1;
+	if (!column || cardIndex < 0 || cardIndex >= column.cards.length) {
+		return;
+	}
+
+	const existingCard = column.cards[cardIndex];
+	if (!existingCard) {
+		return;
+	}
+
+	column.cards[cardIndex] = {
+		...existingCard,
+		...op.updates,
+		checklist:
+			op.updates?.checklist != null
+				? normalizeChecklistItems(op.updates.checklist)
+				: normalizeChecklistItems(existingCard.checklist),
+	};
+}
+
+function applyMovedCard(columns: KanbanColumn[], op: Extract<ExtendedKanbanOp, { op: 'move_card' }>) {
+	const fromColumn = findColumnByReference(columns, op.fromColumn ?? op.from_column);
+	const toColumn = findColumnByReference(columns, op.toColumn ?? op.to_column);
+	const cardIndex = op.cardIndex ?? op.card_index ?? -1;
+	const targetIndex = op.targetIndex ?? op.target_index ?? -1;
+	if (!fromColumn || !toColumn || cardIndex < 0 || cardIndex >= fromColumn.cards.length) {
+		return;
+	}
+
+	const [movedCard] = fromColumn.cards.splice(cardIndex, 1);
+	if (!movedCard) {
+		return;
+	}
+
+	if (targetIndex >= 0 && targetIndex <= toColumn.cards.length) {
+		toColumn.cards.splice(targetIndex, 0, movedCard);
+		return;
+	}
+
+	toColumn.cards.push(movedCard);
+}
+
+function buildBaseColumns(
+	columns: KanbanColumn[],
+	normalizedColumns: NormalizedKanbanColumn[],
+): KanbanColumn[] {
+	if (normalizedColumns.length === 0) {
+		return [...columns];
+	}
+
+	return normalizedColumns
+		.sort((left, right) => left.order - right.order)
+		.map<KanbanColumn>((column) => ({
+			id: column.id,
+			title: column.title,
+			color: column.color,
+			cards: [],
+		}));
+}
+
+function appendNormalizedCards(columns: KanbanColumn[], normalizedCards: NormalizedKanbanCard[]) {
 	for (const card of normalizedCards) {
-		const targetColumn = baseColumns.find((column) => column.id === card.columnId);
+		const targetColumn = columns.find((column) => column.id === card.columnId);
 		if (!targetColumn) {
 			continue;
 		}
@@ -418,6 +425,41 @@ export function buildKanbanFromArtifact(
 			checklist: normalizeChecklistItems(card.checklist),
 		});
 	}
+}
+
+function buildKanbanBoardFromOps(
+	board: KanbanOverlayCustomData,
+	ops: ExtendedKanbanOp[],
+): KanbanOverlayCustomData {
+	const workingBoard = normalizeKanbanOverlay(board);
+	const normalizedColumns: NormalizedKanbanColumn[] = [];
+	const normalizedCards: NormalizedKanbanCard[] = [];
+
+	for (const [index, op] of ops.entries()) {
+		const column = getNormalizedColumnFromOp(op, index);
+		if (column) {
+			normalizedColumns.push(column);
+			continue;
+		}
+
+		const card = getNormalizedCardFromOp(op, workingBoard.columns, normalizedColumns);
+		if (card) {
+			normalizedCards.push(card);
+			continue;
+		}
+
+		if ('op' in op && op.op === 'update_card') {
+			applyUpdatedCard(workingBoard.columns, op);
+			continue;
+		}
+
+		if ('op' in op && op.op === 'move_card') {
+			applyMovedCard(workingBoard.columns, op);
+		}
+	}
+
+	const baseColumns = buildBaseColumns(workingBoard.columns, normalizedColumns);
+	appendNormalizedCards(baseColumns, normalizedCards);
 
 	return normalizeKanbanOverlay({
 		...workingBoard,
@@ -426,4 +468,28 @@ export function buildKanbanFromArtifact(
 			: workingBoard.title,
 		columns: baseColumns,
 	});
+}
+
+export function buildKanbanFromArtifact(
+	artifact: AssistantArtifact,
+	baseBoard?: KanbanOverlayCustomData,
+): KanbanOverlayCustomData {
+	const board = normalizeKanbanOverlay(baseBoard ?? createDefaultKanbanBoard());
+	if (artifact.type === 'kanban-patch') {
+		return parseKanbanPatchArtifact(artifact)?.next ?? board;
+	}
+
+	if (artifact.type !== 'kanban-ops') {
+		return board;
+	}
+
+	const parsed = parseKanbanOpsContent(artifact.content);
+	if (parsed == null) {
+		return board;
+	}
+	if (!Array.isArray(parsed)) {
+		return parsed;
+	}
+
+	return buildKanbanBoardFromOps(board, parsed);
 }

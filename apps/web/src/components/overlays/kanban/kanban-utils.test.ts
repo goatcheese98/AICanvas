@@ -1,7 +1,7 @@
+import { createStarterKanbanColumns } from '@ai-canvas/shared/schemas';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { describe, expect, it } from 'vitest';
 import {
-	createStarterKanbanColumns,
 	getProjectedOverCardId,
 	getProjectedOverColumnId,
 	moveKanbanCard,

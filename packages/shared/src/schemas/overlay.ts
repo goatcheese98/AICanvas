@@ -92,7 +92,3 @@ export const overlaySchemas = {
 	webEmbed: webEmbedOverlaySchema,
 	customData: overlayCustomDataSchema,
 } as const;
-
-// Type exports
-export type MarkdownNoteSettingsInput = import('./overlay-markdown').MarkdownNoteSettingsInput;
-export type MarkdownOverlayInput = import('./overlay-markdown').MarkdownOverlayInput;

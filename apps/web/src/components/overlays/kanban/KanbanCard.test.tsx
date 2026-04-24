@@ -1,7 +1,7 @@
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { KanbanCard } from './KanbanCard';
+import KanbanCard from './KanbanCard';
 
 function createCard(overrides: Partial<KanbanCardType> = {}): KanbanCardType {
 	return {

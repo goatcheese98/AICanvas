@@ -2,16 +2,10 @@
 export { quantize } from './quantize.js';
 
 // Segmentation stage
-export {
-	processLabel,
-	extractComponents,
-	binaryMaskForLabel,
-	morphOpen,
-	morphClose,
-} from './segment.js';
+export { processLabel } from './segment.js';
 
 // Polygonization stage
 export { buildBoundaryLoops, selectLargestLoop, createPolygonSkeleton } from './polygonize.js';
 
 // Smoothing stage
-export { simplifyClosedPolygon, chaikinSmoothClosed, sortByRenderOrder, rdp } from './smooth.js';
+export { simplifyClosedPolygon, chaikinSmoothClosed, sortByRenderOrder } from './smooth.js';

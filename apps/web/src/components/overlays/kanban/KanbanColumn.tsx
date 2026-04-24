@@ -1,3 +1,4 @@
+// fallow-ignore-file duplicate-exports
 import { useMountEffect } from '@/hooks/useMountEffect';
 import type {
 	KanbanCard as KanbanCardType,
@@ -5,7 +6,7 @@ import type {
 } from '@ai-canvas/shared/types';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { DragEvent, FormEvent } from 'react';
-import { KanbanCard } from './KanbanCard';
+import KanbanCardView from './KanbanCard';
 import { KANBAN_ACCENT_BORDER, KANBAN_ACCENT_TEXT } from './kanban-theme';
 import { getProjectedOverCardId } from './kanban-utils';
 
@@ -314,7 +315,7 @@ function KanbanColumnInner({
 					return (
 						<div key={card.id}>
 							{showDropBefore ? <CardDropIndicator emphasized /> : null}
-							<KanbanCard
+							<KanbanCardView
 								card={card}
 								fontSize={fontSize}
 								cardBackground={cardBackground}
@@ -396,4 +397,6 @@ function KanbanColumnInner({
 	);
 }
 
-export const KanbanColumn = memo(KanbanColumnInner);
+const KanbanColumnView = memo(KanbanColumnInner);
+
+export default KanbanColumnView;

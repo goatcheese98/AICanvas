@@ -11,7 +11,7 @@ import {
 	NOTE_SEGMENTED_SHELL,
 } from './markdown-note-helpers';
 
-export interface MarkdownStylePanelProps {
+interface MarkdownStylePanelProps {
 	surfaceBackground: string;
 	strokeColor: string;
 	strokeWidth: number;

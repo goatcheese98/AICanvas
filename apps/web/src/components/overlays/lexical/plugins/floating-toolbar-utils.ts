@@ -1,22 +1,8 @@
 export const TOOLBAR_HEIGHT = 34;
 export const OFFSET_Y = 8;
-export const NOTE_FONT_STACK =
-	'"Segoe UI Variable", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
-export const ACCENT_TEXT = '#4d55cc';
 export const ACCENT_BG = '#eef0ff';
 
-export const TEXT_COLORS = [
-	'#000000',
-	'#374151',
-	'#dc2626',
-	'#ea580c',
-	'#ca8a04',
-	'#16a34a',
-	'#2563eb',
-	'#7c3aed',
-];
-
-export interface Position {
+interface Position {
 	top: number;
 	left: number;
 }
@@ -31,17 +17,6 @@ export function computePosition(rect: DOMRect, toolbarWidth: number): Position {
 	let left = rect.left + rect.width / 2 - toolbarWidth / 2;
 	left = Math.max(8, Math.min(left, window.innerWidth - toolbarWidth - 8));
 	return { top, left };
-}
-
-/**
- * Request a URL from the user for link creation.
- * Returns null if user cancels or enters empty string.
- */
-export function requestLinkUrl(): string | null {
-	const value = window.prompt('Enter a URL', 'https://');
-	if (!value) return null;
-	const trimmed = value.trim();
-	return trimmed.length === 0 ? null : trimmed;
 }
 
 /**

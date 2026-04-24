@@ -1,8 +1,8 @@
 import type { CSSProperties } from 'react';
 
-export const KANBAN_ACCENT_SURFACE_SOFT = 'color-mix(in srgb, var(--color-accent-bg) 10%, white)';
+const KANBAN_ACCENT_SURFACE_SOFT = 'color-mix(in srgb, var(--color-accent-bg) 10%, white)';
 export const KANBAN_ACCENT_SURFACE = 'color-mix(in srgb, var(--color-accent-bg) 16%, white)';
-export const KANBAN_ACCENT_SURFACE_STRONG = 'color-mix(in srgb, var(--color-accent-bg) 24%, white)';
+const KANBAN_ACCENT_SURFACE_STRONG = 'color-mix(in srgb, var(--color-accent-bg) 24%, white)';
 export const KANBAN_ACCENT_BORDER =
 	'color-mix(in srgb, var(--color-accent-border) 34%, var(--color-border))';
 export const KANBAN_ACCENT_TEXT =
@@ -14,7 +14,7 @@ export const KANBAN_FONT_SIZE_RANGE = {
 	default: 14,
 } as const;
 
-export interface KanbanBackgroundTheme {
+interface KanbanBackgroundTheme {
 	id: string;
 	label: string;
 	description: string;
@@ -26,13 +26,13 @@ export interface KanbanBackgroundTheme {
 	borderTone: string;
 }
 
-export interface KanbanFontOption {
+interface KanbanFontOption {
 	id: string;
 	label: string;
 	family: string;
 }
 
-export const KANBAN_BACKGROUND_THEMES: KanbanBackgroundTheme[] = [
+const KANBAN_BACKGROUND_THEMES: KanbanBackgroundTheme[] = [
 	{
 		id: 'mist',
 		label: 'Mist',
@@ -205,7 +205,7 @@ export function getKanbanSketchVariables(
  * (`${value}T00:00:00`). Using UTC here would cause the overdue comparison to flip
  * at a different wall-clock moment than the displayed date, creating a confusing UX.
  */
-export function getTodayIso() {
+function getTodayIso() {
 	const now = new Date();
 	const year = now.getFullYear();
 	const month = `${now.getMonth() + 1}`.padStart(2, '0');

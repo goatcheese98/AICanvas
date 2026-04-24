@@ -1,6 +1,6 @@
 import { useAuth } from '@clerk/clerk-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import {
 	api,
@@ -20,6 +20,7 @@ import { useAppStore } from '@/stores/store';
 import { getExportToBlob, getThumbnailSignature } from './canvas-container-utils';
 
 const SERVER_SAVE_THROTTLE_MS = 5000;
+const SERVER_SAVE_INTERVAL_MS = 60_000;
 const THUMBNAIL_MIME_TYPE = 'image/png';
 
 interface UseCanvasPersistenceProps {
@@ -42,7 +43,7 @@ interface UseCanvasPersistenceReturn extends PersistenceState {
 	/** Persist thumbnail if changed */
 	persistThumbnail: (data: CanvasData) => Promise<void>;
 	/** Force immediate server save */
-	forceServerSave: (data: CanvasData) => Promise<void>;
+	forceServerSave: (data: CanvasData) => Promise<boolean>;
 	/** Cleanup coordinator and pending saves */
 	cleanup: () => void;
 }
@@ -66,6 +67,7 @@ export function useCanvasPersistence({
 	const queryClient = useQueryClient();
 	const addToast = useAppStore((s) => s.addToast);
 	const setPersistenceState = useAppStore((s) => s.setPersistenceState);
+	const setRemoteSaving = useAppStore((s) => s.setRemoteSaving);
 
 	// Coordinator is stable for the lifetime of this component
 	const coordinatorRef = useRef<CanvasPersistenceCoordinator | null>(null);
@@ -167,14 +169,14 @@ export function useCanvasPersistence({
 	);
 
 	const persistServerSave = useCallback(
-		async (data: CanvasData) => {
+		async (data: CanvasData): Promise<boolean> => {
 			if (serverSaveInFlightRef.current) {
 				hasPendingServerSaveRef.current = true;
-				return;
+				return false;
 			}
 
 			if (hasVersionConflictRef.current) {
-				return;
+				return false;
 			}
 
 			const expectedVersion = canvasVersionRef.current;
@@ -185,10 +187,11 @@ export function useCanvasPersistence({
 					message: 'Canvas sync state is stale. Refresh before saving again.',
 					type: 'error',
 				});
-				return;
+				return false;
 			}
 
 			serverSaveInFlightRef.current = true;
+			setRemoteSaving(true);
 			try {
 				const headers = await getRequiredAuthHeaders(getToken);
 				const response = await api.api.canvas[':id'].$put(
@@ -212,7 +215,7 @@ export function useCanvasPersistence({
 						message: 'Canvas changed in another session. Refresh before saving again.',
 						type: 'error',
 					});
-					return;
+					return false;
 				}
 
 				if (!response.ok) {
@@ -236,6 +239,7 @@ export function useCanvasPersistence({
 				]);
 				hasPendingServerSaveRef.current = latestSceneRef.current !== data;
 				void persistThumbnail(data);
+				return true;
 			} catch (err) {
 				hasPendingServerSaveRef.current = true;
 				console.error('Server auto-save failed:', err);
@@ -249,8 +253,10 @@ export function useCanvasPersistence({
 						elementCount: data.elements.length,
 					},
 				});
+				return false;
 			} finally {
 				serverSaveInFlightRef.current = false;
+				setRemoteSaving(false);
 				if (
 					hasPendingServerSaveRef.current &&
 					latestSceneRef.current &&
@@ -262,7 +268,15 @@ export function useCanvasPersistence({
 				}
 			}
 		},
-		[addToast, canvasId, clearScheduledServerSave, getToken, persistThumbnail, queryClient],
+		[
+			addToast,
+			canvasId,
+			clearScheduledServerSave,
+			getToken,
+			persistThumbnail,
+			queryClient,
+			setRemoteSaving,
+		],
 	);
 
 	const scheduleServerSave = useCallback(
@@ -282,15 +296,33 @@ export function useCanvasPersistence({
 		async (data: CanvasData) => {
 			hasPendingServerSaveRef.current = true;
 			clearScheduledServerSave();
-			await persistServerSave(data);
+			return persistServerSave(data);
 		},
 		[clearScheduledServerSave, persistServerSave],
 	);
 
+	useEffect(() => {
+		const intervalId = window.setInterval(() => {
+			if (
+				!hasPendingServerSaveRef.current ||
+				!latestSceneRef.current ||
+				hasVersionConflictRef.current
+			) {
+				return;
+			}
+
+			clearScheduledServerSave();
+			void persistServerSave(latestSceneRef.current);
+		}, SERVER_SAVE_INTERVAL_MS);
+
+		return () => window.clearInterval(intervalId);
+	}, [clearScheduledServerSave, persistServerSave]);
+
 	const cleanup = useCallback(() => {
 		coordinatorRef.current?.dispose();
 		clearScheduledServerSave();
-	}, [clearScheduledServerSave]);
+		setRemoteSaving(false);
+	}, [clearScheduledServerSave, setRemoteSaving]);
 
 	// Get current persistence state from coordinator
 	const coordinatorState =

@@ -19,12 +19,7 @@ const DEFAULT_NOTE_BACKGROUND = '#ffffff';
 const DEFAULT_NOTE_STROKE = 'rgba(17,24,39,0.09)';
 const DEFAULT_RICH_TEXT_STROKE = 'rgba(17,24,39,0.16)';
 
-export interface SceneCenter {
-	x: number;
-	y: number;
-}
-
-export interface OverlayElementDraft {
+interface OverlayElementDraft {
 	id: string;
 	index: string;
 	type: 'rectangle';
@@ -54,13 +49,13 @@ export interface OverlayElementDraft {
 	customData: OverlayCustomData;
 }
 
-export interface OverlayInsertionScene {
+interface OverlayInsertionScene {
 	elements: ExcalidrawElement[];
 	appState: Partial<AppState>;
 	insertedElementId: string;
 }
 
-function createCenteredRect(sceneCenter: SceneCenter, width: number, height: number) {
+function createCenteredRect(sceneCenter: { x: number; y: number }, width: number, height: number) {
 	return {
 		x: sceneCenter.x - width / 2,
 		y: sceneCenter.y - height / 2,
@@ -69,7 +64,7 @@ function createCenteredRect(sceneCenter: SceneCenter, width: number, height: num
 	};
 }
 
-export function getViewportSceneCenter(appState: Partial<AppState>): SceneCenter {
+export function getViewportSceneCenter(appState: Partial<AppState>): { x: number; y: number } {
 	const zoomValue =
 		typeof appState.zoom?.value === 'number' && appState.zoom.value > 0 ? appState.zoom.value : 1;
 	const scrollX = typeof appState.scrollX === 'number' ? appState.scrollX : 0;
@@ -102,7 +97,7 @@ export function getOverlayDefaults(type: OverlayType) {
 
 export function createOverlayElementDraft(
 	type: OverlayType,
-	sceneCenter: SceneCenter,
+	sceneCenter: { x: number; y: number },
 	customData?: Record<string, unknown>,
 ): OverlayElementDraft {
 	const { width, height } = getOverlayDefaults(type);

@@ -1,5 +1,5 @@
 import type { AppEnv } from '../../../types';
-import type { GeneratedImageAsset } from '../media-adapters';
+import type { GeneratedImageAsset } from '../media-types';
 
 interface CloudflareImagePayload {
 	image?: string;

@@ -1,10 +1,11 @@
+// fallow-ignore-file duplicate-exports
 import { useMountEffect } from '@/hooks/useMountEffect';
 import type { KanbanCard as KanbanCardType } from '@ai-canvas/shared/types';
 import { memo, useCallback, useRef, useState } from 'react';
 import type { DragEvent, FormEvent, MouseEvent } from 'react';
 import { KanbanCardDetails } from './KanbanCardDetails';
 import { KanbanCardShell } from './KanbanCardShell';
-import { KanbanCardSummary } from './KanbanCardSummary';
+import KanbanCardSummaryView from './KanbanCardSummary';
 import { autosizeTextarea } from './kanban-card-helpers';
 
 interface KanbanCardProps {
@@ -207,7 +208,7 @@ function KanbanCardInner({
 				isLiveResizing={isLiveResizing}
 				showReturnCue={showReturnCue}
 			>
-				<KanbanCardSummary
+				<KanbanCardSummaryView
 					card={card}
 					titleDraft={titleDraft}
 					fontSize={fontSize}
@@ -241,7 +242,7 @@ function KanbanCardInner({
 	);
 }
 
-export const KanbanCard = memo(KanbanCardInner, (prev, next) => {
+const KanbanCardView = memo(KanbanCardInner, (prev, next) => {
 	return (
 		prev.card === next.card &&
 		prev.isLiveResizing === next.isLiveResizing &&
@@ -253,3 +254,5 @@ export const KanbanCard = memo(KanbanCardInner, (prev, next) => {
 		prev.controlRadius === next.controlRadius
 	);
 });
+
+export default KanbanCardView;

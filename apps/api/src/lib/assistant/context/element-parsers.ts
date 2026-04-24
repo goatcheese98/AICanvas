@@ -2,17 +2,11 @@
  * Element parsing utilities for assistant context
  */
 
-import {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
-	normalizeWebEmbedOverlay,
-} from '@ai-canvas/shared/schemas';
 import type { CanvasElement } from '@ai-canvas/shared/types';
-import { OVERLAY_TYPES, TEXT_EXCERPT_LIMIT } from './constants';
+import { OVERLAY_TYPE_SET, TEXT_EXCERPT_LIMIT } from './constants';
 
 /** Interface for generated diagram metadata */
-export interface GeneratedDiagramMetadata {
+interface GeneratedDiagramMetadata {
 	type: 'ai-generated-diagram';
 	language: 'mermaid' | 'd2';
 	code: string;
@@ -47,7 +41,7 @@ export function normalizeText(value: unknown, maxLength = 240): string | undefin
 /** Get overlay type from element if it's a recognized overlay */
 export function getOverlayType(element: CanvasElement): string | undefined {
 	const customData = toObjectRecord(element.customData);
-	return typeof customData?.type === 'string' && OVERLAY_TYPES.has(customData.type)
+	return typeof customData?.type === 'string' && OVERLAY_TYPE_SET.has(customData.type)
 		? customData.type
 		: undefined;
 }
@@ -134,11 +128,3 @@ export function buildElementTextExcerpt(element: CanvasElement): string | undefi
 
 	return label;
 }
-
-// Re-export normalize functions from shared schemas for convenience
-export {
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
-	normalizeWebEmbedOverlay,
-};

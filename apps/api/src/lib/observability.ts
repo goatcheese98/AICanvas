@@ -4,7 +4,7 @@ import type { AppEnv, AuthUser } from '../types';
 
 type ApiLogLevel = 'info' | 'warn' | 'error';
 
-export interface ApiLogFields {
+interface ApiLogFields {
 	requestId?: string;
 	clientRequestId?: string;
 	method?: string;

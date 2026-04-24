@@ -13,7 +13,7 @@ import {
 	listAssistantArtifactsRecord,
 	updateAssistantRunRecord,
 } from '../store';
-import type { TaskHandlerContext, TaskHandlerResult } from './index';
+import type { TaskHandlerContext, TaskHandlerResult } from './task-handler-types';
 
 export async function executeAssistantResponseTask(
 	task: AssistantTask,

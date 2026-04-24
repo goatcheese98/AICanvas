@@ -2,7 +2,7 @@ import { DEFAULT_MARKDOWN_NOTE_SETTINGS } from '@ai-canvas/shared/schemas';
 import type { MarkdownNoteSettings } from '@ai-canvas/shared/types';
 import { useCallback } from 'react';
 
-export interface UseMarkdownUtilityPanelStateProps {
+interface UseMarkdownUtilityPanelStateProps {
 	onSettingsChange: (updater: (current: MarkdownNoteSettings) => MarkdownNoteSettings) => void;
 	onSurfaceStyleChange: (elementStyle: {
 		backgroundColor?: string;
@@ -11,7 +11,7 @@ export interface UseMarkdownUtilityPanelStateProps {
 	}) => void;
 }
 
-export interface UseMarkdownUtilityPanelStateReturn {
+interface UseMarkdownUtilityPanelStateReturn {
 	handleSettingsChange: (updates: Partial<MarkdownNoteSettings>) => void;
 	handleReset: () => void;
 }

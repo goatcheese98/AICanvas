@@ -3,18 +3,20 @@
 /* CSS Custom Properties */
 .landing-page {
 	--landing-frame-inset: 0.6rem;
-	--landing-bg: #f3f1eb;
+	--landing-bg: #f4f6f1;
 	--landing-grid: rgba(35, 41, 52, 0.05);
 	--landing-border: rgba(35, 41, 52, 0.1);
 	--landing-border-strong: rgba(35, 41, 52, 0.18);
 	--landing-text: #1f2430;
 	--landing-muted: #5a6578;
 	--landing-soft: #8f98a7;
-	--landing-cream: rgba(255, 252, 247, 0.84);
+	--landing-cream: rgba(252, 253, 249, 0.84);
 	--landing-panel: rgba(255, 255, 255, 0.88);
 	--landing-panel-strong: rgba(255, 255, 255, 0.95);
-	--landing-accent: #3347d6;
-	--landing-accent-soft: rgba(51, 71, 214, 0.12);
+	--landing-accent: #2850c8;
+	--landing-accent-soft: rgba(40, 80, 200, 0.12);
+	--landing-forest: #246b58;
+	--landing-amber: #a86f05;
 	--landing-mint: #b8efd2;
 	--landing-gold: #f2de72;
 	--landing-sky: #8ed2ff;
@@ -28,11 +30,11 @@
 	--transition-camera: 700ms cubic-bezier(0.22, 1, 0.36, 1);
 
 	min-height: 100%;
+	overflow-x: hidden;
 	background: linear-gradient(var(--landing-grid) 1px, transparent 1px),
 		linear-gradient(90deg, var(--landing-grid) 1px, transparent 1px),
-		radial-gradient(circle at top left, rgba(255, 255, 255, 0.8), transparent 28%),
-		linear-gradient(180deg, #faf8f3 0%, var(--landing-bg) 100%);
-	background-size: 34px 34px, 34px 34px, 100% 100%, 100% 100%;
+		linear-gradient(180deg, #fbfcf7 0%, var(--landing-bg) 100%);
+	background-size: 34px 34px, 34px 34px, 100% 100%;
 	color: var(--landing-text);
 	color-scheme: light;
 }
@@ -49,8 +51,8 @@
 	inset: var(--landing-frame-inset);
 	z-index: 20;
 	border: 1px solid var(--landing-border);
-	border-radius: 40px;
-	background: linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(252, 249, 244, 0.78));
+	border-radius: 28px;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(249, 251, 246, 0.78));
 	box-shadow: 0 28px 70px rgba(31, 36, 48, 0.1), 0 1px 0 rgba(255, 255, 255, 0.72) inset;
 	overflow: hidden;
 }
@@ -96,7 +98,7 @@
 .landing-stage-wordmark {
 	font-size: 1.55rem;
 	font-weight: 700;
-	letter-spacing: -0.055em;
+	letter-spacing: 0;
 	line-height: 1;
 }
 
@@ -107,6 +109,9 @@
 }
 
 .landing-window-nav-link {
+	border: 0;
+	background: transparent;
+	cursor: pointer;
 	padding: 0.72rem 0.95rem;
 	border-radius: 999px;
 	font-size: 0.74rem;
@@ -147,7 +152,7 @@
 .landing-stage-sticky {
 	position: relative;
 	display: grid;
-	grid-template-columns: minmax(11.6rem, 13.65rem) minmax(0, 1fr);
+	grid-template-columns: minmax(20rem, 23.5rem) minmax(0, 1fr);
 	gap: 0.88rem;
 	align-items: start;
 	height: 100%;
@@ -173,7 +178,7 @@
 	gap: 0.78rem;
 	height: 100%;
 	padding: 0.18rem 0.06rem 0.22rem 0.05rem;
-	max-width: 13.35rem;
+	max-width: 23.5rem;
 }
 
 .landing-sidebar-copy {
@@ -209,10 +214,10 @@
 
 .landing-display {
 	margin: 0;
-	font-size: clamp(2.04rem, 3.18vw, 3.2rem);
-	font-weight: 700;
-	letter-spacing: -0.065em;
-	line-height: 0.82;
+	font-size: 3.05rem;
+	font-weight: 680;
+	letter-spacing: 0;
+	line-height: 0.94;
 	text-wrap: balance;
 }
 
@@ -221,34 +226,122 @@
 .landing-rail-copy,
 .landing-rail-detail {
 	color: var(--landing-muted);
-	font-size: 0.8rem;
+	font-size: 0.92rem;
 	line-height: 1.5;
+}
+
+.landing-sidebar-kicker {
+	margin: 0;
+	max-width: 20rem;
+	color: var(--landing-soft);
+	font-family: var(--font-mono);
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.1em;
+	line-height: 1.55;
+	text-transform: uppercase;
+}
+
+.landing-process-summary {
+	display: grid;
+	gap: 0.68rem;
+	margin-top: 0.3rem;
+	padding-left: 0.85rem;
+	border-left: 1px solid rgba(31, 36, 48, 0.14);
+}
+
+.landing-process-summary-item {
+	min-width: 0;
+}
+
+.landing-process-summary-item strong,
+.landing-process-summary-item span {
+	display: block;
+}
+
+.landing-process-summary-item strong {
+	font-size: 0.86rem;
+	font-weight: 750;
+	line-height: 1.1;
+}
+
+.landing-process-summary-item span {
+	margin-top: 0.18rem;
+	color: var(--landing-muted);
+	font-size: 0.74rem;
+	line-height: 1.35;
+}
+
+.landing-process-rail {
+	display: grid;
+	gap: 0.1rem;
+	padding-top: 0.4rem;
+	border-top: 1px solid rgba(31, 36, 48, 0.1);
+}
+
+.landing-process-rail button {
+	position: relative;
+	display: grid;
+	grid-template-columns: 2.8rem 1fr;
+	align-items: center;
+	gap: 0.78rem;
+	min-width: 0;
+	padding: 0.5rem 0;
+	border: 0;
+	background: transparent;
+	color: var(--landing-muted);
+	cursor: pointer;
+	font-size: 0.86rem;
+	font-weight: 750;
+	line-height: 1.15;
+	text-align: left;
+	transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.landing-process-rail button:hover {
+	transform: translateX(2px);
+	color: var(--landing-text);
+}
+
+.landing-process-rail button::before {
+	content: "";
+	position: absolute;
+	left: 1.28rem;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: rgba(31, 36, 48, 0.1);
+}
+
+.landing-process-rail button:first-child::before {
+	top: 50%;
+}
+
+.landing-process-rail button:last-child::before {
+	bottom: 50%;
+}
+
+.landing-process-rail span {
+	position: relative;
+	z-index: 1;
+	display: block;
+	width: 2.65rem;
+	padding: 0.34rem 0;
+	border: 1px solid rgba(31, 36, 48, 0.12);
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.78);
+	font-family: var(--font-mono);
+	font-size: 0.6rem;
+	letter-spacing: 0.1em;
+	line-height: 1;
+	text-align: center;
+	text-transform: uppercase;
 }
 
 .landing-hero-actions {
 	display: grid;
 	grid-template-columns: 1fr;
 	gap: 0.6rem;
-}
-
-/* Stage progress pips */
-.landing-stage-pips {
-	display: flex;
-	align-items: center;
-	gap: 0.45rem;
-}
-
-.landing-stage-pips span {
-	width: 0.56rem;
-	height: 0.56rem;
-	border-radius: 999px;
-	background: rgba(31, 36, 48, 0.12);
-	transition: transform var(--transition-fast), background-color var(--transition-fast);
-}
-
-.landing-stage-pips span[data-active="true"] {
-	transform: scale(1.32);
-	background: var(--landing-accent);
 }
 
 /* Buttons */
@@ -434,7 +527,7 @@
 	margin: 0.45rem 0 0;
 	font-size: 0.98rem;
 	font-weight: 700;
-	letter-spacing: -0.04em;
+	letter-spacing: 0;
 	line-height: 1.12;
 }
 
@@ -914,7 +1007,7 @@
 	margin: 0;
 	font-size: 1.05rem;
 	font-weight: 700;
-	letter-spacing: -0.02em;
+	letter-spacing: 0;
 	line-height: 1.2;
 }
 
@@ -1518,7 +1611,7 @@
 .landing-richdoc-heading {
 	font-size: 1rem;
 	font-weight: 700;
-	letter-spacing: -0.02em;
+	letter-spacing: 0;
 	margin-bottom: 0.7rem;
 	padding-bottom: 0.5rem;
 	border-bottom: 2px solid rgba(51, 71, 214, 0.2);
@@ -1912,7 +2005,7 @@
 	margin: 0;
 	font-size: 2rem;
 	font-weight: 700;
-	letter-spacing: -0.05em;
+	letter-spacing: 0;
 	line-height: 0.98;
 	text-wrap: balance;
 }
@@ -1969,18 +2062,22 @@
 .landing-rail-metric strong {
 	font-size: 1.05rem;
 	font-weight: 700;
-	letter-spacing: -0.03em;
+	letter-spacing: 0;
 }
 
 /* ===== RESPONSIVE ===== */
 
 @media (max-width: 1500px) {
 	.landing-stage-sticky {
-		grid-template-columns: minmax(10.9rem, 12.35rem) minmax(0, 1fr);
+		grid-template-columns: minmax(18.5rem, 20.5rem) minmax(0, 1fr);
 	}
 
 	.landing-sidebar-panel {
-		max-width: 12.15rem;
+		max-width: 20.5rem;
+	}
+
+	.landing-display {
+		font-size: 2.7rem;
 	}
 }
 
@@ -2012,6 +2109,20 @@
 		height: auto;
 	}
 
+	.landing-sidebar-copy {
+		max-width: 46rem;
+	}
+
+	.landing-sidebar-dock {
+		grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
+		align-items: start;
+	}
+
+	.landing-hero-actions {
+		grid-column: 1 / -1;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
 	.landing-canvas-shell {
 		width: 100%;
 		height: min(67vh, 40rem);
@@ -2037,7 +2148,11 @@
 	}
 
 	.landing-display {
-		font-size: clamp(2.6rem, 14vw, 4rem);
+		font-size: 3rem;
+	}
+
+	.landing-sidebar-dock {
+		grid-template-columns: 1fr;
 	}
 
 	.landing-canvas-shell {
@@ -2076,12 +2191,32 @@
 	}
 
 	.landing-hero-actions {
-		flex-direction: column;
+		order: -1;
+		grid-template-columns: 1fr;
 	}
 
 	.landing-button,
 	.landing-waitlist-submit {
 		width: 100%;
+	}
+
+	.landing-display {
+		font-size: 2.48rem;
+	}
+
+	.landing-process-summary {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.5rem;
+		padding-left: 0;
+		border-left: 0;
+	}
+
+	.landing-process-summary-item strong {
+		font-size: 0.78rem;
+	}
+
+	.landing-process-summary-item span {
+		font-size: 0.6rem;
 	}
 
 	.landing-canvas-shell {

@@ -9,9 +9,9 @@
 
 import { useCallback, useState } from 'react';
 import type { CanvasTourNavigationActions, CanvasTourNavigationState } from './canvas-tour-types';
-import type { CanvasSceneSnapshot, TourTool } from './useCanvasTourSceneController';
+import type { CanvasSceneSnapshot, TourTool } from './tour-types';
 
-export interface UseCanvasTourNavigationResult
+interface UseCanvasTourNavigationResult
 	extends CanvasTourNavigationState,
 		CanvasTourNavigationActions {
 	setActiveTool: React.Dispatch<React.SetStateAction<TourTool>>;
@@ -22,23 +22,6 @@ interface UseCanvasTourNavigationArgs {
 	initialGridVisible?: boolean;
 	initialActiveTool?: TourTool;
 	initialRegistryOpen?: boolean;
-}
-
-export interface UseCanvasTourNavigationReturn {
-	isGuideMode: boolean;
-	isGridVisible: boolean;
-	activeTool: TourTool;
-	surfaceEpoch: number;
-	isRegistryOpen: boolean;
-	resetDemo: () => void;
-	enterGuideMode: (getCurrentSceneSnapshot: () => CanvasSceneSnapshot) => void;
-	enterExploreMode: (
-		getCurrentSceneSnapshot: () => CanvasSceneSnapshot,
-		getExploreSessionSnapshot: () => CanvasSceneSnapshot | null,
-	) => void;
-	setIsGridVisible: React.Dispatch<React.SetStateAction<boolean>>;
-	setActiveTool: React.Dispatch<React.SetStateAction<TourTool>>;
-	setIsRegistryOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 export function useCanvasTourNavigation({

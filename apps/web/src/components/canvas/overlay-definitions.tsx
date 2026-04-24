@@ -32,12 +32,55 @@ export type {
 	OverlayUpdatePayloadMap,
 } from './overlay-definition-types';
 
+type MarkdownElementStyle = NonNullable<OverlayCustomDataMap['markdown']> extends never
+	? never
+	: NonNullable<
+			Parameters<OverlayDefinition<'markdown'>['applyUpdate']>[1]['elementStyle']
+	  >;
+
 function serializeNewLexComments(value: NewLexOverlayCustomData['comments']) {
 	return JSON.stringify(value ?? []);
 }
 
 function hasSerializedChange(current: unknown, next: unknown) {
 	return JSON.stringify(current) !== JSON.stringify(next);
+}
+
+function hasMarkdownElementStyleChange(
+	element: TypedOverlayCanvasElement<MarkdownOverlayCustomData>,
+	elementStyle?: MarkdownElementStyle,
+): boolean {
+	if (!elementStyle) {
+		return false;
+	}
+
+	return (
+		(elementStyle.backgroundColor !== undefined &&
+			elementStyle.backgroundColor !== element.backgroundColor) ||
+		(elementStyle.strokeColor !== undefined &&
+			elementStyle.strokeColor !== element.strokeColor) ||
+		(elementStyle.strokeWidth !== undefined && elementStyle.strokeWidth !== element.strokeWidth) ||
+		(elementStyle.roundness !== undefined && elementStyle.roundness !== element.roundness)
+	);
+}
+
+function applyMarkdownElementStyle(
+	element: TypedOverlayCanvasElement<MarkdownOverlayCustomData>,
+	elementStyle?: MarkdownElementStyle,
+) {
+	if (!elementStyle) {
+		return element;
+	}
+
+	return {
+		...element,
+		...(elementStyle.backgroundColor !== undefined
+			? { backgroundColor: elementStyle.backgroundColor }
+			: {}),
+		...(elementStyle.strokeColor !== undefined ? { strokeColor: elementStyle.strokeColor } : {}),
+		...(elementStyle.strokeWidth !== undefined ? { strokeWidth: elementStyle.strokeWidth } : {}),
+		...(elementStyle.roundness !== undefined ? { roundness: elementStyle.roundness } : {}),
+	};
 }
 
 const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
@@ -73,34 +116,17 @@ const overlayDefinitions: { [K in OverlayType]: OverlayDefinition<K> } = {
 				editorMode: payload.editorMode ?? current.editorMode,
 			});
 			const didCustomDataChange = hasSerializedChange(current, nextCustomData);
-			const didElementStyleChange =
-				(payload.elementStyle?.backgroundColor !== undefined &&
-					payload.elementStyle.backgroundColor !== element.backgroundColor) ||
-				(payload.elementStyle?.strokeColor !== undefined &&
-					payload.elementStyle.strokeColor !== element.strokeColor) ||
-				(payload.elementStyle?.strokeWidth !== undefined &&
-					payload.elementStyle.strokeWidth !== element.strokeWidth) ||
-				(payload.elementStyle?.roundness !== undefined &&
-					payload.elementStyle.roundness !== element.roundness);
+			const didElementStyleChange = hasMarkdownElementStyleChange(
+				element,
+				payload.elementStyle,
+			);
 
 			if (!didCustomDataChange && !didElementStyleChange) {
 				return element as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 			}
 
 			return bumpElementVersion({
-				...element,
-				...(payload.elementStyle?.backgroundColor !== undefined
-					? { backgroundColor: payload.elementStyle.backgroundColor }
-					: {}),
-				...(payload.elementStyle?.strokeColor !== undefined
-					? { strokeColor: payload.elementStyle.strokeColor }
-					: {}),
-				...(payload.elementStyle?.strokeWidth !== undefined
-					? { strokeWidth: payload.elementStyle.strokeWidth }
-					: {}),
-				...(payload.elementStyle?.roundness !== undefined
-					? { roundness: payload.elementStyle.roundness }
-					: {}),
+				...applyMarkdownElementStyle(element, payload.elementStyle),
 				customData: nextCustomData,
 			}) as TypedOverlayCanvasElement<MarkdownOverlayCustomData>;
 		},

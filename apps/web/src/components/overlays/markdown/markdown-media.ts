@@ -1,11 +1,7 @@
+import { compressImageDataUrl } from '@/lib/image-compression';
 import type React from 'react';
 import { defaultUrlTransform } from 'react-markdown';
-
-const MAX_IMAGE_SIDE = 1600;
-const JPEG_QUALITY = 0.82;
-const COMPRESS_THRESHOLD = 80 * 1024;
-
-export const MARKDOWN_IMAGE_SCHEME = 'image://';
+import { MARKDOWN_IMAGE_SCHEME } from './markdown-utils';
 
 const objectUrlCache = new Map<string, string>();
 
@@ -105,43 +101,6 @@ function insertMarkdownAtCursor(
 	});
 }
 
-export async function compressImageDataUrl(dataUrl: string): Promise<string> {
-	if (dataUrl.length < COMPRESS_THRESHOLD) return dataUrl;
-
-	return new Promise((resolve) => {
-		const image = new Image();
-		image.onload = () => {
-			let { width, height } = image;
-			if (width > MAX_IMAGE_SIDE || height > MAX_IMAGE_SIDE) {
-				const ratio = Math.min(MAX_IMAGE_SIDE / width, MAX_IMAGE_SIDE / height);
-				width = Math.round(width * ratio);
-				height = Math.round(height * ratio);
-			}
-
-			const canvas = document.createElement('canvas');
-			canvas.width = width;
-			canvas.height = height;
-			const ctx = canvas.getContext('2d');
-			if (!ctx) {
-				resolve(dataUrl);
-				return;
-			}
-
-			ctx.drawImage(image, 0, 0, width, height);
-			const webp = canvas.toDataURL('image/webp', 0.85);
-			if (webp.startsWith('data:image/webp') && webp.length < dataUrl.length) {
-				resolve(webp);
-				return;
-			}
-
-			const jpeg = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-			resolve(jpeg.length < dataUrl.length ? jpeg : dataUrl);
-		};
-		image.onerror = () => resolve(dataUrl);
-		image.src = dataUrl;
-	});
-}
-
 export function prewarmImageCache(images: Record<string, string>) {
 	for (const dataUrl of Object.values(images)) {
 		if (objectUrlCache.has(dataUrl)) continue;
@@ -193,7 +152,7 @@ export function markdownUrlTransform(url: string) {
 	return defaultUrlTransform(trimmed);
 }
 
-export interface HandleMarkdownImagePasteOptions {
+interface HandleMarkdownImagePasteOptions {
 	event: React.ClipboardEvent<HTMLTextAreaElement>;
 	value: string;
 	onChange: (nextValue: string) => void;

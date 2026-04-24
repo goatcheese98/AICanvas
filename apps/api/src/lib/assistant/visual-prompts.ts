@@ -25,6 +25,7 @@ const BASE_BACKGROUND_RULES = [
 const BASE_RENDER_RULES = [
 	'MANDATORY rendering rules:',
 	'- crisp silhouette and edges with high subject/background separation',
+	'- preserve the subject in color unless the user explicitly asks for monochrome, grayscale, black-and-white, or silhouette-only treatment',
 	'- avoid anti-aliased matte or fringe around subject edges',
 	'- avoid noisy filler details, repetitive decorative microtextures, and incidental background motifs',
 	'- no signature, watermark, caption, label, or text',
@@ -64,6 +65,9 @@ export function buildCanvasSafeImagePrompt(input: BuildCanvasSafeImagePromptInpu
 		lines.push('Image-specific rules:');
 		lines.push(
 			'- deliver a clean standalone subject for direct canvas placement and later vectorization',
+		);
+		lines.push(
+			'- render the subject in full color with a deliberate palette that matches the request rather than defaulting to grayscale or black ink',
 		);
 		lines.push('- keep empty white margins around the subject');
 	}

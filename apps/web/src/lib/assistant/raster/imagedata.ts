@@ -173,7 +173,7 @@ function mergeSimilarCenters(
 
 // ─── Main ImageData Function ────────────────────────────────────────────────────
 
-export interface ImageDataVectorizeOptions {
+interface ImageDataVectorizeOptions {
 	maxColors: number;
 	colorMergeThreshold: number;
 	bgLuminanceThreshold: number;
@@ -186,7 +186,7 @@ export interface ImageDataVectorizeOptions {
 	minPointCount: number;
 }
 
-export function vectorizeImageDataToSvg(
+export function vectorizeImageDataToSvgInternal(
 	imageData: ImageData,
 	options: ImageDataVectorizeOptions,
 ): string {

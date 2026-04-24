@@ -80,6 +80,7 @@ describe('ImageComponent', () => {
 				height={80}
 				maxWidth={320}
 				nodeKey="node-1"
+				onResize={() => {}}
 				resizable
 				src="https://example.com/image.png"
 				width={120}

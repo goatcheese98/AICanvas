@@ -4,15 +4,10 @@ import { useAuth } from '@clerk/clerk-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { startTransition, useDeferredValue, useMemo, useState } from 'react';
+import type { CanvasFormState } from './canvas-library-types';
 import { validateCanvasForm } from './canvas-library-utils';
 import type { DashboardSortOption } from './dashboard-utils';
 import { filterAndSortCanvases } from './dashboard-utils';
-
-export interface CanvasFormState {
-	title: string;
-	description: string;
-	isPublic: boolean;
-}
 
 const DEFAULT_CREATE_FORM: CanvasFormState = {
 	title: '',

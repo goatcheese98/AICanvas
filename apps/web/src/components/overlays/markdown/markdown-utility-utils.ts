@@ -1,5 +1,22 @@
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
-import { NOTE_EDGE_OPTIONS } from './markdown-note-helpers';
+
+const NOTE_EDGE_OPTIONS = [
+	{
+		id: 'square',
+		label: 'Square',
+		roundness: null,
+	},
+	{
+		id: 'rounded',
+		label: 'Rounded',
+		roundness: { type: 3, value: 18 } as const,
+	},
+	{
+		id: 'pill',
+		label: 'Pill',
+		roundness: { type: 1 } as const,
+	},
+] as const;
 
 export function getRoundnessOptionId(
 	roundness: ExcalidrawElement['roundness'] | undefined,

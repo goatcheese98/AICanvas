@@ -1,5 +1,5 @@
-import type { ArtifactCardProps } from '../AIChatArtifactCard';
 import { CodeSnippet } from '../AIChatArtifactPrimitives';
+import type { ArtifactCardProps } from './artifact-card-types';
 
 export function PrototypeArtifactCard({ artifact, insertionState }: ArtifactCardProps) {
 	return (

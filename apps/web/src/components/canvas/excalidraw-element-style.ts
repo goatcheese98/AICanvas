@@ -58,7 +58,7 @@ function parseRgb(input: string): { r: number; g: number; b: number; a?: number 
 	return { r, g, b, a };
 }
 
-export function applyColorOpacity(color: string | undefined, alpha: number): string {
+function applyColorOpacity(color: string | undefined, alpha: number): string {
 	if (!color || color === 'transparent') return 'transparent';
 	const normalizedAlpha = clamp(alpha, 0, 1);
 	const hex = parseHex(color);
@@ -143,7 +143,7 @@ export function getExcalidrawFontFamily(fontFamily?: number): string | undefined
 	}
 }
 
-export function getExcalidrawFontFamilyById(fontId?: string): string | undefined {
+function getExcalidrawFontFamilyById(fontId?: string): string | undefined {
 	const option = EXCALIDRAW_FONT_OPTIONS.find((candidate) => candidate.id === fontId);
 	return option ? getExcalidrawFontFamily(option.family) : undefined;
 }

@@ -1,3 +1,4 @@
+import { createStarterKanbanColumns } from '@ai-canvas/shared/schemas';
 import type { KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
@@ -8,7 +9,6 @@ import type {
 import {
 	createKanbanCard,
 	createKanbanColumn,
-	createStarterKanbanColumns,
 	normalizeKanbanBoard,
 	pushKanbanHistory,
 } from './kanban-utils';

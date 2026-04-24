@@ -2,7 +2,13 @@
  * Selected context building for assistant context
  */
 
-import { summarizeKanbanOverlay } from '@ai-canvas/shared/schemas';
+import {
+	normalizeKanbanOverlay,
+	normalizeMarkdownOverlay,
+	normalizePrototypeOverlay,
+	normalizeWebEmbedOverlay,
+	summarizeKanbanOverlay,
+} from '@ai-canvas/shared/schemas';
 import type {
 	AssistantCanvasElementSummary,
 	AssistantSelectedContext,
@@ -19,18 +25,14 @@ import {
 	getElementType,
 	getOverlayLikeType,
 	getOverlayType,
-	normalizeKanbanOverlay,
-	normalizeMarkdownOverlay,
-	normalizePrototypeOverlay,
 	normalizeText,
-	normalizeWebEmbedOverlay,
 	parseGeneratedDiagramMetadata,
 	toObjectRecord,
 } from './element-parsers';
 import { buildBounds, buildStyleHints } from './geometry';
 
 /** Get context kind from element */
-export function getContextKind(element: CanvasElement): AssistantSelectedContext['kind'] {
+function getContextKind(element: CanvasElement): AssistantSelectedContext['kind'] {
 	const overlayType = getOverlayType(element);
 	if (overlayType === 'markdown') return 'markdown';
 	if (overlayType === 'kanban') return 'kanban';
@@ -79,7 +81,7 @@ export function buildElementSummary(
 }
 
 /** Build generic context payload for non-specialized elements */
-export function buildGenericContextPayload(element: CanvasElement) {
+function buildGenericContextPayload(element: CanvasElement) {
 	const customData = toObjectRecord(element.customData);
 	const text = buildElementTextExcerpt(element);
 	return {

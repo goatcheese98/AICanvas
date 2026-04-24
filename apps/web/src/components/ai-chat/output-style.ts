@@ -1,6 +1,6 @@
 import type { GenerationMode } from '@ai-canvas/shared/types';
 
-export type AssistantOutputStyle = 'auto' | 'raster' | 'vector-sketch' | 'svg';
+type AssistantOutputStyle = 'auto' | 'raster' | 'vector-sketch' | 'svg';
 
 export function outputStyleToModeHint(
 	outputStyle: AssistantOutputStyle,

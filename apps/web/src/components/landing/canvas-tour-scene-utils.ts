@@ -9,7 +9,6 @@ import type {
 	TourBindableNode,
 	TourCardConfig,
 	TourLooseShapeConfig,
-	TourNodeKey,
 	TourTextConfig,
 } from './canvas-tour-scene-types';
 
@@ -106,7 +105,7 @@ export function createLooseShape({
 	return shape;
 }
 
-export function createCanvasImageElement(input: {
+export function createTourCanvasImageElement(input: {
 	fileId: BinaryFileData['id'];
 	x: number;
 	y: number;
@@ -180,7 +179,7 @@ export function createFreeText({
 	} as ExcalidrawElement;
 }
 
-export function createBoundCard({
+function createBoundCard({
 	id,
 	x,
 	y,
@@ -361,48 +360,4 @@ export function createCardFromConfig(config: TourCardConfig): TourBindableNode {
 		minWidth: width,
 		minHeight: height,
 	});
-}
-
-export function createSceneNodes(
-	cards: Record<Exclude<TourNodeKey, 'studyNote' | 'checklistNote'>, TourCardConfig>,
-	notes: Record<
-		'studyNote' | 'checklistNote',
-		{
-			left: number;
-			top: number;
-			width: number;
-			height: number;
-			backgroundColor: string;
-			strokeColor: string;
-			strokeWidth: number;
-			roundness: ExcalidrawElement['roundness'];
-			customData: Record<string, unknown>;
-		}
-	>,
-): Record<TourNodeKey, TourBindableNode> {
-	return {
-		attention: createCardFromConfig(cards.attention),
-		prompt: createCardFromConfig(cards.prompt),
-		hallucination: createCardFromConfig(cards.hallucination),
-		ragPipeline: createCardFromConfig(cards.ragPipeline),
-		question: createCardFromConfig(cards.question),
-		retriever: createCardFromConfig(cards.retriever),
-		generator: createCardFromConfig(cards.generator),
-		studyNote: createOverlayElement({
-			type: 'markdown',
-			...notes.studyNote,
-			left: notes.studyNote.left,
-			top: notes.studyNote.top,
-			width: notes.studyNote.width,
-			height: notes.studyNote.height,
-		}),
-		checklistNote: createOverlayElement({
-			type: 'markdown',
-			...notes.checklistNote,
-			left: notes.checklistNote.left,
-			top: notes.checklistNote.top,
-			width: notes.checklistNote.width,
-			height: notes.checklistNote.height,
-		}),
-	};
 }

@@ -16,6 +16,7 @@ import {
 	TextColorDropdown,
 } from './LexicalToolbarDropdowns';
 import { BlockTypeSelect, CodeLanguageSelect } from './LexicalToolbarSelects';
+import { NOTE_FONT_STACK } from './lexical-note-helpers';
 import {
 	AlignCenterIcon,
 	AlignLeftIcon,
@@ -30,7 +31,6 @@ import {
 	UndoIcon,
 	WordCountIcon,
 } from './lexical-toolbar-icons';
-import { NOTE_FONT_STACK } from './lexical-toolbar-types';
 import type { LexicalToolbarProps } from './lexical-toolbar-types';
 import { getButtonStyle, getDividerStyle, getToolbarContainerStyle } from './lexical-toolbar-utils';
 import { useLexicalToolbarState } from './useLexicalToolbarState';

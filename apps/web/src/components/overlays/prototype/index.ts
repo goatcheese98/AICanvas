@@ -3,8 +3,3 @@
 // See: apps/web/src/routes/_app/canvas.$id.prototype.$prototypeId.tsx
 
 export { PrototypeStudioEditor } from './PrototypeStudioEditor';
-export {
-	applyPrototypeStudioCommand,
-	applyPrototypeStudioCommands,
-	listPrototypeFiles,
-} from './prototype-control';

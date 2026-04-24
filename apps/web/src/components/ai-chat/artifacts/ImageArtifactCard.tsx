@@ -1,9 +1,9 @@
 import { parseStoredAssistantAssetContent } from '@ai-canvas/shared/schemas';
-import type { ArtifactCardProps } from '../AIChatArtifactCard';
 import { CodeSnippet } from '../AIChatArtifactPrimitives';
 import { PANEL_BUTTON, PANEL_BUTTON_DANGER, PANEL_BUTTON_IDLE } from '../ai-chat-constants';
 import { describeAssistantArtifact } from '../assistant-artifacts';
 import { StoredAssetPreview } from './StoredAssetPreview';
+import type { ArtifactCardProps } from './artifact-card-types';
 
 export function ImageArtifactCard({
 	artifact,

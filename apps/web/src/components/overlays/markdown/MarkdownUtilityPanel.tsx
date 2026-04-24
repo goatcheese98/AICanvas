@@ -6,7 +6,7 @@ import { MarkdownStylePanel } from './MarkdownStylePanel';
 import { NOTE_TOOL_BUTTON, NOTE_TOOL_IDLE } from './markdown-note-helpers';
 import { useMarkdownUtilityPanelState } from './useMarkdownUtilityPanelState';
 
-export interface MarkdownUtilityPanelProps {
+interface MarkdownUtilityPanelProps {
 	layout: 'icon' | 'full';
 	isSelected: boolean;
 	activeUtilityPanel: 'none' | 'style' | 'image';

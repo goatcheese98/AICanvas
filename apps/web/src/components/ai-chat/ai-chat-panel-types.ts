@@ -71,7 +71,7 @@ export interface AIChatEmptyStateProps {
 /**
  * UI State for AIChatPanel.
  */
-export interface AIChatPanelUIState {
+interface AIChatPanelUIState {
 	input: string;
 	setInput: (value: string) => void;
 	isHistoryCollapsed: boolean;

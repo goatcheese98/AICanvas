@@ -6,7 +6,7 @@ import type {
 import { extractCodeBlock } from './parsing';
 import type { AssistantServiceInput } from './types';
 
-export function sanitizeHistoryMessages(
+function sanitizeHistoryMessages(
 	history: AssistantServiceInput['history'],
 ): AssistantMessage[] {
 	if (!Array.isArray(history)) {

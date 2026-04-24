@@ -27,6 +27,7 @@ vi.mock('@/stores/store', () => ({
 			appState: null,
 			files: {},
 			setPersistenceState: vi.fn(),
+			setRemoteSaving: vi.fn(),
 			addToast: vi.fn(),
 		};
 		return selector(store);
@@ -128,6 +129,7 @@ describe('useCanvasContainerState', () => {
 
 		expect(result.current).toHaveProperty('collaboration');
 		expect(result.current).toHaveProperty('handleSaveNeeded');
+		expect(result.current).toHaveProperty('saveCanvasNow');
 		expect(result.current).toHaveProperty('normalizeSceneChange');
 		expect(result.current).toHaveProperty('isInitialized');
 		expect(result.current).toHaveProperty('canvasQueryData');
@@ -150,6 +152,7 @@ describe('useCanvasContainerState', () => {
 		});
 
 		expect(typeof result.current.handleSaveNeeded).toBe('function');
+		expect(typeof result.current.saveCanvasNow).toBe('function');
 		expect(typeof result.current.normalizeSceneChange).toBe('function');
 	});
 

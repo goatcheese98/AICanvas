@@ -1,3 +1,4 @@
+// fallow-ignore-file duplicate-exports
 import {
 	cloneExcalidrawAppState,
 	updateSceneAndSyncAppStore,
@@ -17,22 +18,11 @@ import type {
 import { useCallback, useRef, useState } from 'react';
 import { useTourCamera, useTourSceneCapture, useTourToolManager } from './hooks';
 import {
-	type ApplySceneSnapshotOptions,
 	type CameraTarget,
-	type CanvasSceneSnapshot,
 	type CanvasTourDefaultScene,
 	type TourTool,
 	getTourTool,
 } from './tour-types';
-
-export type {
-	ApplySceneSnapshotOptions,
-	CameraTarget,
-	CanvasSceneSnapshot,
-	CanvasTourDefaultScene,
-	TourTool,
-};
-export { getTourTool };
 
 interface UseCanvasTourSceneControllerArgs {
 	imageId: BinaryFileData['id'];

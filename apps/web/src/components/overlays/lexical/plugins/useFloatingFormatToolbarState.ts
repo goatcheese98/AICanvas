@@ -9,14 +9,13 @@ import {
 	type TextFormatType,
 } from 'lexical';
 import { useCallback, useRef, useState } from 'react';
+import { ACCENT_TEXT, TEXT_COLORS } from '../lexical-toolbar-types';
+import { requestLinkUrl } from '../lexical-toolbar-utils';
 import {
 	ACCENT_BG,
-	ACCENT_TEXT,
-	TEXT_COLORS,
 	computePosition,
 	getSelectionRect,
 	isValidSelection,
-	requestLinkUrl,
 } from './floating-toolbar-utils';
 
 export interface ToolbarFormatState {
@@ -30,12 +29,12 @@ export interface ToolbarFormatState {
 	textColor: string;
 }
 
-export interface ToolbarPosition {
+interface ToolbarPosition {
 	top: number;
 	left: number;
 }
 
-export interface UseFloatingFormatToolbarStateReturn {
+interface UseFloatingFormatToolbarStateReturn {
 	// State
 	formatState: ToolbarFormatState;
 	isVisible: boolean;

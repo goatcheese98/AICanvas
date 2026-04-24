@@ -1,7 +1,4 @@
-import {
-	createStarterKanbanColumns as createSharedStarterKanbanColumns,
-	normalizeKanbanOverlay,
-} from '@ai-canvas/shared/schemas';
+import { normalizeKanbanOverlay } from '@ai-canvas/shared/schemas';
 import type { KanbanCard, KanbanColumn, KanbanOverlayCustomData } from '@ai-canvas/shared/types';
 
 const MAX_HISTORY_ENTRIES = 100;
@@ -12,10 +9,6 @@ interface CardWithId {
 
 interface ColumnWithId {
 	id: string;
-}
-
-export function createStarterKanbanColumns(): KanbanColumn[] {
-	return createSharedStarterKanbanColumns();
 }
 
 export function createKanbanCard(): KanbanCard {

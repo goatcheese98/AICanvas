@@ -36,7 +36,7 @@ function perpendicularDistance(point: Point, lineStart: Point, lineEnd: Point): 
  * @param epsilon - Distance threshold for point removal
  * @returns Simplified array of points
  */
-export function rdp(points: Point[], epsilon: number): Point[] {
+function rdp(points: Point[], epsilon: number): Point[] {
 	if (points.length < 3) {
 		return points;
 	}

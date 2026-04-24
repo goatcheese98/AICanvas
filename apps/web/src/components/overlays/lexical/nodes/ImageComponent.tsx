@@ -1,10 +1,10 @@
+// fallow-ignore-file circular-dependencies
 import './ImageNode.css';
 import { useMountEffect } from '@/hooks/useMountEffect';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import { useLexicalNodeSelection } from '@lexical/react/useLexicalNodeSelection';
 import { mergeRegister } from '@lexical/utils';
 import {
-	$getNodeByKey,
 	$getSelection,
 	$isNodeSelection,
 	COMMAND_PRIORITY_LOW,
@@ -12,7 +12,6 @@ import {
 	type NodeKey,
 } from 'lexical';
 import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
-import { $isImageNode } from './ImageNode';
 import { computeResizeDimensions, computeScale } from './imageResizeMath';
 
 type ImageStatus = { error: true } | { error: false; height: number; width: number };
@@ -68,6 +67,7 @@ export default function ImageComponent({
 	height,
 	maxWidth,
 	nodeKey,
+	onResize,
 	resizable,
 	src,
 	width,
@@ -76,6 +76,7 @@ export default function ImageComponent({
 	height: 'inherit' | number;
 	maxWidth: number;
 	nodeKey: NodeKey;
+	onResize: (width: number, height: number) => void;
 	resizable: boolean;
 	src: string;
 	width: 'inherit' | number;
@@ -171,10 +172,7 @@ export default function ImageComponent({
 			const onUp = () => {
 				const finalWidth = Math.round(Number.parseFloat(img.style.width) || img.offsetWidth);
 				const finalHeight = Math.round(Number.parseFloat(img.style.height) || img.offsetHeight);
-				editor.update(() => {
-					const node = $getNodeByKey(nodeKey);
-					if ($isImageNode(node)) node.setWidthAndHeight(finalWidth, finalHeight);
-				});
+				editor.update(() => onResize(finalWidth, finalHeight));
 				clearResizeListeners();
 			};
 

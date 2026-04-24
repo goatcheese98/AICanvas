@@ -6,8 +6,8 @@ import { CanvasTourLayoutPanel } from './CanvasTourLayoutPanel';
 import { CanvasTourToolbar } from './CanvasTourToolbar';
 import { canvasTourChapters } from './canvas-tour-content';
 import { TOUR_IMAGE_FILE_ID, createCanvasTourScene } from './canvas-tour-scene';
+import type { ApplySceneSnapshotOptions } from './tour-types';
 import { useCanvasTourPageState } from './useCanvasTourPageState';
-import type { ApplySceneSnapshotOptions } from './useCanvasTourSceneController';
 import { useCanvasTourSceneController } from './useCanvasTourSceneController';
 import './canvas-tour.css';
 

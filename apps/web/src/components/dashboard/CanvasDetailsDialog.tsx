@@ -1,4 +1,4 @@
-import type { CanvasFormState } from './useCanvasLibraryState';
+import type { CanvasFormState } from './canvas-library-types';
 
 interface CanvasDetailsDialogProps {
 	title: string;

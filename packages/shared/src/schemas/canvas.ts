@@ -28,23 +28,23 @@ const canvasDescriptionSchema = z
 	.max(1000, 'Description must be 1000 characters or fewer.')
 	.transform((value) => (value.length > 0 ? value : undefined));
 
-export const createCanvasSchema = z.object({
+const createCanvasSchema = z.object({
 	title: canvasTitleSchema,
 	description: canvasDescriptionSchema.optional(),
 	isPublic: z.boolean().default(false),
 });
 
-export const updateCanvasSchema = z.object({
+const updateCanvasSchema = z.object({
 	title: canvasTitleSchema.optional(),
 	description: canvasDescriptionSchema.optional(),
 	isPublic: z.boolean().optional(),
 });
 
-export const canvasIdSchema = z.object({
+const canvasIdSchema = z.object({
 	id: z.string().min(1),
 });
 
-export const canvasListSchema = z.object({
+const canvasListSchema = z.object({
 	cursor: z.string().optional(),
 	limit: z.coerce.number().min(1).max(100).default(20),
 	search: z.string().trim().max(120).optional(),
@@ -146,9 +146,9 @@ export const heavyResourceRecordSchema = z.discriminatedUnion('resourceType', [
 ]);
 
 // Canvas blob data remains mostly opaque, but known overlay payloads are normalized.
-export const canvasDataSchema = z.object(canvasDataShape).superRefine(validateCanvasDataSize);
+const canvasDataSchema = z.object(canvasDataShape).superRefine(validateCanvasDataSize);
 
-export const saveCanvasSchema = z
+const saveCanvasSchema = z
 	.object({
 		...canvasDataShape,
 		expectedVersion: z.coerce.number().int().min(1),
@@ -174,5 +174,4 @@ export const canvasSchemas = {
 
 export type CreateCanvas = z.infer<typeof createCanvasSchema>;
 export type UpdateCanvas = z.infer<typeof updateCanvasSchema>;
-export type CanvasData = z.infer<typeof canvasDataSchema>;
 export type SaveCanvas = z.infer<typeof saveCanvasSchema>;

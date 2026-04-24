@@ -3,9 +3,9 @@ import { resolveAssistantContextMode } from './selection-context';
 
 type ModeHint = Extract<GenerationMode, 'image' | 'sketch' | 'svg'>;
 
-export type AIChatSlashCommandName = 'select' | 'selectall' | 'none' | 'raster' | 'vector' | 'svg';
+type AIChatSlashCommandName = 'select' | 'selectall' | 'none' | 'raster' | 'vector' | 'svg';
 
-export interface AIChatSlashCommandSpec {
+interface AIChatSlashCommandSpec {
 	name: AIChatSlashCommandName;
 	label: string;
 	description: string;
@@ -14,7 +14,7 @@ export interface AIChatSlashCommandSpec {
 	aliases?: string[];
 }
 
-export interface AIChatCommandMenuState {
+interface AIChatCommandMenuState {
 	query: string;
 	replaceStart: number;
 	replaceEnd: number;
@@ -22,7 +22,7 @@ export interface AIChatCommandMenuState {
 	suggestions: AIChatSlashCommandSpec[];
 }
 
-export interface ParsedAIChatCommandInput {
+interface ParsedAIChatCommandInput {
 	isSlashCommand: boolean;
 	command: AIChatSlashCommandName | null;
 	commands: AIChatSlashCommandSpec[];
@@ -31,7 +31,7 @@ export interface ParsedAIChatCommandInput {
 	modeHintOverride?: ModeHint;
 }
 
-export interface ResolvedAIChatRequest {
+interface ResolvedAIChatRequest {
 	command: AIChatSlashCommandName | null;
 	commands: AIChatSlashCommandSpec[];
 	prompt: string;
@@ -39,7 +39,7 @@ export interface ResolvedAIChatRequest {
 	modeHint?: ModeHint;
 }
 
-export const AI_CHAT_SLASH_COMMANDS: AIChatSlashCommandSpec[] = [
+const AI_CHAT_SLASH_COMMANDS: AIChatSlashCommandSpec[] = [
 	{
 		name: 'select',
 		label: 'Use selection',
@@ -183,10 +183,6 @@ export function getAIChatCommandMenuState(input: string): AIChatCommandMenuState
 		activeCommands: scanResult.commands,
 		suggestions,
 	};
-}
-
-export function getAIChatCommandSuggestions(input: string): AIChatSlashCommandSpec[] {
-	return getAIChatCommandMenuState(input)?.suggestions ?? [];
 }
 
 export function applyAIChatCommandSuggestion(

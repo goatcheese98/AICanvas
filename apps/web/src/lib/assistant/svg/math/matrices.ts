@@ -1,6 +1,4 @@
-import type { SvgPoint } from './points';
-
-export type SvgMatrix = [number, number, number, number, number, number];
+import type { SvgMatrix, SvgPoint } from './types';
 
 export const IDENTITY_MATRIX: SvgMatrix = [1, 0, 0, 1, 0, 0];
 

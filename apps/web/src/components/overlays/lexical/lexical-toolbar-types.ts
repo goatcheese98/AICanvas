@@ -28,26 +28,22 @@ export const BLOCK_OPTIONS: BlockOption[] = [
 	{ value: 'code', label: 'Code Block' },
 ];
 
-export const NOTE_FONT_STACK =
-	'"Segoe UI Variable", "SF Pro Text", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
 export const NOTE_MONO_STACK =
 	'"SFMono-Regular", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+export const NOTE_FONT_STACK =
+	'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 export const ACCENT_TEXT = '#4d55cc';
-export const ACCENT_BG = '#eef0ff';
+export const ACCENT_BG = '#eef2ff';
 
 export const TEXT_COLORS = [
 	'#000000',
 	'#374151',
-	'#6b7280',
-	'#9ca3af',
 	'#dc2626',
 	'#ea580c',
 	'#ca8a04',
 	'#16a34a',
 	'#2563eb',
 	'#7c3aed',
-	'#db2777',
-	'#0891b2',
 ];
 
 export const HIGHLIGHT_COLORS = [

@@ -15,7 +15,7 @@ const REMARK_PLUGINS = [remarkMath, remarkGfm];
 const REHYPE_PLUGINS = [rehypeRaw, rehypeKatex];
 
 // ===== Types =====
-export interface MarkdownRendererProps {
+interface MarkdownRendererProps {
 	content: string;
 	images?: Record<string, string>;
 	settings: MarkdownNoteSettings;

@@ -20,11 +20,11 @@ import {
 	loadRegisteredTourScenes,
 	persistRegisteredTourScenes,
 } from '../canvas-tour-registry';
-import type { CameraTarget, CanvasSceneSnapshot } from '../useCanvasTourSceneController';
+import type { CameraTarget, CanvasSceneSnapshot } from '../tour-types';
 
 export type CaptureMode = 'full' | 'camera' | 'elements';
 
-export interface CaptureResult {
+interface CaptureResult {
 	/** Whether capture was successful */
 	success: boolean;
 	/** Captured snapshot if successful */
@@ -33,7 +33,7 @@ export interface CaptureResult {
 	error?: string;
 }
 
-export interface RestoreResult {
+interface RestoreResult {
 	/** Whether restore was successful */
 	success: boolean;
 	/** Restored snapshot if found */
@@ -42,14 +42,14 @@ export interface RestoreResult {
 	error?: string;
 }
 
-export interface CompareResult {
+interface CompareResult {
 	/** Whether scenes are equal */
 	isEqual: boolean;
 	/** Which fields differ */
 	differences: ('elements' | 'camera' | 'overlay')[];
 }
 
-export interface UseTourCaptureArgs {
+interface UseTourCaptureArgs {
 	/** Current scene library from state */
 	sceneLibrary: RegisteredTourSceneLibrary | null;
 	/** Default elements for new scenes */
@@ -58,7 +58,7 @@ export interface UseTourCaptureArgs {
 	captureMode: CaptureMode;
 }
 
-export interface UseTourCaptureReturn {
+interface UseTourCaptureReturn {
 	/** Get registered scene by ID (from state, not storage) */
 	getRegisteredScene: (sceneId: string) => RegisteredTourSceneSnapshot | null;
 	/** Get default scene snapshot for a chapter */

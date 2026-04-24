@@ -28,7 +28,7 @@ export const useSyncExternalStore = reactUseSyncExternalStore;
  * );
  * ```
  */
-export function createSubscribe<T>(
+function createSubscribe<T>(
 	subscribe: (callback: () => void) => () => void,
 	getSnapshot: () => T,
 	getServerSnapshot?: () => T,

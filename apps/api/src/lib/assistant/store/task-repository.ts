@@ -92,7 +92,7 @@ export async function updateAssistantTaskRecord(
 	return getAssistantTaskRecord(db, userId, taskId);
 }
 
-export async function getAssistantTaskRecord(
+async function getAssistantTaskRecord(
 	db: Database,
 	userId: string,
 	taskId: string,

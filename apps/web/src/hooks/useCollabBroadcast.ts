@@ -9,7 +9,7 @@ import {
 } from './collaboration-session';
 import { useThrottledCallback } from './useThrottledCallback';
 
-export interface CollabBroadcast {
+interface CollabBroadcast {
 	broadcastCursor: (
 		pointer: { x: number; y: number },
 		button: 'down' | 'up',

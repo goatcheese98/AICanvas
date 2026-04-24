@@ -10,7 +10,7 @@ import type { CSSProperties } from 'react';
 import { OverlayExpandButton } from '../OverlayExpandButton';
 import { KanbanBoardHeader } from './KanbanBoardHeader';
 import { KanbanBoardSettingsPanel } from './KanbanBoardSettingsPanel';
-import { KanbanColumn as KanbanColumnView } from './KanbanColumn';
+import KanbanColumnView from './KanbanColumn';
 import { KanbanDeleteCardDialog } from './KanbanDeleteCardDialog';
 import { KanbanDeleteColumnDialog } from './KanbanDeleteColumnDialog';
 import { KanbanDeleteDropZone } from './KanbanDeleteDropZone';

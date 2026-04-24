@@ -22,7 +22,7 @@ const BUILT_IN_DEPENDENCIES = new Set([
 const SCRIPT_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'] as const;
 const RESOLVABLE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.css', '.json'] as const;
 
-export interface PrototypeRunDiagnostic {
+interface PrototypeRunDiagnostic {
 	source: 'model' | 'compile' | 'dependency';
 	message: string;
 	path?: string;
@@ -44,7 +44,7 @@ interface PrototypeRunFailure {
 	diagnostics: PrototypeRunDiagnostic[];
 }
 
-export type PrototypeRunResult = PrototypeRunSuccess | PrototypeRunFailure;
+type PrototypeRunResult = PrototypeRunSuccess | PrototypeRunFailure;
 
 function isScriptPath(path: string) {
 	return SCRIPT_EXTENSIONS.some((extension) => path.endsWith(extension));

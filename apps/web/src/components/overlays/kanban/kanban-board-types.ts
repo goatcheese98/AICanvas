@@ -23,8 +23,8 @@ export type UpdateKanbanBoard = (
 	options?: KanbanBoardMutationOptions,
 ) => void;
 
-export type KanbanColumnUpdater = (columnId: string, updates: Partial<KanbanColumn>) => void;
-export type KanbanCardUpdater = (
+type KanbanColumnUpdater = (columnId: string, updates: Partial<KanbanColumn>) => void;
+type KanbanCardUpdater = (
 	columnId: string,
 	cardId: string,
 	updates: Partial<KanbanCard>,

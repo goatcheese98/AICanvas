@@ -1,15 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { NOTE_FONT_STACK } from '../lexical-note-helpers';
+import { ACCENT_TEXT, TEXT_COLORS } from '../lexical-toolbar-types';
+import { requestLinkUrl } from '../lexical-toolbar-utils';
 import {
 	ACCENT_BG,
-	ACCENT_TEXT,
-	NOTE_FONT_STACK,
 	OFFSET_Y,
-	TEXT_COLORS,
 	TOOLBAR_HEIGHT,
 	computePosition,
 	getSelectionRect,
 	isValidSelection,
-	requestLinkUrl,
 } from './floating-toolbar-utils';
 
 describe('floating-toolbar-utils', () => {
