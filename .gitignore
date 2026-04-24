@@ -3,6 +3,8 @@ dist/
 .output/
 .turbo/
 .wrangler/
+.fallow/
+workers/partykit/.partykit/
 .dev.vars
 .env
 .env.local
