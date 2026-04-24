@@ -20,27 +20,27 @@ export const landingContent = {
 		name: 'RoopStudio',
 	},
 	scene: {
-		label: 'Start anywhere',
-		title: 'One canvas for rough ideas, research, plans, and polished work.',
+		label: 'AI Canvas',
+		title: 'RoopStudio AI Canvas',
 		description:
-			'Keep early fragments, source material, planning systems, and polished outputs in one board that evolves with the work.',
-		primaryLabel: 'Join waitlist',
+			'A visual workspace for turning raw material into shareable work without losing the trail of decisions.',
+		primaryLabel: 'Request access',
 		primaryHref: '#waitlist',
 		secondaryLabel: 'Sign in',
 		secondaryHref: '/login',
 	},
 	proof: [
 		{
-			value: '1 board',
-			label: 'from spark to ship',
+			value: 'Capture',
+			label: 'raw material lands on the board',
 		},
 		{
-			value: '5 views',
-			label: 'you can scroll through',
+			value: 'Connect',
+			label: 'research and decisions stay visible',
 		},
 		{
-			value: '0 handoff',
-			label: 'between thinking modes',
+			value: 'Compose',
+			label: 'outputs inherit the context',
 		},
 	],
 	waitlist: {
@@ -57,16 +57,16 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 		id: 'intro',
 		eyebrow: 'Welcome',
 		label: 'Your canvas',
-		title: 'One canvas for rough ideas, research, plans, and polished work.',
+		title: 'The board starts as a working surface',
 		description:
-			'Keep early fragments, source material, planning systems, and polished outputs in one board that evolves with the work.',
-		detail: 'Scroll to explore the journey from capture to delivery.',
+			'Start with the materials you already have, then let the canvas carry them through the rest of the project.',
+		detail: 'Scroll the board from raw inputs to final output.',
 		metricLabel: 'Start here',
-		metricValue: 'Your workspace awaits',
+		metricValue: 'One surface',
 		bullets: [
-			'From rough notes to polished outputs.',
-			'Everything stays visible and connected.',
-			'No handoffs between thinking modes.',
+			'Drop material before the structure is obvious.',
+			'Keep evidence beside the work it informs.',
+			'Move toward output without resetting context.',
 		],
 		camera: {
 			x: 350,
@@ -77,14 +77,14 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 	{
 		id: 'capture',
 		eyebrow: 'Chapter 01',
-		label: 'Rough ideas',
-		title: 'Capture fragments before they disappear',
+		label: 'Gather',
+		title: 'Gather the raw material',
 		description:
-			'Clip screenshots, paste links, drop quick notes, and leave loose stickies exactly where the thought first shows up.',
+			'Bring in screenshots, links, notes, clips, and loose thoughts before they are ready for a document.',
 		detail:
-			'The board stays forgiving early on, so you can collect without deciding the final structure too soon.',
+			'The board stays forgiving early, so the first pass can be messy without becoming disposable.',
 		metricLabel: 'Initial capture',
-		metricValue: 'Loose inputs, zero friction',
+		metricValue: 'Raw inputs',
 		bullets: [
 			'Pin notes, screenshots, and references beside each other.',
 			'Leave rough labels and sketches without breaking the flow.',
@@ -99,14 +99,14 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 	{
 		id: 'research',
 		eyebrow: 'Chapter 02',
-		label: 'Research lanes',
-		title: 'Build context next to the idea, not in another tool',
+		label: 'Synthesize',
+		title: 'Extract signal from the mess',
 		description:
-			'Turn scattered source material into a living research wall with clips, summaries, comparisons, and open questions.',
+			'Group sources, compare evidence, and keep open questions beside the work they are shaping.',
 		detail:
-			'Everything stays visible on the same surface, so insight gathering feels connected to the work it supports.',
+			'The research layer stays in frame, so insight gathering does not become a separate archive.',
 		metricLabel: 'Research surface',
-		metricValue: 'Evidence stays in frame',
+		metricValue: 'Signal wall',
 		bullets: [
 			'Create source cards with highlights and confidence levels.',
 			'Group reference material by theme, user need, or opportunity.',
@@ -121,14 +121,14 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 	{
 		id: 'plan',
 		eyebrow: 'Chapter 03',
-		label: 'Plans in motion',
-		title: 'Shape momentum with boards, timelines, and next steps',
+		label: 'Plan',
+		title: 'Turn signal into a path',
 		description:
-			'Once the signal is clear, convert clusters into a plan with priorities, owners, and milestones that still live on the same canvas.',
+			'Convert the useful patterns into priorities, sequencing, owners, and the next visible decisions.',
 		detail:
-			'You can move from discovery to execution without losing the thinking that informed the plan.',
+			'The plan is not detached from discovery; it sits beside the evidence that justifies it.',
 		metricLabel: 'Planning mode',
-		metricValue: 'Decisions stay connected',
+		metricValue: 'Decision path',
 		bullets: [
 			'Arrange work into columns, checkpoints, and launch criteria.',
 			'Map dependencies visually before turning them into tasks.',
@@ -143,14 +143,13 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 	{
 		id: 'polish',
 		eyebrow: 'Chapter 04',
-		label: 'Polished outputs',
-		title: 'Turn the same board into briefs, prototypes, and shareable work',
+		label: 'Compose',
+		title: 'Compose the output in context',
 		description:
-			'When the direction is ready, draft cleaner artifacts on the same surface so outputs inherit the context instead of starting from scratch.',
-		detail:
-			'The polished layer feels deliberate, but it still traces back to the messy work that made it better.',
+			'Draft briefs, specs, prototypes, and summaries on the same surface that holds the reasoning.',
+		detail: 'Finished work should still be traceable to the messy work that made it stronger.',
 		metricLabel: 'Output layer',
-		metricValue: 'From concept to delivery',
+		metricValue: 'Context-rich output',
 		bullets: [
 			'Open structured docs and interface panels directly on the canvas.',
 			'Reference research and decisions while writing the final brief.',
@@ -167,13 +166,13 @@ export const landingStoryChapters: LandingStoryChapter[] = [
 export const landingWaitlistChapter: LandingStoryChapter = {
 	id: 'waitlist',
 	eyebrow: 'Final step',
-	label: 'Join waitlist',
-	title: 'See the final invite card on the same board',
+	label: 'Request access',
+	title: 'Request early access',
 	description:
-		'The same canvas that holds the work can also hold the final call to action when you are ready to join.',
-	detail: 'Pan to the access card without leaving the demo frame.',
+		'Join the early release if this is the kind of workspace you want for real project work.',
+	detail: 'Pan to the access form without leaving the demo frame.',
 	metricLabel: 'Waitlist',
-	metricValue: 'Access inside the canvas',
+	metricValue: 'Early release',
 	bullets: [],
 	camera: {
 		x: -2300,

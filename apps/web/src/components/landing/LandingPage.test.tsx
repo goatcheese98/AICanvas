@@ -12,15 +12,13 @@ describe('LandingPage', () => {
 	it('renders the scrollytelling landing page with the sticky canvas story and waitlist form', () => {
 		render(<LandingPage />);
 
-		// Main hero heading in sidebar (may appear multiple times in cards)
-		const heroHeadings = screen.getAllByRole('heading', {
-			name: /one canvas for rough ideas, research, plans, and polished work/i,
-		});
-		expect(heroHeadings.length).toBeGreaterThan(0);
+		expect(screen.getByRole('heading', { name: /roopstudio ai canvas/i })).toBeTruthy();
 
 		expect(screen.getByRole('link', { name: /roopstudio/i })).toBeTruthy();
 		// Hero description text (may appear in multiple places)
-		expect(screen.getAllByText(/keep early fragments/i).length).toBeGreaterThan(0);
+		expect(screen.getAllByText(/visual workspace/i).length).toBeGreaterThan(0);
+		expect(screen.getByLabelText(/workflow summary/i)).toBeTruthy();
+		expect(screen.getByText(/outputs inherit the context/i)).toBeTruthy();
 		// Waitlist form elements
 		expect(screen.getByRole('form', { name: /landing waitlist form/i })).toBeTruthy();
 		expect(screen.getByLabelText(/work email/i)).toBeTruthy();
@@ -32,7 +30,7 @@ describe('LandingPage', () => {
 
 		const navigation = screen.getByRole('navigation', { name: /landing/i });
 
-		expect(screen.getByRole('link', { name: /join waitlist/i }).getAttribute('href')).toBe(
+		expect(screen.getByRole('link', { name: /request access/i }).getAttribute('href')).toBe(
 			'#waitlist',
 		);
 		expect(screen.getAllByRole('link', { name: /^sign in$/i })[0]?.getAttribute('href')).toBe(
@@ -40,5 +38,6 @@ describe('LandingPage', () => {
 		);
 		expect(within(navigation).getByRole('button', { name: /canvas story/i })).toBeTruthy();
 		expect(within(navigation).getByRole('button', { name: /^waitlist$/i })).toBeTruthy();
+		expect(screen.getByRole('button', { name: /01 gather/i })).toBeTruthy();
 	});
 });
