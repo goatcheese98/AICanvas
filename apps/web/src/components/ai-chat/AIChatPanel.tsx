@@ -19,7 +19,7 @@ import { useAutoResizeTextarea } from './useAutoResizeTextarea';
  * AIChatPanel - Main container component for AI chat functionality.
  *
  * Architecture:
- * - Container/Hook/Child pattern (see AGENTS.md)
+ * - Container/Hook/Child pattern
  * - This component orchestrates child components and hooks
  * - State is delegated to specialized hooks
  * - No direct useEffect - all side effects managed in hooks
